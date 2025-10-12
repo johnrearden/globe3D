@@ -6,14 +6,22 @@ const simplify = require('simplify-js');
 const { Document, NodeIO } = require('@gltf-transform/core');
 const { ALL_EXTENSIONS } = require('@gltf-transform/extensions');
 const { prune, dedup, draco } = require('@gltf-transform/functions');
+const draco3d = require('draco3dgltf');
 
 // Configuration
 const COUNTRIES_DIR = './node_modules/world-geojson/countries/';
 const OUTPUT_FILE = './assets/world.glb';
 const GLOBE_RADIUS = 1.0;
 const EXTRUSION_HEIGHT = 0.02;
-const SUBDIVISION_LEVEL = 1; // Balanced subdivision for smooth lighting with reasonable vertex count
-const SIMPLIFICATION_TOLERANCE = 0.002; // Balanced detail for coastlines while reducing vertex count
+const SUBDIVISION_LEVEL_DEFAULT = 0; // Default subdivision for small/medium countries
+const SUBDIVISION_LEVEL_LARGE = 1; // Higher subdivision for large countries to prevent dipping below sphere
+const SIMPLIFICATION_TOLERANCE = 0.006; // Increased to reduce vertex count (was 0.002)
+
+// Large countries that need higher subdivision to avoid dipping below the ocean sphere
+const LARGE_COUNTRIES = [
+    'russia', 'canada', 'china', 'usa', 'brazil', 'australia',
+    'india', 'argentina', 'kazakhstan', 'algeria'
+];
 
 // Helper: Convert lat/lng to 3D sphere coordinates
 function latLngToVector3(lat, lng, radius = GLOBE_RADIUS, height = 0) {
@@ -134,15 +142,31 @@ function createExtrudedGeometry(triangles, extrusionHeight) {
     return { positions, normals, indices };
 }
 
-// Helper: Generate random green color
+// Helper: Generate random darker primary/secondary color
 function generateRandomColor() {
-    // Generate shades of green with varying brightness
-    // Keep red and blue components low, vary green from 0.3 to 0.9
-    const greenBrightness = 0.3 + Math.random() * 0.6; // 0.3 to 0.9
-    const redComponent = 0.05 + Math.random() * 0.15; // 0.05 to 0.2 (slight variation)
-    const blueComponent = 0.05 + Math.random() * 0.15; // 0.05 to 0.2 (slight variation)
+    // Primary and secondary colors (red, blue, green, yellow, purple, orange, cyan, magenta)
+    // Keep colors darker (0.2-0.5 range) as lighting will brighten them
+    const colorPalettes = [
+        // Red variants
+        [0.5, 0.15, 0.15], [0.4, 0.1, 0.1], [0.45, 0.2, 0.15],
+        // Blue variants
+        [0.15, 0.2, 0.5], [0.1, 0.15, 0.4], [0.2, 0.25, 0.45],
+        // Green variants
+        [0.15, 0.5, 0.2], [0.1, 0.4, 0.15], [0.2, 0.45, 0.25],
+        // Yellow/Orange variants
+        [0.5, 0.4, 0.15], [0.45, 0.35, 0.1], [0.5, 0.3, 0.1],
+        // Purple/Magenta variants
+        [0.4, 0.15, 0.5], [0.45, 0.2, 0.45], [0.35, 0.1, 0.4],
+        // Cyan variants
+        [0.15, 0.4, 0.45], [0.1, 0.35, 0.4], [0.2, 0.45, 0.5],
+        // Teal variants
+        [0.15, 0.45, 0.4], [0.2, 0.4, 0.35],
+        // Brown/Earth tones
+        [0.4, 0.3, 0.2], [0.35, 0.25, 0.15]
+    ];
 
-    return [redComponent, greenBrightness, blueComponent];
+    // Pick a random color from the palette
+    return colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
 }
 
 // Process a single country
@@ -152,6 +176,11 @@ function processCountry(countryFile) {
 
     const geoJSON = JSON.parse(fs.readFileSync(countryFile, 'utf8'));
     const geometries = [];
+
+    // Determine subdivision level based on country size
+    const subdivisionLevel = LARGE_COUNTRIES.includes(countryName)
+        ? SUBDIVISION_LEVEL_LARGE
+        : SUBDIVISION_LEVEL_DEFAULT;
 
     // Generate a random color for this country
     const countryColor = generateRandomColor();
@@ -188,7 +217,7 @@ function processCountry(countryFile) {
             const subdividedTriangles = subdivideTriangles(
                 vertices3D,
                 triangleIndices,
-                SUBDIVISION_LEVEL,
+                subdivisionLevel,
                 GLOBE_RADIUS
             );
 
@@ -240,7 +269,8 @@ function processCountry(countryFile) {
     });
 
     const totalVertices = geometries.reduce((sum, g) => sum + g.positions.length / 3, 0);
-    console.log(`  ✓ ${countryName}: ${geometries.length} geometries, ${totalVertices} vertices`);
+    const subdivisionInfo = subdivisionLevel > 0 ? ` (subdivision: ${subdivisionLevel})` : '';
+    console.log(`  ✓ ${countryName}: ${geometries.length} geometries, ${totalVertices} vertices${subdivisionInfo}`);
 
     return { countryName, geometries, color: countryColor };
 }
@@ -337,17 +367,23 @@ async function buildGlobe() {
     console.log('\nApplying optimizations...');
     await doc.transform(
         prune(),
-        dedup()
-        // Draco compression disabled for now - complex encoder setup required
-        // File size will be larger but loading/parsing will be faster
-        // TODO: Re-enable with proper encoder setup if needed
-        // draco({ quantizePosition: 14, quantizeNormal: 10, quantizeColor: 8 })
+        dedup(),
+        // Draco compression for significant file size reduction
+        // Higher quantization = more compression but less precision
+        draco({
+            quantizePosition: 14,  // Position precision (14 bits is good for globe)
+            quantizeNormal: 10,    // Normal precision (10 bits sufficient for lighting)
+            quantizeColor: 8       // Color precision (8 bits = 256 values per channel)
+        })
     );
 
     // Write GLB file
     console.log(`\nWriting to ${OUTPUT_FILE}...`);
     const io = new NodeIO();
     io.registerExtensions(ALL_EXTENSIONS);
+    io.registerDependencies({
+        'draco3d.encoder': await draco3d.createEncoderModule()
+    });
 
     await io.write(OUTPUT_FILE, doc);
 
