@@ -150,25 +150,25 @@ function createExtrudedGeometry(triangles, extrusionHeight) {
 
 // Helper: Generate random darker primary/secondary color
 function generateRandomColor() {
-    // Primary and secondary colors (red, blue, green, yellow, purple, orange, cyan, magenta)
+    // Exclude red and blue - use green, yellow, orange, purple, cyan, teal, brown
     // Keep colors darker (0.2-0.5 range) as lighting will brighten them
     const colorPalettes = [
-        // Red variants
-        [0.5, 0.15, 0.15], [0.4, 0.1, 0.1], [0.45, 0.2, 0.15],
-        // Blue variants
-        [0.15, 0.2, 0.5], [0.1, 0.15, 0.4], [0.2, 0.25, 0.45],
         // Green variants
         [0.15, 0.5, 0.2], [0.1, 0.4, 0.15], [0.2, 0.45, 0.25],
-        // Yellow/Orange variants
-        [0.5, 0.4, 0.15], [0.45, 0.35, 0.1], [0.5, 0.3, 0.1],
-        // Purple/Magenta variants
-        [0.4, 0.15, 0.5], [0.45, 0.2, 0.45], [0.35, 0.1, 0.4],
+        [0.15, 0.45, 0.15], [0.2, 0.5, 0.15],
+        // Yellow variants
+        [0.5, 0.5, 0.15], [0.45, 0.45, 0.1], [0.5, 0.4, 0.1],
+        // Orange variants
+        [0.5, 0.35, 0.15], [0.45, 0.3, 0.1], [0.5, 0.3, 0.1],
+        // Purple variants (no red tones)
+        [0.3, 0.15, 0.5], [0.25, 0.1, 0.45], [0.35, 0.2, 0.5],
         // Cyan variants
         [0.15, 0.4, 0.45], [0.1, 0.35, 0.4], [0.2, 0.45, 0.5],
+        [0.15, 0.45, 0.5], [0.1, 0.4, 0.45],
         // Teal variants
-        [0.15, 0.45, 0.4], [0.2, 0.4, 0.35],
+        [0.15, 0.45, 0.4], [0.2, 0.4, 0.35], [0.15, 0.5, 0.45],
         // Brown/Earth tones
-        [0.4, 0.3, 0.2], [0.35, 0.25, 0.15]
+        [0.4, 0.3, 0.2], [0.35, 0.25, 0.15], [0.45, 0.35, 0.2]
     ];
 
     // Pick a random color from the palette

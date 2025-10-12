@@ -533,12 +533,18 @@
                 • Scroll to zoom
             </div>
             <div class="control-item" style="margin-top: 15px;">
-                <strong>Ocean Sphere Radius:</strong>
+                <strong>Inner Sphere Radius:</strong>
             </div>
             <div class="control-item">
-                <span id="sphere-radius-value">1.010</span>
+                <span id="sphere-radius-value">1.014</span>
                 <button id="sphere-radius-down" style="margin-left: 10px; padding: 2px 8px;">▼</button>
                 <button id="sphere-radius-up" style="padding: 2px 8px;">▲</button>
+            </div>
+            <div class="control-item">
+                <label for="sphere-toggle" style="width: auto;">
+                    <input type="checkbox" id="sphere-toggle" checked style="width: auto; margin-right: 5px;">
+                    Show Inner Sphere
+                </label>
             </div>
         </div>
         <div id="quiz-container">
@@ -880,15 +886,17 @@
             globe = new THREE.Group();
             scene.add(globe);
 
-            // Create base sphere (ocean/background)
-            // Radius is 1.01 (slightly less than extruded countries at 1.02) to avoid z-fighting
-            const sphereGeometry = new THREE.SphereGeometry(1.01, 64, 64);
-            const sphereMaterial = new THREE.MeshBasicMaterial({
-                color: 0x003366, // Deep blue
+            // Create base sphere (inner blocker)
+            // Radius is 1.014 (just below countries at 1.02) to block artifacts from inside
+            const sphereGeometry = new THREE.SphereGeometry(1.014, 64, 64);
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x001a33, // Dark blue ocean color
                 transparent: false,
                 opacity: 1.0,
-                side: THREE.FrontSide,
-                depthWrite: true
+                side: THREE.BackSide, // Render inside surface to block artifacts
+                depthWrite: true,
+                shininess: 30, // Moderate reflectivity
+                specular: 0x222222 // Subtle highlights
             });
             baseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
             globe.add(baseSphere);
@@ -1229,9 +1237,16 @@
             // Sphere radius controls
             document.getElementById('sphere-radius-up').addEventListener('click', increaseSphereRadius);
             document.getElementById('sphere-radius-down').addEventListener('click', decreaseSphereRadius);
+            document.getElementById('sphere-toggle').addEventListener('change', toggleSphere);
         }
 
-        let currentSphereRadius = 1.01;
+        let currentSphereRadius = 1.014;
+
+        function toggleSphere(event) {
+            if (baseSphere) {
+                baseSphere.visible = event.target.checked;
+            }
+        }
 
         function increaseSphereRadius() {
             currentSphereRadius += 0.001;
@@ -1256,12 +1271,14 @@
 
             // Create new sphere with updated radius
             const sphereGeometry = new THREE.SphereGeometry(currentSphereRadius, 64, 64);
-            const sphereMaterial = new THREE.MeshBasicMaterial({
-                color: 0x003366, // Deep blue
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x001a33, // Dark blue ocean color
                 transparent: false,
                 opacity: 1.0,
-                side: THREE.FrontSide,
-                depthWrite: true
+                side: THREE.BackSide, // Render inside surface to block artifacts
+                depthWrite: true,
+                shininess: 30, // Moderate reflectivity
+                specular: 0x222222 // Subtle highlights
             });
             baseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
             globe.add(baseSphere);
@@ -1306,7 +1323,7 @@
                 if (selectedSearchCountry && country.userData.name === selectedSearchCountry) {
                     // Keep selected search country highlighted
                     country.material.vertexColors = false;
-                    country.material.color.setHex(0xFFFFFF);
+                    country.material.color.setHex(0xFF0000);
                 } else {
                     country.material.vertexColors = true;
                     country.material.color.setHex(0xffffff);
@@ -1320,9 +1337,9 @@
             // Highlight hovered country (only use first intersection to prevent click-through)
             if (intersects.length > 0) {
                 const hoveredCountry = intersects[0].object;
-                // Highlight with white - disable vertex colors and set white
+                // Highlight with red - disable vertex colors and set red
                 hoveredCountry.material.vertexColors = false;
-                hoveredCountry.material.color.setHex(0xFFFFFF); // White
+                hoveredCountry.material.color.setHex(0xFF0000); // Red
                 hoveredCountry.material.needsUpdate = true;
                 document.body.style.cursor = 'pointer';
 
@@ -1628,10 +1645,10 @@
                 country.material.needsUpdate = true;
             });
 
-            // Highlight the quiz country with white
+            // Highlight the quiz country with red
             countryObj.meshRefs.forEach(mesh => {
                 mesh.material.vertexColors = false;
-                mesh.material.color.setHex(0xFFFFFF);
+                mesh.material.color.setHex(0xFF0000);
                 mesh.material.needsUpdate = true;
             });
 
@@ -2012,7 +2029,7 @@
 
                 // Highlight selected country
                 country.material.vertexColors = false;
-                country.material.color.setHex(0xFFFFFF);
+                country.material.color.setHex(0xFF0000);
                 country.material.needsUpdate = true;
 
                 // Rotate and tilt globe to center the country
