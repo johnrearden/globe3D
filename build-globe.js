@@ -15,11 +15,17 @@ const GLOBE_RADIUS = 1.0;
 const EXTRUSION_HEIGHT = 0.02;
 const SUBDIVISION_LEVEL_DEFAULT = 0; // Default subdivision for small/medium countries
 const SUBDIVISION_LEVEL_LARGE = 1; // Higher subdivision for large countries to prevent dipping below sphere
+const SUBDIVISION_LEVEL_VERY_LARGE = 2; // Highest subdivision for massive countries with long straight borders
 const SIMPLIFICATION_TOLERANCE = 0.006; // Increased to reduce vertex count (was 0.002)
+
+// Very large countries with extensive borders that need maximum subdivision
+const VERY_LARGE_COUNTRIES = [
+    'russia', 'canada'
+];
 
 // Large countries that need higher subdivision to avoid dipping below the ocean sphere
 const LARGE_COUNTRIES = [
-    'russia', 'canada', 'china', 'usa', 'brazil', 'australia',
+    'china', 'usa', 'brazil', 'australia',
     'india', 'argentina', 'kazakhstan', 'algeria'
 ];
 
@@ -178,9 +184,14 @@ function processCountry(countryFile) {
     const geometries = [];
 
     // Determine subdivision level based on country size
-    const subdivisionLevel = LARGE_COUNTRIES.includes(countryName)
-        ? SUBDIVISION_LEVEL_LARGE
-        : SUBDIVISION_LEVEL_DEFAULT;
+    let subdivisionLevel;
+    if (VERY_LARGE_COUNTRIES.includes(countryName)) {
+        subdivisionLevel = SUBDIVISION_LEVEL_VERY_LARGE;
+    } else if (LARGE_COUNTRIES.includes(countryName)) {
+        subdivisionLevel = SUBDIVISION_LEVEL_LARGE;
+    } else {
+        subdivisionLevel = SUBDIVISION_LEVEL_DEFAULT;
+    }
 
     // Generate a random color for this country
     const countryColor = generateRandomColor();

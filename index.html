@@ -881,7 +881,7 @@
             scene.add(globe);
 
             // Create base sphere (ocean/background)
-            // Radius is 1.01 (slightly less than extruded countries at 1.02) to avoid z-fighting with subdivided vertices
+            // Radius is 1.01 (slightly less than extruded countries at 1.02) to avoid z-fighting
             const sphereGeometry = new THREE.SphereGeometry(1.01, 64, 64);
             const sphereMaterial = new THREE.MeshBasicMaterial({
                 color: 0x003366, // Deep blue
@@ -1306,7 +1306,7 @@
                 if (selectedSearchCountry && country.userData.name === selectedSearchCountry) {
                     // Keep selected search country highlighted
                     country.material.vertexColors = false;
-                    country.material.color.setHex(0xFF8C00);
+                    country.material.color.setHex(0xFFFFFF);
                 } else {
                     country.material.vertexColors = true;
                     country.material.color.setHex(0xffffff);
@@ -1320,9 +1320,9 @@
             // Highlight hovered country (only use first intersection to prevent click-through)
             if (intersects.length > 0) {
                 const hoveredCountry = intersects[0].object;
-                // Highlight with orange - disable vertex colors and set orange
+                // Highlight with white - disable vertex colors and set white
                 hoveredCountry.material.vertexColors = false;
-                hoveredCountry.material.color.setHex(0xFF8C00); // Dark orange
+                hoveredCountry.material.color.setHex(0xFFFFFF); // White
                 hoveredCountry.material.needsUpdate = true;
                 document.body.style.cursor = 'pointer';
 
@@ -1628,10 +1628,10 @@
                 country.material.needsUpdate = true;
             });
 
-            // Highlight the quiz country with orange
+            // Highlight the quiz country with white
             countryObj.meshRefs.forEach(mesh => {
                 mesh.material.vertexColors = false;
-                mesh.material.color.setHex(0xFF8C00);
+                mesh.material.color.setHex(0xFFFFFF);
                 mesh.material.needsUpdate = true;
             });
 
@@ -2012,7 +2012,7 @@
 
                 // Highlight selected country
                 country.material.vertexColors = false;
-                country.material.color.setHex(0xFF8C00);
+                country.material.color.setHex(0xFFFFFF);
                 country.material.needsUpdate = true;
 
                 // Rotate and tilt globe to center the country
