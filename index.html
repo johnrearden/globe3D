@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D World Map - Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            max-width: 300px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        
+        .control-item {
+            margin: 5px 0;
+        }
+        
+        label {
+            display: inline-block;
+            width: 120px;
+        }
+        
+        input[type="range"] {
+            width: 100px;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 200;
+        }
+
+        #tooltip {
+            position: absolute;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 150;
+            display: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            white-space: nowrap;
+        }
+
+        #flag-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            pointer-events: none;
+            z-index: 150;
+            display: none;
+            background-color: transparent;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(55, 90, 128, 0.15);
+            box-shadow: 0 8px 24px rgba(55, 90, 128, 0.5);
+        }
+
+        #flag-container-content {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        #flag-container canvas {
+            display: block;
+            border-radius: 4px;
+            width: 180px !important;
+            height: 120px !important;
+            flex-shrink: 0;
+        }
+
+        #flag-info {
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        #flag-info .country-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        #flag-info .info-item {
+            margin: 4px 0;
+        }
+
+        #flag-info .info-label {
+            font-weight: bold;
+            color: #FF8C00;
+        }
+
+        #search-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 150;
+            background-color: transparent;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(55, 90, 128, 0.15);
+            box-shadow: 0 8px 24px rgba(55, 90, 128, 0.5);
+            min-width: 300px;
+        }
+
+        #search-box {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        #search-icon {
+            color: #FF8C00;
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        #country-search {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #country-search::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        #country-search:focus {
+            border-color: #FF8C00;
+        }
+
+        #search-results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 8px 12px;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 4px 0;
+            transition: background-color 0.2s;
+        }
+
+        .search-result-item:hover {
+            background-color: rgba(255, 140, 0, 0.2);
+        }
+
+        #search-results::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #search-results::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        #search-results::-webkit-scrollbar-thumb {
+            background: rgba(255, 140, 0, 0.5);
+            border-radius: 4px;
+        }
+
+        #search-results::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 140, 0, 0.7);
+        }
+
+        /* Quiz UI styles */
+        #quiz-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 150;
+            background-color: rgba(0, 0, 0, 0.85);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            min-width: 300px;
+            max-width: 350px;
+        }
+
+
+        #quiz-header {
+            color: #FF8C00;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        #quiz-score {
+            color: #e0e0e0;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #quiz-question {
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 10px;
+            background-color: rgba(255, 140, 0, 0.15);
+            border-radius: 4px;
+        }
+
+        .quiz-option {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quiz-option .correct-label {
+            font-size: 11px;
+            font-variant: small-caps;
+            color: rgba(255, 255, 255, 0.9);
+            margin-left: 10px;
+        }
+
+        .quiz-option:hover {
+            background-color: rgba(255, 140, 0, 0.3);
+            border-color: #FF8C00;
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background-color: rgba(0, 255, 0, 0.3);
+            border-color: #00ff00;
+        }
+
+        .quiz-option.incorrect {
+            background-color: rgba(255, 0, 0, 0.3);
+            border-color: #ff0000;
+        }
+
+        .quiz-option:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #quiz-start-btn, #quiz-next-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background-color: #FF8C00;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #quiz-start-btn:hover, #quiz-next-btn:hover {
+            background-color: #FF6500;
+            transform: scale(1.05);
+        }
+
+        #quiz-result {
+            color: #ffffff;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        #quiz-result.correct {
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+        }
+
+        #quiz-result.incorrect {
+            background-color: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+        }
+
+        /* Take Quiz button (mobile only) */
+        #take-quiz-btn {
+            display: none;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            /* Show Take Quiz button on mobile */
+            #take-quiz-btn {
+                display: block;
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                z-index: 150;
+                background-color: #FF8C00;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #take-quiz-btn:hover {
+                background-color: #FF6500;
+                transform: scale(1.05);
+            }
+
+            /* Hide Take Quiz button during quiz */
+            body.quiz-active #take-quiz-btn {
+                display: none;
+            }
+
+            /* Hide quiz container when not active on mobile */
+            #quiz-container {
+                display: none;
+            }
+
+            /* Show quiz container when active */
+            body.quiz-active #quiz-container {
+                display: block;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-width: none;
+                border-radius: 12px 12px 0 0;
+                max-height: 50vh;
+                overflow-y: auto;
+                padding: 15px;
+            }
+
+            body.quiz-active #quiz-header {
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+
+            body.quiz-active #quiz-score {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+
+            body.quiz-active #quiz-question {
+                font-size: 14px;
+                margin-bottom: 10px;
+                padding: 8px;
+            }
+
+            body.quiz-active .quiz-option {
+                padding: 10px;
+                margin: 6px 0;
+                font-size: 14px;
+            }
+
+            body.quiz-active #quiz-result {
+                font-size: 12px;
+                padding: 8px;
+                margin-top: 8px;
+            }
+
+            body.quiz-active #quiz-start-btn,
+            body.quiz-active #quiz-next-btn {
+                padding: 10px;
+                font-size: 14px;
+                margin-top: 8px;
+            }
+
+            /* Move globe canvas up on mobile so globe center is at 25% from top */
+            #globe-canvas {
+                transform: translateY(-25vh);
+            }
+
+            /* Place search with top edge at 50vh on mobile */
+            #search-container {
+                top: 50vh;
+                bottom: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 15px;
+                min-width: calc(100% - 20px);
+                max-width: calc(100% - 20px);
+            }
+
+            /* Hide search container during quiz */
+            body.quiz-active #search-container {
+                display: none;
+            }
+
+            #flag-container {
+                position: fixed !important;
+                top: auto !important;
+                bottom: 0 !important;
+                right: auto !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: calc(100% - 20px);
+                max-width: 100%;
+                padding: 10px;
+                border: none;
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.8);
+                background-color: rgba(0, 0, 0, 0.85);
+                border-radius: 8px 8px 0 0;
+            }
+
+            /* Hide flag container during quiz on mobile */
+            body.quiz-active #flag-container {
+                display: none !important;
+            }
+
+            #flag-container-content {
+                flex-direction: row;
+                gap: 10px;
+                justify-content: flex-start;
+                align-items: center;
+            }
+
+            #flag-container canvas {
+                width: 120px !important;
+                height: 80px !important;
+                flex-shrink: 0;
+            }
+
+            #flag-info {
+                font-size: 11px;
+                flex: 1;
+            }
+
+            #flag-info .country-name {
+                font-size: 14px;
+                margin-bottom: 3px;
+            }
+
+            #flag-info .info-item {
+                margin: 2px 0;
+            }
+
+            #controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">Loading world map data...</div>
+        <button id="take-quiz-btn">Take Quiz</button>
+        <div id="tooltip"></div>
+        <div id="flag-container">
+            <div id="flag-container-content">
+                <div id="flag-info">
+                    <div class="country-name"></div>
+                    <div class="info-item"><span class="info-label">Population:</span> <span id="info-population"></span></div>
+                    <div class="info-item"><span class="info-label">Area:</span> <span id="info-area"></span></div>
+                    <div class="info-item"><span class="info-label">Language:</span> <span id="info-language"></span></div>
+                </div>
+            </div>
+        </div>
+        <div id="search-container">
+            <div id="search-box">
+                <span id="search-icon">🔍</span>
+                <input type="text" id="country-search" placeholder="Search countries...">
+            </div>
+            <div id="search-results"></div>
+        </div>
+        <div id="controls">
+            <div class="control-item">
+                <strong>Controls:</strong>
+            </div>
+            <div class="control-item">
+                • Drag to rotate
+            </div>
+            <div class="control-item">
+                • Scroll to zoom
+            </div>
+        </div>
+        <div id="quiz-container">
+            <div id="quiz-header">Geography Quiz</div>
+            <div id="quiz-score" style="display: none;">Score: <span id="quiz-score-value">0</span> / <span id="quiz-total-value">0</span></div>
+            <div id="quiz-question" style="display: none;">Which country is highlighted?</div>
+            <div id="quiz-options">
+                <!-- Options will be dynamically inserted here -->
+            </div>
+            <div id="quiz-result"></div>
+            <button id="quiz-start-btn">Start Quiz</button>
+            <button id="quiz-next-btn" style="visibility: hidden;">Next Question</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/perlin.js/1.0/perlin.js"></script>
+    <script>
+        // Perlin noise library (inline for self-containment)
+        (function(global){var module=global.noise={};function Grad(x,y,z){this.x=x;this.y=y;this.z=z}Grad.prototype.dot2=function(x,y){return this.x*x+this.y*y};Grad.prototype.dot3=function(x,y,z){return this.x*x+this.y*y+this.z*z};var grad3=[new Grad(1,1,0),new Grad(-1,1,0),new Grad(1,-1,0),new Grad(-1,-1,0),new Grad(1,0,1),new Grad(-1,0,1),new Grad(1,0,-1),new Grad(-1,0,-1),new Grad(0,1,1),new Grad(0,-1,1),new Grad(0,1,-1),new Grad(0,-1,-1)];var p=[151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];var perm=new Array(512);var gradP=new Array(512);module.seed=function(seed){if(seed>0&&seed<1){seed*=65536}seed=Math.floor(seed);if(seed<256){seed|=seed<<8}for(var i=0;i<256;i++){var v;if(i&1){v=p[i]^(seed&255)}else{v=p[i]^((seed>>8)&255)}perm[i]=perm[i+256]=v;gradP[i]=gradP[i+256]=grad3[v%12]}};module.seed(0);function fade(t){return t*t*t*(t*(t*6-15)+10)}function lerp(a,b,t){return(1-t)*a+t*b}module.perlin2=function(x,y){var X=Math.floor(x),Y=Math.floor(y);x=x-X;y=y-Y;X=X&255;Y=Y&255;var n00=gradP[X+perm[Y]].dot2(x,y);var n01=gradP[X+perm[Y+1]].dot2(x,y-1);var n10=gradP[X+1+perm[Y]].dot2(x-1,y);var n11=gradP[X+1+perm[Y+1]].dot2(x-1,y-1);var u=fade(x);return lerp(lerp(n00,n10,u),lerp(n01,n11,u),fade(y))}})(this);
+
+        // Global variables
+        let scene, camera, renderer, globe, countries = [];
+        let mouse = new THREE.Vector2();
+        let raycaster = new THREE.Raycaster();
+        let selectedCountry = null;
+        let controls;
+        let baseSphere;
+        let mouseDownPos = new THREE.Vector2();
+        let isDragging = false;
+
+        // Quiz variables
+        let countryCentroids = []; // Array of { name, centroid: Vector3, meshRef }
+        let quizActive = false;
+        let currentQuizQuestion = null; // { correctCountry, options: [country names] }
+        let quizScore = 0;
+        let quizQuestionsAnswered = 0;
+        let usedQuizCountries = []; // Track countries already used in current quiz
+
+        // Flag animation variables
+        let flagScene, flagCamera, flagRenderer;
+        let flagMesh, flagOriginalPositions;
+        let flagTime = 0;
+        let currentHoveredCountry = null;
+
+        // Search state
+        let searchResultsCache = '';
+        let selectedSearchCountry = null; // Track the country selected from search
+        let currentSearchIndex = -1; // Track currently selected search result index
+
+        // Auto-rotation state
+        let autoRotateEnabled = true;
+        let lastInteractionTime = Date.now();
+        let idleTimeout = null;
+        const IDLE_DELAY = 10000; // 10 seconds
+
+        // Country data: ISO code, population (millions), area (km²), primary language
+        const countryData = {
+            'United States': { iso: 'us', pop: 331.9, area: '9.8M km²', lang: 'English' },
+            'Canada': { iso: 'ca', pop: 38.2, area: '9.9M km²', lang: 'English, French' },
+            'Mexico': { iso: 'mx', pop: 126.7, area: '1.9M km²', lang: 'Spanish' },
+            'Brazil': { iso: 'br', pop: 214.3, area: '8.5M km²', lang: 'Portuguese' },
+            'Argentina': { iso: 'ar', pop: 45.8, area: '2.8M km²', lang: 'Spanish' },
+            'Chile': { iso: 'cl', pop: 19.5, area: '756K km²', lang: 'Spanish' },
+            'Peru': { iso: 'pe', pop: 33.7, area: '1.3M km²', lang: 'Spanish' },
+            'Colombia': { iso: 'co', pop: 51.5, area: '1.1M km²', lang: 'Spanish' },
+            'Venezuela': { iso: 've', pop: 28.2, area: '916K km²', lang: 'Spanish' },
+            'United Kingdom': { iso: 'gb', pop: 67.3, area: '243K km²', lang: 'English' },
+            'France': { iso: 'fr', pop: 67.7, area: '643K km²', lang: 'French' },
+            'Germany': { iso: 'de', pop: 83.2, area: '357K km²', lang: 'German' },
+            'Italy': { iso: 'it', pop: 59.1, area: '301K km²', lang: 'Italian' },
+            'Spain': { iso: 'es', pop: 47.4, area: '506K km²', lang: 'Spanish' },
+            'Portugal': { iso: 'pt', pop: 10.3, area: '92K km²', lang: 'Portuguese' },
+            'Netherlands': { iso: 'nl', pop: 17.5, area: '42K km²', lang: 'Dutch' },
+            'Belgium': { iso: 'be', pop: 11.6, area: '31K km²', lang: 'Dutch, French' },
+            'Switzerland': { iso: 'ch', pop: 8.7, area: '41K km²', lang: 'German, French' },
+            'Austria': { iso: 'at', pop: 9.0, area: '84K km²', lang: 'German' },
+            'Poland': { iso: 'pl', pop: 38.0, area: '313K km²', lang: 'Polish' },
+            'Czech Republic': { iso: 'cz', pop: 10.5, area: '79K km²', lang: 'Czech' },
+            'Hungary': { iso: 'hu', pop: 9.7, area: '93K km²', lang: 'Hungarian' },
+            'Romania': { iso: 'ro', pop: 19.0, area: '238K km²', lang: 'Romanian' },
+            'Greece': { iso: 'gr', pop: 10.6, area: '132K km²', lang: 'Greek' },
+            'Turkey': { iso: 'tr', pop: 85.3, area: '784K km²', lang: 'Turkish' },
+            'Ukraine': { iso: 'ua', pop: 43.8, area: '604K km²', lang: 'Ukrainian' },
+            'Russia': { iso: 'ru', pop: 144.1, area: '17.1M km²', lang: 'Russian' },
+            'China': { iso: 'cn', pop: 1412.0, area: '9.6M km²', lang: 'Mandarin' },
+            'Japan': { iso: 'jp', pop: 125.7, area: '378K km²', lang: 'Japanese' },
+            'South Korea': { iso: 'kr', pop: 51.8, area: '100K km²', lang: 'Korean' },
+            'India': { iso: 'in', pop: 1408.0, area: '3.3M km²', lang: 'Hindi, English' },
+            'Pakistan': { iso: 'pk', pop: 229.5, area: '881K km²', lang: 'Urdu' },
+            'Bangladesh': { iso: 'bd', pop: 169.4, area: '148K km²', lang: 'Bengali' },
+            'Indonesia': { iso: 'id', pop: 275.5, area: '1.9M km²', lang: 'Indonesian' },
+            'Thailand': { iso: 'th', pop: 70.0, area: '513K km²', lang: 'Thai' },
+            'Vietnam': { iso: 'vn', pop: 98.2, area: '331K km²', lang: 'Vietnamese' },
+            'Philippines': { iso: 'ph', pop: 113.9, area: '300K km²', lang: 'Filipino' },
+            'Malaysia': { iso: 'my', pop: 33.2, area: '330K km²', lang: 'Malay' },
+            'Singapore': { iso: 'sg', pop: 5.9, area: '728 km²', lang: 'English' },
+            'Australia': { iso: 'au', pop: 25.9, area: '7.7M km²', lang: 'English' },
+            'New Zealand': { iso: 'nz', pop: 5.1, area: '268K km²', lang: 'English' },
+            'Egypt': { iso: 'eg', pop: 106.2, area: '1.0M km²', lang: 'Arabic' },
+            'South Africa': { iso: 'za', pop: 60.6, area: '1.2M km²', lang: 'English, Afrikaans' },
+            'Nigeria': { iso: 'ng', pop: 216.7, area: '924K km²', lang: 'English' },
+            'Kenya': { iso: 'ke', pop: 54.0, area: '580K km²', lang: 'Swahili' },
+            'Ethiopia': { iso: 'et', pop: 120.8, area: '1.1M km²', lang: 'Amharic' },
+            'Saudi Arabia': { iso: 'sa', pop: 35.9, area: '2.1M km²', lang: 'Arabic' },
+            'Iran': { iso: 'ir', pop: 87.9, area: '1.6M km²', lang: 'Persian' },
+            'Iraq': { iso: 'iq', pop: 42.2, area: '438K km²', lang: 'Arabic' },
+            'Israel': { iso: 'il', pop: 9.4, area: '22K km²', lang: 'Hebrew' },
+            'Norway': { iso: 'no', pop: 5.5, area: '385K km²', lang: 'Norwegian' },
+            'Sweden': { iso: 'se', pop: 10.4, area: '447K km²', lang: 'Swedish' },
+            'Finland': { iso: 'fi', pop: 5.5, area: '338K km²', lang: 'Finnish' },
+            'Denmark': { iso: 'dk', pop: 5.9, area: '43K km²', lang: 'Danish' },
+            'Ireland': { iso: 'ie', pop: 5.0, area: '70K km²', lang: 'English' },
+            'Iceland': { iso: 'is', pop: 0.4, area: '103K km²', lang: 'Icelandic' },
+            'Afghanistan': { iso: 'af', pop: 43.0, area: '653K km²', lang: 'Pashto, Dari' },
+            'Albania': { iso: 'al', pop: 2.4, area: '29K km²', lang: 'Albanian' },
+            'Algeria': { iso: 'dz', pop: 47.0, area: '2.4M km²', lang: 'Arabic, Berber' },
+            'Angola': { iso: 'ao', pop: 39.0, area: '1.2M km²', lang: 'Portuguese' },
+            'Armenia': { iso: 'am', pop: 3.1, area: '30K km²', lang: 'Armenian' },
+            'Azerbaijan': { iso: 'az', pop: 10.4, area: '87K km²', lang: 'Azerbaijani' },
+            'Bahrain': { iso: 'bh', pop: 1.5, area: '787 km²', lang: 'Arabic' },
+            'Belarus': { iso: 'by', pop: 9.1, area: '208K km²', lang: 'Belarusian, Russian' },
+            'Belize': { iso: 'bz', pop: 0.4, area: '23K km²', lang: 'English' },
+            'Benin': { iso: 'bj', pop: 13.0, area: '115K km²', lang: 'French' },
+            'Bhutan': { iso: 'bt', pop: 0.7, area: '38K km²', lang: 'Dzongkha' },
+            'Bolivia': { iso: 'bo', pop: 11.4, area: '1.1M km²', lang: 'Spanish' },
+            'Bosnia And Herzegovina': { iso: 'ba', pop: 2.9, area: '51K km²', lang: 'Bosnian, Croatian, Serbian' },
+            'Botswana': { iso: 'bw', pop: 2.4, area: '582K km²', lang: 'English, Tswana' },
+            'Brunei': { iso: 'bn', pop: 0.5, area: '5.8K km²', lang: 'Malay' },
+            'Bulgaria': { iso: 'bg', pop: 6.5, area: '111K km²', lang: 'Bulgarian' },
+            'Burkina Faso': { iso: 'bf', pop: 22.5, area: '274K km²', lang: 'French' },
+            'Burundi': { iso: 'bi', pop: 14.2, area: '28K km²', lang: 'Kirundi, French, English' },
+            'Cambodia': { iso: 'kh', pop: 17.6, area: '181K km²', lang: 'Khmer' },
+            'Cameroon': { iso: 'cm', pop: 31.0, area: '475K km²', lang: 'English, French' },
+            'Cape Verde': { iso: 'cv', pop: 0.6, area: '4K km²', lang: 'Portuguese' },
+            'Central African Republic': { iso: 'cf', pop: 5.4, area: '623K km²', lang: 'French, Sango' },
+            'Chad': { iso: 'td', pop: 19.1, area: '1.3M km²', lang: 'Arabic, French' },
+            'Comoros': { iso: 'km', pop: 0.9, area: '2K km²', lang: 'Comorian, French, Arabic' },
+            'Congo': { iso: 'cg', pop: 6.2, area: '342K km²', lang: 'French' },
+            'Costa Rica': { iso: 'cr', pop: 5.0, area: '51K km²', lang: 'Spanish' },
+            'Croatia': { iso: 'hr', pop: 3.9, area: '57K km²', lang: 'Croatian' },
+            'Cuba': { iso: 'cu', pop: 11.0, area: '111K km²', lang: 'Spanish' },
+            'Cyprus': { iso: 'cy', pop: 0.9, area: '9.3K km²', lang: 'Greek, Turkish' },
+            'Dem Rep Of Congo': { iso: 'cd', pop: 112.0, area: '2.3M km²', lang: 'French' },
+            'Djibouti': { iso: 'dj', pop: 1.1, area: '23K km²', lang: 'Arabic, French' },
+            'Dominican Republic': { iso: 'do', pop: 11.4, area: '49K km²', lang: 'Spanish' },
+            'Ecuador': { iso: 'ec', pop: 17.5, area: '284K km²', lang: 'Spanish' },
+            'Equatorial Guinea': { iso: 'gq', pop: 1.8, area: '28K km²', lang: 'Spanish, French, Portuguese' },
+            'Eritrea': { iso: 'er', pop: 5.0, area: '120K km²', lang: 'Tigrinya' },
+            'Estonia': { iso: 'ee', pop: 1.4, area: '45K km²', lang: 'Estonian' },
+            'Fiji': { iso: 'fj', pop: 0.9, area: '18K km²', lang: 'Fijian, English, Fiji Hindi' },
+            'French Guiana': { iso: 'gf', pop: 0.3, area: '84K km²', lang: 'French' },
+            'Gabon': { iso: 'ga', pop: 2.3, area: '268K km²', lang: 'French' },
+            'Gambia': { iso: 'gm', pop: 2.4, area: '11K km²', lang: 'English' },
+            'Georgia': { iso: 'ge', pop: 3.9, area: '70K km²', lang: 'Georgian' },
+            'Ghana': { iso: 'gh', pop: 35.0, area: '240K km²', lang: 'English' },
+            'Guatemala': { iso: 'gt', pop: 18.0, area: '109K km²', lang: 'Spanish' },
+            'Guinea': { iso: 'gn', pop: 14.0, area: '246K km²', lang: 'French' },
+            'Guinea Bissau': { iso: 'gw', pop: 2.1, area: '36K km²', lang: 'Portuguese' },
+            'Guyana': { iso: 'gy', pop: 0.7, area: '215K km²', lang: 'English' },
+            'Haiti': { iso: 'ht', pop: 11.5, area: '28K km²', lang: 'Haitian Creole, French' },
+            'Honduras': { iso: 'hn', pop: 9.6, area: '112K km²', lang: 'Spanish' },
+            'Hong Kong': { iso: 'hk', pop: 7.5, area: '1.1K km²', lang: 'Chinese, English' },
+            'Ivory Coast': { iso: 'ci', pop: 31.5, area: '322K km²', lang: 'French' },
+            'Jamaica': { iso: 'jm', pop: 2.8, area: '11K km²', lang: 'English' },
+            'Jordan': { iso: 'jo', pop: 11.5, area: '89K km²', lang: 'Arabic' },
+            'Kazakhstan': { iso: 'kz', pop: 20.3, area: '2.7M km²', lang: 'Kazakh, Russian' },
+            'Kiribati': { iso: 'ki', pop: 0.1, area: '811 km²', lang: 'English, Gilbertese' },
+            'Kosovo': { iso: 'xk', pop: 1.6, area: '11K km²', lang: 'Albanian, Serbian' },
+            'Kuwait': { iso: 'kw', pop: 4.8, area: '18K km²', lang: 'Arabic' },
+            'Kyrgyzstan': { iso: 'kg', pop: 7.3, area: '200K km²', lang: 'Kyrgyz, Russian' },
+            'Laos': { iso: 'la', pop: 8.0, area: '237K km²', lang: 'Lao' },
+            'Latvia': { iso: 'lv', pop: 1.8, area: '65K km²', lang: 'Latvian' },
+            'Lebanon': { iso: 'lb', pop: 5.4, area: '10K km²', lang: 'Arabic' },
+            'Lesotho': { iso: 'ls', pop: 2.2, area: '30K km²', lang: 'Sesotho, English' },
+            'Liberia': { iso: 'lr', pop: 5.4, area: '111K km²', lang: 'English' },
+            'Libya': { iso: 'ly', pop: 7.4, area: '1.8M km²', lang: 'Arabic' },
+            'Lithuania': { iso: 'lt', pop: 2.9, area: '65K km²', lang: 'Lithuanian' },
+            'Luxembourg': { iso: 'lu', pop: 0.7, area: '2.6K km²', lang: 'Luxembourgish, French, German' },
+            'Macau': { iso: 'mo', pop: 0.7, area: '119 km²', lang: 'Chinese, Portuguese' },
+            'Macedonia': { iso: 'mk', pop: 1.8, area: '25K km²', lang: 'Macedonian, Albanian' },
+            'Madagascar': { iso: 'mg', pop: 32.0, area: '593K km²', lang: 'Malagasy, French' },
+            'Malawi': { iso: 'mw', pop: 22.2, area: '118K km²', lang: 'English' },
+            'Maldives': { iso: 'mv', pop: 0.5, area: '298 km²', lang: 'Dhivehi' },
+            'Mali': { iso: 'ml', pop: 22.0, area: '1.2M km²', lang: 'French' },
+            'Malta': { iso: 'mt', pop: 0.5, area: '316 km²', lang: 'Maltese, English' },
+            'Marshall Islands': { iso: 'mh', pop: 0.04, area: '181 km²', lang: 'Marshallese, English' },
+            'Mauritania': { iso: 'mr', pop: 4.3, area: '1.0M km²', lang: 'Arabic' },
+            'Mauritius': { iso: 'mu', pop: 1.2, area: '2K km²', lang: 'English, French' },
+            'Micronesia': { iso: 'fm', pop: 0.1, area: '702 km²', lang: 'English' },
+            'Moldova': { iso: 'md', pop: 2.4, area: '34K km²', lang: 'Romanian' },
+            'Mongolia': { iso: 'mn', pop: 3.5, area: '1.6M km²', lang: 'Mongolian' },
+            'Montenegro': { iso: 'me', pop: 0.6, area: '14K km²', lang: 'Montenegrin' },
+            'Morocco': { iso: 'ma', pop: 37.5, area: '447K km²', lang: 'Arabic, Berber' },
+            'Mozambique': { iso: 'mz', pop: 34.9, area: '802K km²', lang: 'Portuguese' },
+            'Myanmar': { iso: 'mm', pop: 55.8, area: '677K km²', lang: 'Burmese' },
+            'Namibia': { iso: 'na', pop: 3.1, area: '826K km²', lang: 'English' },
+            'Nauru': { iso: 'nr', pop: 0.01, area: '21 km²', lang: 'Nauruan, English' },
+            'Nepal': { iso: 'np', pop: 31.1, area: '148K km²', lang: 'Nepali' },
+            'Nicaragua': { iso: 'ni', pop: 6.7, area: '130K km²', lang: 'Spanish' },
+            'Niger': { iso: 'ne', pop: 25.0, area: '1.3M km²', lang: 'Hausa, French' },
+            'North Korea': { iso: 'kp', pop: 26.3, area: '121K km²', lang: 'Korean' },
+            'Oman': { iso: 'om', pop: 5.5, area: '310K km²', lang: 'Arabic' },
+            'Palau': { iso: 'pw', pop: 0.02, area: '459 km²', lang: 'Palauan, English' },
+            'Panama': { iso: 'pa', pop: 4.3, area: '75K km²', lang: 'Spanish' },
+            'Papua New Guinea': { iso: 'pg', pop: 11.8, area: '463K km²', lang: 'English, Tok Pisin, Hiri Motu' },
+            'Paraguay': { iso: 'py', pop: 6.4, area: '407K km²', lang: 'Spanish, Guarani' },
+            'Puerto Rico': { iso: 'pr', pop: 3.2, area: '14K km²', lang: 'Spanish, English' },
+            'Qatar': { iso: 'qa', pop: 3.2, area: '12K km²', lang: 'Arabic' },
+            'Rwanda': { iso: 'rw', pop: 13.6, area: '27K km²', lang: 'Kinyarwanda, English, French, Swahili' },
+            'Samoa': { iso: 'ws', pop: 0.2, area: '2.8K km²', lang: 'Samoan, English' },
+            'Sao Tome And Principe': { iso: 'st', pop: 0.2, area: '964 km²', lang: 'Portuguese' },
+            'Senegal': { iso: 'sn', pop: 18.9, area: '197K km²', lang: 'French' },
+            'Serbia': { iso: 'rs', pop: 6.6, area: '88K km²', lang: 'Serbian' },
+            'Seychelles': { iso: 'sc', pop: 0.1, area: '457 km²', lang: 'Seychellois Creole, English, French' },
+            'Sierra Leone': { iso: 'sl', pop: 8.5, area: '73K km²', lang: 'English' },
+            'Slovakia': { iso: 'sk', pop: 5.4, area: '49K km²', lang: 'Slovak' },
+            'Slovenia': { iso: 'si', pop: 2.1, area: '20K km²', lang: 'Slovene' },
+            'Solomon Islands': { iso: 'sb', pop: 0.7, area: '29K km²', lang: 'English' },
+            'Somalia': { iso: 'so', pop: 18.1, area: '638K km²', lang: 'Somali, Arabic' },
+            'Sri Lanka': { iso: 'lk', pop: 21.8, area: '67K km²', lang: 'Sinhala, Tamil' },
+            'Sudan': { iso: 'sd', pop: 50.0, area: '1.9M km²', lang: 'Arabic, English' },
+            'Suriname': { iso: 'sr', pop: 0.6, area: '166K km²', lang: 'Dutch' },
+            'Swaziland': { iso: 'sz', pop: 1.2, area: '17K km²', lang: 'Swazi, English' },
+            'Syria': { iso: 'sy', pop: 25.3, area: '185K km²', lang: 'Arabic' },
+            'Taiwan': { iso: 'tw', pop: 23.9, area: '36K km²', lang: 'Mandarin' },
+            'Tajikistan': { iso: 'tj', pop: 10.7, area: '143K km²', lang: 'Tajik, Russian' },
+            'Tanzania': { iso: 'tz', pop: 67.5, area: '947K km²', lang: 'Swahili, English' },
+            'Timor Leste': { iso: 'tl', pop: 1.3, area: '15K km²', lang: 'Portuguese, Tetum' },
+            'Togo': { iso: 'tg', pop: 8.6, area: '57K km²', lang: 'French' },
+            'Tonga': { iso: 'to', pop: 0.1, area: '748 km²', lang: 'Tongan, English' },
+            'Trinidad And Tobago': { iso: 'tt', pop: 1.5, area: '5.1K km²', lang: 'English' },
+            'Tunisia': { iso: 'tn', pop: 12.1, area: '164K km²', lang: 'Arabic' },
+            'Turkmenistan': { iso: 'tm', pop: 7.1, area: '491K km²', lang: 'Turkmen' },
+            'Tuvalu': { iso: 'tv', pop: 0.01, area: '25 km²', lang: 'Tuvaluan, English' },
+            'Uganda': { iso: 'ug', pop: 49.3, area: '241K km²', lang: 'English, Swahili' },
+            'United Arab Emirates': { iso: 'ae', pop: 11.0, area: '84K km²', lang: 'Arabic' },
+            'Uruguay': { iso: 'uy', pop: 3.5, area: '176K km²', lang: 'Spanish' },
+            'Uzbekistan': { iso: 'uz', pop: 37.6, area: '449K km²', lang: 'Uzbek' },
+            'Vanuatu': { iso: 'vu', pop: 0.3, area: '12K km²', lang: 'Bislama, English, French' },
+            'Yemen': { iso: 'ye', pop: 32.7, area: '456K km²', lang: 'Arabic' },
+            'Zambia': { iso: 'zm', pop: 20.2, area: '753K km²', lang: 'English' },
+            'Zimbabwe': { iso: 'zw', pop: 16.6, area: '391K km²', lang: 'English, Shona' }
+        };
+
+        // Legacy ISO mapping for backward compatibility
+        const countryToISO = {
+            'United States': 'us', 'Canada': 'ca', 'Mexico': 'mx', 'Brazil': 'br', 'Argentina': 'ar',
+            'Chile': 'cl', 'Peru': 'pe', 'Colombia': 'co', 'Venezuela': 've', 'Ecuador': 'ec',
+            'United Kingdom': 'gb', 'France': 'fr', 'Germany': 'de', 'Italy': 'it', 'Spain': 'es',
+            'Portugal': 'pt', 'Netherlands': 'nl', 'Belgium': 'be', 'Switzerland': 'ch', 'Austria': 'at',
+            'Poland': 'pl', 'Czech Republic': 'cz', 'Hungary': 'hu', 'Romania': 'ro', 'Bulgaria': 'bg',
+            'Greece': 'gr', 'Turkey': 'tr', 'Ukraine': 'ua', 'Russia': 'ru', 'Belarus': 'by',
+            'China': 'cn', 'Japan': 'jp', 'South Korea': 'kr', 'North Korea': 'kp', 'India': 'in',
+            'Pakistan': 'pk', 'Bangladesh': 'bd', 'Indonesia': 'id', 'Thailand': 'th', 'Vietnam': 'vn',
+            'Philippines': 'ph', 'Malaysia': 'my', 'Singapore': 'sg', 'Myanmar': 'mm', 'Cambodia': 'kh',
+            'Australia': 'au', 'New Zealand': 'nz', 'Papua New Guinea': 'pg', 'Fiji': 'fj',
+            'Egypt': 'eg', 'South Africa': 'za', 'Nigeria': 'ng', 'Kenya': 'ke', 'Ethiopia': 'et',
+            'Morocco': 'ma', 'Algeria': 'dz', 'Tunisia': 'tn', 'Libya': 'ly', 'Sudan': 'sd',
+            'Saudi Arabia': 'sa', 'Iran': 'ir', 'Iraq': 'iq', 'Israel': 'il', 'Jordan': 'jo',
+            'Lebanon': 'lb', 'Syria': 'sy', 'Yemen': 'ye', 'Oman': 'om', 'Kuwait': 'kw',
+            'United Arab Emirates': 'ae', 'Qatar': 'qa', 'Bahrain': 'bh',
+            'Norway': 'no', 'Sweden': 'se', 'Finland': 'fi', 'Denmark': 'dk', 'Iceland': 'is',
+            'Ireland': 'ie', 'Latvia': 'lv', 'Lithuania': 'lt', 'Estonia': 'ee',
+            'Slovakia': 'sk', 'Slovenia': 'si', 'Croatia': 'hr', 'Serbia': 'rs', 'Bosnia And Herzegovina': 'ba',
+            'Montenegro': 'me', 'Albania': 'al', 'Macedonia': 'mk', 'Kosovo': 'xk',
+            'Afghanistan': 'af', 'Kazakhstan': 'kz', 'Uzbekistan': 'uz', 'Turkmenistan': 'tm',
+            'Kyrgyzstan': 'kg', 'Tajikistan': 'tj', 'Mongolia': 'mn', 'Nepal': 'np', 'Bhutan': 'bt',
+            'Sri Lanka': 'lk', 'Laos': 'la', 'Taiwan': 'tw', 'Hong Kong': 'hk', 'Macau': 'mo',
+            'Angola': 'ao', 'Mozambique': 'mz', 'Tanzania': 'tz', 'Uganda': 'ug', 'Rwanda': 'rw',
+            'Burundi': 'bi', 'Zimbabwe': 'zw', 'Zambia': 'zm', 'Malawi': 'mw', 'Botswana': 'bw',
+            'Namibia': 'na', 'Ghana': 'gh', 'Ivory Coast': 'ci', 'Senegal': 'sn', 'Mali': 'ml',
+            'Niger': 'ne', 'Chad': 'td', 'Somalia': 'so', 'Congo': 'cg', 'Gabon': 'ga',
+            'Cameroon': 'cm', 'Madagascar': 'mg', 'Mauritania': 'mr', 'Benin': 'bj', 'Togo': 'tg',
+            'Uruguay': 'uy', 'Paraguay': 'py', 'Bolivia': 'bo', 'Guyana': 'gy', 'Suriname': 'sr',
+            'French Guiana': 'gf', 'Belize': 'bz', 'Guatemala': 'gt', 'Honduras': 'hn', 'Nicaragua': 'ni',
+            'Costa Rica': 'cr', 'Panama': 'pa', 'Cuba': 'cu', 'Jamaica': 'jm', 'Haiti': 'ht',
+            'Dominican Republic': 'do', 'Puerto Rico': 'pr', 'Trinidad And Tobago': 'tt',
+            'Luxembourg': 'lu', 'Malta': 'mt', 'Cyprus': 'cy', 'Moldova': 'md', 'Armenia': 'am',
+            'Georgia': 'ge', 'Azerbaijan': 'az', 'Eritrea': 'er', 'Djibouti': 'dj',
+            'Central African Republic': 'cf', 'Guinea': 'gn', 'Sierra Leone': 'sl', 'Liberia': 'lr',
+            'Burkina Faso': 'bf', 'Lesotho': 'ls', 'Swaziland': 'sz', 'Mauritius': 'mu',
+            'Seychelles': 'sc', 'Comoros': 'km', 'Cape Verde': 'cv', 'Sao Tome And Principe': 'st',
+            'Equatorial Guinea': 'gq', 'Gambia': 'gm', 'Guinea Bissau': 'gw', 'Dem Rep Of Congo': 'cd',
+            'Timor Leste': 'tl', 'Brunei': 'bn', 'Maldives': 'mv', 'Solomon Islands': 'sb',
+            'Vanuatu': 'vu', 'Samoa': 'ws', 'Kiribati': 'ki', 'Tonga': 'to', 'Micronesia': 'fm',
+            'Palau': 'pw', 'Marshall Islands': 'mh', 'Nauru': 'nr', 'Tuvalu': 'tv'
+        };
+
+        // Initialize the scene
+        function init() {
+            // Initialize flag renderer (separate mini scene)
+            initFlagRenderer();
+
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x001122);
+
+            // Create camera with adaptive positioning
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            // Calculate initial camera distance based on device
+            const aspectRatio = window.innerWidth / window.innerHeight;
+            const fov = 75 * Math.PI / 180; // Convert to radians
+            const isMobile = window.innerWidth <= 768;
+
+            // Calculate distance needed for globe to occupy viewport
+            let cameraDistance;
+            let targetPercentage = isMobile ? 0.85 : 0.65; // 85% on mobile (reduced from 95%), 65% on desktop
+
+            if (aspectRatio >= 1) {
+                // Width >= Height, so height is the limiting dimension
+                cameraDistance = (1 / Math.tan(fov / 2)) / targetPercentage;
+            } else {
+                // Height > Width, so width is the limiting dimension
+                const horizontalFov = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
+                cameraDistance = (1 / Math.tan(horizontalFov / 2)) / targetPercentage;
+            }
+
+            // On mobile, move camera up to position globe below search bar
+            const verticalOffset = isMobile ? 0.3 : 0;
+            camera.position.set(0, verticalOffset, cameraDistance);
+
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.domElement.id = 'globe-canvas';
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Add lights
+            setupLights();
+
+            // Create globe container
+            globe = new THREE.Group();
+            scene.add(globe);
+
+            // Create base sphere (ocean/background)
+            // Radius is 1.01 (slightly less than extruded countries at 1.02) to avoid z-fighting with subdivided vertices
+            const sphereGeometry = new THREE.SphereGeometry(1.01, 64, 64);
+            const sphereMaterial = new THREE.MeshBasicMaterial({
+                color: 0x003366, // Deep blue
+                transparent: false,
+                opacity: 1.0,
+                side: THREE.FrontSide,
+                depthWrite: true
+            });
+            baseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            globe.add(baseSphere);
+
+            // Add latitude and longitude lines
+            addLatLongLines();
+
+            // Load world data and create countries
+            loadWorldData();
+
+            // Setup orbit controls
+            setupControls();
+
+            // Add event listeners
+            setupEventListeners();
+
+            // Start animation loop
+            animate();
+        }
+
+        function setupControls() {
+            // Create OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+            // Enable damping for smooth movement
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Keep earth centered - no panning
+            controls.enablePan = false;
+
+            // Set zoom limits (distance from center)
+            controls.minDistance = 1.1;  // Closest zoom (allow much closer)
+            controls.maxDistance = 10;   // Farthest zoom
+
+            // No restrictions on vertical rotation - user can tilt freely
+            // (Polar angle limits removed to allow full sphere rotation)
+
+            // Enable rotation
+            controls.enableRotate = true;
+            controls.rotateSpeed = 0.5;
+
+            // Enable auto-rotate with slow speed
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.0; // 2x rotation speed
+
+            // Set target to center of scene (earth's center)
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        // Stop auto-rotation and start idle timer
+        function stopAutoRotation() {
+            autoRotateEnabled = false;
+            controls.autoRotate = false;
+
+            // Clear any existing idle timeout
+            if (idleTimeout) {
+                clearTimeout(idleTimeout);
+            }
+
+            // Start idle timer - resume rotation after idle period
+            idleTimeout = setTimeout(() => {
+                resumeAutoRotation();
+            }, IDLE_DELAY);
+        }
+
+        // Resume auto-rotation (only if not in quiz mode)
+        function resumeAutoRotation() {
+            if (!quizActive) {
+                autoRotateEnabled = true;
+                controls.autoRotate = true;
+                // No tilt animation - maintain current camera angle
+
+                // Clear the selected country highlight
+                selectedSearchCountry = null;
+
+                // Reset all countries to normal state
+                countries.forEach(country => {
+                    country.material.vertexColors = true;
+                    country.material.color.setHex(0xffffff);
+                    country.material.needsUpdate = true;
+                });
+
+                // Hide the flag container
+                hideWavingFlag();
+            }
+        }
+
+        // Reset idle timer on user interaction
+        function resetIdleTimer() {
+            lastInteractionTime = Date.now();
+
+            // Only stop rotation if it's currently enabled
+            if (autoRotateEnabled) {
+                stopAutoRotation();
+            }
+        }
+
+        function setupLights() {
+            // Ambient light - provides overall base illumination
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            // Directional light behind camera (will be updated in animate loop)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 0, 10); // Behind camera
+            scene.add(directionalLight);
+
+            // Additional point lights for better coverage
+            const pointLight1 = new THREE.PointLight(0xffffff, 0.5);
+            pointLight1.position.set(5, 5, 5);
+            scene.add(pointLight1);
+
+            const pointLight2 = new THREE.PointLight(0xffffff, 0.5);
+            pointLight2.position.set(-5, -5, 5);
+            scene.add(pointLight2);
+
+            // Store reference for updating position with camera
+            scene.userData.cameraLight = directionalLight;
+        }
+
+        async function loadWorldData() {
+            try {
+                console.log('Loading world globe...');
+
+                // Create GLTFLoader
+                const loader = new THREE.GLTFLoader();
+
+                // Load the pre-built globe GLB file
+                loader.load(
+                    'assets/world.glb',
+                    function (gltf) {
+                        console.log('GLB loaded successfully');
+
+                        // Add all meshes from the GLB to the globe
+                        gltf.scene.traverse((child) => {
+                            if (child.isMesh) {
+                                // Store reference for raycasting and interaction
+                                child.userData.isCountry = true;
+
+                                // Get the vertex color from the geometry (if available)
+                                const hasVertexColors = child.geometry.attributes.color !== undefined;
+
+                                // Set material to use vertex colors with Phong material for smooth lighting
+                                if (hasVertexColors) {
+                                    child.material = new THREE.MeshPhongMaterial({
+                                        vertexColors: true,
+                                        transparent: false,
+                                        side: THREE.FrontSide,
+                                        flatShading: false,
+                                        shininess: 30
+                                    });
+                                } else {
+                                    child.material = new THREE.MeshPhongMaterial({
+                                        color: 0x4FC3F7,
+                                        transparent: false,
+                                        side: THREE.FrontSide,
+                                        flatShading: false,
+                                        shininess: 30
+                                    });
+                                }
+
+                                // Extract country name from mesh name
+                                // Remove the trailing number (e.g., "_0", "_1") and convert to title case
+                                const countryName = child.name.replace(/_\d+$/, ''); // Remove trailing _number
+                                const formattedName = countryName
+                                    .replace(/_/g, ' ') // Replace underscores with spaces
+                                    .split(' ')
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                    .join(' ');
+                                child.userData.name = formattedName;
+
+                                countries.push(child);
+                            }
+                        });
+
+                        // Add the entire scene to the globe
+                        globe.add(gltf.scene);
+
+                        console.log(`Loaded ${countries.length} country meshes`);
+
+                        // Build country centroids cache for quiz
+                        buildCountryCentroidsCache();
+
+                        hideLoading();
+                    },
+                    function (xhr) {
+                        // Progress callback
+                        const percentComplete = (xhr.loaded / xhr.total * 100).toFixed(0);
+                        console.log(`Loading: ${percentComplete}%`);
+                        document.getElementById('loading').textContent = `Loading globe... ${percentComplete}%`;
+                    },
+                    function (error) {
+                        console.error('Error loading GLB:', error);
+                        hideLoading();
+                    }
+                );
+
+            } catch (error) {
+                console.error('Error loading world data:', error);
+                hideLoading();
+            }
+        }
+
+        // Helper function for latitude/longitude lines
+        function latLngToVector3(lat, lng, radius = 1, height = 0) {
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (lng + 180) * Math.PI / 180;
+
+            const r = radius + height;
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.cos(phi);
+            const z = r * Math.sin(phi) * Math.sin(theta);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function addLatLongLines() {
+            const radius = 1.001; // Slightly larger than globe to prevent z-fighting
+            const lineColor = 0x444444;
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: lineColor,
+                opacity: 0.3,
+                transparent: true
+            });
+
+            // Add latitude lines (parallels)
+            // Every 15 degrees: -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75
+            for (let lat = -75; lat <= 75; lat += 15) {
+                const points = [];
+                for (let lng = -180; lng <= 180; lng += 5) {
+                    const point = latLngToVector3(lat, lng, radius);
+                    points.push(point);
+                }
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(geometry, lineMaterial);
+                globe.add(line);
+            }
+
+            // Add longitude lines (meridians)
+            // Every 15 degrees
+            for (let lng = -180; lng < 180; lng += 15) {
+                const points = [];
+                for (let lat = -90; lat <= 90; lat += 5) {
+                    const point = latLngToVector3(lat, lng, radius);
+                    points.push(point);
+                }
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(geometry, lineMaterial);
+                globe.add(line);
+            }
+
+            // Add equator with different color for emphasis
+            const equatorMaterial = new THREE.LineBasicMaterial({
+                color: 0x666666,
+                opacity: 0.5,
+                transparent: true
+            });
+            const equatorPoints = [];
+            for (let lng = -180; lng <= 180; lng += 2) {
+                const point = latLngToVector3(0, lng, radius);
+                equatorPoints.push(point);
+            }
+            const equatorGeometry = new THREE.BufferGeometry().setFromPoints(equatorPoints);
+            const equator = new THREE.Line(equatorGeometry, equatorMaterial);
+            globe.add(equator);
+
+            // Add prime meridian with different color
+            const primeMeridianMaterial = new THREE.LineBasicMaterial({
+                color: 0x666666,
+                opacity: 0.5,
+                transparent: true
+            });
+            const primeMeridianPoints = [];
+            for (let lat = -90; lat <= 90; lat += 2) {
+                const point = latLngToVector3(lat, 0, radius);
+                primeMeridianPoints.push(point);
+            }
+            const primeMeridianGeometry = new THREE.BufferGeometry().setFromPoints(primeMeridianPoints);
+            const primeMeridian = new THREE.Line(primeMeridianGeometry, primeMeridianMaterial);
+            globe.add(primeMeridian);
+
+            // Add polar axis lines extending from north and south poles
+            const axisLineMaterial = new THREE.LineBasicMaterial({
+                color: 0x333333,
+                opacity: 0.2,
+                transparent: true
+            });
+
+            // North pole axis (extending upward)
+            const northAxisPoints = [
+                new THREE.Vector3(0, 1, 0),      // North pole surface
+                new THREE.Vector3(0, 2.5, 0)     // Extends 1.5 units above globe
+            ];
+            const northAxisGeometry = new THREE.BufferGeometry().setFromPoints(northAxisPoints);
+            const northAxis = new THREE.Line(northAxisGeometry, axisLineMaterial);
+            globe.add(northAxis);
+
+            // South pole axis (extending downward)
+            const southAxisPoints = [
+                new THREE.Vector3(0, -1, 0),     // South pole surface
+                new THREE.Vector3(0, -2.5, 0)    // Extends 1.5 units below globe
+            ];
+            const southAxisGeometry = new THREE.BufferGeometry().setFromPoints(southAxisPoints);
+            const southAxis = new THREE.Line(southAxisGeometry, axisLineMaterial);
+            globe.add(southAxis);
+        }
+
+        function setupEventListeners() {
+            // Mouse events
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('click', onMouseClick);
+
+            // Wheel/zoom event (to track user interaction)
+            renderer.domElement.addEventListener('wheel', resetIdleTimer);
+
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Search input
+            document.getElementById('country-search').addEventListener('input', onSearchInput);
+            document.getElementById('country-search').addEventListener('keydown', onSearchKeyDown);
+
+            // Quiz buttons
+            document.getElementById('quiz-start-btn').addEventListener('click', startQuiz);
+            document.getElementById('quiz-next-btn').addEventListener('click', nextQuestion);
+            document.getElementById('take-quiz-btn').addEventListener('click', startQuiz);
+        }
+
+        function onMouseDown(event) {
+            mouseDownPos.x = event.clientX;
+            mouseDownPos.y = event.clientY;
+            isDragging = false;
+        }
+
+        function onMouseUp(event) {
+            const deltaX = Math.abs(event.clientX - mouseDownPos.x);
+            const deltaY = Math.abs(event.clientY - mouseDownPos.y);
+
+            // If mouse moved more than 5 pixels, consider it a drag
+            if (deltaX > 5 || deltaY > 5) {
+                isDragging = true;
+            }
+        }
+
+        function onMouseMove(event) {
+            // Track user interaction and reset idle timer
+            resetIdleTimer();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Skip hover effects during quiz
+            if (quizActive) {
+                return;
+            }
+
+            // Raycast for hover effects
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(countries);
+
+            // Reset all countries to normal state, except selected search country
+            countries.forEach(country => {
+                if (selectedSearchCountry && country.userData.name === selectedSearchCountry) {
+                    // Keep selected search country highlighted
+                    country.material.vertexColors = false;
+                    country.material.color.setHex(0xFF8C00);
+                } else {
+                    country.material.vertexColors = true;
+                    country.material.color.setHex(0xffffff);
+                }
+                country.material.needsUpdate = true;
+            });
+
+            // Get tooltip element
+            const tooltip = document.getElementById('tooltip');
+
+            // Highlight hovered country (only use first intersection to prevent click-through)
+            if (intersects.length > 0) {
+                const hoveredCountry = intersects[0].object;
+                // Highlight with orange - disable vertex colors and set orange
+                hoveredCountry.material.vertexColors = false;
+                hoveredCountry.material.color.setHex(0xFF8C00); // Dark orange
+                hoveredCountry.material.needsUpdate = true;
+                document.body.style.cursor = 'pointer';
+
+                // Show and position tooltip above and to the left of cursor
+                tooltip.textContent = hoveredCountry.userData.name;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.clientX - 20) + 'px';
+                tooltip.style.top = (event.clientY - 50) + 'px';
+
+                // Show waving flag in top right corner
+                showWavingFlag(hoveredCountry.userData.name);
+            } else {
+                document.body.style.cursor = 'default';
+
+                // Hide tooltip
+                tooltip.style.display = 'none';
+
+                // Hide waving flag
+                hideWavingFlag();
+            }
+        }
+
+        function onMouseClick(event) {
+            // Ignore click if it was a drag operation
+            if (isDragging) {
+                isDragging = false;
+                return;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(countries);
+
+            if (intersects.length > 0) {
+                selectedCountry = intersects[0].object;
+                console.log('Selected country:', selectedCountry.userData.name);
+
+                // Center on clicked country (if not in quiz mode)
+                if (!quizActive) {
+                    // Track the selected country so it stays highlighted
+                    selectedSearchCountry = selectedCountry.userData.name;
+                    rotateGlobeToCountry(selectedCountry);
+                    // Show the flag for the clicked country
+                    showWavingFlag(selectedCountry.userData.name);
+                }
+            }
+        }
+
+        function focusOnCountry(country) {
+            // Smooth camera movement to focus on country
+            const targetPosition = country.position.clone().multiplyScalar(2);
+            
+            // Simple camera animation (you could use a tween library for smoother animation)
+            const startPosition = camera.position.clone();
+            const duration = 1000; // ms
+            const startTime = Date.now();
+            
+            function animateCamera() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                
+                camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+                camera.lookAt(0, 0, 0);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateCamera);
+                }
+            }
+            
+            animateCamera();
+        }
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Recalculate camera distance for new viewport size
+            const aspectRatio = window.innerWidth / window.innerHeight;
+            const fov = 75 * Math.PI / 180;
+            const isMobile = window.innerWidth <= 768;
+
+            let cameraDistance;
+            let targetPercentage = isMobile ? 0.85 : 0.65;
+
+            if (aspectRatio >= 1) {
+                cameraDistance = (1 / Math.tan(fov / 2)) / targetPercentage;
+            } else {
+                const horizontalFov = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
+                cameraDistance = (1 / Math.tan(horizontalFov / 2)) / targetPercentage;
+            }
+
+            // Maintain current camera angles but update distance and vertical offset
+            const currentDistance = camera.position.length();
+            const direction = camera.position.clone().normalize();
+            const verticalOffset = isMobile ? 0.3 : 0;
+
+            // Update camera position with new distance and offset
+            camera.position.copy(direction.multiplyScalar(cameraDistance));
+            camera.position.y += verticalOffset;
+            camera.lookAt(0, 0, 0);
+            controls.update();
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // ============================================
+        // QUIZ FUNCTIONALITY
+        // ============================================
+
+        // Build cache of country centroids for distance calculations
+        function buildCountryCentroidsCache() {
+            countryCentroids = [];
+
+            // Get unique country names
+            const uniqueCountries = new Map();
+
+            countries.forEach(mesh => {
+                const countryName = mesh.userData.name;
+                if (!uniqueCountries.has(countryName)) {
+                    uniqueCountries.set(countryName, []);
+                }
+                uniqueCountries.get(countryName).push(mesh);
+            });
+
+            // Calculate centroid for each unique country (average of all its meshes' centroids)
+            uniqueCountries.forEach((meshes, countryName) => {
+                const centroid = new THREE.Vector3(0, 0, 0);
+                let totalVertices = 0;
+
+                meshes.forEach(mesh => {
+                    const geometry = mesh.geometry;
+                    const positions = geometry.attributes.position;
+
+                    for (let i = 0; i < positions.count; i++) {
+                        const vertex = new THREE.Vector3(
+                            positions.getX(i),
+                            positions.getY(i),
+                            positions.getZ(i)
+                        );
+                        // Apply world transform
+                        mesh.localToWorld(vertex);
+                        centroid.add(vertex);
+                        totalVertices++;
+                    }
+                });
+
+                if (totalVertices > 0) {
+                    centroid.divideScalar(totalVertices);
+                    // Normalize to sphere surface (in case of small precision errors)
+                    centroid.normalize();
+
+                    countryCentroids.push({
+                        name: countryName,
+                        centroid: centroid,
+                        meshRefs: meshes
+                    });
+                }
+            });
+
+            console.log(`Built centroids cache for ${countryCentroids.length} countries`);
+        }
+
+        // Calculate great circle distance between two countries (returns radians)
+        // On a unit sphere, the great circle distance is the angle between two vectors
+        function calculateGreatCircleDistance(country1, country2) {
+            // Use dot product to get cosine of angle
+            const dotProduct = country1.centroid.dot(country2.centroid);
+            // Clamp to [-1, 1] to handle floating point errors
+            const clampedDot = Math.max(-1, Math.min(1, dotProduct));
+            // Arc cosine gives us the angle in radians (which is the distance on unit sphere)
+            return Math.acos(clampedDot);
+        }
+
+        // Generate a quiz question with geographically close options
+        function generateQuizQuestion() {
+            // Filter out countries already used in this quiz
+            const availableCountries = countryCentroids.filter(c => !usedQuizCountries.includes(c.name));
+
+            if (availableCountries.length < 5) {
+                console.error('Not enough unused countries for quiz');
+                return null;
+            }
+
+            // Select random country from available countries as the correct answer
+            const correctIndex = Math.floor(Math.random() * availableCountries.length);
+            const correctCountry = availableCountries[correctIndex];
+
+            // Mark this country as used
+            usedQuizCountries.push(correctCountry.name);
+
+            // Calculate distances to all other countries (including used ones for distractors)
+            const distancesWithCountries = countryCentroids
+                .filter(country => country.name !== correctCountry.name)
+                .map(country => ({
+                    country: country,
+                    distance: calculateGreatCircleDistance(correctCountry, country)
+                }));
+
+            // Sort by distance (ascending - closest first)
+            distancesWithCountries.sort((a, b) => a.distance - b.distance);
+
+            // Select 4 closest countries as distractors
+            const distractors = distancesWithCountries
+                .slice(0, 4)
+                .map(item => item.country.name);
+
+            // Combine correct answer with distractors
+            const allOptions = [correctCountry.name, ...distractors];
+
+            // Shuffle the options randomly
+            const shuffledOptions = allOptions.sort(() => Math.random() - 0.5);
+
+            return {
+                correctCountry: correctCountry.name,
+                options: shuffledOptions,
+                countryObj: correctCountry
+            };
+        }
+
+        // Start the quiz
+        function startQuiz() {
+            quizActive = true;
+            quizScore = 0;
+            quizQuestionsAnswered = 0;
+            usedQuizCountries = []; // Reset list of used countries
+
+            // Disable auto-rotation during quiz
+            autoRotateEnabled = false;
+            controls.autoRotate = false;
+            // Clear any pending idle timeout
+            if (idleTimeout) {
+                clearTimeout(idleTimeout);
+                idleTimeout = null;
+            }
+
+            // Add quiz-active class to body for mobile styling
+            document.body.classList.add('quiz-active');
+
+            // Show quiz elements
+            document.getElementById('quiz-score').style.display = 'block';
+            document.getElementById('quiz-question').style.display = 'block';
+
+            // Hide start button and previous results
+            document.getElementById('quiz-start-btn').style.display = 'none';
+            document.getElementById('quiz-result').style.display = 'none';
+
+            // Reset score display
+            updateScoreDisplay();
+
+            // Load first question
+            nextQuestion();
+        }
+
+        // Load next question
+        function nextQuestion() {
+            // Generate new question
+            currentQuizQuestion = generateQuizQuestion();
+
+            if (!currentQuizQuestion) {
+                console.error('Failed to generate quiz question');
+                return;
+            }
+
+            // Hide result and next button
+            document.getElementById('quiz-result').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+
+            // Clear previous options
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            // Create option buttons
+            currentQuizQuestion.options.forEach(optionName => {
+                const button = document.createElement('button');
+                button.className = 'quiz-option';
+
+                // Create span for country name
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = optionName;
+                button.appendChild(nameSpan);
+
+                button.dataset.country = optionName;
+                button.addEventListener('click', () => handleQuizAnswer(optionName));
+                optionsContainer.appendChild(button);
+            });
+
+            // Highlight country on globe and rotate to it
+            highlightQuizCountry(currentQuizQuestion.countryObj);
+        }
+
+        // Highlight the quiz country on the globe
+        function highlightQuizCountry(countryObj) {
+            // Reset all countries
+            countries.forEach(country => {
+                country.material.vertexColors = true;
+                country.material.color.setHex(0xffffff);
+                country.material.needsUpdate = true;
+            });
+
+            // Highlight the quiz country with orange
+            countryObj.meshRefs.forEach(mesh => {
+                mesh.material.vertexColors = false;
+                mesh.material.color.setHex(0xFF8C00);
+                mesh.material.needsUpdate = true;
+            });
+
+            // Rotate globe to center the country
+            if (countryObj.meshRefs.length > 0) {
+                rotateGlobeToCountry(countryObj.meshRefs[0]);
+            }
+
+            // Disable hover and search interactions during quiz
+            selectedSearchCountry = countryObj.name;
+        }
+
+        // Handle quiz answer selection
+        function handleQuizAnswer(selectedCountry) {
+            const isCorrect = selectedCountry === currentQuizQuestion.correctCountry;
+
+            // Update score if correct
+            if (isCorrect) {
+                quizScore++;
+            }
+            quizQuestionsAnswered++;
+
+            // Update score display
+            updateScoreDisplay();
+
+            // Disable all option buttons
+            const optionButtons = document.querySelectorAll('.quiz-option');
+            optionButtons.forEach(button => {
+                button.disabled = true;
+
+                // Highlight correct and incorrect answers
+                if (button.dataset.country === currentQuizQuestion.correctCountry) {
+                    button.classList.add('correct');
+                    // Add "CORRECT ANSWER" label to correct answer button
+                    const label = document.createElement('span');
+                    label.className = 'correct-label';
+                    label.textContent = 'correct answer';
+                    button.appendChild(label);
+                } else if (button.dataset.country === selectedCountry && !isCorrect) {
+                    button.classList.add('incorrect');
+                }
+            });
+
+            // Don't show any result message - button feedback is sufficient
+            document.getElementById('quiz-result').style.display = 'none';
+
+            // Show next button or end quiz after 10 questions
+            if (quizQuestionsAnswered >= 10) {
+                setTimeout(() => {
+                    endQuiz();
+                }, 2000);
+            } else {
+                document.getElementById('quiz-next-btn').style.visibility = 'visible';
+            }
+        }
+
+        // Update score display
+        function updateScoreDisplay() {
+            document.getElementById('quiz-score-value').textContent = quizScore;
+            document.getElementById('quiz-total-value').textContent = quizQuestionsAnswered;
+        }
+
+        // End the quiz
+        function endQuiz() {
+            quizActive = false;
+
+            // Resume auto-rotation after quiz
+            resumeAutoRotation();
+
+            // Remove quiz-active class from body
+            document.body.classList.remove('quiz-active');
+
+            // Hide quiz elements
+            document.getElementById('quiz-score').style.display = 'none';
+            document.getElementById('quiz-question').style.display = 'none';
+
+            // Clear options
+            document.getElementById('quiz-options').innerHTML = '';
+
+            // Show final score
+            const resultDiv = document.getElementById('quiz-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = '';
+            resultDiv.style.backgroundColor = 'rgba(255, 140, 0, 0.3)';
+            resultDiv.style.border = '1px solid #FF8C00';
+            resultDiv.innerHTML = `
+                <strong>Quiz Complete!</strong><br>
+                Final Score: ${quizScore} / ${quizQuestionsAnswered}<br>
+                ${Math.round((quizScore / quizQuestionsAnswered) * 100)}%
+            `;
+
+            // Hide next button, show start button
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-start-btn').style.display = 'block';
+            document.getElementById('quiz-start-btn').textContent = 'Play Again';
+
+            // Reset globe highlighting
+            selectedSearchCountry = null;
+            countries.forEach(country => {
+                country.material.vertexColors = true;
+                country.material.color.setHex(0xffffff);
+                country.material.needsUpdate = true;
+            });
+        }
+
+        // Initialize flag renderer (separate Three.js scene for the flag)
+        function initFlagRenderer() {
+            // Create flag scene
+            flagScene = new THREE.Scene();
+            flagScene.background = null; // Transparent background
+
+            // Create flag camera (reduced by 40%: 180x120)
+            flagCamera = new THREE.PerspectiveCamera(45, 180 / 120, 0.1, 1000);
+            flagCamera.position.z = 9.5; // Moved slightly back from 8
+
+            // Create flag renderer (reduced by 40%)
+            flagRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            flagRenderer.setSize(180, 120);
+            flagRenderer.setClearColor(0x000000, 0); // Transparent
+
+            // Insert the canvas into the flag-container-content, after flag-info
+            const flagContainerContent = document.getElementById('flag-container-content');
+            flagContainerContent.appendChild(flagRenderer.domElement);
+
+            // Add lights to flag scene
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            flagScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            flagScene.add(directionalLight);
+        }
+
+        // Create waving flag mesh
+        function createWavingFlag(isoCode) {
+            // Load flag texture from flagcdn.com (high resolution)
+            const textureLoader = new THREE.TextureLoader();
+            const flagTexture = textureLoader.load(`https://flagcdn.com/w640/${isoCode}.png`);
+
+            // Create plane geometry with subdivisions for wave effect
+            const flagGeometry = new THREE.PlaneGeometry(10, 6.67, 20, 15);
+
+            // Create material
+            const flagMaterial = new THREE.MeshStandardMaterial({
+                map: flagTexture,
+                side: THREE.DoubleSide,
+                roughness: 0.7,
+                metalness: 0.1
+            });
+
+            // Create mesh
+            const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+
+            // Store original positions for animation
+            const positions = flag.geometry.attributes.position;
+            const originalPositions = new Float32Array(positions.array);
+
+            return { flag, originalPositions };
+        }
+
+        // Update flag animation with Perlin noise
+        function updateFlagAnimation() {
+            if (!flagMesh || !flagOriginalPositions) return;
+
+            flagTime = performance.now() * 0.001 * 3; // Speed factor
+
+            const positions = flagMesh.geometry.attributes.position;
+            const coeff = 72;
+            const coeff2 = 65;
+            const gap = 10;
+            const spacing = 30;
+
+            for (let i = 0; i < positions.count; i++) {
+                const x = flagOriginalPositions[i * 3];
+                const y = flagOriginalPositions[i * 3 + 1];
+
+                // Apply Perlin noise to Z position for wave effect
+                positions.array[i * 3 + 2] = 1 +
+                    (spacing / 25) *
+                    noise.perlin2(
+                        x * (gap / coeff) + flagTime,
+                        y * (gap / coeff2)
+                    );
+            }
+
+            positions.needsUpdate = true;
+            flagMesh.geometry.computeVertexNormals();
+
+            // Render the flag scene
+            flagRenderer.render(flagScene, flagCamera);
+        }
+
+        // Show waving flag
+        function showWavingFlag(countryName) {
+            // Try to get data from countryData first, fallback to legacy ISO mapping
+            let data = countryData[countryName];
+            let isoCode = data ? data.iso : countryToISO[countryName];
+
+            if (!isoCode) {
+                console.log('No ISO code found for:', countryName);
+                // Still show the panel with limited info
+                data = { iso: null, pop: 'N/A', area: 'N/A', lang: 'N/A' };
+            }
+
+            // Only create new flag if country changed
+            if (currentHoveredCountry !== countryName) {
+                currentHoveredCountry = countryName;
+
+                // Remove old flag if exists
+                if (flagMesh) {
+                    flagScene.remove(flagMesh);
+                    flagMesh.geometry.dispose();
+                    flagMesh.material.dispose();
+                }
+
+                // Create new flag if ISO code exists
+                if (isoCode) {
+                    const { flag, originalPositions } = createWavingFlag(isoCode);
+                    flagMesh = flag;
+                    flagOriginalPositions = originalPositions;
+                    flagScene.add(flagMesh);
+
+                    // Reset time
+                    flagTime = 0;
+                }
+
+                // Update country info
+                document.querySelector('#flag-info .country-name').textContent = countryName;
+                document.getElementById('info-population').textContent =
+                    data && data.pop !== 'N/A' ? `${data.pop}M` : 'N/A';
+                document.getElementById('info-area').textContent =
+                    data && data.area !== 'N/A' ? data.area : 'N/A';
+                document.getElementById('info-language').textContent =
+                    data && data.lang !== 'N/A' ? data.lang : 'N/A';
+            }
+
+            // Show flag container (fixed position in top right)
+            document.getElementById('flag-container').style.display = 'block';
+        }
+
+        // Hide waving flag
+        function hideWavingFlag() {
+            document.getElementById('flag-container').style.display = 'none';
+            currentHoveredCountry = null;
+        }
+
+        // Handle search input
+        function onSearchInput(event) {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            const resultsContainer = document.getElementById('search-results');
+
+            // Reset search index when user types
+            currentSearchIndex = -1;
+
+            // Clear results if search is empty
+            if (searchTerm === '') {
+                resultsContainer.innerHTML = '';
+                selectedSearchCountry = null; // Clear selection when search is empty
+                return;
+            }
+
+            // Get unique country names from the countries array
+            const uniqueCountryNames = [...new Set(countries.map(c => c.userData.name))];
+
+            // Filter countries that match the search term
+            const matchingCountries = uniqueCountryNames
+                .filter(name => name.toLowerCase().includes(searchTerm))
+                .sort();
+
+            // Display results
+            if (matchingCountries.length === 0) {
+                resultsContainer.innerHTML = '<div style="color: #e0e0e0; padding: 8px;">No countries found</div>';
+            } else {
+                resultsContainer.innerHTML = matchingCountries
+                    .map(name => `<div class="search-result-item" data-country="${name}">${name}</div>`)
+                    .join('');
+
+                // Add click handlers to results
+                resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const countryName = item.getAttribute('data-country');
+                        selectCountryFromSearch(countryName);
+                    });
+                });
+            }
+        }
+
+        // Handle Enter key and arrow keys in search
+        function onSearchKeyDown(event) {
+            const resultsContainer = document.getElementById('search-results');
+            const resultItems = resultsContainer.querySelectorAll('.search-result-item');
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (resultItems.length > 0) {
+                    currentSearchIndex = (currentSearchIndex + 1) % resultItems.length;
+                    updateSearchSelection(resultItems);
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (resultItems.length > 0) {
+                    currentSearchIndex = currentSearchIndex <= 0 ? resultItems.length - 1 : currentSearchIndex - 1;
+                    updateSearchSelection(resultItems);
+                }
+            } else if (event.key === 'Enter') {
+                const searchTerm = event.target.value.trim();
+
+                // Get unique country names
+                const uniqueCountryNames = [...new Set(countries.map(c => c.userData.name))];
+
+                // If user has navigated with arrow keys, use that selection
+                let matchedCountry = null;
+                if (currentSearchIndex >= 0 && currentSearchIndex < resultItems.length) {
+                    matchedCountry = resultItems[currentSearchIndex].getAttribute('data-country');
+                } else {
+                    // Try exact match first (case insensitive)
+                    matchedCountry = uniqueCountryNames.find(
+                        name => name.toLowerCase() === searchTerm.toLowerCase()
+                    );
+
+                    // If no exact match, try partial match (take first result)
+                    if (!matchedCountry) {
+                        const matches = uniqueCountryNames
+                            .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
+                            .sort();
+                        matchedCountry = matches[0];
+                    }
+                }
+
+                if (matchedCountry) {
+                    selectCountryFromSearch(matchedCountry);
+                    // Select all text in the input
+                    event.target.select();
+                }
+            }
+        }
+
+        // Update visual selection in search results
+        function updateSearchSelection(resultItems) {
+            resultItems.forEach((item, index) => {
+                if (index === currentSearchIndex) {
+                    item.style.backgroundColor = 'rgba(255, 140, 0, 0.2)';
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    // Update input value with selected country
+                    document.getElementById('country-search').value = item.getAttribute('data-country');
+                } else {
+                    item.style.backgroundColor = '';
+                }
+            });
+        }
+
+        // Select country from search and hide results
+        function selectCountryFromSearch(countryName) {
+            selectedSearchCountry = countryName; // Track selected country
+            focusOnCountryByName(countryName);
+            // Hide search results after selection
+            document.getElementById('search-results').innerHTML = '';
+            currentSearchIndex = -1; // Reset search index
+
+            // Reset the idle timer to give user 10 seconds before rotation resumes
+            resetIdleTimer();
+        }
+
+        // Focus on country by name
+        function focusOnCountryByName(countryName) {
+            const country = countries.find(c => c.userData.name === countryName);
+            if (country) {
+                // Show the flag for this country
+                showWavingFlag(countryName);
+
+                // Highlight the country on the globe
+                // Reset all countries first
+                countries.forEach(c => {
+                    c.material.vertexColors = true;
+                    c.material.color.setHex(0xffffff);
+                    c.material.needsUpdate = true;
+                });
+
+                // Highlight selected country
+                country.material.vertexColors = false;
+                country.material.color.setHex(0xFF8C00);
+                country.material.needsUpdate = true;
+
+                // Rotate and tilt globe to center the country
+                rotateGlobeToCountry(country);
+            }
+        }
+
+        // Rotate globe to center a country
+        function rotateGlobeToCountry(country) {
+            // Get the country's position (centroid of all vertices)
+            const geometry = country.geometry;
+            const positions = geometry.attributes.position;
+
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            let minZ = Infinity, maxZ = -Infinity;
+            const vertexCount = positions.count;
+
+            for (let i = 0; i < vertexCount; i++) {
+                const x = positions.getX(i);
+                const y = positions.getY(i);
+                const z = positions.getZ(i);
+
+                centerX += x;
+                centerY += y;
+                centerZ += z;
+
+                // Track bounding box
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+                minZ = Math.min(minZ, z);
+                maxZ = Math.max(maxZ, z);
+            }
+
+            centerX /= vertexCount;
+            centerY /= vertexCount;
+            centerZ /= vertexCount;
+
+            // Calculate bounding box size (approximate land area)
+            const bbox = new THREE.Vector3(maxX - minX, maxY - minY, maxZ - minZ);
+            const bboxSize = bbox.length(); // Diagonal length of bounding box
+
+            // Apply country's world matrix to get actual position
+            const worldPos = new THREE.Vector3(centerX, centerY, centerZ);
+            country.localToWorld(worldPos);
+
+            // Normalize to get direction
+            worldPos.normalize();
+
+            // Calculate the spherical angles to this position
+            const phi = Math.acos(worldPos.y); // Polar angle
+            const theta = Math.atan2(worldPos.z, worldPos.x); // Azimuthal angle
+
+            // Adaptive zoom based on country size
+            // Small countries (bbox < 0.2) get zoomed in, large countries use current zoom
+            let targetDistance;
+            if (bboxSize < 0.15) {
+                // Very small country - zoom in close
+                targetDistance = 1.3;
+            } else if (bboxSize < 0.25) {
+                // Small country - zoom in moderately
+                targetDistance = 1.6;
+            } else if (bboxSize < 0.4) {
+                // Medium-small country
+                targetDistance = 2.0;
+            } else {
+                // Large country - use current or default distance
+                targetDistance = Math.max(camera.position.length(), 2.5);
+            }
+
+            // Calculate target camera position
+            const targetCameraPos = new THREE.Vector3(
+                targetDistance * Math.sin(phi) * Math.cos(theta),
+                targetDistance * Math.cos(phi),
+                targetDistance * Math.sin(phi) * Math.sin(theta)
+            );
+
+            // Animate camera to new position
+            const startPos = camera.position.clone();
+            const startDist = startPos.length();
+            const duration = 1000; // ms
+            const startTime = Date.now();
+
+            function animateRotation() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Ease in-out cubic
+                const easeProgress = progress < 0.5
+                    ? 4 * progress * progress * progress
+                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                // Interpolate position
+                const newPos = new THREE.Vector3().lerpVectors(startPos, targetCameraPos, easeProgress);
+
+                // Interpolate distance as well for smooth zoom
+                const newDist = startDist + (targetDistance - startDist) * easeProgress;
+                newPos.setLength(newDist);
+
+                camera.position.copy(newPos);
+                camera.lookAt(0, 0, 0);
+                controls.update();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateRotation);
+                }
+            }
+
+            animateRotation();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update controls (required for damping)
+            controls.update();
+
+            // Update light position to stay behind camera
+            if (scene.userData.cameraLight) {
+                scene.userData.cameraLight.position.copy(camera.position);
+            }
+
+            // Update flag animation if visible
+            if (currentHoveredCountry) {
+                updateFlagAnimation();
+            }
+
+            // Render
+            renderer.render(scene, camera);
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

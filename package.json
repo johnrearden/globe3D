@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "draco3d": "^1.5.7",
+    "draco3dgltf": "^1.5.7",
+    "earcut": "^3.0.2",
+    "flag-icons": "^7.5.0",
+    "world-geojson": "^3.3.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/extensions": "^4.2.1",
+    "@gltf-transform/functions": "^4.2.1",
+    "simplify-js": "^1.2.4"
+  },
+  "scripts": {
+    "build:globe": "node build-globe.js"
+  }
+}
