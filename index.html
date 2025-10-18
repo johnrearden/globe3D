@@ -590,6 +590,9 @@
         // Country labels
         let countryLabels = []; // Array of label meshes
 
+        // Country borders
+        let countryBorders = []; // Array of border line segments
+
         // Flag animation variables
         let flagScene, flagCamera, flagRenderer;
         let flagMesh, flagOriginalPositions;
@@ -1099,6 +1102,9 @@
                         // Create country labels
                         createCountryLabels();
 
+                        // Create country borders
+                        createCountryBorders();
+
                         hideLoading();
                     },
                     function (xhr) {
@@ -1581,6 +1587,94 @@
             });
 
             console.log(`Created ${countryLabels.length} country labels`);
+        }
+
+        // Create borders for all countries using boundary edge detection
+        function createCountryBorders() {
+            console.log('Creating country borders...');
+
+            // Iterate through all country meshes
+            countries.forEach(countryMesh => {
+                const geometry = countryMesh.geometry;
+                const positionAttribute = geometry.attributes.position;
+
+                if (!positionAttribute) return;
+
+                // Build edge map to find boundary edges (edges that belong to only one triangle)
+                const edgeMap = new Map();
+                const indices = geometry.index ? geometry.index.array : null;
+
+                if (!indices) return; // Skip if no index buffer
+
+                // Process all triangles
+                for (let i = 0; i < indices.length; i += 3) {
+                    const a = indices[i];
+                    const b = indices[i + 1];
+                    const c = indices[i + 2];
+
+                    // Add the three edges of this triangle
+                    addEdge(edgeMap, a, b);
+                    addEdge(edgeMap, b, c);
+                    addEdge(edgeMap, c, a);
+                }
+
+                // Collect boundary edges (edges that appear only once)
+                const boundaryEdges = [];
+                edgeMap.forEach((count, key) => {
+                    if (count === 1) {
+                        const [v1, v2] = key.split(',').map(Number);
+                        boundaryEdges.push(v1, v2);
+                    }
+                });
+
+                if (boundaryEdges.length === 0) return;
+
+                // Create geometry from boundary edges
+                const borderGeometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(boundaryEdges.length * 3);
+
+                for (let i = 0; i < boundaryEdges.length; i++) {
+                    const vertexIndex = boundaryEdges[i];
+                    positions[i * 3] = positionAttribute.getX(vertexIndex);
+                    positions[i * 3 + 1] = positionAttribute.getY(vertexIndex);
+                    positions[i * 3 + 2] = positionAttribute.getZ(vertexIndex);
+                }
+
+                borderGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                // Create line material with dark gray color
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0x333333,
+                    linewidth: 1
+                });
+
+                // Create line segments from boundary edges
+                const borderLines = new THREE.LineSegments(borderGeometry, lineMaterial);
+
+                // Copy the country mesh's transform
+                borderLines.position.copy(countryMesh.position);
+                borderLines.rotation.copy(countryMesh.rotation);
+                borderLines.scale.copy(countryMesh.scale);
+
+                // Add to same parent as country mesh
+                if (countryMesh.parent) {
+                    countryMesh.parent.add(borderLines);
+                }
+
+                // Initially hide borders (only show when zoomed in)
+                borderLines.visible = false;
+
+                countryBorders.push(borderLines);
+            });
+
+            console.log(`Created borders for ${countryBorders.length} countries`);
+        }
+
+        // Helper function to add edges to the edge map
+        function addEdge(edgeMap, v1, v2) {
+            // Create a consistent key regardless of vertex order
+            const key = v1 < v2 ? `${v1},${v2}` : `${v2},${v1}`;
+            edgeMap.set(key, (edgeMap.get(key) || 0) + 1);
         }
 
         // Calculate great circle distance between two countries (returns radians)
@@ -2282,6 +2376,26 @@
             });
         }
 
+        // Update border visibility based on camera distance
+        function updateBorderVisibility() {
+            if (countryBorders.length === 0) return;
+
+            // Calculate camera distance from globe center
+            const cameraDistance = camera.position.length();
+
+            // Show borders when zoomed in (zoom range is 1.5-10)
+            // Show borders at medium to close zoom levels
+            const BORDER_THRESHOLD = 5.0;
+
+            // Show borders when camera is closer than threshold
+            const showBorders = cameraDistance < BORDER_THRESHOLD;
+
+            // Update all border visibility
+            countryBorders.forEach(border => {
+                border.visible = showBorders;
+            });
+        }
+
         function animate() {
             requestAnimationFrame(animate);
 
@@ -2301,6 +2415,9 @@
             // Update country label visibility based on zoom level
             // DISABLED: Labels hidden for now
             // updateLabelVisibility();
+
+            // Update country border visibility based on zoom level
+            updateBorderVisibility();
 
             // Render
             renderer.render(scene, camera);
