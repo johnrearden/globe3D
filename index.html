@@ -587,6 +587,9 @@
         let quizQuestionsAnswered = 0;
         let usedQuizCountries = []; // Track countries already used in current quiz
 
+        // Country labels
+        let countryLabels = []; // Array of label meshes
+
         // Flag animation variables
         let flagScene, flagCamera, flagRenderer;
         let flagMesh, flagOriginalPositions;
@@ -1088,6 +1091,9 @@
                         // Build country centroids cache for quiz
                         buildCountryCentroidsCache();
 
+                        // Create country labels
+                        createCountryLabels();
+
                         hideLoading();
                     },
                     function (xhr) {
@@ -1286,12 +1292,20 @@
         }
 
         function onPointerDown(event) {
+            // Update mouse coordinates for raycasting
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
             mouseDownPos.x = event.clientX;
             mouseDownPos.y = event.clientY;
             isDragging = false;
         }
 
         function onPointerUp(event) {
+            // Update mouse coordinates for raycasting (critical for mobile taps)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
             // If this was a drag operation, ignore the pointer release
             if (isDragging) {
                 isDragging = false; // Reset for next interaction
@@ -1496,6 +1510,71 @@
             });
 
             console.log(`Built centroids cache for ${countryCentroids.length} countries`);
+        }
+
+        // Create text label using canvas
+        function createTextLabel(text) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            // Set canvas size
+            canvas.width = 512;
+            canvas.height = 128;
+
+            // Configure text style
+            context.font = '32px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+
+            // Draw plain black text
+            context.fillStyle = 'black';
+            context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            // Create texture from canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+
+            return texture;
+        }
+
+        // Create labels for all countries
+        function createCountryLabels() {
+            countryCentroids.forEach(countryData => {
+                const labelTexture = createTextLabel(countryData.name);
+
+                // Create material with transparency
+                const labelMaterial = new THREE.MeshBasicMaterial({
+                    map: labelTexture,
+                    transparent: true,
+                    opacity: 1.0,
+                    side: THREE.DoubleSide,
+                    depthTest: false, // Disabled to ensure labels render on top
+                    depthWrite: false
+                });
+
+                // Create plane geometry for the label - small size
+                const labelGeometry = new THREE.PlaneGeometry(0.15, 0.04);
+                const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+
+                // Position label at country centroid, slightly above surface
+                const labelPosition = countryData.centroid.clone().multiplyScalar(1.02);
+                labelMesh.position.copy(labelPosition);
+
+                // Orient label to face outward from globe center
+                labelMesh.lookAt(countryData.centroid.clone().multiplyScalar(2));
+
+                // Store reference to country name
+                labelMesh.userData.countryName = countryData.name;
+
+                // Initially hide all labels
+                labelMesh.visible = false;
+
+                // Add to globe so it rotates with it
+                globe.add(labelMesh);
+                countryLabels.push(labelMesh);
+            });
+
+            console.log(`Created ${countryLabels.length} country labels`);
         }
 
         // Calculate great circle distance between two countries (returns radians)
@@ -2134,6 +2213,69 @@
             animateRotation();
         }
 
+        // Update label visibility based on camera distance and orientation
+        function updateLabelVisibility() {
+            if (countryLabels.length === 0) return;
+
+            // Calculate camera distance from globe center
+            const cameraDistance = camera.position.length();
+
+            // Define zoom thresholds (based on controls: min=1.1, max=10)
+            const ZOOM_FAR = 5; // Hide all labels
+            const ZOOM_MEDIUM = 2.5; // Show major countries
+            const ZOOM_CLOSE = 1.8; // Show all countries
+
+            // Determine which labels to show based on zoom
+            let showAllLabels = false;
+            let showMajorOnly = false;
+
+            if (cameraDistance >= ZOOM_FAR) {
+                // Too far - hide all
+                showAllLabels = false;
+                showMajorOnly = false;
+            } else if (cameraDistance >= ZOOM_MEDIUM) {
+                // Medium zoom - show major countries only
+                showAllLabels = false;
+                showMajorOnly = true;
+            } else {
+                // Close zoom - show all
+                showAllLabels = true;
+                showMajorOnly = false;
+            }
+
+            // Major countries list (larger/well-known countries)
+            const majorCountries = new Set([
+                'United States', 'Canada', 'Mexico', 'Brazil', 'Argentina', 'Chile',
+                'United Kingdom', 'France', 'Germany', 'Italy', 'Spain', 'Russia',
+                'China', 'Japan', 'India', 'Australia', 'Indonesia', 'South Korea',
+                'South Africa', 'Egypt', 'Nigeria', 'Saudi Arabia', 'Turkey',
+                'Poland', 'Ukraine', 'Sweden', 'Norway', 'Finland'
+            ]);
+
+            // Get camera direction
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+
+            // Update each label
+            countryLabels.forEach(label => {
+                // Check if we should show this label based on zoom level
+                const isMajor = majorCountries.has(label.userData.countryName);
+                const shouldShowByZoom = showAllLabels || (showMajorOnly && isMajor);
+
+                if (!shouldShowByZoom) {
+                    label.visible = false;
+                    return;
+                }
+
+                // Check if label is front-facing (visible from camera)
+                const labelPosition = label.position.clone().normalize();
+                const dotProduct = labelPosition.dot(cameraDirection);
+
+                // Show label if it's facing the camera (dot product < 0, since camera looks inward)
+                label.visible = dotProduct < -0.1; // Negative threshold - labels facing camera have negative dot product
+            });
+        }
+
         function animate() {
             requestAnimationFrame(animate);
 
@@ -2149,6 +2291,10 @@
             if (currentHoveredCountry) {
                 updateFlagAnimation();
             }
+
+            // Update country label visibility based on zoom level
+            // DISABLED: Labels hidden for now
+            // updateLabelVisibility();
 
             // Render
             renderer.render(scene, camera);
