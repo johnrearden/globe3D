@@ -84,7 +84,7 @@
             pointer-events: none;
             z-index: 150;
             display: none;
-            background-color: transparent;
+            background-color: rgba(10, 20, 35, 0.9);
             border-radius: 8px;
             padding: 20px;
             border: 1px solid rgba(55, 90, 128, 0.15);
@@ -1213,11 +1213,10 @@
         }
 
         function setupEventListeners() {
-            // Mouse events
-            renderer.domElement.addEventListener('mousedown', onMouseDown);
-            renderer.domElement.addEventListener('mouseup', onMouseUp);
-            renderer.domElement.addEventListener('mousemove', onMouseMove);
-            renderer.domElement.addEventListener('click', onMouseClick);
+            // Pointer events (works with mouse, touch, and pen)
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            renderer.domElement.addEventListener('pointerup', onPointerUp);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
 
             // Wheel/zoom event (to track user interaction)
             renderer.domElement.addEventListener('wheel', resetIdleTimer);
@@ -1286,72 +1285,21 @@
             console.log('Sphere radius updated to:', currentSphereRadius.toFixed(3));
         }
 
-        function onMouseDown(event) {
+        function onPointerDown(event) {
             mouseDownPos.x = event.clientX;
             mouseDownPos.y = event.clientY;
             isDragging = false;
         }
 
-        function onMouseUp(event) {
-            const deltaX = Math.abs(event.clientX - mouseDownPos.x);
-            const deltaY = Math.abs(event.clientY - mouseDownPos.y);
-
-            // If mouse moved more than 5 pixels, consider it a drag
-            if (deltaX > 5 || deltaY > 5) {
-                isDragging = true;
-            }
-        }
-
-        function onMouseMove(event) {
-            // Track user interaction and reset idle timer
-            resetIdleTimer();
-
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // Skip hover effects during quiz
-            if (quizActive) {
-                return;
-            }
-
-            // Raycast for hover effects (tooltip and flag only, no highlighting)
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(countries);
-
-            // Get tooltip element
-            const tooltip = document.getElementById('tooltip');
-
-            // Show tooltip and flag on hover, but don't change country colors
-            if (intersects.length > 0) {
-                const hoveredCountry = intersects[0].object;
-                document.body.style.cursor = 'pointer';
-
-                // Show and position tooltip above and to the left of cursor
-                tooltip.textContent = hoveredCountry.userData.name;
-                tooltip.style.display = 'block';
-                tooltip.style.left = (event.clientX - 20) + 'px';
-                tooltip.style.top = (event.clientY - 50) + 'px';
-
-                // Show waving flag in top right corner
-                showWavingFlag(hoveredCountry.userData.name);
-            } else {
-                document.body.style.cursor = 'default';
-
-                // Hide tooltip
-                tooltip.style.display = 'none';
-
-                // Hide waving flag
-                hideWavingFlag();
-            }
-        }
-
-        function onMouseClick(event) {
-            // Ignore click if it was a drag operation
+        function onPointerUp(event) {
+            // If this was a drag operation, ignore the pointer release
             if (isDragging) {
-                isDragging = false;
+                isDragging = false; // Reset for next interaction
                 return;
             }
 
+            // Not a drag - treat as a click
+            // Handle click logic
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(countries);
 
@@ -1380,6 +1328,52 @@
                     // Show the flag for the clicked country
                     showWavingFlag(selectedCountry.userData.name);
                 }
+            }
+        }
+
+        function onPointerMove(event) {
+            // Track user interaction and reset idle timer
+            resetIdleTimer();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Detect dragging in real-time (pointer is down and has moved)
+            if (event.buttons === 1) { // Primary button is pressed
+                const deltaX = Math.abs(event.clientX - mouseDownPos.x);
+                const deltaY = Math.abs(event.clientY - mouseDownPos.y);
+                if (deltaX > 5 || deltaY > 5) {
+                    isDragging = true;
+                }
+            }
+
+            // Skip hover effects during quiz or while dragging
+            if (quizActive || isDragging) {
+                return;
+            }
+
+            // Raycast for hover effects (tooltip and flag only, no highlighting)
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(countries);
+
+            // Get tooltip element
+            const tooltip = document.getElementById('tooltip');
+
+            // Show tooltip on hover, but not flag (flag only shows on click)
+            if (intersects.length > 0) {
+                const hoveredCountry = intersects[0].object;
+                document.body.style.cursor = 'pointer';
+
+                // Show and position tooltip above and to the left of cursor
+                tooltip.textContent = hoveredCountry.userData.name;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.clientX - 20) + 'px';
+                tooltip.style.top = (event.clientY - 50) + 'px';
+            } else {
+                document.body.style.cursor = 'default';
+
+                // Hide tooltip
+                tooltip.style.display = 'none';
             }
         }
 
