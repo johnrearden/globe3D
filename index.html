@@ -335,6 +335,248 @@
             border: 1px solid #ff0000;
         }
 
+        /* Quiz Mode Selector Styles */
+        #quiz-mode-selector {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+
+        #quiz-mode-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        #quiz-mode-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(10, 20, 35, 0.95);
+            border: 2px solid #FF8C00;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        #quiz-mode-content h2 {
+            color: #FF8C00;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+
+        #quiz-mode-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-mode-option {
+            flex: 1;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 140, 0, 0.3);
+            border-radius: 8px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .quiz-mode-option h3 {
+            color: #FF8C00;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .quiz-mode-option p {
+            color: #cccccc;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .quiz-mode-option:hover {
+            background-color: rgba(255, 140, 0, 0.2);
+            border-color: #FF8C00;
+            transform: scale(1.05);
+        }
+
+        #quiz-mode-close {
+            width: 100%;
+            padding: 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #quiz-mode-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Click Quiz Container Styles */
+        #click-quiz-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+            background-color: rgba(0, 0, 0, 0.85);
+            border-radius: 8px;
+            padding: 20px 30px;
+            border: 2px solid #FF8C00;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            min-width: 400px;
+        }
+
+        #click-quiz-country-name {
+            color: #FF8C00;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        #click-quiz-info {
+            display: flex;
+            justify-content: space-between;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+
+        #click-quiz-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            border: 3px solid;
+            border-radius: 8px;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 200;
+            display: none;
+            animation: feedbackPulse 0.5s;
+        }
+
+        #click-quiz-feedback.correct {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        #click-quiz-feedback.wrong {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        @keyframes feedbackPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        /* Timer Bar Styles */
+        #click-quiz-timer-bar-container {
+            position: fixed;
+            right: 0;
+            top: 10%;
+            height: 80%;
+            width: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-left: 2px solid #FF8C00;
+            z-index: 140;
+        }
+
+        #click-quiz-timer-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #00ff00, #ffff00, #ff0000);
+            transition: height 0.1s linear;
+        }
+
+        /* Click Quiz Results Styles */
+        #click-quiz-results {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+
+        #click-quiz-results-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        #click-quiz-results-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(10, 20, 35, 0.95);
+            border: 3px solid #FF8C00;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        #click-quiz-results-content h2 {
+            color: #FF8C00;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        #click-quiz-final-score {
+            color: #ffffff;
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        #click-quiz-final-time {
+            color: #e0e0e0;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        #click-quiz-close-btn {
+            padding: 15px 40px;
+            background-color: #FF8C00;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #click-quiz-close-btn:hover {
+            background-color: #FF6500;
+            transform: scale(1.05);
+        }
+
         /* Take Quiz button (mobile only) */
         #take-quiz-btn {
             display: none;
@@ -497,6 +739,64 @@
             #controls {
                 display: none;
             }
+
+            /* Click Quiz Mobile Styles */
+            #click-quiz-container {
+                top: 10px;
+                min-width: calc(100% - 40px);
+                padding: 15px 20px;
+            }
+
+            #click-quiz-country-name {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            #click-quiz-info {
+                font-size: 14px;
+            }
+
+            #click-quiz-feedback {
+                font-size: 20px;
+                padding: 15px 30px;
+            }
+
+            #click-quiz-timer-bar-container {
+                width: 8px;
+            }
+
+            #quiz-mode-options {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .quiz-mode-option {
+                padding: 15px;
+            }
+
+            .quiz-mode-option h3 {
+                font-size: 16px;
+            }
+
+            .quiz-mode-option p {
+                font-size: 13px;
+            }
+
+            #click-quiz-results-content {
+                padding: 30px 20px;
+            }
+
+            #click-quiz-results-content h2 {
+                font-size: 24px;
+            }
+
+            #click-quiz-final-score {
+                font-size: 36px;
+            }
+
+            #click-quiz-final-time {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -558,6 +858,53 @@
             <button id="quiz-start-btn">Start Quiz</button>
             <button id="quiz-next-btn" style="visibility: hidden;">Next Question</button>
         </div>
+
+        <!-- Quiz Mode Selector Modal -->
+        <div id="quiz-mode-selector" style="display: none;">
+            <div id="quiz-mode-overlay"></div>
+            <div id="quiz-mode-content">
+                <h2>Choose Quiz Mode</h2>
+                <div id="quiz-mode-options">
+                    <button class="quiz-mode-option" id="name-flag-quiz-btn">
+                        <h3>Name the Flag</h3>
+                        <p>Identify countries from their highlighted location and choose the correct name</p>
+                    </button>
+                    <button class="quiz-mode-option" id="find-country-quiz-btn">
+                        <h3>Find the Country</h3>
+                        <p>Click on the correct country when given its name - 10 questions in 45 seconds!</p>
+                    </button>
+                </div>
+                <button id="quiz-mode-close">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Click Quiz UI -->
+        <div id="click-quiz-container" style="display: none;">
+            <div id="click-quiz-header">
+                <div id="click-quiz-country-name"></div>
+                <div id="click-quiz-info">
+                    <span id="click-quiz-question-counter"></span>
+                    <span id="click-quiz-score-display"></span>
+                </div>
+            </div>
+            <div id="click-quiz-feedback"></div>
+        </div>
+
+        <!-- Click Quiz Timer Bar -->
+        <div id="click-quiz-timer-bar-container" style="display: none;">
+            <div id="click-quiz-timer-fill"></div>
+        </div>
+
+        <!-- Click Quiz Results Modal -->
+        <div id="click-quiz-results" style="display: none;">
+            <div id="click-quiz-results-overlay"></div>
+            <div id="click-quiz-results-content">
+                <h2>Quiz Complete!</h2>
+                <div id="click-quiz-final-score"></div>
+                <div id="click-quiz-final-time"></div>
+                <button id="click-quiz-close-btn">Close</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -586,6 +933,15 @@
         let quizScore = 0;
         let quizQuestionsAnswered = 0;
         let usedQuizCountries = []; // Track countries already used in current quiz
+
+        // Click quiz variables
+        let clickQuizActive = false;
+        let clickQuizCountries = []; // Array of 10 country names for this quiz
+        let clickQuizCurrentIndex = 0; // Current question (0-9)
+        let clickQuizScore = 0; // Number of correct answers
+        let clickQuizStartTime = 0; // Timestamp when quiz started
+        let clickQuizTimeRemaining = 45000; // Milliseconds remaining (45 seconds)
+        let clickQuizTimerInterval = null; // Interval ID for timer updates
 
         // Country labels
         let countryLabels = []; // Array of label meshes
@@ -1246,9 +1602,22 @@
             document.getElementById('country-search').addEventListener('keydown', onSearchKeyDown);
 
             // Quiz buttons
-            document.getElementById('quiz-start-btn').addEventListener('click', startQuiz);
+            document.getElementById('quiz-start-btn').addEventListener('click', showQuizModeSelector);
             document.getElementById('quiz-next-btn').addEventListener('click', nextQuestion);
-            document.getElementById('take-quiz-btn').addEventListener('click', startQuiz);
+            document.getElementById('take-quiz-btn').addEventListener('click', showQuizModeSelector);
+
+            // Quiz mode selector buttons
+            document.getElementById('name-flag-quiz-btn').addEventListener('click', () => {
+                hideQuizModeSelector();
+                startQuiz();
+            });
+            document.getElementById('find-country-quiz-btn').addEventListener('click', startClickQuiz);
+            document.getElementById('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
+            document.getElementById('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
+
+            // Click quiz buttons
+            document.getElementById('click-quiz-close-btn').addEventListener('click', closeClickQuizResults);
+            document.getElementById('click-quiz-results-overlay').addEventListener('click', closeClickQuizResults);
 
             // Sphere radius controls
             document.getElementById('sphere-radius-up').addEventListener('click', increaseSphereRadius);
@@ -1331,6 +1700,12 @@
             if (intersects.length > 0) {
                 selectedCountry = intersects[0].object;
                 console.log('Selected country:', selectedCountry.userData.name);
+
+                // Handle click quiz answer
+                if (clickQuizActive) {
+                    handleClickQuizAnswer(selectedCountry.userData.name);
+                    return; // Don't process normal country selection
+                }
 
                 // Center on clicked country (if not in quiz mode)
                 if (!quizActive) {
@@ -1921,6 +2296,170 @@
                 country.material.color.setHex(0xffffff);
                 country.material.needsUpdate = true;
             });
+        }
+
+        // Quiz Mode Selector Functions
+        function showQuizModeSelector() {
+            document.getElementById('quiz-mode-selector').style.display = 'block';
+        }
+
+        function hideQuizModeSelector() {
+            document.getElementById('quiz-mode-selector').style.display = 'none';
+        }
+
+        // Click Quiz Functions
+        function startClickQuiz() {
+            hideQuizModeSelector();
+
+            clickQuizActive = true;
+            clickQuizCurrentIndex = 0;
+            clickQuizScore = 0;
+            clickQuizTimeRemaining = 45000; // 45 seconds
+            clickQuizStartTime = Date.now();
+
+            // Select 10 random countries
+            const shuffled = [...countryCentroids].sort(() => Math.random() - 0.5);
+            clickQuizCountries = shuffled.slice(0, 10).map(c => c.name);
+
+            // Disable auto-rotation and search during quiz
+            autoRotateEnabled = false;
+            controls.autoRotate = false;
+            if (idleTimeout) {
+                clearTimeout(idleTimeout);
+                idleTimeout = null;
+            }
+
+            // Hide search container
+            document.getElementById('search-container').style.display = 'none';
+            document.getElementById('take-quiz-btn').style.display = 'none';
+
+            // Show click quiz UI
+            document.getElementById('click-quiz-container').style.display = 'block';
+            document.getElementById('click-quiz-timer-bar-container').style.display = 'block';
+
+            // Start timer
+            clickQuizTimerInterval = setInterval(updateClickQuizTimer, 100);
+
+            // Show first question
+            showClickQuizQuestion();
+        }
+
+        function showClickQuizQuestion() {
+            const countryName = clickQuizCountries[clickQuizCurrentIndex];
+            document.getElementById('click-quiz-country-name').textContent = countryName;
+            document.getElementById('click-quiz-question-counter').textContent =
+                `Question ${clickQuizCurrentIndex + 1} of 10`;
+            document.getElementById('click-quiz-score-display').textContent =
+                `Score: ${clickQuizScore}/${clickQuizCurrentIndex}`;
+        }
+
+        function updateClickQuizTimer() {
+            // Calculate elapsed time
+            const elapsed = Date.now() - clickQuizStartTime;
+            clickQuizTimeRemaining = 45000 - elapsed;
+
+            // Update timer bar
+            const percentage = Math.max(0, (clickQuizTimeRemaining / 45000) * 100);
+            document.getElementById('click-quiz-timer-fill').style.height = percentage + '%';
+
+            // End quiz if time runs out
+            if (clickQuizTimeRemaining <= 0) {
+                endClickQuiz(false);
+            }
+        }
+
+        function handleClickQuizAnswer(clickedCountryName) {
+            const correctCountryName = clickQuizCountries[clickQuizCurrentIndex];
+
+            if (clickedCountryName === correctCountryName) {
+                // Correct answer!
+                clickQuizScore++;
+                showClickQuizFeedback('Correct!', true);
+
+                // Flash country green
+                flashCountryColor(clickedCountryName, 0x00ff00);
+
+                // Move to next question after a short delay
+                setTimeout(() => {
+                    clickQuizCurrentIndex++;
+
+                    if (clickQuizCurrentIndex >= 10) {
+                        // Quiz complete!
+                        endClickQuiz(true);
+                    } else {
+                        showClickQuizQuestion();
+                    }
+                }, 800);
+            } else {
+                // Wrong answer - deduct 5 seconds
+                clickQuizStartTime -= 5000; // Move start time back by 5 seconds
+                showClickQuizFeedback('Wrong! -5 seconds', false);
+
+                // Flash country red
+                flashCountryColor(clickedCountryName, 0xff0000);
+            }
+        }
+
+        function showClickQuizFeedback(message, isCorrect) {
+            const feedbackEl = document.getElementById('click-quiz-feedback');
+            feedbackEl.textContent = message;
+            feedbackEl.className = isCorrect ? 'correct' : 'wrong';
+            feedbackEl.style.display = 'block';
+
+            setTimeout(() => {
+                feedbackEl.style.display = 'none';
+            }, 1000);
+        }
+
+        function flashCountryColor(countryName, color) {
+            const country = countries.find(c => c.userData.name === countryName);
+            if (country) {
+                const originalColor = country.material.color.getHex();
+                country.material.color.setHex(color);
+                country.material.needsUpdate = true;
+
+                setTimeout(() => {
+                    country.material.color.setHex(originalColor);
+                    country.material.needsUpdate = true;
+                }, 500);
+            }
+        }
+
+        function endClickQuiz(completed) {
+            clickQuizActive = false;
+
+            // Clear timer
+            if (clickQuizTimerInterval) {
+                clearInterval(clickQuizTimerInterval);
+                clickQuizTimerInterval = null;
+            }
+
+            // Hide quiz UI
+            document.getElementById('click-quiz-container').style.display = 'none';
+            document.getElementById('click-quiz-timer-bar-container').style.display = 'none';
+
+            // Calculate final time
+            const totalTime = 45000;
+            const timeUsed = totalTime - Math.max(0, clickQuizTimeRemaining);
+            const seconds = (timeUsed / 1000).toFixed(1);
+
+            // Show results
+            document.getElementById('click-quiz-final-score').textContent =
+                `${clickQuizScore} / 10`;
+            document.getElementById('click-quiz-final-time').textContent =
+                completed ? `Completed in ${seconds}s` : `Time's Up! ${seconds}s elapsed`;
+            document.getElementById('click-quiz-results').style.display = 'block';
+        }
+
+        function closeClickQuizResults() {
+            document.getElementById('click-quiz-results').style.display = 'none';
+
+            // Show search and quiz button again
+            document.getElementById('search-container').style.display = 'block';
+            document.getElementById('take-quiz-btn').style.display = 'block';
+
+            // Resume auto-rotation
+            resumeAutoRotation();
         }
 
         // Initialize flag renderer (separate Three.js scene for the flag)
