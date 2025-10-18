@@ -602,7 +602,7 @@
         let autoRotateEnabled = true;
         let lastInteractionTime = Date.now();
         let idleTimeout = null;
-        const IDLE_DELAY = 10000; // 10 seconds
+        const IDLE_DELAY = 300000; // 5 minutes
 
         // Country data: ISO code, population (millions), area (km²), primary language
         const countryData = {
@@ -1314,33 +1314,16 @@
                 return;
             }
 
-            // Raycast for hover effects
+            // Raycast for hover effects (tooltip and flag only, no highlighting)
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(countries);
-
-            // Reset all countries to normal state, except selected search country
-            countries.forEach(country => {
-                if (selectedSearchCountry && country.userData.name === selectedSearchCountry) {
-                    // Keep selected search country highlighted
-                    country.material.vertexColors = false;
-                    country.material.color.setHex(0xFF0000);
-                } else {
-                    country.material.vertexColors = true;
-                    country.material.color.setHex(0xffffff);
-                }
-                country.material.needsUpdate = true;
-            });
 
             // Get tooltip element
             const tooltip = document.getElementById('tooltip');
 
-            // Highlight hovered country (only use first intersection to prevent click-through)
+            // Show tooltip and flag on hover, but don't change country colors
             if (intersects.length > 0) {
                 const hoveredCountry = intersects[0].object;
-                // Highlight with red - disable vertex colors and set red
-                hoveredCountry.material.vertexColors = false;
-                hoveredCountry.material.color.setHex(0xFF0000); // Red
-                hoveredCountry.material.needsUpdate = true;
                 document.body.style.cursor = 'pointer';
 
                 // Show and position tooltip above and to the left of cursor
@@ -1380,6 +1363,19 @@
                 if (!quizActive) {
                     // Track the selected country so it stays highlighted
                     selectedSearchCountry = selectedCountry.userData.name;
+
+                    // Reset all countries to normal state first
+                    countries.forEach(c => {
+                        c.material.vertexColors = true;
+                        c.material.color.setHex(0xffffff);
+                        c.material.needsUpdate = true;
+                    });
+
+                    // Highlight only the clicked country
+                    selectedCountry.material.vertexColors = false;
+                    selectedCountry.material.color.setHex(0xFFFFFF);
+                    selectedCountry.material.needsUpdate = true;
+
                     rotateGlobeToCountry(selectedCountry);
                     // Show the flag for the clicked country
                     showWavingFlag(selectedCountry.userData.name);
@@ -1645,10 +1641,10 @@
                 country.material.needsUpdate = true;
             });
 
-            // Highlight the quiz country with red
+            // Highlight the quiz country with white
             countryObj.meshRefs.forEach(mesh => {
                 mesh.material.vertexColors = false;
-                mesh.material.color.setHex(0xFF0000);
+                mesh.material.color.setHex(0xFFFFFF);
                 mesh.material.needsUpdate = true;
             });
 
@@ -2029,7 +2025,7 @@
 
                 // Highlight selected country
                 country.material.vertexColors = false;
-                country.material.color.setHex(0xFF0000);
+                country.material.color.setHex(0xFFFFFF);
                 country.material.needsUpdate = true;
 
                 // Rotate and tilt globe to center the country
