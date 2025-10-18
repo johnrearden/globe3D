@@ -342,11 +342,11 @@
 
         /* Mobile styles */
         @media (max-width: 768px) {
-            /* Show Take Quiz button on mobile */
+            /* Show Take Quiz button on mobile - positioned below search, left aligned */
             #take-quiz-btn {
                 display: block;
                 position: fixed;
-                top: 10px;
+                top: 110px;
                 left: 10px;
                 z-index: 150;
                 background-color: #FF8C00;
@@ -425,14 +425,14 @@
                 margin-top: 8px;
             }
 
-            /* Move globe canvas up on mobile so globe center is at 25% from top */
+            /* Globe canvas centered on mobile */
             #globe-canvas {
-                transform: translateY(-25vh);
+                transform: translateY(0);
             }
 
-            /* Place search with top edge at 50vh on mobile */
+            /* Place search container at top on mobile */
             #search-container {
-                top: 50vh;
+                top: 10px;
                 bottom: auto;
                 left: 50%;
                 transform: translateX(-50%);
@@ -602,10 +602,10 @@
         let currentSearchIndex = -1; // Track currently selected search result index
 
         // Auto-rotation state
-        let autoRotateEnabled = true;
+        let autoRotateEnabled = false;
         let lastInteractionTime = Date.now();
         let idleTimeout = null;
-        const IDLE_DELAY = 300000; // 5 minutes
+        const IDLE_DELAY = 60000; // 1 minute
 
         // Country data: ISO code, population (millions), area (km²), primary language
         const countryData = {
@@ -870,8 +870,8 @@
                 cameraDistance = (1 / Math.tan(horizontalFov / 2)) / targetPercentage;
             }
 
-            // On mobile, move camera up to position globe below search bar
-            const verticalOffset = isMobile ? 0.3 : 0;
+            // Center globe vertically on all screen sizes
+            const verticalOffset = 0;
             camera.position.set(0, verticalOffset, cameraDistance);
 
             // Create renderer
@@ -932,7 +932,7 @@
             controls.enablePan = false;
 
             // Set zoom limits (distance from center)
-            controls.minDistance = 1.1;  // Closest zoom (allow much closer)
+            controls.minDistance = 1.5;  // Closest zoom (keeps camera outside globe surface at ~1.02)
             controls.maxDistance = 10;   // Farthest zoom
 
             // No restrictions on vertical rotation - user can tilt freely
@@ -942,13 +942,18 @@
             controls.enableRotate = true;
             controls.rotateSpeed = 0.5;
 
-            // Enable auto-rotate with slow speed
-            controls.autoRotate = true;
+            // Auto-rotate disabled initially, will enable after 1 minute of inactivity
+            controls.autoRotate = false;
             controls.autoRotateSpeed = 1.0; // 2x rotation speed
 
             // Set target to center of scene (earth's center)
             controls.target.set(0, 0, 0);
             controls.update();
+
+            // Start idle timer to enable auto-rotation after initial delay
+            idleTimeout = setTimeout(() => {
+                resumeAutoRotation();
+            }, IDLE_DELAY);
         }
 
         // Stop auto-rotation and start idle timer
@@ -1439,14 +1444,15 @@
                 cameraDistance = (1 / Math.tan(horizontalFov / 2)) / targetPercentage;
             }
 
-            // Maintain current camera angles but update distance and vertical offset
+            // Maintain current camera angles but update distance
             const currentDistance = camera.position.length();
             const direction = camera.position.clone().normalize();
-            const verticalOffset = isMobile ? 0.3 : 0;
 
-            // Update camera position with new distance and offset
+            // Update camera position with new distance
             camera.position.copy(direction.multiplyScalar(cameraDistance));
-            camera.position.y += verticalOffset;
+
+            // Center vertically (remove any previous offset)
+            camera.position.y = 0;
             camera.lookAt(0, 0, 0);
             controls.update();
         }
@@ -2220,10 +2226,10 @@
             // Calculate camera distance from globe center
             const cameraDistance = camera.position.length();
 
-            // Define zoom thresholds (based on controls: min=1.1, max=10)
+            // Define zoom thresholds (based on controls: min=1.5, max=10)
             const ZOOM_FAR = 5; // Hide all labels
             const ZOOM_MEDIUM = 2.5; // Show major countries
-            const ZOOM_CLOSE = 1.8; // Show all countries
+            const ZOOM_CLOSE = 2.0; // Show all countries (adjusted for new min distance)
 
             // Determine which labels to show based on zoom
             let showAllLabels = false;
