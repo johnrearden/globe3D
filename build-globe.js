@@ -176,7 +176,7 @@ function generateRandomColor() {
 }
 
 // Process a single country
-function processCountry(countryFile) {
+function processCountry(countryFile, colorConfig = {}) {
     const countryName = path.basename(countryFile, '.json');
     console.log(`Processing ${countryName}...`);
 
@@ -193,8 +193,29 @@ function processCountry(countryFile) {
         subdivisionLevel = SUBDIVISION_LEVEL_DEFAULT;
     }
 
-    // Generate a random color for this country
-    const countryColor = generateRandomColor();
+    // Use custom color if available, otherwise generate random color
+    // Note: colorConfig uses proper country names (e.g., "United States")
+    // but filenames use lowercase (e.g., "usa.json")
+    // We need to match by searching the config for similar names
+    let countryColor = null;
+
+    // Try to find matching color in config
+    for (const configCountryName in colorConfig) {
+        // Simple match: if config name includes the file name or vice versa
+        const configLower = configCountryName.toLowerCase().replace(/\s+/g, '');
+        const fileLower = countryName.toLowerCase().replace(/\s+/g, '');
+
+        if (configLower.includes(fileLower) || fileLower.includes(configLower)) {
+            countryColor = colorConfig[configCountryName];
+            console.log(`  ↳ Using custom color from config`);
+            break;
+        }
+    }
+
+    // Fall back to random color if no match found
+    if (!countryColor) {
+        countryColor = generateRandomColor();
+    }
 
     geoJSON.features.forEach((feature, featureIdx) => {
         const processPolygon = (coordinates) => {
@@ -290,6 +311,21 @@ function processCountry(countryFile) {
 async function buildGlobe() {
     console.log('Starting globe build...\n');
 
+    // Load custom color configuration if available
+    let colorConfig = {};
+    const colorConfigPath = './country-colors.json';
+    if (fs.existsSync(colorConfigPath)) {
+        try {
+            colorConfig = JSON.parse(fs.readFileSync(colorConfigPath, 'utf8'));
+            console.log(`✓ Loaded color configuration for ${Object.keys(colorConfig).length} countries\n`);
+        } catch (error) {
+            console.log(`⚠ Error loading color config: ${error.message}`);
+            console.log('  Falling back to random colors\n');
+        }
+    } else {
+        console.log('No color configuration found, using random colors\n');
+    }
+
     // Get all country files
     const countryFiles = fs.readdirSync(COUNTRIES_DIR)
         .filter(file => file.endsWith('.json'))
@@ -309,7 +345,7 @@ async function buildGlobe() {
 
     for (const countryFile of countryFiles) {
         try {
-            const { countryName, geometries } = processCountry(countryFile);
+            const { countryName, geometries } = processCountry(countryFile, colorConfig);
 
             geometries.forEach(geom => {
                 // Create accessor for positions

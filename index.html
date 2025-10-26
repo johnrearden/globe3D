@@ -687,6 +687,14 @@
             display: none;
         }
 
+        #edit-colors-btn {
+            display: none;
+        }
+
+        #save-colors-btn {
+            display: none;
+        }
+
         /* Zoom Widget Styles */
         #zoom-widget {
             position: fixed;
@@ -810,6 +818,54 @@
                 background-color: #7B1FA2;
                 transform: scale(1.05);
             }
+
+            #edit-colors-btn {
+                display: block;
+                position: fixed;
+                top: 270px;
+                left: 20px;
+                z-index: 150;
+                background-color: #E91E63;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #edit-colors-btn.active {
+                background-color: #FFA500;
+            }
+
+            #edit-colors-btn:hover {
+                transform: scale(1.05);
+            }
+
+            #save-colors-btn {
+                position: fixed;
+                top: 320px;
+                left: 20px;
+                z-index: 150;
+                background-color: #00BCD4;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #save-colors-btn:hover {
+                background-color: #0097A7;
+                transform: scale(1.05);
+            }
         }
 
         /* Mobile styles */
@@ -909,6 +965,54 @@
                 transform: scale(1.05);
             }
 
+            #edit-colors-btn {
+                display: block;
+                position: fixed;
+                top: 290px;
+                left: 10px;
+                z-index: 150;
+                background-color: #E91E63;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #edit-colors-btn.active {
+                background-color: #FFA500;
+            }
+
+            #edit-colors-btn:hover {
+                transform: scale(1.05);
+            }
+
+            #save-colors-btn {
+                position: fixed;
+                top: 335px;
+                left: 10px;
+                z-index: 150;
+                background-color: #00BCD4;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #save-colors-btn:hover {
+                background-color: #0097A7;
+                transform: scale(1.05);
+            }
+
             /* Hide Take Quiz button during quiz */
             body.quiz-active #take-quiz-btn {
                 display: none;
@@ -917,7 +1021,9 @@
             /* Hide edit buttons during quiz */
             body.quiz-active #edit-mode-btn,
             body.quiz-active #save-config-btn,
-            body.quiz-active #fine-tune-btn {
+            body.quiz-active #fine-tune-btn,
+            body.quiz-active #edit-colors-btn,
+            body.quiz-active #save-colors-btn {
                 display: none;
             }
 
@@ -1134,6 +1240,8 @@
         <button id="edit-mode-btn">Edit Labels</button>
         <button id="save-config-btn" style="display: none;">Save Config</button>
         <button id="fine-tune-btn" style="display: none;">Fine Tune</button>
+        <button id="edit-colors-btn">Edit Colors</button>
+        <button id="save-colors-btn" style="display: none;">Save Colors</button>
 
         <!-- Zoom Level Widget -->
         <div id="zoom-widget">
@@ -1327,6 +1435,24 @@
         let lastTapTime = 0;
         let longPressTimer = null;
         let longPressTriggered = false;
+
+        // Color edit mode variables
+        let colorEditMode = false;
+        let colorConfig = {}; // Stores custom country colors
+
+        // Curated color palette (10 distinct colors in darker tones for lighting)
+        const COLOR_PALETTE = [
+            [0.2, 0.5, 0.25],   // Forest Green
+            [0.45, 0.45, 0.15], // Olive/Yellow-Green
+            [0.5, 0.35, 0.15],  // Orange/Rust
+            [0.35, 0.2, 0.45],  // Purple/Violet
+            [0.2, 0.45, 0.45],  // Teal/Cyan
+            [0.4, 0.3, 0.2],    // Brown/Earth
+            [0.5, 0.45, 0.2],   // Dark Yellow/Gold
+            [0.45, 0.25, 0.35], // Magenta/Deep Pink
+            [0.2, 0.25, 0.4],   // Navy/Dark Blue
+            [0.4, 0.2, 0.25]    // Burgundy/Wine Red
+        ];
 
         // Country size categories for label sizing and visibility
         const LARGE_COUNTRIES = new Set([
@@ -2046,6 +2172,10 @@
             document.getElementById('save-config-btn').addEventListener('click', saveLabelConfig);
             document.getElementById('fine-tune-btn').addEventListener('click', openLabelEditorModal);
 
+            // Color edit mode UI buttons
+            document.getElementById('edit-colors-btn').addEventListener('click', toggleColorEditMode);
+            document.getElementById('save-colors-btn').addEventListener('click', saveColorConfig);
+
             // Label editor modal buttons
             document.getElementById('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
             document.getElementById('label-editor-overlay').addEventListener('click', closeLabelEditorModal);
@@ -2445,6 +2575,88 @@
             }
         }
 
+        // Toggle color edit mode
+        function toggleColorEditMode() {
+            colorEditMode = !colorEditMode;
+
+            const editBtn = document.getElementById('edit-colors-btn');
+            const saveBtn = document.getElementById('save-colors-btn');
+
+            if (colorEditMode) {
+                console.log('Color edit mode ENABLED - Click countries to change colors');
+
+                // Update UI
+                editBtn.classList.add('active');
+                editBtn.textContent = 'Exit Color Edit';
+                saveBtn.style.display = 'block';
+
+                // Disable label edit mode if active
+                if (editMode) {
+                    toggleEditMode();
+                }
+            } else {
+                console.log('Color edit mode DISABLED');
+
+                // Update UI
+                editBtn.classList.remove('active');
+                editBtn.textContent = 'Edit Colors';
+                saveBtn.style.display = 'none';
+            }
+        }
+
+        // Change country color to a random color from palette
+        function changeCountryColor(country) {
+            if (!country || !colorEditMode) return;
+
+            const countryName = country.userData.name;
+
+            // Pick a random color from the palette
+            const randomColor = COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+
+            // Apply color to the country mesh
+            const geometry = country.geometry;
+            const colorAttribute = geometry.getAttribute('color');
+
+            if (colorAttribute) {
+                const colors = colorAttribute.array;
+                const vertexCount = colors.length / 3;
+
+                // Set all vertices to the new color
+                for (let i = 0; i < vertexCount; i++) {
+                    colors[i * 3] = randomColor[0];
+                    colors[i * 3 + 1] = randomColor[1];
+                    colors[i * 3 + 2] = randomColor[2];
+                }
+
+                colorAttribute.needsUpdate = true;
+            }
+
+            // Store in config
+            colorConfig[countryName] = randomColor;
+
+            console.log(`${countryName} color changed to [${randomColor.join(', ')}]`);
+
+            // Provide haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        }
+
+        // Save color configuration to JSON file
+        function saveColorConfig() {
+            const dataStr = JSON.stringify(colorConfig, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'country-colors.json';
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('Color configuration saved! Countries configured:', Object.keys(colorConfig).length);
+        }
+
         let currentSphereRadius = 1.014;
 
         function toggleSphere(event) {
@@ -2587,6 +2799,17 @@
                 if (labelIntersects.length > 0) {
                     selectLabel(labelIntersects[0].object);
                     return; // Don't process country clicks in edit mode
+                }
+            }
+
+            // Color edit mode: Change country color on click
+            if (colorEditMode) {
+                raycaster.setFromCamera(mouse, camera);
+                const colorIntersects = raycaster.intersectObjects(countries);
+
+                if (colorIntersects.length > 0) {
+                    changeCountryColor(colorIntersects[0].object);
+                    return; // Don't process normal country selection in color edit mode
                 }
             }
 
