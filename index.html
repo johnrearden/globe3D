@@ -577,9 +577,251 @@
             transform: scale(1.05);
         }
 
+        /* Label Editor Modal Styles */
+        #label-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+
+        #label-editor-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        #label-editor-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(20, 20, 20, 0.95);
+            border: 2px solid #FF8C00;
+            border-radius: 12px;
+            padding: 25px;
+            min-width: 350px;
+            max-width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+        }
+
+        #label-editor-title {
+            color: #FF8C00;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .label-editor-section {
+            margin-bottom: 20px;
+        }
+
+        .label-editor-section label {
+            display: block;
+            color: #e0e0e0;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .label-editor-section input[type="range"] {
+            width: 70%;
+            vertical-align: middle;
+        }
+
+        .label-editor-section span {
+            display: inline-block;
+            width: 60px;
+            color: #FF8C00;
+            font-weight: bold;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .label-editor-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .label-editor-buttons button {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #label-reset-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        #label-reset-btn:hover {
+            background-color: #d32f2f;
+            transform: scale(1.05);
+        }
+
+        #label-editor-close-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #label-editor-close-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
         /* Take Quiz button (mobile only) */
         #take-quiz-btn {
             display: none;
+        }
+
+        /* Edit mode buttons - save button hidden by default */
+        #edit-mode-btn {
+            display: none;
+        }
+
+        #save-config-btn {
+            display: none;
+        }
+
+        #fine-tune-btn {
+            display: none;
+        }
+
+        /* Zoom Widget Styles */
+        #zoom-widget {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 150;
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(255, 140, 0, 0.5);
+            border-radius: 8px;
+            padding: 15px 10px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        #zoom-label-top {
+            color: #FF8C00;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #zoom-bar-container {
+            width: 30px;
+            height: 150px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            border-radius: 4px;
+            margin: 0 auto 8px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #zoom-bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, #FF8C00, #FFD700);
+            border-radius: 3px;
+            transition: height 0.2s ease;
+        }
+
+        #zoom-value {
+            color: #FFD700;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* Desktop styles for edit buttons */
+        @media (min-width: 769px) {
+            #edit-mode-btn {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 150;
+                background-color: #4CAF50;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #edit-mode-btn.active {
+                background-color: #FFA500;
+            }
+
+            #edit-mode-btn:hover {
+                transform: scale(1.05);
+            }
+
+            #save-config-btn {
+                position: fixed;
+                top: 70px;
+                left: 20px;
+                z-index: 150;
+                background-color: #2196F3;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #save-config-btn:hover {
+                background-color: #1976D2;
+                transform: scale(1.05);
+            }
+
+            #fine-tune-btn {
+                position: fixed;
+                top: 120px;
+                left: 20px;
+                z-index: 150;
+                background-color: #9C27B0;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #fine-tune-btn:hover {
+                background-color: #7B1FA2;
+                transform: scale(1.05);
+            }
         }
 
         /* Mobile styles */
@@ -608,9 +850,106 @@
                 transform: scale(1.05);
             }
 
+            /* Edit mode buttons on mobile */
+            #edit-mode-btn {
+                display: block;
+                position: fixed;
+                top: 155px;
+                left: 10px;
+                z-index: 150;
+                background-color: #4CAF50;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #edit-mode-btn.active {
+                background-color: #FFA500;
+            }
+
+            #edit-mode-btn:hover {
+                transform: scale(1.05);
+            }
+
+            #save-config-btn {
+                position: fixed;
+                top: 200px;
+                left: 10px;
+                z-index: 150;
+                background-color: #2196F3;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #save-config-btn:hover {
+                background-color: #1976D2;
+                transform: scale(1.05);
+            }
+
+            #fine-tune-btn {
+                position: fixed;
+                top: 245px;
+                left: 10px;
+                z-index: 150;
+                background-color: #9C27B0;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #fine-tune-btn:hover {
+                background-color: #7B1FA2;
+                transform: scale(1.05);
+            }
+
             /* Hide Take Quiz button during quiz */
             body.quiz-active #take-quiz-btn {
                 display: none;
+            }
+
+            /* Hide edit buttons during quiz */
+            body.quiz-active #edit-mode-btn,
+            body.quiz-active #save-config-btn,
+            body.quiz-active #fine-tune-btn {
+                display: none;
+            }
+
+            /* Zoom widget on mobile - position on right side */
+            #zoom-widget {
+                right: 10px;
+                padding: 10px 8px;
+            }
+
+            #zoom-bar-container {
+                height: 120px;
+                width: 25px;
+            }
+
+            #zoom-label-top {
+                font-size: 11px;
+            }
+
+            #zoom-value {
+                font-size: 13px;
             }
 
             /* Hide quiz container when not active on mobile */
@@ -804,6 +1143,19 @@
     <div id="container">
         <div id="loading">Loading world map data...</div>
         <button id="take-quiz-btn">Take Quiz</button>
+        <button id="edit-mode-btn">Edit Labels</button>
+        <button id="save-config-btn" style="display: none;">Save Config</button>
+        <button id="fine-tune-btn" style="display: none;">Fine Tune</button>
+
+        <!-- Zoom Level Widget -->
+        <div id="zoom-widget">
+            <div id="zoom-label-top">Zoom</div>
+            <div id="zoom-bar-container">
+                <div id="zoom-bar-fill"></div>
+            </div>
+            <div id="zoom-value">2.5</div>
+        </div>
+
         <div id="tooltip"></div>
         <div id="flag-container">
             <div id="flag-container-content">
@@ -905,6 +1257,38 @@
                 <button id="click-quiz-close-btn">Close</button>
             </div>
         </div>
+
+        <!-- Label Editor Modal -->
+        <div id="label-editor-modal" style="display: none;">
+            <div id="label-editor-overlay"></div>
+            <div id="label-editor-content">
+                <h2 id="label-editor-title">Edit Label</h2>
+                <div class="label-editor-section">
+                    <label>Position Offset X:</label>
+                    <input type="range" id="label-offset-x" min="-0.2" max="0.2" step="0.01" value="0">
+                    <span id="label-offset-x-value">0.00</span>
+                </div>
+                <div class="label-editor-section">
+                    <label>Position Offset Y:</label>
+                    <input type="range" id="label-offset-y" min="-0.2" max="0.2" step="0.01" value="0">
+                    <span id="label-offset-y-value">0.00</span>
+                </div>
+                <div class="label-editor-section">
+                    <label>Position Offset Z:</label>
+                    <input type="range" id="label-offset-z" min="-0.2" max="0.2" step="0.01" value="0">
+                    <span id="label-offset-z-value">0.00</span>
+                </div>
+                <div class="label-editor-section">
+                    <label>Scale:</label>
+                    <input type="range" id="label-scale" min="0.1" max="3.0" step="0.1" value="1.0">
+                    <span id="label-scale-value">1.0</span>
+                </div>
+                <div class="label-editor-buttons">
+                    <button id="label-reset-btn">Reset to Default</button>
+                    <button id="label-editor-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -945,6 +1329,41 @@
 
         // Country labels
         let countryLabels = []; // Array of label meshes
+
+        // Edit mode variables
+        let editMode = false;
+        let selectedLabel = null;
+        let labelConfig = {}; // Stores custom positions and font sizes
+        let labelDefaults = {}; // Stores original/default positions and scales
+        let isDraggingLabel = false;
+        let selectionHelper = null; // Visual indicator for selected label
+        let lastTapTime = 0;
+        let longPressTimer = null;
+        let longPressTriggered = false;
+
+        // Country size categories for label sizing and visibility
+        const LARGE_COUNTRIES = new Set([
+            'Russia', 'Canada', 'United States', 'China', 'Brazil', 'Australia',
+            'India', 'Argentina', 'Kazakhstan', 'Algeria', 'Democratic Republic Of The Congo',
+            'Saudi Arabia', 'Mexico', 'Indonesia', 'Libya', 'Iran', 'Mongolia',
+            'Peru', 'Chad', 'Niger', 'Angola', 'Mali', 'South Africa', 'Colombia',
+            'Ethiopia', 'Bolivia', 'Mauritania', 'Egypt', 'Tanzania', 'Nigeria',
+            'Venezuela', 'Pakistan', 'Mozambique', 'Turkey', 'Chile', 'Zambia',
+            'Myanmar', 'Afghanistan', 'Somalia', 'Central African Republic', 'Ukraine',
+            'Madagascar', 'Botswana', 'Kenya', 'France', 'Yemen', 'Thailand',
+            'Spain', 'Turkmenistan', 'Cameroon', 'Papua New Guinea', 'Sweden',
+            'Uzbekistan', 'Morocco', 'Iraq', 'Paraguay', 'Zimbabwe'
+        ]);
+
+        const SMALL_COUNTRIES = new Set([
+            'Singapore', 'Bahrain', 'Malta', 'Maldives', 'Barbados',
+            'Saint Lucia', 'Antigua And Barbuda', 'Andorra', 'Seychelles',
+            'Palau', 'Saint Vincent And The Grenadines', 'Grenada',
+            'Saint Kitts And Nevis', 'Marshall Islands', 'Liechtenstein',
+            'San Marino', 'Tuvalu', 'Nauru', 'Monaco', 'Vatican City',
+            'Comoros', 'Mauritius', 'Sao Tome And Principe', 'Dominica',
+            'Tonga', 'Kiribati', 'Micronesia', 'Cape Verde', 'Samoa'
+        ]);
 
         // Country borders
         let countryBorders = []; // Array of border line segments
@@ -1291,7 +1710,7 @@
             controls.enablePan = false;
 
             // Set zoom limits (distance from center)
-            controls.minDistance = 1.5;  // Closest zoom (keeps camera outside globe surface at ~1.02)
+            controls.minDistance = 1.13;  // Closest zoom (optimal close view)
             controls.maxDistance = 10;   // Farthest zoom
 
             // No restrictions on vertical rotation - user can tilt freely
@@ -1310,9 +1729,10 @@
             controls.update();
 
             // Start idle timer to enable auto-rotation after initial delay
-            idleTimeout = setTimeout(() => {
-                resumeAutoRotation();
-            }, IDLE_DELAY);
+            // TEMPORARILY DISABLED
+            // idleTimeout = setTimeout(() => {
+            //     resumeAutoRotation();
+            // }, IDLE_DELAY);
         }
 
         // Stop auto-rotation and start idle timer
@@ -1326,9 +1746,10 @@
             }
 
             // Start idle timer - resume rotation after idle period
-            idleTimeout = setTimeout(() => {
-                resumeAutoRotation();
-            }, IDLE_DELAY);
+            // TEMPORARILY DISABLED
+            // idleTimeout = setTimeout(() => {
+            //     resumeAutoRotation();
+            // }, IDLE_DELAY);
         }
 
         // Resume auto-rotation (only if not in quiz mode)
@@ -1458,8 +1879,11 @@
                         // Create country labels
                         createCountryLabels();
 
+                        // Load saved label configuration if available
+                        loadLabelConfig();
+
                         // Create country borders
-                        createCountryBorders();
+                        // createCountryBorders(); // Disabled for performance
 
                         hideLoading();
                     },
@@ -1623,6 +2047,415 @@
             document.getElementById('sphere-radius-up').addEventListener('click', increaseSphereRadius);
             document.getElementById('sphere-radius-down').addEventListener('click', decreaseSphereRadius);
             document.getElementById('sphere-toggle').addEventListener('change', toggleSphere);
+
+            // Edit mode keyboard shortcuts
+            window.addEventListener('keydown', onKeyDown);
+
+            // Edit mode wheel event for font size adjustment
+            renderer.domElement.addEventListener('wheel', onWheelForLabelResize, { passive: false });
+
+            // Edit mode UI buttons
+            document.getElementById('edit-mode-btn').addEventListener('click', toggleEditMode);
+            document.getElementById('save-config-btn').addEventListener('click', saveLabelConfig);
+            document.getElementById('fine-tune-btn').addEventListener('click', openLabelEditorModal);
+
+            // Label editor modal buttons
+            document.getElementById('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
+            document.getElementById('label-editor-overlay').addEventListener('click', closeLabelEditorModal);
+            document.getElementById('label-reset-btn').addEventListener('click', resetLabelToDefault);
+
+            // Label editor sliders
+            document.getElementById('label-offset-x').addEventListener('input', onLabelOffsetChange);
+            document.getElementById('label-offset-y').addEventListener('input', onLabelOffsetChange);
+            document.getElementById('label-offset-z').addEventListener('input', onLabelOffsetChange);
+            document.getElementById('label-scale').addEventListener('input', onLabelScaleChange);
+        }
+
+        // Keyboard event handler for edit mode
+        function onKeyDown(event) {
+            // Don't interfere with typing in input fields
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            if (event.key === 'e' || event.key === 'E') {
+                toggleEditMode();
+            } else if (event.key === 's' || event.key === 'S') {
+                if (editMode) {
+                    saveLabelConfig();
+                }
+            }
+        }
+
+        // Wheel event handler for label font size adjustment in edit mode
+        function onWheelForLabelResize(event) {
+            if (editMode && selectedLabel) {
+                event.preventDefault();
+
+                const countryName = selectedLabel.userData.countryName;
+                if (!labelConfig[countryName]) {
+                    labelConfig[countryName] = {};
+                }
+
+                // Get current font size or default
+                let currentFontSize = labelConfig[countryName].fontSize || 32;
+                let currentScale = labelConfig[countryName].scale || selectedLabel.scale.x;
+
+                // Adjust scale based on wheel delta
+                const scaleDelta = event.deltaY > 0 ? 0.95 : 1.05;
+                currentScale *= scaleDelta;
+                currentFontSize *= scaleDelta;
+
+                // Clamp values
+                currentScale = Math.max(0.1, Math.min(3.0, currentScale));
+                currentFontSize = Math.max(8, Math.min(128, currentFontSize));
+
+                // Update label scale
+                selectedLabel.scale.set(currentScale, currentScale, currentScale);
+
+                // Update selection helper scale
+                if (selectionHelper) {
+                    selectionHelper.scale.set(currentScale, currentScale, currentScale);
+                }
+
+                // Store in config
+                labelConfig[countryName].fontSize = currentFontSize;
+                labelConfig[countryName].scale = currentScale;
+
+                console.log(`${countryName}: fontSize=${currentFontSize.toFixed(1)}, scale=${currentScale.toFixed(2)}`);
+            }
+        }
+
+        // Toggle edit mode
+        function toggleEditMode() {
+            editMode = !editMode;
+
+            const editBtn = document.getElementById('edit-mode-btn');
+            const saveBtn = document.getElementById('save-config-btn');
+
+            if (editMode) {
+                console.log('Edit mode ENABLED - Click labels to select, drag to move, wheel to resize');
+                // Make all labels visible for editing
+                countryLabels.forEach(label => label.visible = true);
+                // Disable orbit controls while dragging labels
+                controls.enableRotate = true; // Still allow rotation when not dragging
+
+                // Update UI
+                editBtn.classList.add('active');
+                editBtn.textContent = 'Exit Edit Mode';
+                saveBtn.style.display = 'block';
+            } else {
+                console.log('Edit mode DISABLED');
+                // Deselect any selected label
+                if (selectedLabel) {
+                    deselectLabel();
+                }
+                // Restore normal visibility
+                updateLabelVisibility();
+
+                // Update UI
+                editBtn.classList.remove('active');
+                editBtn.textContent = 'Edit Labels';
+                saveBtn.style.display = 'none';
+            }
+        }
+
+        // Select a label in edit mode
+        function selectLabel(label) {
+            // Deselect previous label
+            if (selectedLabel) {
+                deselectLabel();
+            }
+
+            selectedLabel = label;
+
+            // Create visual indicator (a wireframe box around the label)
+            if (!selectionHelper) {
+                const helperGeometry = new THREE.PlaneGeometry(
+                    label.geometry.parameters.width * 1.1,
+                    label.geometry.parameters.height * 1.1
+                );
+                const helperMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.8,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                selectionHelper = new THREE.Mesh(helperGeometry, helperMaterial);
+                scene.add(selectionHelper);
+            }
+
+            // Position helper at label
+            selectionHelper.position.copy(label.position);
+            selectionHelper.quaternion.copy(label.quaternion);
+            selectionHelper.visible = true;
+
+            // Show fine tune button
+            document.getElementById('fine-tune-btn').style.display = 'block';
+
+            console.log(`Selected: ${label.userData.countryName}`);
+        }
+
+        // Deselect current label
+        function deselectLabel() {
+            if (selectionHelper) {
+                selectionHelper.visible = false;
+            }
+            selectedLabel = null;
+
+            // Hide fine tune button
+            document.getElementById('fine-tune-btn').style.display = 'none';
+        }
+
+        // Resize selected label by a multiplier
+        function resizeSelectedLabel(multiplier) {
+            if (!selectedLabel) return;
+
+            const countryName = selectedLabel.userData.countryName;
+            if (!labelConfig[countryName]) {
+                labelConfig[countryName] = {};
+            }
+
+            // Get current font size or default
+            let currentFontSize = labelConfig[countryName].fontSize || 32;
+            let currentScale = labelConfig[countryName].scale || selectedLabel.scale.x;
+
+            // Apply multiplier
+            currentScale *= multiplier;
+            currentFontSize *= multiplier;
+
+            // Clamp values
+            currentScale = Math.max(0.1, Math.min(3.0, currentScale));
+            currentFontSize = Math.max(8, Math.min(128, currentFontSize));
+
+            // Update label scale
+            selectedLabel.scale.set(currentScale, currentScale, currentScale);
+
+            // Update selection helper scale
+            if (selectionHelper) {
+                selectionHelper.scale.set(currentScale, currentScale, currentScale);
+            }
+
+            // Store in config
+            labelConfig[countryName].fontSize = currentFontSize;
+            labelConfig[countryName].scale = currentScale;
+
+            console.log(`${countryName}: fontSize=${currentFontSize.toFixed(1)}, scale=${currentScale.toFixed(2)}`);
+        }
+
+        // Save label configuration to JSON file
+        function saveLabelConfig() {
+            const dataStr = JSON.stringify(labelConfig, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'label-config.json';
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('Label configuration saved! Countries configured:', Object.keys(labelConfig).length);
+        }
+
+        // Load label configuration from JSON
+        function loadLabelConfig() {
+            // Try to fetch label-config.json
+            fetch('label-config.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No saved config found');
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    labelConfig = config;
+                    console.log('Loaded label configuration for', Object.keys(labelConfig).length, 'countries');
+                    // Apply loaded config to existing labels
+                    applyLabelConfig();
+                })
+                .catch(err => {
+                    console.log('No label config file found, using defaults');
+                });
+        }
+
+        // Apply saved configuration to labels
+        function applyLabelConfig() {
+            countryLabels.forEach(label => {
+                const countryName = label.userData.countryName;
+                const config = labelConfig[countryName];
+
+                if (config) {
+                    // Apply custom position
+                    if (config.position) {
+                        label.position.set(config.position.x, config.position.y, config.position.z);
+                        label.lookAt(label.position.clone().multiplyScalar(2));
+                    }
+
+                    // Apply custom scale
+                    if (config.scale) {
+                        label.scale.set(config.scale, config.scale, config.scale);
+                    }
+                }
+            });
+        }
+
+        // Open label editor modal for selected label
+        function openLabelEditorModal() {
+            if (!selectedLabel) return;
+
+            const countryName = selectedLabel.userData.countryName;
+            const modal = document.getElementById('label-editor-modal');
+            const title = document.getElementById('label-editor-title');
+
+            title.textContent = `Edit Label: ${countryName}`;
+
+            // Get current position (or default)
+            const currentPos = selectedLabel.position.clone();
+            const defaultPos = labelDefaults[countryName].position;
+
+            // Calculate offsets from default
+            const offsetX = currentPos.x - defaultPos.x;
+            const offsetY = currentPos.y - defaultPos.y;
+            const offsetZ = currentPos.z - defaultPos.z;
+
+            // Get current scale
+            const currentScale = selectedLabel.scale.x;
+
+            // Update slider values
+            document.getElementById('label-offset-x').value = offsetX;
+            document.getElementById('label-offset-y').value = offsetY;
+            document.getElementById('label-offset-z').value = offsetZ;
+            document.getElementById('label-scale').value = currentScale;
+
+            // Update value displays
+            document.getElementById('label-offset-x-value').textContent = offsetX.toFixed(2);
+            document.getElementById('label-offset-y-value').textContent = offsetY.toFixed(2);
+            document.getElementById('label-offset-z-value').textContent = offsetZ.toFixed(2);
+            document.getElementById('label-scale-value').textContent = currentScale.toFixed(1);
+
+            modal.style.display = 'block';
+        }
+
+        // Close label editor modal
+        function closeLabelEditorModal() {
+            const modal = document.getElementById('label-editor-modal');
+            modal.style.display = 'none';
+        }
+
+        // Handle position offset changes from sliders
+        function onLabelOffsetChange(event) {
+            if (!selectedLabel) return;
+
+            const countryName = selectedLabel.userData.countryName;
+            const defaultPos = labelDefaults[countryName].position;
+
+            // Get offsets from sliders
+            const offsetX = parseFloat(document.getElementById('label-offset-x').value);
+            const offsetY = parseFloat(document.getElementById('label-offset-y').value);
+            const offsetZ = parseFloat(document.getElementById('label-offset-z').value);
+
+            // Update value displays
+            document.getElementById('label-offset-x-value').textContent = offsetX.toFixed(2);
+            document.getElementById('label-offset-y-value').textContent = offsetY.toFixed(2);
+            document.getElementById('label-offset-z-value').textContent = offsetZ.toFixed(2);
+
+            // Apply new position
+            const newPos = new THREE.Vector3(
+                defaultPos.x + offsetX,
+                defaultPos.y + offsetY,
+                defaultPos.z + offsetZ
+            );
+
+            selectedLabel.position.copy(newPos);
+            selectedLabel.lookAt(newPos.clone().multiplyScalar(2));
+
+            // Update selection helper
+            if (selectionHelper) {
+                selectionHelper.position.copy(newPos);
+                selectionHelper.quaternion.copy(selectedLabel.quaternion);
+            }
+
+            // Store in config
+            if (!labelConfig[countryName]) {
+                labelConfig[countryName] = {};
+            }
+            labelConfig[countryName].position = {
+                x: newPos.x,
+                y: newPos.y,
+                z: newPos.z
+            };
+        }
+
+        // Handle scale changes from slider
+        function onLabelScaleChange(event) {
+            if (!selectedLabel) return;
+
+            const countryName = selectedLabel.userData.countryName;
+            const scale = parseFloat(document.getElementById('label-scale').value);
+
+            // Update value display
+            document.getElementById('label-scale-value').textContent = scale.toFixed(1);
+
+            // Apply scale
+            selectedLabel.scale.set(scale, scale, scale);
+
+            // Update selection helper
+            if (selectionHelper) {
+                selectionHelper.scale.set(scale, scale, scale);
+            }
+
+            // Store in config
+            if (!labelConfig[countryName]) {
+                labelConfig[countryName] = {};
+            }
+            labelConfig[countryName].scale = scale;
+            labelConfig[countryName].fontSize = 32 * scale; // Proportional font size
+        }
+
+        // Reset label to default position and scale
+        function resetLabelToDefault() {
+            if (!selectedLabel) return;
+
+            const countryName = selectedLabel.userData.countryName;
+            const defaults = labelDefaults[countryName];
+
+            // Reset position
+            selectedLabel.position.copy(defaults.position);
+            selectedLabel.lookAt(defaults.position.clone().multiplyScalar(2));
+
+            // Reset scale
+            selectedLabel.scale.set(1, 1, 1);
+
+            // Update selection helper
+            if (selectionHelper) {
+                selectionHelper.position.copy(defaults.position);
+                selectionHelper.quaternion.copy(selectedLabel.quaternion);
+                selectionHelper.scale.set(1, 1, 1);
+            }
+
+            // Remove from config
+            delete labelConfig[countryName];
+
+            // Update sliders
+            document.getElementById('label-offset-x').value = 0;
+            document.getElementById('label-offset-y').value = 0;
+            document.getElementById('label-offset-z').value = 0;
+            document.getElementById('label-scale').value = 1.0;
+
+            document.getElementById('label-offset-x-value').textContent = '0.00';
+            document.getElementById('label-offset-y-value').textContent = '0.00';
+            document.getElementById('label-offset-z-value').textContent = '0.00';
+            document.getElementById('label-scale-value').textContent = '1.0';
+
+            console.log(`${countryName} reset to default`);
+
+            // Provide haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
         }
 
         let currentSphereRadius = 1.014;
@@ -1679,6 +2512,34 @@
             mouseDownPos.x = event.clientX;
             mouseDownPos.y = event.clientY;
             isDragging = false;
+            longPressTriggered = false;
+
+            // Edit mode: Start dragging selected label if clicked on it or its helper
+            if (editMode && selectedLabel) {
+                raycaster.setFromCamera(mouse, camera);
+                const objectsToCheck = [selectedLabel];
+                if (selectionHelper && selectionHelper.visible) {
+                    objectsToCheck.push(selectionHelper);
+                }
+                const labelIntersects = raycaster.intersectObjects(objectsToCheck);
+
+                if (labelIntersects.length > 0) {
+                    isDraggingLabel = true;
+                    controls.enableRotate = false; // Disable rotation while dragging label
+
+                    // Start long-press timer for resize down
+                    longPressTimer = setTimeout(() => {
+                        if (!isDragging && selectedLabel) {
+                            longPressTriggered = true;
+                            resizeSelectedLabel(0.9); // Decrease size by 10%
+                            // Provide haptic feedback if available
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                        }
+                    }, 500); // 500ms for long press
+                }
+            }
         }
 
         function onPointerUp(event) {
@@ -1686,10 +2547,60 @@
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
+            // Clear long press timer
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+
+            // Handle label dragging end
+            if (isDraggingLabel) {
+                isDraggingLabel = false;
+                controls.enableRotate = true;
+
+                // If long press was triggered, don't process as tap
+                if (longPressTriggered) {
+                    longPressTriggered = false;
+                    return;
+                }
+
+                // Check if this was just a quick tap (not a drag)
+                const deltaX = Math.abs(event.clientX - mouseDownPos.x);
+                const deltaY = Math.abs(event.clientY - mouseDownPos.y);
+                if (deltaX < 5 && deltaY < 5 && selectedLabel) {
+                    // Detect double-tap
+                    const currentTime = Date.now();
+                    const timeSinceLastTap = currentTime - lastTapTime;
+
+                    if (timeSinceLastTap < 300) { // Double tap within 300ms
+                        resizeSelectedLabel(1.1); // Increase size by 10%
+                        // Provide haptic feedback if available
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
+                        lastTapTime = 0; // Reset to prevent triple-tap
+                    } else {
+                        lastTapTime = currentTime;
+                    }
+                }
+                return;
+            }
+
             // If this was a drag operation, ignore the pointer release
             if (isDragging) {
                 isDragging = false; // Reset for next interaction
                 return;
+            }
+
+            // Edit mode: Check for label clicks first
+            if (editMode) {
+                raycaster.setFromCamera(mouse, camera);
+                const labelIntersects = raycaster.intersectObjects(countryLabels);
+
+                if (labelIntersects.length > 0) {
+                    selectLabel(labelIntersects[0].object);
+                    return; // Don't process country clicks in edit mode
+                }
             }
 
             // Not a drag - treat as a click
@@ -1737,6 +2648,44 @@
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Handle label dragging in edit mode
+            if (isDraggingLabel && selectedLabel) {
+                // Project mouse position onto sphere surface
+                raycaster.setFromCamera(mouse, camera);
+
+                // Create a sphere to intersect with (at radius 1.02 where labels are)
+                const sphereGeometry = new THREE.SphereGeometry(1.02, 32, 32);
+                const sphereMesh = new THREE.Mesh(sphereGeometry);
+                const sphereIntersects = raycaster.intersectObject(sphereMesh);
+
+                if (sphereIntersects.length > 0) {
+                    const newPosition = sphereIntersects[0].point;
+                    selectedLabel.position.copy(newPosition);
+
+                    // Update label orientation to face outward
+                    selectedLabel.lookAt(newPosition.clone().multiplyScalar(2));
+
+                    // Update selection helper position
+                    if (selectionHelper) {
+                        selectionHelper.position.copy(newPosition);
+                        selectionHelper.quaternion.copy(selectedLabel.quaternion);
+                    }
+
+                    // Store the new position in config
+                    const countryName = selectedLabel.userData.countryName;
+                    if (!labelConfig[countryName]) {
+                        labelConfig[countryName] = {};
+                    }
+                    labelConfig[countryName].position = {
+                        x: newPosition.x,
+                        y: newPosition.y,
+                        z: newPosition.z
+                    };
+                }
+
+                return; // Don't process other mouse events while dragging
+            }
 
             // Detect dragging in real-time (pointer is down and has moved)
             if (event.buttons === 1) { // Primary button is pressed
@@ -1927,7 +2876,27 @@
         // Create labels for all countries
         function createCountryLabels() {
             countryCentroids.forEach(countryData => {
-                const labelTexture = createTextLabel(countryData.name);
+                const countryName = countryData.name;
+
+                // Determine country size category
+                let sizeCategory = 'medium'; // Default
+                let labelWidth, labelHeight;
+
+                if (LARGE_COUNTRIES.has(countryName)) {
+                    sizeCategory = 'large';
+                    labelWidth = 0.25;  // Larger labels for large countries
+                    labelHeight = 0.065;
+                } else if (SMALL_COUNTRIES.has(countryName)) {
+                    sizeCategory = 'small';
+                    labelWidth = 0.12;  // Smaller labels for small countries
+                    labelHeight = 0.032;
+                } else {
+                    sizeCategory = 'medium';
+                    labelWidth = 0.18;  // Medium labels for medium countries
+                    labelHeight = 0.048;
+                }
+
+                const labelTexture = createTextLabel(countryName);
 
                 // Create material with transparency
                 const labelMaterial = new THREE.MeshBasicMaterial({
@@ -1939,8 +2908,8 @@
                     depthWrite: false
                 });
 
-                // Create plane geometry for the label - small size
-                const labelGeometry = new THREE.PlaneGeometry(0.15, 0.04);
+                // Create plane geometry with size based on country category
+                const labelGeometry = new THREE.PlaneGeometry(labelWidth, labelHeight);
                 const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
 
                 // Position label at country centroid, slightly above surface
@@ -1950,8 +2919,17 @@
                 // Orient label to face outward from globe center
                 labelMesh.lookAt(countryData.centroid.clone().multiplyScalar(2));
 
-                // Store reference to country name
-                labelMesh.userData.countryName = countryData.name;
+                // Store reference to country name and size category
+                labelMesh.userData.countryName = countryName;
+                labelMesh.userData.sizeCategory = sizeCategory;
+
+                // Store default position and scale for reset functionality
+                labelDefaults[countryName] = {
+                    position: labelPosition.clone(),
+                    scale: 1.0,
+                    width: labelWidth,
+                    height: labelHeight
+                };
 
                 // Initially hide all labels
                 labelMesh.visible = false;
@@ -2260,7 +3238,8 @@
             quizActive = false;
 
             // Resume auto-rotation after quiz
-            resumeAutoRotation();
+            // TEMPORARILY DISABLED
+            // resumeAutoRotation();
 
             // Remove quiz-active class from body
             document.body.classList.remove('quiz-active');
@@ -2459,7 +3438,8 @@
             document.getElementById('take-quiz-btn').style.display = 'block';
 
             // Resume auto-rotation
-            resumeAutoRotation();
+            // TEMPORARILY DISABLED
+            // resumeAutoRotation();
         }
 
         // Initialize flag renderer (separate Three.js scene for the flag)
@@ -2860,36 +3840,31 @@
             const cameraDistance = camera.position.length();
 
             // Define zoom thresholds (based on controls: min=1.5, max=10)
-            const ZOOM_FAR = 5; // Hide all labels
-            const ZOOM_MEDIUM = 2.5; // Show major countries
-            const ZOOM_CLOSE = 2.0; // Show all countries (adjusted for new min distance)
+            const ZOOM_FAR = 6.0;    // Show only large countries
+            const ZOOM_MEDIUM = 3.5; // Show large + medium countries
+            const ZOOM_CLOSE = 2.2;  // Show all countries (large + medium + small)
 
-            // Determine which labels to show based on zoom
-            let showAllLabels = false;
-            let showMajorOnly = false;
+            // Determine which size categories to show based on zoom
+            let showLarge = false;
+            let showMedium = false;
+            let showSmall = false;
 
             if (cameraDistance >= ZOOM_FAR) {
-                // Too far - hide all
-                showAllLabels = false;
-                showMajorOnly = false;
+                // Far zoom - show only large countries
+                showLarge = true;
+                showMedium = false;
+                showSmall = false;
             } else if (cameraDistance >= ZOOM_MEDIUM) {
-                // Medium zoom - show major countries only
-                showAllLabels = false;
-                showMajorOnly = true;
+                // Medium zoom - show large and medium countries
+                showLarge = true;
+                showMedium = true;
+                showSmall = false;
             } else {
-                // Close zoom - show all
-                showAllLabels = true;
-                showMajorOnly = false;
+                // Close zoom - show all countries
+                showLarge = true;
+                showMedium = true;
+                showSmall = true;
             }
-
-            // Major countries list (larger/well-known countries)
-            const majorCountries = new Set([
-                'United States', 'Canada', 'Mexico', 'Brazil', 'Argentina', 'Chile',
-                'United Kingdom', 'France', 'Germany', 'Italy', 'Spain', 'Russia',
-                'China', 'Japan', 'India', 'Australia', 'Indonesia', 'South Korea',
-                'South Africa', 'Egypt', 'Nigeria', 'Saudi Arabia', 'Turkey',
-                'Poland', 'Ukraine', 'Sweden', 'Norway', 'Finland'
-            ]);
 
             // Get camera direction
             const cameraDirection = new THREE.Vector3();
@@ -2897,9 +3872,18 @@
 
             // Update each label
             countryLabels.forEach(label => {
-                // Check if we should show this label based on zoom level
-                const isMajor = majorCountries.has(label.userData.countryName);
-                const shouldShowByZoom = showAllLabels || (showMajorOnly && isMajor);
+                // Use the pre-stored size category
+                const sizeCategory = label.userData.sizeCategory;
+
+                // Determine if this label should be shown based on zoom level
+                let shouldShowByZoom = false;
+                if (sizeCategory === 'large') {
+                    shouldShowByZoom = showLarge;
+                } else if (sizeCategory === 'medium') {
+                    shouldShowByZoom = showMedium;
+                } else if (sizeCategory === 'small') {
+                    shouldShowByZoom = showSmall;
+                }
 
                 if (!shouldShowByZoom) {
                     label.visible = false;
@@ -2935,6 +3919,33 @@
             });
         }
 
+        // Update zoom widget display
+        function updateZoomWidget() {
+            const MIN_ZOOM = 1.13;
+            const MAX_ZOOM = 10;
+
+            // Get current camera distance
+            const currentZoom = camera.position.length();
+
+            // Clamp value
+            const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentZoom));
+
+            // Calculate percentage (inverted - closer = higher bar)
+            const percentage = ((MAX_ZOOM - clampedZoom) / (MAX_ZOOM - MIN_ZOOM)) * 100;
+
+            // Update bar fill height
+            const zoomBarFill = document.getElementById('zoom-bar-fill');
+            if (zoomBarFill) {
+                zoomBarFill.style.height = percentage + '%';
+            }
+
+            // Update text value
+            const zoomValue = document.getElementById('zoom-value');
+            if (zoomValue) {
+                zoomValue.textContent = clampedZoom.toFixed(2);
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
 
@@ -2952,11 +3963,13 @@
             }
 
             // Update country label visibility based on zoom level
-            // DISABLED: Labels hidden for now
-            // updateLabelVisibility();
+            updateLabelVisibility();
 
             // Update country border visibility based on zoom level
-            updateBorderVisibility();
+            // updateBorderVisibility(); // Disabled for performance
+
+            // Update zoom widget
+            updateZoomWidget();
 
             // Render
             renderer.render(scene, camera);
