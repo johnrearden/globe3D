@@ -65,18 +65,6 @@
             z-index: 200;
         }
 
-        #tooltip {
-            position: absolute;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 150;
-            display: none;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            white-space: nowrap;
-        }
-
         #flag-container {
             position: fixed;
             top: 20px;
@@ -1156,7 +1144,6 @@
             <div id="zoom-value">2.5</div>
         </div>
 
-        <div id="tooltip"></div>
         <div id="flag-container">
             <div id="flag-container-content">
                 <div id="flag-info">
@@ -2701,28 +2688,15 @@
                 return;
             }
 
-            // Raycast for hover effects (tooltip and flag only, no highlighting)
+            // Raycast for hover effects (cursor change only)
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(countries);
 
-            // Get tooltip element
-            const tooltip = document.getElementById('tooltip');
-
-            // Show tooltip on hover, but not flag (flag only shows on click)
+            // Change cursor on hover
             if (intersects.length > 0) {
-                const hoveredCountry = intersects[0].object;
                 document.body.style.cursor = 'pointer';
-
-                // Show and position tooltip above and to the left of cursor
-                tooltip.textContent = hoveredCountry.userData.name;
-                tooltip.style.display = 'block';
-                tooltip.style.left = (event.clientX - 20) + 'px';
-                tooltip.style.top = (event.clientY - 50) + 'px';
             } else {
                 document.body.style.cursor = 'default';
-
-                // Hide tooltip
-                tooltip.style.display = 'none';
             }
         }
 
