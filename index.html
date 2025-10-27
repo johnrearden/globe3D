@@ -1995,6 +1995,9 @@
                         // Load saved label configuration if available
                         loadLabelConfig();
 
+                        // Load saved color configuration if available
+                        loadColorConfig();
+
                         // Create country borders
                         // createCountryBorders(); // Disabled for performance
 
@@ -2414,6 +2417,54 @@
                     // Apply custom scale
                     if (config.scale) {
                         label.scale.set(config.scale, config.scale, config.scale);
+                    }
+                }
+            });
+        }
+
+        function loadColorConfig() {
+            // Try to fetch country-colors.json
+            fetch('country-colors.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No saved color config found');
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    colorConfig = config;
+                    console.log('Loaded color configuration for', Object.keys(colorConfig).length, 'countries');
+                    // Apply loaded config to existing country meshes
+                    applyColorConfig();
+                })
+                .catch(err => {
+                    console.log('No color config file found, using default colors');
+                });
+        }
+
+        // Apply saved color configuration to country meshes
+        function applyColorConfig() {
+            countries.forEach(country => {
+                const countryName = country.userData.name;
+                const color = colorConfig[countryName];
+
+                if (color) {
+                    // Apply color to the country mesh vertices
+                    const geometry = country.geometry;
+                    const colorAttribute = geometry.getAttribute('color');
+
+                    if (colorAttribute) {
+                        const colors = colorAttribute.array;
+                        const vertexCount = colors.length / 3;
+
+                        // Set all vertices to the saved color
+                        for (let i = 0; i < vertexCount; i++) {
+                            colors[i * 3] = color[0];
+                            colors[i * 3 + 1] = color[1];
+                            colors[i * 3 + 2] = color[2];
+                        }
+
+                        colorAttribute.needsUpdate = true;
                     }
                 }
             });
