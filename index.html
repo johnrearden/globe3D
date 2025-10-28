@@ -2138,6 +2138,24 @@
             scene.userData.cameraLight = directionalLight;
         }
 
+        // Helper function to update loading progress
+        function updateLoadingProgress(percent, message = null) {
+            const progressFill = document.getElementById('loading-progress-fill');
+            const progressText = document.getElementById('loading-progress-text');
+            const loadingDiv = document.getElementById('loading');
+
+            if (progressFill) {
+                progressFill.style.width = percent + '%';
+            }
+            if (progressText) {
+                const displayMessage = message || `Loading... ${percent}%`;
+                progressText.textContent = displayMessage;
+            }
+            if (loadingDiv && message) {
+                loadingDiv.textContent = message;
+            }
+        }
+
         async function loadWorldData() {
             try {
                 console.log('Loading world globe...');
@@ -2156,6 +2174,7 @@
                     'assets/world.glb',
                     function (gltf) {
                         console.log('GLB loaded successfully');
+                        updateLoadingProgress(70, 'Processing countries...');
 
                         // Add all meshes from the GLB to the globe
                         gltf.scene.traverse((child) => {
@@ -2199,16 +2218,24 @@
                             }
                         });
 
+                        updateLoadingProgress(78, 'Building globe...');
+
                         // Add the entire scene to the globe
                         globe.add(gltf.scene);
 
                         console.log(`Loaded ${countries.length} country meshes`);
 
+                        updateLoadingProgress(85, 'Calculating positions...');
+
                         // Build country centroids cache for quiz
                         buildCountryCentroidsCache();
 
+                        updateLoadingProgress(90, 'Creating labels...');
+
                         // Create country labels
                         createCountryLabels();
+
+                        updateLoadingProgress(95, 'Loading configuration...');
 
                         // Load saved label configuration if available
                         loadLabelConfig();
@@ -2219,23 +2246,16 @@
                         // Create country borders
                         // createCountryBorders(); // Disabled for performance
 
+                        updateLoadingProgress(100, 'Complete!');
+
                         hideLoading();
                     },
                     function (xhr) {
-                        // Progress callback
-                        const percentComplete = (xhr.loaded / xhr.total * 100).toFixed(0);
-                        console.log(`Loading: ${percentComplete}%`);
-                        document.getElementById('loading').textContent = `Loading globe... ${percentComplete}%`;
-
-                        // Update progress bar in SEO overlay
-                        const progressFill = document.getElementById('loading-progress-fill');
-                        const progressText = document.getElementById('loading-progress-text');
-                        if (progressFill) {
-                            progressFill.style.width = percentComplete + '%';
-                        }
-                        if (progressText) {
-                            progressText.textContent = `Loading... ${percentComplete}%`;
-                        }
+                        // Progress callback - scale download to 0-70% of total progress
+                        const downloadPercent = (xhr.loaded / xhr.total * 100).toFixed(0);
+                        const scaledPercent = Math.floor(downloadPercent * 0.7);
+                        console.log(`Downloading: ${downloadPercent}% (scaled: ${scaledPercent}%)`);
+                        updateLoadingProgress(scaledPercent, `Downloading... ${downloadPercent}%`);
                     },
                     function (error) {
                         console.error('Error loading GLB:', error);
