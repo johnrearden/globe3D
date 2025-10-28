@@ -208,7 +208,7 @@
             z-index: 150;
             background-color: rgba(0, 0, 0, 0.85);
             border-radius: 8px;
-            padding: 20px;
+            padding: 20px 20px 0 20px;
             border: 1px solid rgba(255, 140, 0, 0.3);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             min-width: 300px;
@@ -1064,7 +1064,7 @@
                 border-radius: 12px 12px 0 0;
                 max-height: 50vh;
                 overflow-y: auto;
-                padding: 15px;
+                padding: 15px 15px 0 15px;
             }
 
             body.quiz-active #quiz-header {
@@ -3728,7 +3728,7 @@
             // Filter out countries already used in this quiz
             const availableCountries = countryCentroids.filter(c => !usedQuizCountries.includes(c.name));
 
-            if (availableCountries.length < 5) {
+            if (availableCountries.length < 4) {
                 console.error('Not enough unused countries for quiz');
                 return null;
             }
@@ -3751,9 +3751,9 @@
             // Sort by distance (ascending - closest first)
             distancesWithCountries.sort((a, b) => a.distance - b.distance);
 
-            // Select 4 closest countries as distractors
+            // Select 3 closest countries as distractors
             const distractors = distancesWithCountries
-                .slice(0, 4)
+                .slice(0, 3)
                 .map(item => item.country.name);
 
             // Combine correct answer with distractors
@@ -4453,24 +4453,27 @@
             worldPos.normalize();
 
             // Calculate the spherical angles to this position
-            const phi = Math.acos(worldPos.y); // Polar angle
+            let phi = Math.acos(worldPos.y); // Polar angle
             const theta = Math.atan2(worldPos.z, worldPos.x); // Azimuthal angle
 
-            // Adaptive zoom based on country size
-            // Small countries (bbox < 0.2) get zoomed in, large countries use current zoom
+            // Adjust phi to position camera lower, making country appear higher on screen
+            // This prevents the quiz container from obscuring the highlighted country
+            phi = phi + 0.4; // Move camera down by ~23 degrees
+
+            // Adaptive zoom based on country size - increased distances to zoom out more
             let targetDistance;
             if (bboxSize < 0.15) {
                 // Very small country - zoom in close
-                targetDistance = 1.3;
+                targetDistance = 2.0;
             } else if (bboxSize < 0.25) {
                 // Small country - zoom in moderately
-                targetDistance = 1.6;
+                targetDistance = 2.5;
             } else if (bboxSize < 0.4) {
                 // Medium-small country
-                targetDistance = 2.0;
+                targetDistance = 3.0;
             } else {
                 // Large country - use current or default distance
-                targetDistance = Math.max(camera.position.length(), 2.5);
+                targetDistance = Math.max(camera.position.length(), 3.5);
             }
 
             // Calculate target camera position
@@ -4517,6 +4520,14 @@
         // Update label visibility based on camera distance and orientation
         function updateLabelVisibility() {
             if (countryLabels.length === 0) return;
+
+            // Hide all labels during quiz mode
+            if (quizActive) {
+                countryLabels.forEach(label => {
+                    label.visible = false;
+                });
+                return;
+            }
 
             // Calculate camera distance from globe center
             const cameraDistance = camera.position.length();
