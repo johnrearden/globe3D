@@ -1296,17 +1296,83 @@
         }
 
         @media (max-width: 768px) {
+            #seo-content {
+                align-items: flex-start;
+                padding: 20px 15px 120px;
+                overflow-y: auto;
+            }
+
             #seo-content h1 {
                 font-size: 1.8rem;
+                margin-bottom: 15px;
             }
 
             #seo-content h2 {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
+                margin: 20px 0 10px;
             }
 
             #seo-content p {
-                font-size: 1rem;
+                font-size: 0.9rem;
+                margin-bottom: 10px;
             }
+
+            #seo-content ul {
+                margin: 10px auto;
+            }
+
+            #seo-content li {
+                font-size: 0.85rem;
+                line-height: 1.6;
+            }
+        }
+
+        /* Fun Fact Display */
+        #fun-fact-container {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+            padding: 18px 25px;
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.25), rgba(255, 193, 7, 0.25));
+            border-radius: 15px;
+            border: 2px solid rgba(255, 193, 7, 0.5);
+            box-shadow: 0 4px 20px rgba(255, 152, 0, 0.3);
+            opacity: 0;
+            animation: fadeInFact 1s ease-in 0.5s forwards;
+        }
+
+        @keyframes fadeInFact {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        #fun-fact-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        #fun-fact-text {
+            color: #FFF9C4;
+            font-size: 14px;
+            line-height: 1.5;
+            font-style: italic;
+            font-weight: 500;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
 
         /* Loading Progress Bar and Start Button */
@@ -1377,6 +1443,22 @@
         }
 
         @media (max-width: 768px) {
+            #fun-fact-container {
+                width: 90%;
+                bottom: 75px;
+                padding: 15px 18px;
+            }
+
+            #fun-fact-icon {
+                font-size: 24px;
+                margin-bottom: 6px;
+            }
+
+            #fun-fact-text {
+                font-size: 13px;
+                min-height: 35px;
+            }
+
             #loading-progress-container {
                 width: 90%;
                 bottom: 20px;
@@ -1414,6 +1496,12 @@
             </ul>
 
             <p><strong>Wait for the globe to load, then click the start button below!</strong></p>
+        </div>
+
+        <!-- Fun Fact Display -->
+        <div id="fun-fact-container">
+            <div id="fun-fact-icon">🌍</div>
+            <div id="fun-fact-text">Loading explorer facts...</div>
         </div>
 
         <!-- Loading Progress Bar and Start Button -->
@@ -1599,6 +1687,56 @@
 
         // SEO content visibility
         let seoContentHidden = false;
+
+        // Fun facts about explorers
+        const explorerFacts = [
+            "Leif Erikson reached North America 500 years before Columbus!",
+            "Marco Polo traveled from Europe to China in the 1200s, bringing back stories of rich cultures and amazing goods.",
+            "Ferdinand Magellan's crew was the first to sail around the world, proving Earth was round!",
+            "Edmund Hillary and Tenzing Norgay became the first to reach Mount Everest's peak in 1953.",
+            "Amelia Earhart was the first woman to fly solo across the Atlantic Ocean in 1932.",
+            "Nellie Bly traveled around the world in just 72 days in 1888, beating Jules Verne's fictional 80 days!",
+            "Amerigo Vespucci named Venezuela after seeing houses elevated from water like Venice.",
+            "Zheng He's largest ships were nearly twice as long as any wooden ship ever recorded!",
+            "Zheng He brought back exotic animals like giraffes and zebras to China from his voyages.",
+            "Ibn Battuta traveled over 75,000 miles and claimed to have married at least 10 times during his journeys!",
+            "Vasco da Gama was the first to sail directly from Europe to India in 1498.",
+            "Sacagawea guided Lewis and Clark through the American West, helping them communicate with Native tribes.",
+            "Roald Amundsen learned survival techniques from indigenous Arctic people, which helped him succeed.",
+            "Christopher Columbus made four voyages across the Atlantic and never realized he hadn't reached Asia!",
+            "James Cook was known for his impressive precision and charting accuracy of the South Pacific.",
+            "Magellan died in the Philippines during the Battle of Mactan in 1521.",
+            "Columbus led three ships on his first voyage: the Niña, Pinta, and Santa Maria.",
+            "Zheng He's first voyage featured 62 massive ships and 27,780 men - a fleet unmatched in history!",
+            "After Zheng He's death, China destroyed his fleet and erased his name from records.",
+            "Ibn Battuta dictated his travel adventures from memory in a book called a rihla!"
+        ];
+
+        let currentFactIndex = 0;
+        let factRotationInterval = null;
+
+        // Start rotating fun facts
+        function startFactRotation() {
+            const factText = document.getElementById('fun-fact-text');
+            if (!factText) return;
+
+            // Show first fact immediately
+            factText.textContent = explorerFacts[currentFactIndex];
+
+            // Rotate facts every 4 seconds
+            factRotationInterval = setInterval(() => {
+                currentFactIndex = (currentFactIndex + 1) % explorerFacts.length;
+                factText.textContent = explorerFacts[currentFactIndex];
+            }, 4000);
+        }
+
+        // Stop rotating fun facts
+        function stopFactRotation() {
+            if (factRotationInterval) {
+                clearInterval(factRotationInterval);
+                factRotationInterval = null;
+            }
+        }
 
         // Quiz variables
         let countryCentroids = []; // Array of { name, centroid: Vector3, meshRef }
@@ -3286,6 +3424,15 @@
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
 
+            // Stop rotating fun facts
+            stopFactRotation();
+
+            // Hide fun fact container
+            const funFactContainer = document.getElementById('fun-fact-container');
+            if (funFactContainer) {
+                funFactContainer.style.display = 'none';
+            }
+
             // Convert progress bar to start button
             const progressBar = document.getElementById('loading-progress-bar');
             const startButton = document.getElementById('start-button');
@@ -4485,6 +4632,9 @@
 
         // Start the application
         init();
+
+        // Start rotating fun facts during loading
+        startFactRotation();
     </script>
 </body>
 </html>
