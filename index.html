@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D World Map - Three.js</title>
+    <meta name="description" content="Interactive 3D world globe with 195+ countries. Explore geography, take quizzes, and learn about the world with this free educational WebGL map powered by Three.js.">
+    <meta name="keywords" content="3D world map, interactive globe, geography quiz, world atlas, educational map, Three.js globe, WebGL earth, geography learning">
+    <title>Interactive 3D World Globe Map | Free Geography Quiz & Educational Tool</title>
     <style>
         body {
             margin: 0;
@@ -1231,9 +1233,103 @@
                 font-size: 16px;
             }
         }
+
+        /* SEO Content Overlay */
+        #seo-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 17, 34, 0.95);
+            color: #ffffff;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            transition: opacity 0.5s ease-out;
+        }
+
+        #seo-content.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #seo-text-wrapper {
+            max-width: 800px;
+            text-align: center;
+        }
+
+        #seo-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #4FC3F7;
+            font-weight: bold;
+        }
+
+        #seo-content h2 {
+            font-size: 1.5rem;
+            margin: 30px 0 15px;
+            color: #81D4FA;
+        }
+
+        #seo-content p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #E1F5FE;
+        }
+
+        #seo-content ul {
+            text-align: left;
+            margin: 15px auto;
+            max-width: 600px;
+            list-style-position: inside;
+        }
+
+        #seo-content li {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: #E1F5FE;
+        }
+
+        @media (max-width: 768px) {
+            #seo-content h1 {
+                font-size: 1.8rem;
+            }
+
+            #seo-content h2 {
+                font-size: 1.2rem;
+            }
+
+            #seo-content p {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- SEO Content Overlay -->
+    <div id="seo-content">
+        <div id="seo-text-wrapper">
+            <h1>Interactive 3D World Globe</h1>
+            <p>Explore our interactive 3D globe featuring all 195 countries of the world. Click, drag, and zoom to discover geography in an immersive way.</p>
+
+            <h2>Features</h2>
+            <ul>
+                <li>Interactive 3D visualization of all countries</li>
+                <li>Geography quizzes to test your knowledge</li>
+                <li>Country information including flags, population, and area</li>
+                <li>Smooth rotation and zoom controls</li>
+                <li>Educational tool for learning world geography</li>
+            </ul>
+
+            <p><strong>Click anywhere to start exploring the globe!</strong></p>
+        </div>
+    </div>
+
     <div id="container">
         <div id="loading">Loading world map data...</div>
         <button id="take-quiz-btn">Take Quiz</button>
@@ -1404,6 +1500,9 @@
         let baseSphere;
         let mouseDownPos = new THREE.Vector2();
         let isDragging = false;
+
+        // SEO content visibility
+        let seoContentHidden = false;
 
         // Quiz variables
         let countryCentroids = []; // Array of { name, centroid: Vector3, meshRef }
@@ -1730,6 +1829,34 @@
             'Vanuatu': 'vu', 'Samoa': 'ws', 'Kiribati': 'ki', 'Tonga': 'to', 'Micronesia': 'fm',
             'Palau': 'pw', 'Marshall Islands': 'mh', 'Nauru': 'nr', 'Tuvalu': 'tv'
         };
+
+        // Hide SEO content on first user interaction
+        function hideSeoContent() {
+            if (!seoContentHidden) {
+                seoContentHidden = true;
+                const seoContent = document.getElementById('seo-content');
+                if (seoContent) {
+                    seoContent.classList.add('hidden');
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        seoContent.style.display = 'none';
+                    }, 500);
+                }
+                // Remove all event listeners after first interaction
+                document.removeEventListener('click', hideSeoContent);
+                document.removeEventListener('touchstart', hideSeoContent);
+                document.removeEventListener('mousemove', hideSeoContent);
+                document.removeEventListener('wheel', hideSeoContent);
+                document.removeEventListener('keydown', hideSeoContent);
+            }
+        }
+
+        // Add event listeners for first user interaction
+        document.addEventListener('click', hideSeoContent);
+        document.addEventListener('touchstart', hideSeoContent);
+        document.addEventListener('mousemove', hideSeoContent);
+        document.addEventListener('wheel', hideSeoContent);
+        document.addEventListener('keydown', hideSeoContent);
 
         // Initialize the scene
         function init() {
