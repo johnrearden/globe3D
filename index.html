@@ -325,6 +325,121 @@
             border: 1px solid #ff0000;
         }
 
+        /* Quiz Celebration Overlay */
+        #quiz-celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95));
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #quiz-celebration-content {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: bounceIn 0.8s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #celebration-title {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        #celebration-message {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        #celebration-score {
+            font-size: 2.5rem;
+            margin: 30px 0;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #celebration-close-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        #celebration-close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            #celebration-title {
+                font-size: 2rem;
+            }
+
+            #celebration-message {
+                font-size: 1.3rem;
+            }
+
+            #celebration-score {
+                font-size: 2rem;
+            }
+
+            #celebration-close-btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
+
         /* Quiz Mode Selector Styles */
         #quiz-mode-selector {
             position: fixed;
@@ -1509,6 +1624,8 @@
             }
         }
     </style>
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
 <body>
     <!-- SEO Content Overlay -->
@@ -1618,6 +1735,16 @@
             <div id="quiz-result"></div>
             <button id="quiz-start-btn">Start Quiz</button>
             <button id="quiz-next-btn" style="visibility: hidden;">Next Question</button>
+        </div>
+
+        <!-- Quiz Celebration Overlay -->
+        <div id="quiz-celebration-overlay" style="display: none;">
+            <div id="quiz-celebration-content">
+                <h1 id="celebration-title">🎉 Congratulations! 🎉</h1>
+                <p id="celebration-message">Quiz Complete!</p>
+                <div id="celebration-score"></div>
+                <button id="celebration-close-btn">Play Again</button>
+            </div>
         </div>
 
         <!-- Quiz Mode Selector Modal -->
@@ -3899,8 +4026,8 @@
             // Don't show any result message - button feedback is sufficient
             document.getElementById('quiz-result').style.display = 'none';
 
-            // Show next button or end quiz after 10 questions
-            if (quizQuestionsAnswered >= 10) {
+            // Show next button or end quiz after 1 question (temporarily for testing)
+            if (quizQuestionsAnswered >= 1) {
                 setTimeout(() => {
                     endQuiz();
                 }, 2000);
@@ -3933,22 +4060,8 @@
             // Clear options
             document.getElementById('quiz-options').innerHTML = '';
 
-            // Show final score
-            const resultDiv = document.getElementById('quiz-result');
-            resultDiv.style.display = 'block';
-            resultDiv.className = '';
-            resultDiv.style.backgroundColor = 'rgba(255, 140, 0, 0.3)';
-            resultDiv.style.border = '1px solid #FF8C00';
-            resultDiv.innerHTML = `
-                <strong>Quiz Complete!</strong><br>
-                Final Score: ${quizScore} / ${quizQuestionsAnswered}<br>
-                ${Math.round((quizScore / quizQuestionsAnswered) * 100)}%
-            `;
-
-            // Hide next button, show start button
-            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
-            document.getElementById('quiz-start-btn').style.display = 'block';
-            document.getElementById('quiz-start-btn').textContent = 'Play Again';
+            // Hide quiz container
+            document.getElementById('quiz-container').style.display = 'none';
 
             // Reset globe highlighting
             selectedSearchCountry = null;
@@ -3957,6 +4070,65 @@
                 country.material.color.setHex(0xffffff);
                 country.material.needsUpdate = true;
             });
+
+            // Show celebration overlay with score
+            const percentage = Math.round((quizScore / quizQuestionsAnswered) * 100);
+            document.getElementById('celebration-score').innerHTML = `
+                <div style="font-size: 1.5rem; margin-bottom: 10px;">Your Score</div>
+                <div>${quizScore} / ${quizQuestionsAnswered}</div>
+                <div style="font-size: 2rem; margin-top: 10px;">${percentage}%</div>
+            `;
+
+            const overlay = document.getElementById('quiz-celebration-overlay');
+            overlay.style.display = 'flex';
+
+            // Trigger confetti effect
+            triggerConfetti();
+
+            // Add click event to celebration close button
+            document.getElementById('celebration-close-btn').onclick = function() {
+                overlay.style.display = 'none';
+                document.getElementById('quiz-container').style.display = 'block';
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                document.getElementById('quiz-start-btn').style.display = 'block';
+                document.getElementById('quiz-start-btn').textContent = 'Play Again';
+            };
+        }
+
+        // Trigger confetti celebration
+        function triggerConfetti() {
+            // Fire confetti from multiple angles
+            const duration = 3000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10001 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+
+                // Fire confetti from left
+                confetti({
+                    ...defaults,
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                });
+
+                // Fire confetti from right
+                confetti({
+                    ...defaults,
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                });
+            }, 250);
         }
 
         // Quiz Mode Selector Functions
@@ -4044,8 +4216,8 @@
                 setTimeout(() => {
                     clickQuizCurrentIndex++;
 
-                    if (clickQuizCurrentIndex >= 10) {
-                        // Quiz complete!
+                    if (clickQuizCurrentIndex >= 1) {
+                        // Quiz complete! (temporarily for testing)
                         endClickQuiz(true);
                     } else {
                         showClickQuizQuestion();
@@ -4104,12 +4276,30 @@
             const timeUsed = totalTime - Math.max(0, clickQuizTimeRemaining);
             const seconds = (timeUsed / 1000).toFixed(1);
 
-            // Show results
-            document.getElementById('click-quiz-final-score').textContent =
-                `${clickQuizScore} / 10`;
-            document.getElementById('click-quiz-final-time').textContent =
-                completed ? `Completed in ${seconds}s` : `Time's Up! ${seconds}s elapsed`;
-            document.getElementById('click-quiz-results').style.display = 'block';
+            // Show celebration overlay with score
+            const percentage = Math.round((clickQuizScore / clickQuizCurrentIndex) * 100);
+            document.getElementById('celebration-score').innerHTML = `
+                <div style="font-size: 1.5rem; margin-bottom: 10px;">Your Score</div>
+                <div>${clickQuizScore} / ${clickQuizCurrentIndex}</div>
+                <div style="font-size: 2rem; margin-top: 10px;">${percentage}%</div>
+                <div style="font-size: 1.2rem; margin-top: 15px; color: #E0E0E0;">
+                    ${completed ? `Completed in ${seconds}s` : `Time's Up! ${seconds}s elapsed`}
+                </div>
+            `;
+
+            const overlay = document.getElementById('quiz-celebration-overlay');
+            overlay.style.display = 'flex';
+
+            // Trigger confetti effect
+            triggerConfetti();
+
+            // Add click event to celebration close button
+            document.getElementById('celebration-close-btn').onclick = function() {
+                overlay.style.display = 'none';
+                // Show search and quiz button again
+                document.getElementById('search-container').style.display = 'block';
+                document.getElementById('take-quiz-btn').style.display = 'block';
+            };
         }
 
         function closeClickQuizResults() {
