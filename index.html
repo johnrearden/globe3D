@@ -1337,6 +1337,7 @@
             max-width: 600px;
             text-align: center;
             padding: 18px 25px;
+            padding-top: 40px;
             background: linear-gradient(135deg, rgba(255, 152, 0, 0.25), rgba(255, 193, 7, 0.25));
             border-radius: 15px;
             border: 2px solid rgba(255, 193, 7, 0.5);
@@ -1356,6 +1357,29 @@
             }
         }
 
+        #fun-fact-title {
+            position: absolute;
+            top: 5px;
+            left: 15px;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transform: rotate(-20deg);
+            transform-origin: left center;
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+
+        #fun-fact-title span {
+            display: inline-block;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5),
+                         -1px -1px 0 #FFF,
+                         1px -1px 0 #FFF,
+                         -1px 1px 0 #FFF,
+                         1px 1px 0 #FFF;
+        }
+
         #fun-fact-icon {
             font-size: 28px;
             margin-bottom: 8px;
@@ -1364,11 +1388,11 @@
 
         #fun-fact-text {
             color: #FFF9C4;
-            font-size: 14px;
-            line-height: 1.5;
+            font-size: 16px;
+            line-height: 1.6;
             font-style: italic;
             font-weight: 500;
-            min-height: 40px;
+            min-height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1447,6 +1471,13 @@
                 width: 90%;
                 bottom: 75px;
                 padding: 15px 18px;
+                padding-top: 35px;
+            }
+
+            #fun-fact-title {
+                font-size: 20px;
+                top: 3px;
+                left: 10px;
             }
 
             #fun-fact-icon {
@@ -1455,8 +1486,8 @@
             }
 
             #fun-fact-text {
-                font-size: 13px;
-                min-height: 35px;
+                font-size: 14px;
+                min-height: 40px;
             }
 
             #loading-progress-container {
@@ -1500,6 +1531,9 @@
 
         <!-- Fun Fact Display -->
         <div id="fun-fact-container">
+            <div id="fun-fact-title">
+                <span style="color: #FF0000;">D</span><span style="color: #0066FF;">i</span><span style="color: #FFD700;">d</span><span style="color: #FFF;"> </span><span style="color: #FF6600;">Y</span><span style="color: #9933FF;">o</span><span style="color: #00CC00;">u</span><span style="color: #FFF;"> </span><span style="color: #FF0066;">K</span><span style="color: #0099FF;">n</span><span style="color: #FFCC00;">o</span><span style="color: #FF3300;">w</span><span style="color: #00FF99;">?</span>
+            </div>
             <div id="fun-fact-icon">🌍</div>
             <div id="fun-fact-text">Loading explorer facts...</div>
         </div>
@@ -3424,14 +3458,7 @@
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
 
-            // Stop rotating fun facts
-            stopFactRotation();
-
-            // Hide fun fact container
-            const funFactContainer = document.getElementById('fun-fact-container');
-            if (funFactContainer) {
-                funFactContainer.style.display = 'none';
-            }
+            // Keep fun facts rotating even after loading completes
 
             // Convert progress bar to start button
             const progressBar = document.getElementById('loading-progress-bar');
