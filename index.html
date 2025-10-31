@@ -215,6 +215,66 @@
             max-width: 350px;
         }
 
+        /* Flag Quiz Fullscreen Mode */
+        body.flag-quiz-active #quiz-container {
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
+            padding: 40px 20px;
+        }
+
+        body.flag-quiz-active #quiz-header {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        body.flag-quiz-active #quiz-score {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        body.flag-quiz-active #quiz-question {
+            font-size: 20px;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        body.flag-quiz-active #quiz-flag-display {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+        }
+
+        body.flag-quiz-active #quiz-options {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        body.flag-quiz-active #quiz-next-btn,
+        body.flag-quiz-active #quiz-start-btn {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        body.flag-quiz-active #quiz-flag-display canvas {
+            max-width: 90vw;
+            max-height: 40vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
 
         #quiz-header {
             color: #FF8C00;
@@ -238,6 +298,20 @@
             text-align: center;
             padding: 10px;
             background-color: rgba(255, 140, 0, 0.15);
+            border-radius: 4px;
+        }
+
+        #quiz-flag-display {
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        #quiz-flag-display canvas {
+            display: block;
+            margin: 0 auto;
             border-radius: 4px;
         }
 
@@ -1240,6 +1314,89 @@
                 margin-top: 8px;
             }
 
+            /* Flag Quiz Fullscreen on Mobile */
+            body.flag-quiz-active #quiz-container {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                height: 100vh;
+                max-width: none;
+                max-height: none;
+                border-radius: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                background: linear-gradient(135deg, rgba(0, 20, 40, 0.98), rgba(0, 40, 80, 0.98));
+                padding: 15px 12px;
+                overflow-y: auto;
+                box-sizing: border-box;
+            }
+
+            /* Hide other elements during flag quiz on mobile */
+            body.flag-quiz-active #search-container,
+            body.flag-quiz-active #zoom-widget,
+            body.flag-quiz-active #zoom-out-btn,
+            body.flag-quiz-active #take-quiz-btn {
+                display: none !important;
+            }
+
+            body.flag-quiz-active #quiz-header {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+
+            body.flag-quiz-active #quiz-score {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            body.flag-quiz-active #quiz-question {
+                font-size: 16px;
+                margin-bottom: 12px;
+                padding: 8px;
+            }
+
+            body.flag-quiz-active #quiz-flag-display {
+                margin-bottom: 12px;
+                padding: 8px;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            body.flag-quiz-active #quiz-flag-display canvas {
+                max-width: 50%;
+                max-height: 25vh;
+                width: auto;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+                object-fit: contain;
+            }
+
+            body.flag-quiz-active #quiz-options {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            body.flag-quiz-active .quiz-option {
+                padding: 12px;
+                margin: 8px 0;
+                font-size: 14px;
+            }
+
+            body.flag-quiz-active #quiz-next-btn,
+            body.flag-quiz-active #quiz-start-btn {
+                width: 100%;
+                max-width: 100%;
+                padding: 12px;
+                margin-top: 15px;
+                font-size: 16px;
+            }
+
             /* Globe canvas centered on mobile */
             #globe-canvas {
                 transform: translateY(0);
@@ -1650,6 +1807,9 @@
             <div id="quiz-header">Geography Quiz</div>
             <div id="quiz-score" style="display: none;">Score: <span id="quiz-score-value">0</span> / <span id="quiz-total-value">0</span></div>
             <div id="quiz-question" style="display: none;">Which country is highlighted?</div>
+            <div id="quiz-flag-display" style="display: none;">
+                <!-- Flag will be rendered here -->
+            </div>
             <div id="quiz-options">
                 <!-- Options will be dynamically inserted here -->
             </div>
@@ -1677,6 +1837,10 @@
                     <button class="quiz-mode-option" id="name-flag-quiz-btn">
                         <h3>Name the Flag</h3>
                         <p>Identify countries from their highlighted location and choose the correct name</p>
+                    </button>
+                    <button class="quiz-mode-option" id="identify-flag-quiz-btn">
+                        <h3>Identify the Flag</h3>
+                        <p>Look at the flag and choose which country it belongs to</p>
                     </button>
                     <button class="quiz-mode-option" id="find-country-quiz-btn">
                         <h3>Find the Country</h3>
@@ -1774,10 +1938,12 @@
         // Quiz variables
         let countryCentroids = []; // Array of { name, centroid: Vector3, meshRef }
         let quizActive = false;
+        let currentQuizMode = null; // 'name-flag', 'identify-flag', or 'find-country'
         let currentQuizQuestion = null; // { correctCountry, options: [country names] }
         let quizScore = 0;
         let quizQuestionsAnswered = 0;
         let usedQuizCountries = []; // Track countries already used in current quiz
+        let quizAutoAdvanceTimer = null; // Timer for auto-advancing to next question
 
         // Click quiz variables
         let clickQuizActive = false;
@@ -2619,7 +2785,20 @@
 
             // Quiz buttons
             document.getElementById('quiz-start-btn').addEventListener('click', showQuizModeSelector);
-            document.getElementById('quiz-next-btn').addEventListener('click', nextQuestion);
+            document.getElementById('quiz-next-btn').addEventListener('click', () => {
+                // Cancel auto-advance timer if user clicks manually
+                if (quizAutoAdvanceTimer) {
+                    clearTimeout(quizAutoAdvanceTimer);
+                    quizAutoAdvanceTimer = null;
+                }
+
+                // Call appropriate next function based on current quiz mode
+                if (currentQuizMode === 'identify-flag') {
+                    nextFlagQuestion();
+                } else if (currentQuizMode === 'name-flag') {
+                    nextQuestion();
+                }
+            });
             document.getElementById('take-quiz-btn').addEventListener('click', showQuizModeSelector);
 
             // Zoom out button
@@ -2630,6 +2809,7 @@
                 hideQuizModeSelector();
                 startQuiz();
             });
+            document.getElementById('identify-flag-quiz-btn').addEventListener('click', startFlagIdentificationQuiz);
             document.getElementById('find-country-quiz-btn').addEventListener('click', startClickQuiz);
             document.getElementById('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
             document.getElementById('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
@@ -3872,6 +4052,7 @@
         // Start the quiz
         function startQuiz() {
             quizActive = true;
+            currentQuizMode = 'name-flag';
             quizScore = 0;
             quizQuestionsAnswered = 0;
             usedQuizCountries = []; // Reset list of used countries
@@ -3888,6 +4069,10 @@
             // Add quiz-active class to body for mobile styling
             document.body.classList.add('quiz-active');
 
+            // Clear any previous quiz options before starting
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
             // Show quiz elements
             document.getElementById('quiz-score').style.display = 'block';
             document.getElementById('quiz-question').style.display = 'block';
@@ -3895,6 +4080,7 @@
             // Hide start button and previous results
             document.getElementById('quiz-start-btn').style.display = 'none';
             document.getElementById('quiz-result').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
 
             // Reset score display
             updateScoreDisplay();
@@ -3917,27 +4103,30 @@
             document.getElementById('quiz-result').style.display = 'none';
             document.getElementById('quiz-next-btn').style.visibility = 'hidden';
 
-            // Clear previous options
+            // Clear previous options completely
             const optionsContainer = document.getElementById('quiz-options');
             optionsContainer.innerHTML = '';
 
-            // Create option buttons
-            currentQuizQuestion.options.forEach(optionName => {
-                const button = document.createElement('button');
-                button.className = 'quiz-option';
+            // Small delay to ensure DOM is clean before creating new buttons
+            setTimeout(() => {
+                // Create option buttons
+                currentQuizQuestion.options.forEach(optionName => {
+                    const button = document.createElement('button');
+                    button.className = 'quiz-option';
 
-                // Create span for country name
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = optionName;
-                button.appendChild(nameSpan);
+                    // Create span for country name
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = optionName;
+                    button.appendChild(nameSpan);
 
-                button.dataset.country = optionName;
-                button.addEventListener('click', () => handleQuizAnswer(optionName));
-                optionsContainer.appendChild(button);
-            });
+                    button.dataset.country = optionName;
+                    button.addEventListener('click', () => handleQuizAnswer(optionName));
+                    optionsContainer.appendChild(button);
+                });
 
-            // Highlight country on globe and rotate to it
-            highlightQuizCountry(currentQuizQuestion.countryObj);
+                // Highlight country on globe and rotate to it
+                highlightQuizCountry(currentQuizQuestion.countryObj);
+            }, 0);
         }
 
         // Highlight the quiz country on the globe
@@ -3999,13 +4188,26 @@
             // Don't show any result message - button feedback is sufficient
             document.getElementById('quiz-result').style.display = 'none';
 
-            // Show next button or end quiz after 1 question (temporarily for testing)
-            if (quizQuestionsAnswered >= 1) {
+            // Show next button or end quiz after 10 questions
+            if (quizQuestionsAnswered >= 10) {
                 setTimeout(() => {
                     endQuiz();
                 }, 2000);
             } else {
+                // Show next button for 3 seconds, then auto-advance
                 document.getElementById('quiz-next-btn').style.visibility = 'visible';
+
+                // Clear any existing timer
+                if (quizAutoAdvanceTimer) {
+                    clearTimeout(quizAutoAdvanceTimer);
+                }
+
+                // Set new timer
+                quizAutoAdvanceTimer = setTimeout(() => {
+                    document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                    quizAutoAdvanceTimer = null;
+                    nextQuestion();
+                }, 3000);
             }
         }
 
@@ -4018,6 +4220,13 @@
         // End the quiz
         function endQuiz() {
             quizActive = false;
+            currentQuizMode = null;
+
+            // Clear auto-advance timer if active
+            if (quizAutoAdvanceTimer) {
+                clearTimeout(quizAutoAdvanceTimer);
+                quizAutoAdvanceTimer = null;
+            }
 
             // Resume auto-rotation after quiz
             // TEMPORARILY DISABLED
@@ -4102,6 +4311,374 @@
                     origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
                 });
             }, 250);
+        }
+
+        // Flag Identification Quiz Functions
+        let flagQuizRenderer = null;
+        let flagQuizScene = null;
+        let flagQuizCamera = null;
+        let flagQuizMesh = null;
+        let flagQuizOriginalPositions = null;
+        let flagQuizTime = 0;
+
+        function initFlagQuizRenderer() {
+            if (flagQuizRenderer) return; // Already initialized
+
+            // Create flag scene for quiz
+            flagQuizScene = new THREE.Scene();
+            flagQuizScene.background = null; // Transparent background
+
+            // Create flag camera for quiz display
+            flagQuizCamera = new THREE.PerspectiveCamera(45, 560 / 373, 0.1, 1000);
+            flagQuizCamera.position.z = 9.5;
+
+            // Create flag renderer for quiz
+            flagQuizRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            flagQuizRenderer.setSize(560, 373);
+            flagQuizRenderer.setClearColor(0x000000, 0); // Transparent
+
+            // Add lights to flag scene
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            flagQuizScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            flagQuizScene.add(directionalLight);
+        }
+
+        function updateFlagQuizAnimation() {
+            if (!flagQuizMesh || !flagQuizOriginalPositions) return;
+
+            flagQuizTime = performance.now() * 0.001 * 3; // Speed factor
+
+            const positions = flagQuizMesh.geometry.attributes.position;
+            const coeff = 72;
+            const coeff2 = 65;
+            const gap = 10;
+            const spacing = 30;
+
+            for (let i = 0; i < positions.count; i++) {
+                const x = flagQuizOriginalPositions[i * 3];
+                const y = flagQuizOriginalPositions[i * 3 + 1];
+
+                // Apply Perlin noise to Z position for wave effect
+                positions.array[i * 3 + 2] = 1 +
+                    (spacing / 25) *
+                    noise.perlin2(
+                        x * (gap / coeff) + flagQuizTime,
+                        y * (gap / coeff2)
+                    );
+            }
+
+            positions.needsUpdate = true;
+            flagQuizMesh.geometry.computeVertexNormals();
+        }
+
+        function displayFlagForQuiz(countryName) {
+            // Initialize renderer if needed
+            initFlagQuizRenderer();
+
+            // Get ISO code for the country
+            const isoCode = countryToISO[countryName];
+            if (!isoCode) {
+                console.error('No ISO code found for country:', countryName);
+                return;
+            }
+
+            // Remove old flag if exists
+            if (flagQuizMesh) {
+                flagQuizScene.remove(flagQuizMesh);
+                flagQuizMesh.geometry.dispose();
+                // Dispose material and texture properly
+                if (flagQuizMesh.material.map) {
+                    flagQuizMesh.material.map.dispose();
+                }
+                flagQuizMesh.material.dispose();
+                flagQuizMesh = null;
+                flagQuizOriginalPositions = null;
+            }
+
+            // Create plane geometry with subdivisions for wave effect
+            const flagGeometry = new THREE.PlaneGeometry(10, 6.67, 20, 15);
+
+            // Store reference to this load operation
+            const currentLoadIsoCode = isoCode;
+
+            // Load flag texture with callback
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load(
+                `https://flagcdn.com/w640/${isoCode}.png`,
+                function(flagTexture) {
+                    // Only proceed if this is still the current quiz question
+                    // (prevents race condition if user advances quickly)
+                    if (currentQuizQuestion && countryToISO[currentQuizQuestion.correctCountry] === currentLoadIsoCode) {
+                        // Texture loaded successfully
+                        // Create material
+                        const flagMaterial = new THREE.MeshStandardMaterial({
+                            map: flagTexture,
+                            side: THREE.DoubleSide,
+                            roughness: 0.7,
+                            metalness: 0.1
+                        });
+
+                        // Create mesh
+                        const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+
+                        // Store original positions for animation
+                        const positions = flag.geometry.attributes.position;
+                        const originalPositions = new Float32Array(positions.array);
+
+                        // Update global references
+                        flagQuizMesh = flag;
+                        flagQuizOriginalPositions = originalPositions;
+                        flagQuizScene.add(flagQuizMesh);
+
+                        // Force render with new texture
+                        flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
+                    } else {
+                        // Question changed before texture loaded, dispose texture
+                        flagTexture.dispose();
+                        flagGeometry.dispose();
+                    }
+                },
+                undefined,
+                function(error) {
+                    console.error('Error loading flag texture:', error);
+                    flagGeometry.dispose();
+                }
+            );
+
+            // Add the canvas to the quiz flag display
+            const flagDisplay = document.getElementById('quiz-flag-display');
+            flagDisplay.innerHTML = ''; // Clear any existing content
+            flagDisplay.appendChild(flagQuizRenderer.domElement);
+            flagDisplay.style.display = 'block';
+
+            // Render placeholder (will be updated when texture loads)
+            flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
+        }
+
+        function generateFlagQuizQuestion() {
+            // Filter out countries already used in this quiz
+            const availableCountries = countryCentroids.filter(c => !usedQuizCountries.includes(c.name));
+
+            if (availableCountries.length < 4) {
+                console.error('Not enough unused countries for quiz');
+                return null;
+            }
+
+            // Select random country from available countries as the correct answer
+            const correctIndex = Math.floor(Math.random() * availableCountries.length);
+            const correctCountry = availableCountries[correctIndex];
+
+            // Mark this country as used
+            usedQuizCountries.push(correctCountry.name);
+
+            // Get all other countries for random distractors
+            const otherCountries = countryCentroids.filter(country => country.name !== correctCountry.name);
+
+            // Select 3 random distractors
+            const shuffledOthers = otherCountries.sort(() => Math.random() - 0.5);
+            const distractors = shuffledOthers.slice(0, 3).map(c => c.name);
+
+            // Combine correct answer with distractors
+            const allOptions = [correctCountry.name, ...distractors];
+
+            // Shuffle the options randomly
+            const shuffledOptions = allOptions.sort(() => Math.random() - 0.5);
+
+            return {
+                correctCountry: correctCountry.name,
+                options: shuffledOptions,
+                countryObj: correctCountry
+            };
+        }
+
+        function startFlagIdentificationQuiz() {
+            hideQuizModeSelector();
+
+            quizActive = true;
+            currentQuizMode = 'identify-flag';
+            quizScore = 0;
+            quizQuestionsAnswered = 0;
+            usedQuizCountries = []; // Reset list of used countries
+
+            // Disable auto-rotation during quiz
+            autoRotateEnabled = false;
+            controls.autoRotate = false;
+            if (idleTimeout) {
+                clearTimeout(idleTimeout);
+                idleTimeout = null;
+            }
+
+            // Add quiz-active and flag-quiz-active classes to body
+            document.body.classList.add('quiz-active');
+            document.body.classList.add('flag-quiz-active');
+
+            // Clear any previous quiz options before starting
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            // Show quiz elements
+            document.getElementById('quiz-score').style.display = 'block';
+            document.getElementById('quiz-question').textContent = 'Which country does this flag belong to?';
+            document.getElementById('quiz-question').style.display = 'block';
+
+            // Hide start button and previous results
+            document.getElementById('quiz-start-btn').style.display = 'none';
+            document.getElementById('quiz-result').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            document.getElementById('quiz-flag-display').style.display = 'none';
+
+            // Reset score display
+            updateScoreDisplay();
+
+            // Load first question
+            nextFlagQuestion();
+        }
+
+        function nextFlagQuestion() {
+            // Generate new question
+            currentQuizQuestion = generateFlagQuizQuestion();
+
+            if (!currentQuizQuestion) {
+                console.error('Failed to generate flag quiz question');
+                return;
+            }
+
+            // Hide result and next button
+            document.getElementById('quiz-result').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+
+            // Display the flag
+            displayFlagForQuiz(currentQuizQuestion.correctCountry);
+
+            // Clear previous options completely
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            // Small delay to ensure DOM is clean before creating new buttons
+            setTimeout(() => {
+                // Create option buttons
+                currentQuizQuestion.options.forEach(optionName => {
+                    const button = document.createElement('button');
+                    button.className = 'quiz-option';
+
+                    // Create span for country name
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = optionName;
+                    button.appendChild(nameSpan);
+
+                    button.dataset.country = optionName;
+                    button.addEventListener('click', () => handleFlagQuizAnswer(optionName));
+                    optionsContainer.appendChild(button);
+                });
+            }, 0);
+        }
+
+        function handleFlagQuizAnswer(selectedCountry) {
+            const isCorrect = selectedCountry === currentQuizQuestion.correctCountry;
+
+            // Update score if correct
+            if (isCorrect) {
+                quizScore++;
+            }
+            quizQuestionsAnswered++;
+
+            // Update score display
+            updateScoreDisplay();
+
+            // Disable all option buttons
+            const optionButtons = document.querySelectorAll('.quiz-option');
+            optionButtons.forEach(button => {
+                button.disabled = true;
+
+                // Highlight correct and incorrect answers
+                if (button.dataset.country === currentQuizQuestion.correctCountry) {
+                    button.classList.add('correct');
+                    const label = document.createElement('span');
+                    label.className = 'correct-label';
+                    label.textContent = 'correct answer';
+                    button.appendChild(label);
+                } else if (button.dataset.country === selectedCountry && !isCorrect) {
+                    button.classList.add('incorrect');
+                }
+            });
+
+            // Don't show any result message
+            document.getElementById('quiz-result').style.display = 'none';
+
+            // End quiz after 10 questions
+            if (quizQuestionsAnswered >= 10) {
+                setTimeout(() => {
+                    endFlagQuiz();
+                }, 2000);
+            } else {
+                // Show next button for 3 seconds, then auto-advance
+                document.getElementById('quiz-next-btn').style.visibility = 'visible';
+
+                // Clear any existing timer
+                if (quizAutoAdvanceTimer) {
+                    clearTimeout(quizAutoAdvanceTimer);
+                }
+
+                // Set new timer
+                quizAutoAdvanceTimer = setTimeout(() => {
+                    document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                    quizAutoAdvanceTimer = null;
+                    nextFlagQuestion();
+                }, 3000);
+            }
+        }
+
+        function endFlagQuiz() {
+            quizActive = false;
+            currentQuizMode = null;
+
+            // Clear auto-advance timer if active
+            if (quizAutoAdvanceTimer) {
+                clearTimeout(quizAutoAdvanceTimer);
+                quizAutoAdvanceTimer = null;
+            }
+
+            // Resume auto-rotation after quiz
+            // TEMPORARILY DISABLED
+            // resumeAutoRotation();
+
+            // Remove quiz-active and flag-quiz-active classes from body
+            document.body.classList.remove('quiz-active');
+            document.body.classList.remove('flag-quiz-active');
+
+            // Hide quiz elements
+            document.getElementById('quiz-score').style.display = 'none';
+            document.getElementById('quiz-question').style.display = 'none';
+            document.getElementById('quiz-flag-display').style.display = 'none';
+            document.getElementById('quiz-options').innerHTML = '';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+
+            // Show celebration overlay with score
+            const percentage = Math.round((quizScore / quizQuestionsAnswered) * 100);
+            document.getElementById('celebration-score').innerHTML = `
+                <div style="font-size: 1.5rem; margin-bottom: 10px;">Your Score</div>
+                <div>${quizScore} / ${quizQuestionsAnswered}</div>
+                <div style="font-size: 2rem; margin-top: 10px;">${percentage}%</div>
+            `;
+
+            const overlay = document.getElementById('quiz-celebration-overlay');
+            overlay.style.display = 'flex';
+
+            // Trigger confetti effect
+            triggerConfetti();
+
+            // Add click event to celebration close button
+            document.getElementById('celebration-close-btn').onclick = function() {
+                overlay.style.display = 'none';
+                document.getElementById('quiz-container').style.display = 'block';
+                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                document.getElementById('quiz-start-btn').style.display = 'block';
+                document.getElementById('quiz-start-btn').textContent = 'Play Again';
+            };
         }
 
         // Quiz Mode Selector Functions
@@ -4189,8 +4766,8 @@
                 setTimeout(() => {
                     clickQuizCurrentIndex++;
 
-                    if (clickQuizCurrentIndex >= 1) {
-                        // Quiz complete! (temporarily for testing)
+                    if (clickQuizCurrentIndex >= 10) {
+                        // Quiz complete!
                         endClickQuiz(true);
                     } else {
                         showClickQuizQuestion();
@@ -4869,6 +5446,12 @@
             // Update flag animation if visible
             if (currentHoveredCountry) {
                 updateFlagAnimation();
+            }
+
+            // Update flag quiz animation if active
+            if (flagQuizMesh && flagQuizRenderer) {
+                updateFlagQuizAnimation();
+                flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
             }
 
             // Update country label visibility based on zoom level
