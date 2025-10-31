@@ -4109,10 +4109,15 @@
 
             // Small delay to ensure DOM is clean before creating new buttons
             setTimeout(() => {
-                // Create option buttons
+                // Create option buttons with explicit neutral styling
                 currentQuizQuestion.options.forEach(optionName => {
                     const button = document.createElement('button');
+                    // Set only the quiz-option class, removing any potential inherited classes
                     button.className = 'quiz-option';
+                    // Ensure button is enabled
+                    button.disabled = false;
+                    // Remove any potential inline styles
+                    button.removeAttribute('style');
 
                     // Create span for country name
                     const nameSpan = document.createElement('span');
@@ -4435,6 +4440,9 @@
 
                         // Force render with new texture
                         flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
+
+                        // Now that texture is loaded, show the flag display
+                        document.getElementById('quiz-flag-display').style.display = 'block';
                     } else {
                         // Question changed before texture loaded, dispose texture
                         flagTexture.dispose();
@@ -4448,14 +4456,11 @@
                 }
             );
 
-            // Add the canvas to the quiz flag display
+            // Add the canvas to the quiz flag display but keep it hidden
             const flagDisplay = document.getElementById('quiz-flag-display');
             flagDisplay.innerHTML = ''; // Clear any existing content
             flagDisplay.appendChild(flagQuizRenderer.domElement);
-            flagDisplay.style.display = 'block';
-
-            // Render placeholder (will be updated when texture loads)
-            flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
+            flagDisplay.style.display = 'none'; // Keep hidden until texture loads
         }
 
         function generateFlagQuizQuestion() {
@@ -4559,10 +4564,15 @@
 
             // Small delay to ensure DOM is clean before creating new buttons
             setTimeout(() => {
-                // Create option buttons
+                // Create option buttons with explicit neutral styling
                 currentQuizQuestion.options.forEach(optionName => {
                     const button = document.createElement('button');
+                    // Set only the quiz-option class, removing any potential inherited classes
                     button.className = 'quiz-option';
+                    // Ensure button is enabled
+                    button.disabled = false;
+                    // Remove any potential inline styles
+                    button.removeAttribute('style');
 
                     // Create span for country name
                     const nameSpan = document.createElement('span');
