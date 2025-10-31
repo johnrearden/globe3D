@@ -1398,6 +1398,7 @@
         #seo-text-wrapper {
             max-width: 800px;
             text-align: center;
+            padding-bottom: 120px;
         }
 
         #seo-content h1 {
@@ -1435,8 +1436,8 @@
 
         @media (max-width: 768px) {
             #seo-content {
-                align-items: flex-start;
-                padding: 20px 15px 120px;
+                align-items: center;
+                padding: 20px 15px;
                 overflow-y: auto;
             }
 
@@ -1463,78 +1464,6 @@
                 font-size: 0.85rem;
                 line-height: 1.6;
             }
-        }
-
-        /* Fun Fact Display */
-        #fun-fact-container {
-            position: absolute;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            max-width: 600px;
-            text-align: center;
-            padding: 18px 25px;
-            padding-top: 40px;
-            background: linear-gradient(135deg, rgba(255, 152, 0, 0.25), rgba(255, 193, 7, 0.25));
-            border-radius: 15px;
-            border: 2px solid rgba(255, 193, 7, 0.5);
-            box-shadow: 0 4px 20px rgba(255, 152, 0, 0.3);
-            opacity: 0;
-            animation: fadeInFact 1s ease-in 0.5s forwards;
-        }
-
-        @keyframes fadeInFact {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
-        }
-
-        #fun-fact-title {
-            position: absolute;
-            top: 5px;
-            left: 15px;
-            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
-            font-size: 24px;
-            font-weight: bold;
-            text-transform: uppercase;
-            transform: rotate(-20deg);
-            transform-origin: left center;
-            letter-spacing: 2px;
-            z-index: 10;
-        }
-
-        #fun-fact-title span {
-            display: inline-block;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5),
-                         -1px -1px 0 #FFF,
-                         1px -1px 0 #FFF,
-                         -1px 1px 0 #FFF,
-                         1px 1px 0 #FFF;
-        }
-
-        #fun-fact-icon {
-            font-size: 28px;
-            margin-bottom: 8px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-        }
-
-        #fun-fact-text {
-            color: #FFF9C4;
-            font-size: 16px;
-            line-height: 1.6;
-            font-style: italic;
-            font-weight: 500;
-            min-height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
 
         /* Loading Progress Bar and Start Button */
@@ -1605,29 +1534,6 @@
         }
 
         @media (max-width: 768px) {
-            #fun-fact-container {
-                width: 90%;
-                bottom: 75px;
-                padding: 15px 18px;
-                padding-top: 35px;
-            }
-
-            #fun-fact-title {
-                font-size: 20px;
-                top: 3px;
-                left: 10px;
-            }
-
-            #fun-fact-icon {
-                font-size: 24px;
-                margin-bottom: 6px;
-            }
-
-            #fun-fact-text {
-                font-size: 14px;
-                min-height: 40px;
-            }
-
             #loading-progress-container {
                 width: 90%;
                 bottom: 20px;
@@ -1667,15 +1573,6 @@
             </ul>
 
             <p><strong>Wait for the globe to load, then click the start button below!</strong></p>
-        </div>
-
-        <!-- Fun Fact Display -->
-        <div id="fun-fact-container">
-            <div id="fun-fact-title">
-                <span style="color: #FF0000;">D</span><span style="color: #0066FF;">i</span><span style="color: #FFD700;">d</span><span style="color: #FFF;"> </span><span style="color: #FF6600;">Y</span><span style="color: #9933FF;">o</span><span style="color: #00CC00;">u</span><span style="color: #FFF;"> </span><span style="color: #FF0066;">K</span><span style="color: #0099FF;">n</span><span style="color: #FFCC00;">o</span><span style="color: #FF3300;">w</span><span style="color: #00FF99;">?</span>
-            </div>
-            <div id="fun-fact-icon">🌍</div>
-            <div id="fun-fact-text">Loading explorer facts...</div>
         </div>
 
         <!-- Loading Progress Bar and Start Button -->
@@ -1873,56 +1770,6 @@
 
         // SEO content visibility
         let seoContentHidden = false;
-
-        // Fun facts about explorers
-        const explorerFacts = [
-            "Leif Erikson reached North America 500 years before Columbus!",
-            "Marco Polo traveled from Europe to China in the 1200s, bringing back stories of rich cultures and amazing goods.",
-            "Ferdinand Magellan's crew was the first to sail around the world, proving Earth was round!",
-            "Edmund Hillary and Tenzing Norgay became the first to reach Mount Everest's peak in 1953.",
-            "Amelia Earhart was the first woman to fly solo across the Atlantic Ocean in 1932.",
-            "Nellie Bly traveled around the world in just 72 days in 1888, beating Jules Verne's fictional 80 days!",
-            "Amerigo Vespucci named Venezuela after seeing houses elevated from water like Venice.",
-            "Zheng He's largest ships were nearly twice as long as any wooden ship ever recorded!",
-            "Zheng He brought back exotic animals like giraffes and zebras to China from his voyages.",
-            "Ibn Battuta traveled over 75,000 miles and claimed to have married at least 10 times during his journeys!",
-            "Vasco da Gama was the first to sail directly from Europe to India in 1498.",
-            "Sacagawea guided Lewis and Clark through the American West, helping them communicate with Native tribes.",
-            "Roald Amundsen learned survival techniques from indigenous Arctic people, which helped him succeed.",
-            "Christopher Columbus made four voyages across the Atlantic and never realized he hadn't reached Asia!",
-            "James Cook was known for his impressive precision and charting accuracy of the South Pacific.",
-            "Magellan died in the Philippines during the Battle of Mactan in 1521.",
-            "Columbus led three ships on his first voyage: the Niña, Pinta, and Santa Maria.",
-            "Zheng He's first voyage featured 62 massive ships and 27,780 men - a fleet unmatched in history!",
-            "After Zheng He's death, China destroyed his fleet and erased his name from records.",
-            "Ibn Battuta dictated his travel adventures from memory in a book called a rihla!"
-        ];
-
-        let currentFactIndex = 0;
-        let factRotationInterval = null;
-
-        // Start rotating fun facts
-        function startFactRotation() {
-            const factText = document.getElementById('fun-fact-text');
-            if (!factText) return;
-
-            // Show first fact immediately
-            factText.textContent = explorerFacts[currentFactIndex];
-
-            // Rotate facts every 4 seconds
-            factRotationInterval = setInterval(() => {
-                currentFactIndex = (currentFactIndex + 1) % explorerFacts.length;
-                factText.textContent = explorerFacts[currentFactIndex];
-            }, 4000);
-        }
-
-        // Stop rotating fun facts
-        function stopFactRotation() {
-            if (factRotationInterval) {
-                clearInterval(factRotationInterval);
-                factRotationInterval = null;
-            }
-        }
 
         // Quiz variables
         let countryCentroids = []; // Array of { name, centroid: Vector3, meshRef }
@@ -2466,20 +2313,68 @@
         }
 
         // Helper function to update loading progress
-        function updateLoadingProgress(percent, message = null) {
+        let currentProgress = 0;
+        let progressAnimationFrame = null;
+
+        function updateLoadingProgress(percent, message = null, animated = false) {
             const progressFill = document.getElementById('loading-progress-fill');
             const progressText = document.getElementById('loading-progress-text');
             const loadingDiv = document.getElementById('loading');
 
-            if (progressFill) {
-                progressFill.style.width = percent + '%';
-            }
-            if (progressText) {
-                const displayMessage = message || `Loading... ${percent}%`;
-                progressText.textContent = displayMessage;
-            }
-            if (loadingDiv && message) {
-                loadingDiv.textContent = message;
+            if (animated) {
+                // Cancel any ongoing animation
+                if (progressAnimationFrame) {
+                    cancelAnimationFrame(progressAnimationFrame);
+                }
+
+                const startProgress = currentProgress;
+                const targetProgress = percent;
+                const duration = 600; // 600ms for smooth animation
+                const startTime = Date.now();
+
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    // Ease out cubic for smooth deceleration
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    const newProgress = startProgress + (targetProgress - startProgress) * easeProgress;
+
+                    currentProgress = newProgress;
+
+                    if (progressFill) {
+                        progressFill.style.width = newProgress + '%';
+                    }
+                    if (progressText && message) {
+                        progressText.textContent = message;
+                    }
+
+                    if (progress < 1) {
+                        progressAnimationFrame = requestAnimationFrame(animate);
+                    } else {
+                        progressAnimationFrame = null;
+                    }
+                }
+
+                if (message && progressText) {
+                    progressText.textContent = message;
+                }
+
+                animate();
+            } else {
+                // Instant update (for download progress)
+                currentProgress = percent;
+
+                if (progressFill) {
+                    progressFill.style.width = percent + '%';
+                }
+                if (progressText) {
+                    const displayMessage = message || `Loading... ${percent}%`;
+                    progressText.textContent = displayMessage;
+                }
+                if (loadingDiv && message) {
+                    loadingDiv.textContent = message;
+                }
             }
         }
 
@@ -2499,9 +2394,9 @@
                 // Load the pre-built globe GLB file
                 loader.load(
                     'assets/world.glb',
-                    function (gltf) {
+                    async function (gltf) {
                         console.log('GLB loaded successfully');
-                        updateLoadingProgress(70, 'Processing countries...');
+                        updateLoadingProgress(70, 'Processing countries...', true);
 
                         // Add all meshes from the GLB to the globe
                         gltf.scene.traverse((child) => {
@@ -2545,24 +2440,28 @@
                             }
                         });
 
-                        updateLoadingProgress(78, 'Building globe...');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        updateLoadingProgress(78, 'Building globe...', true);
 
                         // Add the entire scene to the globe
                         globe.add(gltf.scene);
 
                         console.log(`Loaded ${countries.length} country meshes`);
 
-                        updateLoadingProgress(85, 'Calculating positions...');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        updateLoadingProgress(85, 'Calculating positions...', true);
 
                         // Build country centroids cache for quiz
                         buildCountryCentroidsCache();
 
-                        updateLoadingProgress(90, 'Creating labels...');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        updateLoadingProgress(90, 'Creating labels...', true);
 
                         // Create country labels
                         createCountryLabels();
 
-                        updateLoadingProgress(95, 'Loading configuration...');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        updateLoadingProgress(95, 'Loading configuration...', true);
 
                         // Load saved label configuration if available
                         loadLabelConfig();
@@ -2573,8 +2472,10 @@
                         // Create country borders
                         // createCountryBorders(); // Disabled for performance
 
-                        updateLoadingProgress(100, 'Complete!');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        updateLoadingProgress(100, 'Complete!', true);
 
+                        await new Promise(resolve => setTimeout(resolve, 400));
                         hideLoading();
                     },
                     function (xhr) {
@@ -4991,9 +4892,6 @@
 
         // Start the application
         init();
-
-        // Start rotating fun facts during loading
-        startFactRotation();
     </script>
 </body>
 </html>
