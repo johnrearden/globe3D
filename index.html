@@ -217,6 +217,10 @@
     <script type="module">
         // ===== IMPORTS =====
         import { state } from './js/data/state.js';
+        import { SceneManager } from './js/core/scene.js';
+        import { GlobeManager } from './js/core/globe.js';
+        import { LabelManager } from './js/core/labels.js';
+        import { CameraController } from './js/core/camera-controls.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -448,6 +452,12 @@
         let lastInteractionTime = Date.now();
         let idleTimeout = null;
         const IDLE_DELAY = 60000; // 1 minute
+
+        // ===== CORE MANAGERS (initialized in init()) =====
+        let sceneManager = null;
+        let globeManager = null;
+        let labelManager = null;
+        let cameraController = null;
 
         // ===== STATE SYNCHRONIZATION =====
         // Initialize state manager with current variable values
@@ -788,79 +798,95 @@
             // Initialize flag renderer (separate mini scene)
             initFlagRenderer();
 
-            // Create scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x001122);
+            // ===== PHASE 5: Initialize Core Managers =====
 
-            // Create camera with adaptive positioning
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // 1. Initialize SceneManager
+            sceneManager = new SceneManager(elements.get('container'));
+            sceneManager.init();
 
-            // Calculate initial camera distance based on device
-            const aspectRatio = window.innerWidth / window.innerHeight;
-            const fov = 75 * Math.PI / 180; // Convert to radians
-            const isMobile = window.innerWidth <= 768;
+            // Get references for backwards compatibility
+            scene = sceneManager.getScene();
+            camera = sceneManager.getCamera();
+            renderer = sceneManager.getRenderer();
+            initialCameraDistance = sceneManager.getInitialCameraDistance();
 
-            // Calculate distance needed for globe to occupy viewport
-            let cameraDistance;
-            let targetPercentage = isMobile ? 0.85 : 0.70; // 85% on mobile, 70% on desktop
+            // 2. Initialize GlobeManager
+            globeManager = new GlobeManager(scene);
+            globeManager.init();
 
-            if (aspectRatio >= 1) {
-                // Width >= Height, so height is the limiting dimension
-                cameraDistance = (1 / Math.tan(fov / 2)) / targetPercentage;
-            } else {
-                // Height > Width, so width is the limiting dimension
-                const horizontalFov = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
-                cameraDistance = (1 / Math.tan(horizontalFov / 2)) / targetPercentage;
-            }
+            // Get globe reference
+            globe = globeManager.getGlobe();
+            baseSphere = globeManager.getBaseSphere();
 
-            // Store initial camera distance for zoom out button
-            initialCameraDistance = cameraDistance;
+            // 3. Initialize CameraController
+            cameraController = new CameraController(camera, renderer, scene);
+            cameraController.setupControls();
 
-            // Center globe vertically on all screen sizes
-            const verticalOffset = 0;
-            camera.position.set(0, verticalOffset, cameraDistance);
+            // Get controls reference
+            controls = cameraController.getControls();
 
-            // Create renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.domElement.id = 'globe-canvas';
-            elements.get('container').appendChild(renderer.domElement);
+            // 4. Load world data and create labels
+            globeManager.loadGlobe(
+                // Progress callback
+                (percent, message, animated) => {
+                    sceneManager.updateLoadingProgress(percent, message, animated, (id) => elements.get(id));
+                },
+                // Complete callback
+                (loadedCountries) => {
+                    // Globe loaded successfully
+                    countries = loadedCountries;
 
-            // Add lights
-            setupLights();
+                    // Initialize LabelManager
+                    labelManager = new LabelManager(scene, camera, globeManager);
+                    labelManager.createLabels(LARGE_COUNTRIES, SMALL_COUNTRIES);
 
-            // Create globe container
-            globe = new THREE.Group();
-            scene.add(globe);
+                    // Get labels reference
+                    countryLabels = labelManager.getLabels();
+                    labelDefaults = labelManager.labelDefaults;
 
-            // Create base sphere (inner blocker)
-            // Radius is 1.014 (just below countries at 1.02) to block artifacts from inside
-            const sphereGeometry = new THREE.SphereGeometry(1.014, 64, 64);
-            const sphereMaterial = new THREE.MeshPhongMaterial({
-                color: 0x001a33, // Dark blue ocean color
-                transparent: false,
-                opacity: 1.0,
-                side: THREE.BackSide, // Render inside surface to block artifacts
-                depthWrite: true,
-                shininess: 30, // Moderate reflectivity
-                specular: 0x222222 // Subtle highlights
-            });
-            baseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            globe.add(baseSphere);
+                    // Load saved configurations
+                    sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
+                    loadLabelConfig();
+                    loadColorConfig();
 
-            // Add latitude and longitude lines
-            addLatLongLines();
-
-            // Load world data and create countries
-            loadWorldData();
-
-            // Setup orbit controls
-            setupControls();
+                    // Complete loading
+                    sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
+                    setTimeout(() => hideLoading(), 400);
+                },
+                // Error callback
+                (error) => {
+                    console.error('Failed to load globe:', error);
+                    hideLoading();
+                }
+            );
 
             // Add event listeners
             setupEventListeners();
+
+            // Register render callbacks
+            sceneManager.onRender(() => {
+                // Update controls
+                cameraController.update();
+
+                // Update flag animations
+                if (currentHoveredCountry) {
+                    updateFlagAnimation();
+                }
+                if (flagQuizMesh && flagQuizRenderer) {
+                    updateFlagQuizAnimation();
+                    flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
+                }
+
+                // Update label visibility
+                if (labelManager) {
+                    labelManager.updateVisibility();
+                }
+
+                // Update UI widgets
+                updateZoomWidget();
+                updateSearchVisibilityOnMobile();
+                updateZoomOutButtonVisibility();
+            });
 
             // Sync state with initial variable values
             syncStateWithVariables();
@@ -876,7 +902,7 @@
             });
 
             // Start animation loop
-            animate();
+            sceneManager.start();
         }
 
         function setupControls() {
