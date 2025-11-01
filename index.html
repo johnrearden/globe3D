@@ -135,8 +135,8 @@
                 <h2>Choose Quiz Mode</h2>
                 <div id="quiz-mode-options">
                     <button class="quiz-mode-option" id="name-flag-quiz-btn">
-                        <h3>Name the Flag</h3>
-                        <p>Identify countries from their highlighted location and choose the correct name</p>
+                        <h3>Name the Country</h3>
+                        <p>See a highlighted country on the globe and select its flag from the options</p>
                     </button>
                     <button class="quiz-mode-option" id="identify-flag-quiz-btn">
                         <h3>Identify the Flag</h3>
@@ -2686,16 +2686,19 @@
                 country.material.needsUpdate = true;
             });
 
+            // Get all mesh references for this country
+            const countryMeshes = countries.filter(mesh => mesh.userData.name === countryObj.name);
+
             // Highlight the quiz country with white
-            countryObj.meshRefs.forEach(mesh => {
+            countryMeshes.forEach(mesh => {
                 mesh.material.vertexColors = false;
                 mesh.material.color.setHex(0xFFFFFF);
                 mesh.material.needsUpdate = true;
             });
 
             // Rotate globe to center the country
-            if (countryObj.meshRefs.length > 0) {
-                rotateGlobeToCountry(countryObj.meshRefs[0], true);
+            if (countryMeshes.length > 0) {
+                rotateGlobeToCountry(countryMeshes[0], true);
             }
 
             // Disable hover and search interactions during quiz
