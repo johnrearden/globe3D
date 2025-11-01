@@ -5,6 +5,9 @@
 
 import { state } from '../data/state.js';
 
+// Access global THREE.js library
+const THREE = window.THREE;
+
 export class CameraController {
     constructor(camera, renderer, scene) {
         this.camera = camera;

@@ -5,6 +5,9 @@
 
 import { state } from '../data/state.js';
 
+// Access global THREE.js library
+const THREE = window.THREE;
+
 export class GlobeManager {
     constructor(scene) {
         this.scene = scene;
