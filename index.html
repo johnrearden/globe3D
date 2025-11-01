@@ -1314,7 +1314,7 @@
             selectionHelper.visible = true;
 
             // Show fine tune button
-            elements.get('fine-tune-show(btn'));
+            show(elements.get('fine-tune-btn'));
 
             console.log(`Selected: ${label.userData.countryName}`);
         }
@@ -1500,10 +1500,10 @@
             elements.get('label-scale').value = currentScale;
 
             // Update value displays
-            elements.get('label-offset-x-setText(value'), offsetX.toFixed(2));
-            elements.get('label-offset-y-setText(value'), offsetY.toFixed(2));
-            elements.get('label-offset-z-setText(value'), offsetZ.toFixed(2));
-            elements.get('label-scale-setText(value'), currentScale.toFixed(1));
+            setText(elements.get('label-offset-x-value'), offsetX.toFixed(2));
+            setText(elements.get('label-offset-y-value'), offsetY.toFixed(2));
+            setText(elements.get('label-offset-z-value'), offsetZ.toFixed(2));
+            setText(elements.get('label-scale-value'), currentScale.toFixed(1));
 
             show(modal);
         }
@@ -1527,9 +1527,9 @@
             const offsetZ = parseFloat(elements.get('label-offset-z').value);
 
             // Update value displays
-            elements.get('label-offset-x-setText(value'), offsetX.toFixed(2));
-            elements.get('label-offset-y-setText(value'), offsetY.toFixed(2));
-            elements.get('label-offset-z-setText(value'), offsetZ.toFixed(2));
+            setText(elements.get('label-offset-x-value'), offsetX.toFixed(2));
+            setText(elements.get('label-offset-y-value'), offsetY.toFixed(2));
+            setText(elements.get('label-offset-z-value'), offsetZ.toFixed(2));
 
             // Apply new position
             const newPos = new THREE.Vector3(
@@ -1566,7 +1566,7 @@
             const scale = parseFloat(elements.get('label-scale').value);
 
             // Update value display
-            elements.get('label-scale-setText(value'), scale.toFixed(1));
+            setText(elements.get('label-scale-value'), scale.toFixed(1));
 
             // Apply scale
             selectedLabel.scale.set(scale, scale, scale);
@@ -1614,10 +1614,10 @@
             elements.get('label-offset-z').value = 0;
             elements.get('label-scale').value = 1.0;
 
-            elements.get('label-offset-x-setText(value'), '0.00');
-            elements.get('label-offset-y-setText(value'), '0.00');
-            elements.get('label-offset-z-setText(value'), '0.00');
-            elements.get('label-scale-setText(value'), '1.0');
+            setText(elements.get('label-offset-x-value'), '0.00');
+            setText(elements.get('label-offset-y-value'), '0.00');
+            setText(elements.get('label-offset-z-value'), '0.00');
+            setText(elements.get('label-scale-value'), '1.0');
 
             console.log(`${countryName} reset to default`);
 
@@ -1729,7 +1729,7 @@
 
         function updateSphereRadius() {
             // Update the display
-            elements.get('sphere-radius-setText(value'), currentSphereRadius.toFixed(3));
+            setText(elements.get('sphere-radius-value'), currentSphereRadius.toFixed(3));
 
             // Remove old sphere
             if (baseSphere) {
@@ -2375,8 +2375,8 @@
             optionsContainer.innerHTML = '';
 
             // Show quiz elements
-            elements.get('quiz-show(score'));
-            elements.get('quiz-show(question'));
+            show(elements.get('quiz-score'));
+            show(elements.get('quiz-question'));
 
             // Hide start button and previous results
             hide(elements.get('quiz-start-btn'));
@@ -2519,8 +2519,8 @@
 
         // Update score display
         function updateScoreDisplay() {
-            elements.get('quiz-score-setText(value'), quizScore);
-            elements.get('quiz-total-setText(value'), quizQuestionsAnswered);
+            setText(elements.get('quiz-score-value'), quizScore);
+            setText(elements.get('quiz-total-value'), quizQuestionsAnswered);
         }
 
         // End the quiz
@@ -2576,10 +2576,10 @@
             // Add click event to celebration close button
             elements.get('celebration-close-btn').onclick = function() {
                 hide(overlay);
-                elements.get('quiz-show(container'));
+                show(elements.get('quiz-container'));
                 elements.get('quiz-next-btn').style.visibility = 'hidden';
-                elements.get('quiz-start-show(btn'));
-                elements.get('quiz-start-setText(btn'), 'Play Again');
+                show(elements.get('quiz-start-btn'));
+                setText(elements.get('quiz-start-btn'), 'Play Again');
             };
         }
 
@@ -2743,7 +2743,7 @@
                         flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
 
                         // Now that texture is loaded, show the flag display
-                        elements.get('quiz-flag-show(display'));
+                        show(elements.get('quiz-flag-display'));
                     } else {
                         // Question changed before texture loaded, dispose texture
                         flagTexture.dispose();
@@ -2826,9 +2826,9 @@
             optionsContainer.innerHTML = '';
 
             // Show quiz elements
-            elements.get('quiz-show(score'));
-            elements.get('quiz-setText(question'), 'Which country does this flag belong to?');
-            elements.get('quiz-show(question'));
+            show(elements.get('quiz-score'));
+            setText(elements.get('quiz-question'), 'Which country does this flag belong to?');
+            show(elements.get('quiz-question'));
 
             // Hide start button and previous results
             hide(elements.get('quiz-start-btn'));
@@ -2985,16 +2985,16 @@
             // Add click event to celebration close button
             elements.get('celebration-close-btn').onclick = function() {
                 hide(overlay);
-                elements.get('quiz-show(container'));
+                show(elements.get('quiz-container'));
                 elements.get('quiz-next-btn').style.visibility = 'hidden';
-                elements.get('quiz-start-show(btn'));
-                elements.get('quiz-start-setText(btn'), 'Play Again');
+                show(elements.get('quiz-start-btn'));
+                setText(elements.get('quiz-start-btn'), 'Play Again');
             };
         }
 
         // Quiz Mode Selector Functions
         function showQuizModeSelector() {
-            elements.get('quiz-mode-show(selector'));
+            show(elements.get('quiz-mode-selector'));
         }
 
         function hideQuizModeSelector() {
@@ -3028,8 +3028,8 @@
             hide(elements.get('take-quiz-btn'));
 
             // Show click quiz UI
-            elements.get('click-quiz-show(container'));
-            elements.get('click-quiz-timer-bar-show(container'));
+            show(elements.get('click-quiz-container'));
+            show(elements.get('click-quiz-timer-bar-container'));
 
             // Start timer
             clickQuizTimerInterval = setInterval(updateClickQuizTimer, 100);
@@ -3040,7 +3040,7 @@
 
         function showClickQuizQuestion() {
             const countryName = clickQuizCountries[clickQuizCurrentIndex];
-            elements.get('click-quiz-country-setText(name'), countryName);
+            setText(elements.get('click-quiz-country-name'), countryName);
             elements.get('click-quiz-question-counter').textContent =
                 `Question ${clickQuizCurrentIndex + 1} of 10`;
             elements.get('click-quiz-score-display').textContent =
@@ -3158,8 +3158,8 @@
             elements.get('celebration-close-btn').onclick = function() {
                 hide(overlay);
                 // Show search and quiz button again
-                elements.get('search-show(container'));
-                elements.get('take-quiz-show(btn'));
+                show(elements.get('search-container'));
+                show(elements.get('take-quiz-btn'));
             };
         }
 
@@ -3167,8 +3167,8 @@
             hide(elements.get('click-quiz-results'));
 
             // Show search and quiz button again
-            elements.get('search-show(container'));
-            elements.get('take-quiz-show(btn'));
+            show(elements.get('search-container'));
+            show(elements.get('take-quiz-btn'));
 
             // Resume auto-rotation
             // TEMPORARILY DISABLED
@@ -3307,7 +3307,7 @@
             }
 
             // Show flag container (fixed position in top right)
-            elements.get('flag-show(container'));
+            show(elements.get('flag-container'));
         }
 
         // Hide waving flag
