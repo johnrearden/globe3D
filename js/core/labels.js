@@ -112,24 +112,23 @@ export class LabelManager {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
 
-        // Use default font size
-        const fontSize = 48;
-        const padding = 10;
+        // Set canvas size (fixed)
+        canvas.width = 512;
+        canvas.height = 128;
 
-        context.font = `bold ${fontSize}px Arial`;
-        const metrics = context.measureText(text);
-        canvas.width = metrics.width + padding * 2;
-        canvas.height = fontSize + padding * 2;
-
-        // Re-apply font after canvas resize
-        context.font = `bold ${fontSize}px Arial`;
-        context.fillStyle = 'black';
+        // Configure text style
+        context.font = '32px Arial';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
+
+        // Draw dark gray text for contrast with ocean
+        context.fillStyle = '#686868';
         context.fillText(text, canvas.width / 2, canvas.height / 2);
 
-        // Create and return texture from canvas
+        // Create texture from canvas
         const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+
         return texture;
     }
 
