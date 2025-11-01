@@ -224,6 +224,10 @@
         import { GlobeManager } from './js/core/globe.js';
         import { LabelManager } from './js/core/labels.js';
         import { CameraController } from './js/core/camera-controls.js';
+        import { QuizManager } from './js/features/quiz/quiz-manager.js';
+        import { NameFlagQuiz } from './js/features/quiz/name-flag-quiz.js';
+        import { IdentifyFlagQuiz } from './js/features/quiz/identify-flag-quiz.js';
+        import { ClickQuiz } from './js/features/quiz/click-quiz.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -462,6 +466,10 @@
         let globeManager = null;
         let labelManager = null;
         let cameraController = null;
+        let quizManager = null;
+        let nameFlagQuiz = null;
+        let identifyFlagQuiz = null;
+        let clickQuiz = null;
 
         // ===== STATE SYNCHRONIZATION =====
         // Initialize state manager with current variable values
@@ -851,6 +859,48 @@
                     countryLabels = labelManager.getLabels();
                     labelDefaults = labelManager.labelDefaults;
 
+                    // ===== PHASE 6: Initialize Quiz System =====
+
+                    // Initialize QuizManager
+                    quizManager = new QuizManager({
+                        globeManager: globeManager,
+                        cameraController: cameraController,
+                        elements: elements
+                    });
+
+                    // Initialize quiz modes
+                    nameFlagQuiz = new NameFlagQuiz({
+                        globeManager: globeManager,
+                        cameraController: cameraController,
+                        elements: elements,
+                        rotateGlobeToCountry: rotateGlobeToCountry,
+                        showQuizCelebration: showQuizCelebration,
+                        clearQuizTimers: clearQuizTimers,
+                        calculateGreatCircleDistance: calculateGreatCircleDistance
+                    });
+
+                    identifyFlagQuiz = new IdentifyFlagQuiz({
+                        globeManager: globeManager,
+                        elements: elements,
+                        showQuizCelebration: showQuizCelebration,
+                        clearQuizTimers: clearQuizTimers,
+                        countryToISO: countryToISO,
+                        animateFlagWave: animateFlagWave
+                    });
+
+                    clickQuiz = new ClickQuiz({
+                        globeManager: globeManager,
+                        cameraController: cameraController,
+                        elements: elements,
+                        showQuizCelebration: showQuizCelebration,
+                        clearQuizTimers: clearQuizTimers
+                    });
+
+                    // Register quiz modes with QuizManager
+                    quizManager.registerMode('name-flag', nameFlagQuiz);
+                    quizManager.registerMode('identify-flag', identifyFlagQuiz);
+                    quizManager.registerMode('click-country', clickQuiz);
+
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     loadLabelConfig();
@@ -879,9 +929,15 @@
                 if (currentHoveredCountry) {
                     updateFlagAnimation();
                 }
-                if (flagQuizMesh && flagQuizRenderer) {
-                    updateFlagQuizAnimation();
-                    flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
+                // Update identify flag quiz animation
+                if (identifyFlagQuiz && identifyFlagQuiz.isActive()) {
+                    identifyFlagQuiz.updateAnimation();
+                    const renderer = identifyFlagQuiz.getRenderer();
+                    const scene = identifyFlagQuiz.getScene();
+                    const camera = identifyFlagQuiz.getCamera();
+                    if (renderer && scene && camera) {
+                        renderer.render(scene, camera);
+                    }
                 }
 
                 // Update label visibility
@@ -968,7 +1024,7 @@
 
         // Resume auto-rotation (only if not in quiz mode)
         function resumeAutoRotation() {
-            if (!quizActive) {
+            if (!state.get('quiz.active')) {
                 autoRotateEnabled = true;
                 controls.autoRotate = true;
                 // No tilt animation - maintain current camera angle
@@ -1330,16 +1386,20 @@
             elements.get('quiz-start-btn').addEventListener('click', showQuizModeSelector);
             elements.get('quiz-next-btn').addEventListener('click', () => {
                 // Cancel auto-advance timer if user clicks manually
-                if (quizAutoAdvanceTimer) {
-                    clearTimeout(quizAutoAdvanceTimer);
-                    quizAutoAdvanceTimer = null;
+                if (nameFlagQuiz && nameFlagQuiz.isActive() && nameFlagQuiz.autoAdvanceTimer) {
+                    clearTimeout(nameFlagQuiz.autoAdvanceTimer);
+                    nameFlagQuiz.autoAdvanceTimer = null;
+                }
+                if (identifyFlagQuiz && identifyFlagQuiz.isActive() && identifyFlagQuiz.autoAdvanceTimer) {
+                    clearTimeout(identifyFlagQuiz.autoAdvanceTimer);
+                    identifyFlagQuiz.autoAdvanceTimer = null;
                 }
 
                 // Call appropriate next function based on current quiz mode
-                if (currentQuizMode === 'identify-flag') {
-                    nextFlagQuestion();
-                } else if (currentQuizMode === 'name-flag') {
-                    nextQuestion();
+                if (identifyFlagQuiz && identifyFlagQuiz.isActive()) {
+                    identifyFlagQuiz.nextQuestion();
+                } else if (nameFlagQuiz && nameFlagQuiz.isActive()) {
+                    nameFlagQuiz.nextQuestion();
                 }
             });
             elements.get('take-quiz-btn').addEventListener('click', showQuizModeSelector);
@@ -1350,10 +1410,16 @@
             // Quiz mode selector buttons
             elements.get('name-flag-quiz-btn').addEventListener('click', () => {
                 hideQuizModeSelector();
-                startQuiz();
+                nameFlagQuiz.start();
             });
-            elements.get('identify-flag-quiz-btn').addEventListener('click', startFlagIdentificationQuiz);
-            elements.get('find-country-quiz-btn').addEventListener('click', startClickQuiz);
+            elements.get('identify-flag-quiz-btn').addEventListener('click', () => {
+                hideQuizModeSelector();
+                identifyFlagQuiz.start();
+            });
+            elements.get('find-country-quiz-btn').addEventListener('click', () => {
+                hideQuizModeSelector();
+                clickQuiz.start();
+            });
             elements.get('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
             elements.get('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
 
@@ -2117,13 +2183,13 @@
                 console.log('Selected country:', selectedCountry.userData.name);
 
                 // Handle click quiz answer
-                if (clickQuizActive) {
-                    handleClickQuizAnswer(selectedCountry.userData.name);
+                if (clickQuiz && clickQuiz.isActive()) {
+                    clickQuiz.handleAnswer(selectedCountry.userData.name);
                     return; // Don't process normal country selection
                 }
 
                 // Center on clicked country (if not in quiz mode)
-                if (!quizActive) {
+                if (!state.get('quiz.active')) {
                     // Track the selected country so it stays highlighted
                     selectedSearchCountry = selectedCountry.userData.name;
 
@@ -2201,7 +2267,7 @@
             }
 
             // Skip hover effects during quiz or while dragging
-            if (quizActive || isDragging) {
+            if (state.get('quiz.active') || isDragging) {
                 return;
             }
 
@@ -3656,9 +3722,10 @@
             let phi = Math.acos(worldPos.y); // Polar angle
             const theta = Math.atan2(worldPos.z, worldPos.x); // Azimuthal angle
 
-            // Adjust phi to position camera lower during quiz mode only
+            // Adjust phi to position camera lower during quiz mode on mobile only
             // This prevents the quiz container from obscuring the highlighted country
-            if (isQuizMode) {
+            const isMobile = window.innerWidth <= 768;
+            if (isQuizMode && isMobile) {
                 phi = phi + 0.4; // Move camera down by ~23 degrees
             }
 

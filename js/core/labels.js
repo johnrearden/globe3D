@@ -136,6 +136,15 @@ export class LabelManager {
      * Update label visibility based on camera distance and direction
      */
     updateVisibility() {
+        // Hide all labels during quiz mode
+        const quizActive = state.get('quiz.active');
+        if (quizActive) {
+            this.labels.forEach(label => {
+                label.visible = false;
+            });
+            return;
+        }
+
         const cameraDistance = this.camera.position.length();
 
         // Determine which size categories to show based on zoom
