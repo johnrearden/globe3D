@@ -32,39 +32,67 @@ export class LabelManager {
         console.log('Creating country labels...');
 
         const centroids = this.globeManager.getCentroids();
+        const globe = this.globeManager.getGlobe();
 
         centroids.forEach(({ name, centroid }) => {
-            // Determine font size based on country size
-            let fontSize = 24; // Medium countries
+            // Determine size category and dimensions
+            let sizeCategory = 'medium';
+            let labelWidth, labelHeight;
+
             if (LARGE_COUNTRIES.has(name)) {
-                fontSize = 32;
+                sizeCategory = 'large';
+                labelWidth = 0.25;
+                labelHeight = 0.065;
             } else if (SMALL_COUNTRIES.has(name)) {
-                fontSize = 16;
+                sizeCategory = 'small';
+                labelWidth = 0.12;
+                labelHeight = 0.032;
+            } else {
+                sizeCategory = 'medium';
+                labelWidth = 0.18;
+                labelHeight = 0.048;
             }
 
-            const labelMesh = this.createTextLabel(name, fontSize);
+            const labelTexture = this.createTextLabel(name);
+
+            // Create material with transparency
+            const labelMaterial = new THREE.MeshBasicMaterial({
+                map: labelTexture,
+                transparent: true,
+                opacity: 1.0,
+                side: THREE.DoubleSide,
+                depthTest: false,
+                depthWrite: false
+            });
+
+            // Create plane geometry with size based on country category
+            const labelGeometry = new THREE.PlaneGeometry(labelWidth, labelHeight);
+            const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
 
             // Position at centroid, slightly above surface
             const labelPosition = centroid.clone().multiplyScalar(1.02);
             labelMesh.position.copy(labelPosition);
 
             // Orient label to face outward from globe center
-            labelMesh.lookAt(new THREE.Vector3(0, 0, 0));
-            labelMesh.rotateY(Math.PI);
+            labelMesh.lookAt(centroid.clone().multiplyScalar(2));
 
             // Store metadata
             labelMesh.userData.countryName = name;
-            labelMesh.userData.defaultPosition = labelPosition.clone();
-            labelMesh.userData.defaultScale = 1.0;
-            labelMesh.userData.fontSize = fontSize;
+            labelMesh.userData.sizeCategory = sizeCategory;
 
             // Store default configuration
             this.labelDefaults[name] = {
                 position: labelPosition.clone(),
-                scale: 1.0
+                scale: 1.0,
+                width: labelWidth,
+                height: labelHeight
             };
 
-            this.scene.add(labelMesh);
+            // Initially hide all labels
+            labelMesh.visible = false;
+
+            // Add to globe so it rotates with it
+            globe.add(labelMesh);
             this.labels.push(labelMesh);
         });
 
@@ -76,17 +104,18 @@ export class LabelManager {
     }
 
     /**
-     * Create a text label mesh
+     * Create a text label texture
      * @param {string} text - Label text
-     * @param {number} fontSize - Font size in pixels
-     * @returns {THREE.Sprite}
+     * @returns {THREE.Texture}
      */
-    createTextLabel(text, fontSize = 24) {
+    createTextLabel(text) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
 
-        // Set canvas size based on text length and font size
+        // Use default font size
+        const fontSize = 48;
         const padding = 10;
+
         context.font = `bold ${fontSize}px Arial`;
         const metrics = context.measureText(text);
         canvas.width = metrics.width + padding * 2;
@@ -99,19 +128,9 @@ export class LabelManager {
         context.textBaseline = 'middle';
         context.fillText(text, canvas.width / 2, canvas.height / 2);
 
-        // Create texture from canvas
+        // Create and return texture from canvas
         const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({
-            map: texture,
-            transparent: true
-        });
-        const sprite = new THREE.Sprite(spriteMaterial);
-
-        // Scale sprite to appropriate size
-        const scale = 0.1 * (fontSize / 24);
-        sprite.scale.set(scale, scale * 0.5, 1);
-
-        return sprite;
+        return texture;
     }
 
     /**
@@ -121,34 +140,52 @@ export class LabelManager {
         const cameraDistance = this.camera.position.length();
 
         // Determine which size categories to show based on zoom
-        let showLarge = true;
-        let showMedium = cameraDistance < this.ZOOM_FAR;
-        let showSmall = cameraDistance < this.ZOOM_CLOSE;
+        let showLarge = false;
+        let showMedium = false;
+        let showSmall = false;
+
+        if (cameraDistance >= this.ZOOM_FAR) {
+            // Far zoom - show only large countries
+            showLarge = true;
+        } else if (cameraDistance >= this.ZOOM_MEDIUM) {
+            // Medium zoom - show large and medium countries
+            showLarge = true;
+            showMedium = true;
+        } else {
+            // Close zoom - show all countries
+            showLarge = true;
+            showMedium = true;
+            showSmall = true;
+        }
+
+        // Get camera direction
+        const cameraDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraDirection);
 
         this.labels.forEach(label => {
-            const fontSize = label.userData.fontSize;
+            const sizeCategory = label.userData.sizeCategory;
 
-            // Size-based visibility
-            let sizeVisible = false;
-            if (fontSize >= 32 && showLarge) sizeVisible = true;
-            else if (fontSize >= 24 && showMedium) sizeVisible = true;
-            else if (fontSize < 24 && showSmall) sizeVisible = true;
+            // Determine if this label should be shown based on zoom level
+            let shouldShowByZoom = false;
+            if (sizeCategory === 'large') {
+                shouldShowByZoom = showLarge;
+            } else if (sizeCategory === 'medium') {
+                shouldShowByZoom = showMedium;
+            } else if (sizeCategory === 'small') {
+                shouldShowByZoom = showSmall;
+            }
 
-            if (!sizeVisible) {
+            if (!shouldShowByZoom) {
                 label.visible = false;
                 return;
             }
 
-            // Direction-based visibility (only show labels facing camera)
-            const labelWorldPos = new THREE.Vector3();
-            label.getWorldPosition(labelWorldPos);
+            // Check if label is front-facing (visible from camera)
+            const labelPosition = label.position.clone().normalize();
+            const dotProduct = labelPosition.dot(cameraDirection);
 
-            const cameraToLabel = labelWorldPos.clone().sub(this.camera.position).normalize();
-            const labelToCenter = labelWorldPos.clone().normalize();
-
-            // Dot product: positive means label is on visible hemisphere
-            const dotProduct = cameraToLabel.dot(labelToCenter);
-            label.visible = dotProduct > 0.2; // Threshold to hide labels near edge
+            // Show label if it's facing the camera (dot product < 0, since camera looks inward)
+            label.visible = dotProduct < -0.1;
         });
     }
 
@@ -185,12 +222,7 @@ export class LabelManager {
 
             // Apply scale if specified
             if (cfg.scale !== undefined) {
-                const baseScale = 0.1 * (label.userData.fontSize / 24);
-                label.scale.set(
-                    baseScale * cfg.scale,
-                    baseScale * 0.5 * cfg.scale,
-                    1
-                );
+                label.scale.set(cfg.scale, cfg.scale, 1);
             }
         });
     }
@@ -211,7 +243,7 @@ export class LabelManager {
             const hasCustomPosition = defaultPos &&
                 !label.position.equals(defaultPos);
 
-            const currentScale = label.scale.x / (0.1 * (label.userData.fontSize / 24));
+            const currentScale = label.scale.x;
             const hasCustomScale = Math.abs(currentScale - defaultScale) > 0.01;
 
             if (hasCustomPosition || hasCustomScale) {
@@ -221,8 +253,7 @@ export class LabelManager {
                         y: label.position.y,
                         z: label.position.z
                     },
-                    scale: currentScale,
-                    fontSize: label.userData.fontSize
+                    scale: currentScale
                 };
             }
         });
@@ -248,8 +279,7 @@ export class LabelManager {
         label.position.copy(defaults.position);
 
         // Reset scale
-        const baseScale = 0.1 * (label.userData.fontSize / 24);
-        label.scale.set(baseScale, baseScale * 0.5, 1);
+        label.scale.set(defaults.scale, defaults.scale, 1);
 
         // Remove from config
         delete this.labelConfig[countryName];
