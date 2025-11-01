@@ -3729,77 +3729,18 @@
 
         // Update label visibility based on camera distance and orientation
         function updateLabelVisibility() {
-            if (countryLabels.length === 0) return;
-
-            // Hide all labels during quiz mode
-            if (quizActive) {
-                countryLabels.forEach(label => {
-                    label.visible = false;
-                });
-                return;
-            }
-
-            // Calculate camera distance from globe center
-            const cameraDistance = camera.position.length();
-
-            // Define zoom thresholds (based on controls: min=1.5, max=10)
-            const ZOOM_FAR = 6.0;    // Show only large countries
-            const ZOOM_MEDIUM = 3.5; // Show large + medium countries
-            const ZOOM_CLOSE = 2.2;  // Show all countries (large + medium + small)
-
-            // Determine which size categories to show based on zoom
-            let showLarge = false;
-            let showMedium = false;
-            let showSmall = false;
-
-            if (cameraDistance >= ZOOM_FAR) {
-                // Far zoom - show only large countries
-                showLarge = true;
-                showMedium = false;
-                showSmall = false;
-            } else if (cameraDistance >= ZOOM_MEDIUM) {
-                // Medium zoom - show large and medium countries
-                showLarge = true;
-                showMedium = true;
-                showSmall = false;
-            } else {
-                // Close zoom - show all countries
-                showLarge = true;
-                showMedium = true;
-                showSmall = true;
-            }
-
-            // Get camera direction
-            const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
-
-            // Update each label
-            countryLabels.forEach(label => {
-                // Use the pre-stored size category
-                const sizeCategory = label.userData.sizeCategory;
-
-                // Determine if this label should be shown based on zoom level
-                let shouldShowByZoom = false;
-                if (sizeCategory === 'large') {
-                    shouldShowByZoom = showLarge;
-                } else if (sizeCategory === 'medium') {
-                    shouldShowByZoom = showMedium;
-                } else if (sizeCategory === 'small') {
-                    shouldShowByZoom = showSmall;
-                }
-
-                if (!shouldShowByZoom) {
-                    label.visible = false;
+            // Delegate to LabelManager if available
+            if (labelManager) {
+                // Hide all labels during quiz mode
+                if (quizActive) {
+                    countryLabels.forEach(label => {
+                        label.visible = false;
+                    });
                     return;
                 }
 
-                // Check if label is front-facing (visible from camera)
-                const labelPosition = label.position.clone().normalize();
-                const dotProduct = labelPosition.dot(cameraDirection);
-
-                // Show label if it's facing the camera (dot product < 0, since camera looks inward)
-                label.visible = dotProduct < -0.1; // Negative threshold - labels facing camera have negative dot product
-            });
+                labelManager.updateVisibility();
+            }
         }
 
         // Update border visibility based on camera distance
@@ -3885,46 +3826,8 @@
             }
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Update controls (required for damping)
-            controls.update();
-
-            // Update light position to stay behind camera
-            if (scene.userData.cameraLight) {
-                scene.userData.cameraLight.position.copy(camera.position);
-            }
-
-            // Update flag animation if visible
-            if (currentHoveredCountry) {
-                updateFlagAnimation();
-            }
-
-            // Update flag quiz animation if active
-            if (flagQuizMesh && flagQuizRenderer) {
-                updateFlagQuizAnimation();
-                flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
-            }
-
-            // Update country label visibility based on zoom level
-            updateLabelVisibility();
-
-            // Update country border visibility based on zoom level
-            // updateBorderVisibility(); // Disabled for performance
-
-            // Update zoom widget
-            updateZoomWidget();
-
-            // Update search visibility on mobile based on zoom
-            updateSearchVisibilityOnMobile();
-
-            // Update zoom out button visibility based on zoom
-            updateZoomOutButtonVisibility();
-
-            // Render
-            renderer.render(scene, camera);
-        }
+        // Old animate() function removed - now handled by SceneManager.onRender() callbacks
+        // See init() function for render loop registration
 
         // Start the application
         init();

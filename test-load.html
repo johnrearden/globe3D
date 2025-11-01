@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Test</title>
+</head>
+<body>
+    <div id="output"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+
+    <script type="module">
+        const output = document.getElementById('output');
+
+        function log(msg, isError = false) {
+            const p = document.createElement('p');
+            p.textContent = msg;
+            p.style.color = isError ? 'red' : 'green';
+            output.appendChild(p);
+            console.log(msg);
+        }
+
+        try {
+            log('1. THREE.js loaded: ' + (typeof THREE !== 'undefined'));
+            log('2. THREE.Scene: ' + (typeof THREE.Scene !== 'undefined'));
+
+            // Test state import
+            const { state } = await import('./js/data/state.js');
+            log('3. State module loaded: ' + (typeof state !== 'undefined'));
+
+            // Test SceneManager import
+            const { SceneManager } = await import('./js/core/scene.js');
+            log('4. SceneManager loaded: ' + (typeof SceneManager !== 'undefined'));
+
+            // Test instantiation
+            const container = document.createElement('div');
+            const sm = new SceneManager(container);
+            log('5. SceneManager instantiated: ' + (sm !== null));
+
+            // Test init
+            sm.init();
+            log('6. SceneManager.init() called successfully');
+            log('7. Scene created: ' + (sm.getScene() !== null));
+
+            log('✅ ALL TESTS PASSED');
+
+        } catch (error) {
+            log('❌ ERROR: ' + error.message, true);
+            log('Stack: ' + error.stack, true);
+        }
+    </script>
+</body>
+</html>
