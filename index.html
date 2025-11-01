@@ -214,7 +214,11 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/perlin.js/1.0/perlin.js"></script>
-    <script>
+    <script type="module">
+        // Import utilities
+        import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
+        import { animateCamera, animateCameraWithTarget, zoomToDistance, calculateCameraDistance, Easing } from './js/utils/camera.js';
+
         // Perlin noise library (inline for self-containment)
         (function(global){var module=global.noise={};function Grad(x,y,z){this.x=x;this.y=y;this.z=z}Grad.prototype.dot2=function(x,y){return this.x*x+this.y*y};Grad.prototype.dot3=function(x,y,z){return this.x*x+this.y*y+this.z*z};var grad3=[new Grad(1,1,0),new Grad(-1,1,0),new Grad(1,-1,0),new Grad(-1,-1,0),new Grad(1,0,1),new Grad(-1,0,1),new Grad(1,0,-1),new Grad(-1,0,-1),new Grad(0,1,1),new Grad(0,-1,1),new Grad(0,1,-1),new Grad(0,-1,-1)];var p=[151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];var perm=new Array(512);var gradP=new Array(512);module.seed=function(seed){if(seed>0&&seed<1){seed*=65536}seed=Math.floor(seed);if(seed<256){seed|=seed<<8}for(var i=0;i<256;i++){var v;if(i&1){v=p[i]^(seed&255)}else{v=p[i]^((seed>>8)&255)}perm[i]=perm[i+256]=v;gradP[i]=gradP[i+256]=grad3[v%12]}};module.seed(0);function fade(t){return t*t*t*(t*(t*6-15)+10)}function lerp(a,b,t){return(1-t)*a+t*b}module.perlin2=function(x,y){var X=Math.floor(x),Y=Math.floor(y);x=x-X;y=y-Y;X=X&255;Y=Y&255;var n00=gradP[X+perm[Y]].dot2(x,y);var n01=gradP[X+perm[Y+1]].dot2(x,y-1);var n10=gradP[X+1+perm[Y]].dot2(x-1,y);var n11=gradP[X+1+perm[Y+1]].dot2(x-1,y-1);var u=fade(x);return lerp(lerp(n00,n10,u),lerp(n01,n11,u),fade(y))}})(this);
 
@@ -564,12 +568,12 @@
         function hideSeoContent() {
             if (!seoContentHidden) {
                 seoContentHidden = true;
-                const seoContent = document.getElementById('seo-content');
+                const seoContent = elements.get('seo-content');
                 if (seoContent) {
-                    seoContent.classList.add('hidden');
+                    addClass(seoContent, 'hidden');
                     // Remove after animation completes
                     setTimeout(() => {
-                        seoContent.style.display = 'none';
+                        hide(seoContent);
                     }, 500);
                 }
             }
@@ -626,7 +630,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.domElement.id = 'globe-canvas';
-            document.getElementById('container').appendChild(renderer.domElement);
+            elements.get('container').appendChild(renderer.domElement);
 
             // Add lights
             setupLights();
@@ -780,9 +784,9 @@
         let progressAnimationFrame = null;
 
         function updateLoadingProgress(percent, message = null, animated = false) {
-            const progressFill = document.getElementById('loading-progress-fill');
-            const progressText = document.getElementById('loading-progress-text');
-            const loadingDiv = document.getElementById('loading');
+            const progressFill = elements.get('loading-progress-fill');
+            const progressText = elements.get('loading-progress-text');
+            const loadingDiv = elements.get('loading');
 
             if (animated) {
                 // Cancel any ongoing animation
@@ -809,7 +813,7 @@
                         progressFill.style.width = newProgress + '%';
                     }
                     if (progressText && message) {
-                        progressText.textContent = message;
+                        setText(progressText, message);
                     }
 
                     if (progress < 1) {
@@ -820,7 +824,7 @@
                 }
 
                 if (message && progressText) {
-                    progressText.textContent = message;
+                    setText(progressText, message);
                 }
 
                 animate();
@@ -833,10 +837,10 @@
                 }
                 if (progressText) {
                     const displayMessage = message || `Loading... ${percent}%`;
-                    progressText.textContent = displayMessage;
+                    setText(progressText, displayMessage);
                 }
                 if (loadingDiv && message) {
-                    loadingDiv.textContent = message;
+                    setText(loadingDiv, message);
                 }
             }
         }
@@ -1077,12 +1081,12 @@
             window.addEventListener('resize', onWindowResize);
 
             // Search input
-            document.getElementById('country-search').addEventListener('input', onSearchInput);
-            document.getElementById('country-search').addEventListener('keydown', onSearchKeyDown);
+            elements.get('country-search').addEventListener('input', onSearchInput);
+            elements.get('country-search').addEventListener('keydown', onSearchKeyDown);
 
             // Quiz buttons
-            document.getElementById('quiz-start-btn').addEventListener('click', showQuizModeSelector);
-            document.getElementById('quiz-next-btn').addEventListener('click', () => {
+            elements.get('quiz-start-btn').addEventListener('click', showQuizModeSelector);
+            elements.get('quiz-next-btn').addEventListener('click', () => {
                 // Cancel auto-advance timer if user clicks manually
                 if (quizAutoAdvanceTimer) {
                     clearTimeout(quizAutoAdvanceTimer);
@@ -1096,29 +1100,29 @@
                     nextQuestion();
                 }
             });
-            document.getElementById('take-quiz-btn').addEventListener('click', showQuizModeSelector);
+            elements.get('take-quiz-btn').addEventListener('click', showQuizModeSelector);
 
             // Zoom out button
-            document.getElementById('zoom-out-btn').addEventListener('click', zoomOutToDefault);
+            elements.get('zoom-out-btn').addEventListener('click', zoomOutToDefault);
 
             // Quiz mode selector buttons
-            document.getElementById('name-flag-quiz-btn').addEventListener('click', () => {
+            elements.get('name-flag-quiz-btn').addEventListener('click', () => {
                 hideQuizModeSelector();
                 startQuiz();
             });
-            document.getElementById('identify-flag-quiz-btn').addEventListener('click', startFlagIdentificationQuiz);
-            document.getElementById('find-country-quiz-btn').addEventListener('click', startClickQuiz);
-            document.getElementById('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
-            document.getElementById('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
+            elements.get('identify-flag-quiz-btn').addEventListener('click', startFlagIdentificationQuiz);
+            elements.get('find-country-quiz-btn').addEventListener('click', startClickQuiz);
+            elements.get('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
+            elements.get('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
 
             // Click quiz buttons
-            document.getElementById('click-quiz-close-btn').addEventListener('click', closeClickQuizResults);
-            document.getElementById('click-quiz-results-overlay').addEventListener('click', closeClickQuizResults);
+            elements.get('click-quiz-close-btn').addEventListener('click', closeClickQuizResults);
+            elements.get('click-quiz-results-overlay').addEventListener('click', closeClickQuizResults);
 
             // Sphere radius controls
-            document.getElementById('sphere-radius-up').addEventListener('click', increaseSphereRadius);
-            document.getElementById('sphere-radius-down').addEventListener('click', decreaseSphereRadius);
-            document.getElementById('sphere-toggle').addEventListener('change', toggleSphere);
+            elements.get('sphere-radius-up').addEventListener('click', increaseSphereRadius);
+            elements.get('sphere-radius-down').addEventListener('click', decreaseSphereRadius);
+            elements.get('sphere-toggle').addEventListener('change', toggleSphere);
 
             // Edit mode keyboard shortcuts
             window.addEventListener('keydown', onKeyDown);
@@ -1127,24 +1131,24 @@
             renderer.domElement.addEventListener('wheel', onWheelForLabelResize, { passive: false });
 
             // Edit mode UI buttons
-            document.getElementById('edit-mode-btn').addEventListener('click', toggleEditMode);
-            document.getElementById('save-config-btn').addEventListener('click', saveLabelConfig);
-            document.getElementById('fine-tune-btn').addEventListener('click', openLabelEditorModal);
+            elements.get('edit-mode-btn').addEventListener('click', toggleEditMode);
+            elements.get('save-config-btn').addEventListener('click', saveLabelConfig);
+            elements.get('fine-tune-btn').addEventListener('click', openLabelEditorModal);
 
             // Color edit mode UI buttons
-            document.getElementById('edit-colors-btn').addEventListener('click', toggleColorEditMode);
-            document.getElementById('save-colors-btn').addEventListener('click', saveColorConfig);
+            elements.get('edit-colors-btn').addEventListener('click', toggleColorEditMode);
+            elements.get('save-colors-btn').addEventListener('click', saveColorConfig);
 
             // Label editor modal buttons
-            document.getElementById('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
-            document.getElementById('label-editor-overlay').addEventListener('click', closeLabelEditorModal);
-            document.getElementById('label-reset-btn').addEventListener('click', resetLabelToDefault);
+            elements.get('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
+            elements.get('label-editor-overlay').addEventListener('click', closeLabelEditorModal);
+            elements.get('label-reset-btn').addEventListener('click', resetLabelToDefault);
 
             // Label editor sliders
-            document.getElementById('label-offset-x').addEventListener('input', onLabelOffsetChange);
-            document.getElementById('label-offset-y').addEventListener('input', onLabelOffsetChange);
-            document.getElementById('label-offset-z').addEventListener('input', onLabelOffsetChange);
-            document.getElementById('label-scale').addEventListener('input', onLabelScaleChange);
+            elements.get('label-offset-x').addEventListener('input', onLabelOffsetChange);
+            elements.get('label-offset-y').addEventListener('input', onLabelOffsetChange);
+            elements.get('label-offset-z').addEventListener('input', onLabelOffsetChange);
+            elements.get('label-scale').addEventListener('input', onLabelScaleChange);
         }
 
         // Keyboard event handler for edit mode
@@ -1247,8 +1251,8 @@
         function toggleEditMode() {
             editMode = !editMode;
 
-            const editBtn = document.getElementById('edit-mode-btn');
-            const saveBtn = document.getElementById('save-config-btn');
+            const editBtn = elements.get('edit-mode-btn');
+            const saveBtn = elements.get('save-config-btn');
 
             if (editMode) {
                 console.log('Edit mode ENABLED - Click labels to select, drag to move, wheel to resize');
@@ -1258,9 +1262,9 @@
                 controls.enableRotate = true; // Still allow rotation when not dragging
 
                 // Update UI
-                editBtn.classList.add('active');
-                editBtn.textContent = 'Exit Edit Mode';
-                saveBtn.style.display = 'block';
+                addClass(editBtn, 'active');
+                setText(editBtn, 'Exit Edit Mode');
+                show(saveBtn);
             } else {
                 console.log('Edit mode DISABLED');
                 // Deselect any selected label
@@ -1271,9 +1275,9 @@
                 updateLabelVisibility();
 
                 // Update UI
-                editBtn.classList.remove('active');
-                editBtn.textContent = 'Edit Labels';
-                saveBtn.style.display = 'none';
+                removeClass(editBtn, 'active');
+                setText(editBtn, 'Edit Labels');
+                hide(saveBtn);
             }
         }
 
@@ -1310,7 +1314,7 @@
             selectionHelper.visible = true;
 
             // Show fine tune button
-            document.getElementById('fine-tune-btn').style.display = 'block';
+            elements.get('fine-tune-show(btn'));
 
             console.log(`Selected: ${label.userData.countryName}`);
         }
@@ -1323,7 +1327,7 @@
             selectedLabel = null;
 
             // Hide fine tune button
-            document.getElementById('fine-tune-btn').style.display = 'none';
+            hide(elements.get('fine-tune-btn'));
         }
 
         // Resize selected label by a multiplier
@@ -1472,10 +1476,10 @@
             if (!selectedLabel) return;
 
             const countryName = selectedLabel.userData.countryName;
-            const modal = document.getElementById('label-editor-modal');
-            const title = document.getElementById('label-editor-title');
+            const modal = elements.get('label-editor-modal');
+            const title = elements.get('label-editor-title');
 
-            title.textContent = `Edit Label: ${countryName}`;
+            setText(title, `Edit Label: ${countryName}`);
 
             // Get current position (or default)
             const currentPos = selectedLabel.position.clone();
@@ -1490,24 +1494,24 @@
             const currentScale = selectedLabel.scale.x;
 
             // Update slider values
-            document.getElementById('label-offset-x').value = offsetX;
-            document.getElementById('label-offset-y').value = offsetY;
-            document.getElementById('label-offset-z').value = offsetZ;
-            document.getElementById('label-scale').value = currentScale;
+            elements.get('label-offset-x').value = offsetX;
+            elements.get('label-offset-y').value = offsetY;
+            elements.get('label-offset-z').value = offsetZ;
+            elements.get('label-scale').value = currentScale;
 
             // Update value displays
-            document.getElementById('label-offset-x-value').textContent = offsetX.toFixed(2);
-            document.getElementById('label-offset-y-value').textContent = offsetY.toFixed(2);
-            document.getElementById('label-offset-z-value').textContent = offsetZ.toFixed(2);
-            document.getElementById('label-scale-value').textContent = currentScale.toFixed(1);
+            elements.get('label-offset-x-setText(value'), offsetX.toFixed(2));
+            elements.get('label-offset-y-setText(value'), offsetY.toFixed(2));
+            elements.get('label-offset-z-setText(value'), offsetZ.toFixed(2));
+            elements.get('label-scale-setText(value'), currentScale.toFixed(1));
 
-            modal.style.display = 'block';
+            show(modal);
         }
 
         // Close label editor modal
         function closeLabelEditorModal() {
-            const modal = document.getElementById('label-editor-modal');
-            modal.style.display = 'none';
+            const modal = elements.get('label-editor-modal');
+            hide(modal);
         }
 
         // Handle position offset changes from sliders
@@ -1518,14 +1522,14 @@
             const defaultPos = labelDefaults[countryName].position;
 
             // Get offsets from sliders
-            const offsetX = parseFloat(document.getElementById('label-offset-x').value);
-            const offsetY = parseFloat(document.getElementById('label-offset-y').value);
-            const offsetZ = parseFloat(document.getElementById('label-offset-z').value);
+            const offsetX = parseFloat(elements.get('label-offset-x').value);
+            const offsetY = parseFloat(elements.get('label-offset-y').value);
+            const offsetZ = parseFloat(elements.get('label-offset-z').value);
 
             // Update value displays
-            document.getElementById('label-offset-x-value').textContent = offsetX.toFixed(2);
-            document.getElementById('label-offset-y-value').textContent = offsetY.toFixed(2);
-            document.getElementById('label-offset-z-value').textContent = offsetZ.toFixed(2);
+            elements.get('label-offset-x-setText(value'), offsetX.toFixed(2));
+            elements.get('label-offset-y-setText(value'), offsetY.toFixed(2));
+            elements.get('label-offset-z-setText(value'), offsetZ.toFixed(2));
 
             // Apply new position
             const newPos = new THREE.Vector3(
@@ -1559,10 +1563,10 @@
             if (!selectedLabel) return;
 
             const countryName = selectedLabel.userData.countryName;
-            const scale = parseFloat(document.getElementById('label-scale').value);
+            const scale = parseFloat(elements.get('label-scale').value);
 
             // Update value display
-            document.getElementById('label-scale-value').textContent = scale.toFixed(1);
+            elements.get('label-scale-setText(value'), scale.toFixed(1));
 
             // Apply scale
             selectedLabel.scale.set(scale, scale, scale);
@@ -1605,15 +1609,15 @@
             delete labelConfig[countryName];
 
             // Update sliders
-            document.getElementById('label-offset-x').value = 0;
-            document.getElementById('label-offset-y').value = 0;
-            document.getElementById('label-offset-z').value = 0;
-            document.getElementById('label-scale').value = 1.0;
+            elements.get('label-offset-x').value = 0;
+            elements.get('label-offset-y').value = 0;
+            elements.get('label-offset-z').value = 0;
+            elements.get('label-scale').value = 1.0;
 
-            document.getElementById('label-offset-x-value').textContent = '0.00';
-            document.getElementById('label-offset-y-value').textContent = '0.00';
-            document.getElementById('label-offset-z-value').textContent = '0.00';
-            document.getElementById('label-scale-value').textContent = '1.0';
+            elements.get('label-offset-x-setText(value'), '0.00');
+            elements.get('label-offset-y-setText(value'), '0.00');
+            elements.get('label-offset-z-setText(value'), '0.00');
+            elements.get('label-scale-setText(value'), '1.0');
 
             console.log(`${countryName} reset to default`);
 
@@ -1627,16 +1631,16 @@
         function toggleColorEditMode() {
             colorEditMode = !colorEditMode;
 
-            const editBtn = document.getElementById('edit-colors-btn');
-            const saveBtn = document.getElementById('save-colors-btn');
+            const editBtn = elements.get('edit-colors-btn');
+            const saveBtn = elements.get('save-colors-btn');
 
             if (colorEditMode) {
                 console.log('Color edit mode ENABLED - Click countries to change colors');
 
                 // Update UI
-                editBtn.classList.add('active');
-                editBtn.textContent = 'Exit Color Edit';
-                saveBtn.style.display = 'block';
+                addClass(editBtn, 'active');
+                setText(editBtn, 'Exit Color Edit');
+                show(saveBtn);
 
                 // Disable label edit mode if active
                 if (editMode) {
@@ -1646,9 +1650,9 @@
                 console.log('Color edit mode DISABLED');
 
                 // Update UI
-                editBtn.classList.remove('active');
-                editBtn.textContent = 'Edit Colors';
-                saveBtn.style.display = 'none';
+                removeClass(editBtn, 'active');
+                setText(editBtn, 'Edit Colors');
+                hide(saveBtn);
             }
         }
 
@@ -1725,7 +1729,7 @@
 
         function updateSphereRadius() {
             // Update the display
-            document.getElementById('sphere-radius-value').textContent = currentSphereRadius.toFixed(3);
+            elements.get('sphere-radius-setText(value'), currentSphereRadius.toFixed(3));
 
             // Remove old sphere
             if (baseSphere) {
@@ -2033,20 +2037,20 @@
         }
 
         function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
+            hide(elements.get('loading'));
 
             // Keep fun facts rotating even after loading completes
 
             // Convert progress bar to start button
-            const progressBar = document.getElementById('loading-progress-bar');
-            const startButton = document.getElementById('start-button');
+            const progressBar = elements.get('loading-progress-bar');
+            const startButton = elements.get('start-button');
 
             if (progressBar) {
-                progressBar.style.display = 'none';
+                hide(progressBar);
             }
 
             if (startButton) {
-                startButton.style.display = 'block';
+                show(startButton);
             }
         }
 
@@ -2364,20 +2368,20 @@
             }
 
             // Add quiz-active class to body for mobile styling
-            document.body.classList.add('quiz-active');
+            addClass(document.body, 'quiz-active');
 
             // Clear any previous quiz options before starting
-            const optionsContainer = document.getElementById('quiz-options');
+            const optionsContainer = elements.get('quiz-options');
             optionsContainer.innerHTML = '';
 
             // Show quiz elements
-            document.getElementById('quiz-score').style.display = 'block';
-            document.getElementById('quiz-question').style.display = 'block';
+            elements.get('quiz-show(score'));
+            elements.get('quiz-show(question'));
 
             // Hide start button and previous results
-            document.getElementById('quiz-start-btn').style.display = 'none';
-            document.getElementById('quiz-result').style.display = 'none';
-            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            hide(elements.get('quiz-start-btn'));
+            hide(elements.get('quiz-result'));
+            elements.get('quiz-next-btn').style.visibility = 'hidden';
 
             // Reset score display
             updateScoreDisplay();
@@ -2397,11 +2401,11 @@
             }
 
             // Hide result and next button
-            document.getElementById('quiz-result').style.display = 'none';
-            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            hide(elements.get('quiz-result'));
+            elements.get('quiz-next-btn').style.visibility = 'hidden';
 
             // Clear previous options completely
-            const optionsContainer = document.getElementById('quiz-options');
+            const optionsContainer = elements.get('quiz-options');
             optionsContainer.innerHTML = '';
 
             // Small delay to ensure DOM is clean before creating new buttons
@@ -2418,7 +2422,7 @@
 
                     // Create span for country name
                     const nameSpan = document.createElement('span');
-                    nameSpan.textContent = optionName;
+                    setText(nameSpan, optionName);
                     button.appendChild(nameSpan);
 
                     button.dataset.country = optionName;
@@ -2476,19 +2480,19 @@
 
                 // Highlight correct and incorrect answers
                 if (button.dataset.country === currentQuizQuestion.correctCountry) {
-                    button.classList.add('correct');
+                    addClass(button, 'correct');
                     // Add "CORRECT ANSWER" label to correct answer button
                     const label = document.createElement('span');
                     label.className = 'correct-label';
-                    label.textContent = 'correct answer';
+                    setText(label, 'correct answer');
                     button.appendChild(label);
                 } else if (button.dataset.country === selectedCountry && !isCorrect) {
-                    button.classList.add('incorrect');
+                    addClass(button, 'incorrect');
                 }
             });
 
             // Don't show any result message - button feedback is sufficient
-            document.getElementById('quiz-result').style.display = 'none';
+            hide(elements.get('quiz-result'));
 
             // Show next button or end quiz after 10 questions
             if (quizQuestionsAnswered >= 10) {
@@ -2497,7 +2501,7 @@
                 }, 2000);
             } else {
                 // Show next button for 3 seconds, then auto-advance
-                document.getElementById('quiz-next-btn').style.visibility = 'visible';
+                elements.get('quiz-next-btn').style.visibility = 'visible';
 
                 // Clear any existing timer
                 if (quizAutoAdvanceTimer) {
@@ -2506,7 +2510,7 @@
 
                 // Set new timer
                 quizAutoAdvanceTimer = setTimeout(() => {
-                    document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                    elements.get('quiz-next-btn').style.visibility = 'hidden';
                     quizAutoAdvanceTimer = null;
                     nextQuestion();
                 }, 3000);
@@ -2515,8 +2519,8 @@
 
         // Update score display
         function updateScoreDisplay() {
-            document.getElementById('quiz-score-value').textContent = quizScore;
-            document.getElementById('quiz-total-value').textContent = quizQuestionsAnswered;
+            elements.get('quiz-score-setText(value'), quizScore);
+            elements.get('quiz-total-setText(value'), quizQuestionsAnswered);
         }
 
         // End the quiz
@@ -2535,17 +2539,17 @@
             // resumeAutoRotation();
 
             // Remove quiz-active class from body
-            document.body.classList.remove('quiz-active');
+            removeClass(document.body, 'quiz-active');
 
             // Hide quiz elements
-            document.getElementById('quiz-score').style.display = 'none';
-            document.getElementById('quiz-question').style.display = 'none';
+            hide(elements.get('quiz-score'));
+            hide(elements.get('quiz-question'));
 
             // Clear options
-            document.getElementById('quiz-options').innerHTML = '';
+            elements.get('quiz-options').innerHTML = '';
 
             // Hide quiz container
-            document.getElementById('quiz-container').style.display = 'none';
+            hide(elements.get('quiz-container'));
 
             // Reset globe highlighting
             selectedSearchCountry = null;
@@ -2557,25 +2561,25 @@
 
             // Show celebration overlay with score
             const percentage = Math.round((quizScore / quizQuestionsAnswered) * 100);
-            document.getElementById('celebration-score').innerHTML = `
+            elements.get('celebration-score').innerHTML = `
                 <div style="font-size: 1.5rem; margin-bottom: 10px;">Your Score</div>
                 <div>${quizScore} / ${quizQuestionsAnswered}</div>
                 <div style="font-size: 2rem; margin-top: 10px;">${percentage}%</div>
             `;
 
-            const overlay = document.getElementById('quiz-celebration-overlay');
-            overlay.style.display = 'flex';
+            const overlay = elements.get('quiz-celebration-overlay');
+            showFlex(overlay);
 
             // Trigger confetti effect
             triggerConfetti();
 
             // Add click event to celebration close button
-            document.getElementById('celebration-close-btn').onclick = function() {
-                overlay.style.display = 'none';
-                document.getElementById('quiz-container').style.display = 'block';
-                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
-                document.getElementById('quiz-start-btn').style.display = 'block';
-                document.getElementById('quiz-start-btn').textContent = 'Play Again';
+            elements.get('celebration-close-btn').onclick = function() {
+                hide(overlay);
+                elements.get('quiz-show(container'));
+                elements.get('quiz-next-btn').style.visibility = 'hidden';
+                elements.get('quiz-start-show(btn'));
+                elements.get('quiz-start-setText(btn'), 'Play Again');
             };
         }
 
@@ -2739,7 +2743,7 @@
                         flagQuizRenderer.render(flagQuizScene, flagQuizCamera);
 
                         // Now that texture is loaded, show the flag display
-                        document.getElementById('quiz-flag-display').style.display = 'block';
+                        elements.get('quiz-flag-show(display'));
                     } else {
                         // Question changed before texture loaded, dispose texture
                         flagTexture.dispose();
@@ -2754,10 +2758,10 @@
             );
 
             // Add the canvas to the quiz flag display but keep it hidden
-            const flagDisplay = document.getElementById('quiz-flag-display');
+            const flagDisplay = elements.get('quiz-flag-display');
             flagDisplay.innerHTML = ''; // Clear any existing content
             flagDisplay.appendChild(flagQuizRenderer.domElement);
-            flagDisplay.style.display = 'none'; // Keep hidden until texture loads
+            hide(flagDisplay); // Keep hidden until texture loads
         }
 
         function generateFlagQuizQuestion() {
@@ -2814,23 +2818,23 @@
             }
 
             // Add quiz-active and flag-quiz-active classes to body
-            document.body.classList.add('quiz-active');
-            document.body.classList.add('flag-quiz-active');
+            addClass(document.body, 'quiz-active');
+            addClass(document.body, 'flag-quiz-active');
 
             // Clear any previous quiz options before starting
-            const optionsContainer = document.getElementById('quiz-options');
+            const optionsContainer = elements.get('quiz-options');
             optionsContainer.innerHTML = '';
 
             // Show quiz elements
-            document.getElementById('quiz-score').style.display = 'block';
-            document.getElementById('quiz-question').textContent = 'Which country does this flag belong to?';
-            document.getElementById('quiz-question').style.display = 'block';
+            elements.get('quiz-show(score'));
+            elements.get('quiz-setText(question'), 'Which country does this flag belong to?');
+            elements.get('quiz-show(question'));
 
             // Hide start button and previous results
-            document.getElementById('quiz-start-btn').style.display = 'none';
-            document.getElementById('quiz-result').style.display = 'none';
-            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
-            document.getElementById('quiz-flag-display').style.display = 'none';
+            hide(elements.get('quiz-start-btn'));
+            hide(elements.get('quiz-result'));
+            elements.get('quiz-next-btn').style.visibility = 'hidden';
+            hide(elements.get('quiz-flag-display'));
 
             // Reset score display
             updateScoreDisplay();
@@ -2849,14 +2853,14 @@
             }
 
             // Hide result and next button
-            document.getElementById('quiz-result').style.display = 'none';
-            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            hide(elements.get('quiz-result'));
+            elements.get('quiz-next-btn').style.visibility = 'hidden';
 
             // Display the flag
             displayFlagForQuiz(currentQuizQuestion.correctCountry);
 
             // Clear previous options completely
-            const optionsContainer = document.getElementById('quiz-options');
+            const optionsContainer = elements.get('quiz-options');
             optionsContainer.innerHTML = '';
 
             // Small delay to ensure DOM is clean before creating new buttons
@@ -2873,7 +2877,7 @@
 
                     // Create span for country name
                     const nameSpan = document.createElement('span');
-                    nameSpan.textContent = optionName;
+                    setText(nameSpan, optionName);
                     button.appendChild(nameSpan);
 
                     button.dataset.country = optionName;
@@ -2902,18 +2906,18 @@
 
                 // Highlight correct and incorrect answers
                 if (button.dataset.country === currentQuizQuestion.correctCountry) {
-                    button.classList.add('correct');
+                    addClass(button, 'correct');
                     const label = document.createElement('span');
                     label.className = 'correct-label';
-                    label.textContent = 'correct answer';
+                    setText(label, 'correct answer');
                     button.appendChild(label);
                 } else if (button.dataset.country === selectedCountry && !isCorrect) {
-                    button.classList.add('incorrect');
+                    addClass(button, 'incorrect');
                 }
             });
 
             // Don't show any result message
-            document.getElementById('quiz-result').style.display = 'none';
+            hide(elements.get('quiz-result'));
 
             // End quiz after 10 questions
             if (quizQuestionsAnswered >= 10) {
@@ -2922,7 +2926,7 @@
                 }, 2000);
             } else {
                 // Show next button for 3 seconds, then auto-advance
-                document.getElementById('quiz-next-btn').style.visibility = 'visible';
+                elements.get('quiz-next-btn').style.visibility = 'visible';
 
                 // Clear any existing timer
                 if (quizAutoAdvanceTimer) {
@@ -2931,7 +2935,7 @@
 
                 // Set new timer
                 quizAutoAdvanceTimer = setTimeout(() => {
-                    document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+                    elements.get('quiz-next-btn').style.visibility = 'hidden';
                     quizAutoAdvanceTimer = null;
                     nextFlagQuestion();
                 }, 3000);
@@ -2953,48 +2957,48 @@
             // resumeAutoRotation();
 
             // Remove quiz-active and flag-quiz-active classes from body
-            document.body.classList.remove('quiz-active');
-            document.body.classList.remove('flag-quiz-active');
+            removeClass(document.body, 'quiz-active');
+            removeClass(document.body, 'flag-quiz-active');
 
             // Hide quiz elements
-            document.getElementById('quiz-score').style.display = 'none';
-            document.getElementById('quiz-question').style.display = 'none';
-            document.getElementById('quiz-flag-display').style.display = 'none';
-            document.getElementById('quiz-options').innerHTML = '';
-            document.getElementById('quiz-container').style.display = 'none';
-            document.getElementById('quiz-next-btn').style.visibility = 'hidden';
+            hide(elements.get('quiz-score'));
+            hide(elements.get('quiz-question'));
+            hide(elements.get('quiz-flag-display'));
+            elements.get('quiz-options').innerHTML = '';
+            hide(elements.get('quiz-container'));
+            elements.get('quiz-next-btn').style.visibility = 'hidden';
 
             // Show celebration overlay with score
             const percentage = Math.round((quizScore / quizQuestionsAnswered) * 100);
-            document.getElementById('celebration-score').innerHTML = `
+            elements.get('celebration-score').innerHTML = `
                 <div style="font-size: 1.5rem; margin-bottom: 10px;">Your Score</div>
                 <div>${quizScore} / ${quizQuestionsAnswered}</div>
                 <div style="font-size: 2rem; margin-top: 10px;">${percentage}%</div>
             `;
 
-            const overlay = document.getElementById('quiz-celebration-overlay');
-            overlay.style.display = 'flex';
+            const overlay = elements.get('quiz-celebration-overlay');
+            showFlex(overlay);
 
             // Trigger confetti effect
             triggerConfetti();
 
             // Add click event to celebration close button
-            document.getElementById('celebration-close-btn').onclick = function() {
-                overlay.style.display = 'none';
-                document.getElementById('quiz-container').style.display = 'block';
-                document.getElementById('quiz-next-btn').style.visibility = 'hidden';
-                document.getElementById('quiz-start-btn').style.display = 'block';
-                document.getElementById('quiz-start-btn').textContent = 'Play Again';
+            elements.get('celebration-close-btn').onclick = function() {
+                hide(overlay);
+                elements.get('quiz-show(container'));
+                elements.get('quiz-next-btn').style.visibility = 'hidden';
+                elements.get('quiz-start-show(btn'));
+                elements.get('quiz-start-setText(btn'), 'Play Again');
             };
         }
 
         // Quiz Mode Selector Functions
         function showQuizModeSelector() {
-            document.getElementById('quiz-mode-selector').style.display = 'block';
+            elements.get('quiz-mode-show(selector'));
         }
 
         function hideQuizModeSelector() {
-            document.getElementById('quiz-mode-selector').style.display = 'none';
+            hide(elements.get('quiz-mode-selector'));
         }
 
         // Click Quiz Functions
@@ -3020,12 +3024,12 @@
             }
 
             // Hide search container
-            document.getElementById('search-container').style.display = 'none';
-            document.getElementById('take-quiz-btn').style.display = 'none';
+            hide(elements.get('search-container'));
+            hide(elements.get('take-quiz-btn'));
 
             // Show click quiz UI
-            document.getElementById('click-quiz-container').style.display = 'block';
-            document.getElementById('click-quiz-timer-bar-container').style.display = 'block';
+            elements.get('click-quiz-show(container'));
+            elements.get('click-quiz-timer-bar-show(container'));
 
             // Start timer
             clickQuizTimerInterval = setInterval(updateClickQuizTimer, 100);
@@ -3036,10 +3040,10 @@
 
         function showClickQuizQuestion() {
             const countryName = clickQuizCountries[clickQuizCurrentIndex];
-            document.getElementById('click-quiz-country-name').textContent = countryName;
-            document.getElementById('click-quiz-question-counter').textContent =
+            elements.get('click-quiz-country-setText(name'), countryName);
+            elements.get('click-quiz-question-counter').textContent =
                 `Question ${clickQuizCurrentIndex + 1} of 10`;
-            document.getElementById('click-quiz-score-display').textContent =
+            elements.get('click-quiz-score-display').textContent =
                 `Score: ${clickQuizScore}/${clickQuizCurrentIndex}`;
         }
 
@@ -3050,7 +3054,7 @@
 
             // Update timer bar
             const percentage = Math.max(0, (clickQuizTimeRemaining / 45000) * 100);
-            document.getElementById('click-quiz-timer-fill').style.height = percentage + '%';
+            elements.get('click-quiz-timer-fill').style.height = percentage + '%';
 
             // End quiz if time runs out
             if (clickQuizTimeRemaining <= 0) {
@@ -3091,13 +3095,13 @@
         }
 
         function showClickQuizFeedback(message, isCorrect) {
-            const feedbackEl = document.getElementById('click-quiz-feedback');
-            feedbackEl.textContent = message;
+            const feedbackEl = elements.get('click-quiz-feedback');
+            setText(feedbackEl, message);
             feedbackEl.className = isCorrect ? 'correct' : 'wrong';
-            feedbackEl.style.display = 'block';
+            show(feedbackEl);
 
             setTimeout(() => {
-                feedbackEl.style.display = 'none';
+                hide(feedbackEl);
             }, 1000);
         }
 
@@ -3125,8 +3129,8 @@
             }
 
             // Hide quiz UI
-            document.getElementById('click-quiz-container').style.display = 'none';
-            document.getElementById('click-quiz-timer-bar-container').style.display = 'none';
+            hide(elements.get('click-quiz-container'));
+            hide(elements.get('click-quiz-timer-bar-container'));
 
             // Calculate final time
             const totalTime = 45000;
@@ -3135,7 +3139,7 @@
 
             // Show celebration overlay with score
             const percentage = Math.round((clickQuizScore / clickQuizCurrentIndex) * 100);
-            document.getElementById('celebration-score').innerHTML = `
+            elements.get('celebration-score').innerHTML = `
                 <div style="font-size: 1.5rem; margin-bottom: 10px;">Your Score</div>
                 <div>${clickQuizScore} / ${clickQuizCurrentIndex}</div>
                 <div style="font-size: 2rem; margin-top: 10px;">${percentage}%</div>
@@ -3144,27 +3148,27 @@
                 </div>
             `;
 
-            const overlay = document.getElementById('quiz-celebration-overlay');
-            overlay.style.display = 'flex';
+            const overlay = elements.get('quiz-celebration-overlay');
+            showFlex(overlay);
 
             // Trigger confetti effect
             triggerConfetti();
 
             // Add click event to celebration close button
-            document.getElementById('celebration-close-btn').onclick = function() {
-                overlay.style.display = 'none';
+            elements.get('celebration-close-btn').onclick = function() {
+                hide(overlay);
                 // Show search and quiz button again
-                document.getElementById('search-container').style.display = 'block';
-                document.getElementById('take-quiz-btn').style.display = 'block';
+                elements.get('search-show(container'));
+                elements.get('take-quiz-show(btn'));
             };
         }
 
         function closeClickQuizResults() {
-            document.getElementById('click-quiz-results').style.display = 'none';
+            hide(elements.get('click-quiz-results'));
 
             // Show search and quiz button again
-            document.getElementById('search-container').style.display = 'block';
-            document.getElementById('take-quiz-btn').style.display = 'block';
+            elements.get('search-show(container'));
+            elements.get('take-quiz-show(btn'));
 
             // Resume auto-rotation
             // TEMPORARILY DISABLED
@@ -3187,7 +3191,7 @@
             flagRenderer.setClearColor(0x000000, 0); // Transparent
 
             // Insert the canvas into the flag-container-content, after flag-info
-            const flagContainerContent = document.getElementById('flag-container-content');
+            const flagContainerContent = elements.get('flag-container-content');
             flagContainerContent.appendChild(flagRenderer.domElement);
 
             // Add lights to flag scene
@@ -3293,29 +3297,29 @@
                 }
 
                 // Update country info
-                document.querySelector('#flag-info .country-name').textContent = countryName;
-                document.getElementById('info-population').textContent =
+                document.querySelector('#flag-info .country-setText(name'), countryName);
+                elements.get('info-population').textContent =
                     data && data.pop !== 'N/A' ? `${data.pop}M` : 'N/A';
-                document.getElementById('info-area').textContent =
+                elements.get('info-area').textContent =
                     data && data.area !== 'N/A' ? data.area : 'N/A';
-                document.getElementById('info-language').textContent =
+                elements.get('info-language').textContent =
                     data && data.lang !== 'N/A' ? data.lang : 'N/A';
             }
 
             // Show flag container (fixed position in top right)
-            document.getElementById('flag-container').style.display = 'block';
+            elements.get('flag-show(container'));
         }
 
         // Hide waving flag
         function hideWavingFlag() {
-            document.getElementById('flag-container').style.display = 'none';
+            hide(elements.get('flag-container'));
             currentHoveredCountry = null;
         }
 
         // Handle search input
         function onSearchInput(event) {
             const searchTerm = event.target.value.toLowerCase().trim();
-            const resultsContainer = document.getElementById('search-results');
+            const resultsContainer = elements.get('search-results');
 
             // Reset search index when user types
             currentSearchIndex = -1;
@@ -3355,7 +3359,7 @@
 
         // Handle Enter key and arrow keys in search
         function onSearchKeyDown(event) {
-            const resultsContainer = document.getElementById('search-results');
+            const resultsContainer = elements.get('search-results');
             const resultItems = resultsContainer.querySelectorAll('.search-result-item');
 
             if (event.key === 'ArrowDown') {
@@ -3410,7 +3414,7 @@
                     item.style.backgroundColor = 'rgba(255, 140, 0, 0.2)';
                     item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                     // Update input value with selected country
-                    document.getElementById('country-search').value = item.getAttribute('data-country');
+                    elements.get('country-search').value = item.getAttribute('data-country');
                 } else {
                     item.style.backgroundColor = '';
                 }
@@ -3422,7 +3426,7 @@
             selectedSearchCountry = countryName; // Track selected country
             focusOnCountryByName(countryName);
             // Hide search results after selection
-            document.getElementById('search-results').innerHTML = '';
+            elements.get('search-results').innerHTML = '';
             currentSearchIndex = -1; // Reset search index
 
             // Reset the idle timer to give user 10 seconds before rotation resumes
@@ -3691,15 +3695,15 @@
             const percentage = ((MAX_ZOOM - clampedZoom) / (MAX_ZOOM - MIN_ZOOM)) * 100;
 
             // Update bar fill height
-            const zoomBarFill = document.getElementById('zoom-bar-fill');
+            const zoomBarFill = elements.get('zoom-bar-fill');
             if (zoomBarFill) {
                 zoomBarFill.style.height = percentage + '%';
             }
 
             // Update text value
-            const zoomValue = document.getElementById('zoom-value');
+            const zoomValue = elements.get('zoom-value');
             if (zoomValue) {
-                zoomValue.textContent = clampedZoom.toFixed(2);
+                setText(zoomValue, clampedZoom.toFixed(2));
             }
         }
 
@@ -3709,7 +3713,7 @@
             const isMobile = window.innerWidth <= 768;
             if (!isMobile) return;
 
-            const searchContainer = document.getElementById('search-container');
+            const searchContainer = elements.get('search-container');
             if (!searchContainer) return;
 
             // Get current camera distance
@@ -3717,15 +3721,15 @@
 
             // Hide search when zoomed in (closer than 3.5), show when zoomed out
             if (currentZoom < 3.5) {
-                searchContainer.style.display = 'none';
+                hide(searchContainer);
             } else {
-                searchContainer.style.display = 'block';
+                show(searchContainer);
             }
         }
 
         // Update zoom out button visibility based on zoom level
         function updateZoomOutButtonVisibility() {
-            const zoomOutBtn = document.getElementById('zoom-out-btn');
+            const zoomOutBtn = elements.get('zoom-out-btn');
             if (!zoomOutBtn) return;
 
             // Get current camera distance
@@ -3733,9 +3737,9 @@
 
             // Show button when zoomed in (closer than 4), hide when zoomed out
             if (currentZoom < 4) {
-                zoomOutBtn.style.display = 'block';
+                show(zoomOutBtn);
             } else {
-                zoomOutBtn.style.display = 'none';
+                hide(zoomOutBtn);
             }
         }
 
