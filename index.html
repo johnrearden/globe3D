@@ -492,14 +492,9 @@
             if (mouseDownPos) state.set('mouse.downPos', mouseDownPos, false);
             state.set('mouse.isDragging', isDragging, false);
 
-            // Sync flag objects
-            if (flagScene) {
-                state.set('flags.hover.scene', flagScene, false);
-                state.set('flags.hover.camera', flagCamera, false);
-                state.set('flags.hover.renderer', flagRenderer, false);
-                state.set('flags.hover.mesh', flagMesh, false);
-                state.set('flags.hover.originalPositions', flagOriginalPositions, false);
-                state.set('flags.hover.time', flagTime, false);
+            // Sync flag renderer
+            if (flagRenderer) {
+                state.set('flags.renderer', flagRenderer, false);
             }
 
             // Sync UI state
