@@ -228,6 +228,7 @@
         import { NameFlagQuiz } from './js/features/quiz/name-flag-quiz.js';
         import { IdentifyFlagQuiz } from './js/features/quiz/identify-flag-quiz.js';
         import { ClickQuiz } from './js/features/quiz/click-quiz.js';
+        import { FlagRenderer } from './js/features/flag-renderer.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -444,12 +445,6 @@
         // Country borders
         let countryBorders = []; // Array of border line segments
 
-        // Flag animation variables
-        let flagScene, flagCamera, flagRenderer;
-        let flagMesh, flagOriginalPositions;
-        let flagTime = 0;
-        let currentHoveredCountry = null;
-
         // Search state
         let searchResultsCache = '';
         let selectedSearchCountry = null; // Track the country selected from search
@@ -470,6 +465,7 @@
         let nameFlagQuiz = null;
         let identifyFlagQuiz = null;
         let clickQuiz = null;
+        let flagRenderer = null;
 
         // ===== STATE SYNCHRONIZATION =====
         // Initialize state manager with current variable values
@@ -807,8 +803,9 @@
 
         // Initialize the scene
         function init() {
-            // Initialize flag renderer (separate mini scene)
-            initFlagRenderer();
+            // ===== PHASE 7: Initialize Flag Renderer =====
+            flagRenderer = new FlagRenderer(elements.get('flag-container'), elements);
+            flagRenderer.init();
 
             // ===== PHASE 5: Initialize Core Managers =====
 
@@ -926,8 +923,8 @@
                 cameraController.update();
 
                 // Update flag animations
-                if (currentHoveredCountry) {
-                    updateFlagAnimation();
+                if (flagRenderer && flagRenderer.isShowing()) {
+                    flagRenderer.update();
                 }
                 // Update identify flag quiz animation
                 if (identifyFlagQuiz && identifyFlagQuiz.isActive()) {
@@ -1040,7 +1037,7 @@
                 });
 
                 // Hide the flag container
-                hideWavingFlag();
+                if (flagRenderer) flagRenderer.hide();
             }
         }
 
@@ -2207,7 +2204,9 @@
 
                     rotateGlobeToCountry(selectedCountry);
                     // Show the flag for the clicked country
-                    showWavingFlag(selectedCountry.userData.name);
+                    if (flagRenderer) {
+                        flagRenderer.show(selectedCountry.userData.name, countryData, countryToISO);
+                    }
                 }
             }
         }
@@ -3411,125 +3410,8 @@
             // resumeAutoRotation();
         }
 
-        // Initialize flag renderer (separate Three.js scene for the flag)
-        function initFlagRenderer() {
-            // Create flag scene
-            flagScene = new THREE.Scene();
-            flagScene.background = null; // Transparent background
-
-            // Create flag camera (reduced by 40%: 180x120)
-            flagCamera = new THREE.PerspectiveCamera(45, 180 / 120, 0.1, 1000);
-            flagCamera.position.z = 9.5; // Moved slightly back from 8
-
-            // Create flag renderer (reduced by 40%)
-            flagRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            flagRenderer.setSize(180, 120);
-            flagRenderer.setClearColor(0x000000, 0); // Transparent
-
-            // Insert the canvas into the flag-container-content, after flag-info
-            const flagContainerContent = elements.get('flag-container-content');
-            flagContainerContent.appendChild(flagRenderer.domElement);
-
-            // Add lights to flag scene
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            flagScene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(5, 5, 5);
-            flagScene.add(directionalLight);
-        }
-
-        // Create waving flag mesh
-        function createWavingFlag(isoCode) {
-            // Load flag texture from flagcdn.com (high resolution)
-            const textureLoader = new THREE.TextureLoader();
-            const flagTexture = textureLoader.load(`https://flagcdn.com/w640/${isoCode}.png`);
-
-            // Create plane geometry with subdivisions for wave effect
-            const flagGeometry = new THREE.PlaneGeometry(10, 6.67, 20, 15);
-
-            // Create material
-            const flagMaterial = new THREE.MeshStandardMaterial({
-                map: flagTexture,
-                side: THREE.DoubleSide,
-                roughness: 0.7,
-                metalness: 0.1
-            });
-
-            // Create mesh
-            const flag = new THREE.Mesh(flagGeometry, flagMaterial);
-
-            // Store original positions for animation
-            const positions = flag.geometry.attributes.position;
-            const originalPositions = new Float32Array(positions.array);
-
-            return { flag, originalPositions };
-        }
-
-        // Update flag animation with Perlin noise
-        function updateFlagAnimation() {
-            flagTime = performance.now() * 0.001 * 3; // Speed factor
-            animateFlagWave(flagMesh, flagOriginalPositions, flagTime);
-
-            // Render the flag scene
-            if (flagRenderer && flagScene && flagCamera) {
-                flagRenderer.render(flagScene, flagCamera);
-            }
-        }
-
-        // Show waving flag
-        function showWavingFlag(countryName) {
-            // Try to get data from countryData first, fallback to legacy ISO mapping
-            let data = countryData[countryName];
-            let isoCode = data ? data.iso : countryToISO[countryName];
-
-            if (!isoCode) {
-                console.log('No ISO code found for:', countryName);
-                // Still show the panel with limited info
-                data = { iso: null, pop: 'N/A', area: 'N/A', lang: 'N/A' };
-            }
-
-            // Only create new flag if country changed
-            if (currentHoveredCountry !== countryName) {
-                currentHoveredCountry = countryName;
-
-                // Remove old flag if exists
-                if (flagMesh) {
-                    flagScene.remove(flagMesh);
-                    flagMesh.geometry.dispose();
-                    flagMesh.material.dispose();
-                }
-
-                // Create new flag if ISO code exists
-                if (isoCode) {
-                    const { flag, originalPositions } = createWavingFlag(isoCode);
-                    flagMesh = flag;
-                    flagOriginalPositions = originalPositions;
-                    flagScene.add(flagMesh);
-
-                    // Reset time
-                    flagTime = 0;
-                }
-
-                // Update country info
-                setText(document.querySelector('#flag-info .country-name'), countryName);
-                elements.get('info-population').textContent =
-                    data && data.pop !== 'N/A' ? `${data.pop}M` : 'N/A';
-                elements.get('info-area').textContent =
-                    data && data.area !== 'N/A' ? data.area : 'N/A';
-                elements.get('info-language').textContent =
-                    data && data.lang !== 'N/A' ? data.lang : 'N/A';
-            }
-
-            // Show flag container (fixed position in top right)
-            show(elements.get('flag-container'));
-        }
-
-        // Hide waving flag
-        function hideWavingFlag() {
-            hide(elements.get('flag-container'));
-            currentHoveredCountry = null;
-        }
+        // ===== FLAG RENDERER FUNCTIONS MOVED TO js/features/flag-renderer.js =====
+        // (Removed: initFlagRenderer, createWavingFlag, updateFlagAnimation, showWavingFlag, hideWavingFlag)
 
         // Handle search input
         function onSearchInput(event) {
@@ -3653,7 +3535,9 @@
             const country = countries.find(c => c.userData.name === countryName);
             if (country) {
                 // Show the flag for this country
-                showWavingFlag(countryName);
+                if (flagRenderer) {
+                    flagRenderer.show(countryName, countryData, countryToISO);
+                }
 
                 // Highlight the country on the globe
                 // Reset all countries first
