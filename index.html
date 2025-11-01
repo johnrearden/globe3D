@@ -214,7 +214,10 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/perlin.js/1.0/perlin.js"></script>
-    <script>
+    <script type="module">
+        // ===== IMPORTS =====
+        import { state } from './js/data/state.js';
+
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
             constructor() {
@@ -445,6 +448,84 @@
         let lastInteractionTime = Date.now();
         let idleTimeout = null;
         const IDLE_DELAY = 60000; // 1 minute
+
+        // ===== STATE SYNCHRONIZATION =====
+        // Initialize state manager with current variable values
+        // This allows gradual migration to centralized state
+        function syncStateWithVariables() {
+            // Sync scene objects (if they exist)
+            if (scene) state.set('scene.scene', scene, false);
+            if (camera) state.set('scene.camera', camera, false);
+            if (renderer) state.set('scene.renderer', renderer, false);
+            if (globe) state.set('scene.globe', globe, false);
+            if (controls) state.set('scene.controls', controls, false);
+            if (baseSphere) state.set('scene.baseSphere', baseSphere, false);
+            if (initialCameraDistance !== undefined) {
+                state.set('scene.initialCameraDistance', initialCameraDistance, false);
+            }
+
+            // Sync countries and mouse objects
+            state.set('countries.list', countries, false);
+            state.set('countries.centroids', countryCentroids, false);
+            state.set('countries.selected', selectedCountry, false);
+            state.set('countries.borders', countryBorders, false);
+            if (mouse) state.set('mouse.position', mouse, false);
+            if (raycaster) state.set('mouse.raycaster', raycaster, false);
+            if (mouseDownPos) state.set('mouse.downPos', mouseDownPos, false);
+            state.set('mouse.isDragging', isDragging, false);
+
+            // Sync flag objects
+            if (flagScene) {
+                state.set('flags.hover.scene', flagScene, false);
+                state.set('flags.hover.camera', flagCamera, false);
+                state.set('flags.hover.renderer', flagRenderer, false);
+                state.set('flags.hover.mesh', flagMesh, false);
+                state.set('flags.hover.originalPositions', flagOriginalPositions, false);
+                state.set('flags.hover.time', flagTime, false);
+            }
+
+            // Sync UI state
+            state.set('ui.seoContentHidden', seoContentHidden, false);
+
+            // Sync quiz state
+            state.set('quiz.active', quizActive, false);
+            state.set('quiz.mode', currentQuizMode, false);
+            state.set('quiz.currentQuestion', currentQuizQuestion, false);
+            state.set('quiz.score', quizScore, false);
+            state.set('quiz.questionsAnswered', quizQuestionsAnswered, false);
+            state.set('quiz.usedCountries', usedQuizCountries, false);
+            state.set('quiz.autoAdvanceTimer', quizAutoAdvanceTimer, false);
+
+            // Sync click quiz state
+            state.set('quiz.clickQuiz.active', clickQuizActive, false);
+            state.set('quiz.clickQuiz.countries', clickQuizCountries, false);
+            state.set('quiz.clickQuiz.currentIndex', clickQuizCurrentIndex, false);
+            state.set('quiz.clickQuiz.score', clickQuizScore, false);
+            state.set('quiz.clickQuiz.startTime', clickQuizStartTime, false);
+            state.set('quiz.clickQuiz.timeRemaining', clickQuizTimeRemaining, false);
+            state.set('quiz.clickQuiz.timerInterval', clickQuizTimerInterval, false);
+
+            // Sync label state
+            state.set('labels.list', countryLabels, false);
+            state.set('labels.config', labelConfig, false);
+            state.set('labels.defaults', labelDefaults, false);
+            state.set('labels.editMode', editMode, false);
+            state.set('labels.selected', selectedLabel, false);
+            state.set('labels.isDragging', isDraggingLabel, false);
+            state.set('labels.selectionHelper', selectionHelper, false);
+
+            // Sync color editor state
+            state.set('colorEditor.editMode', colorEditMode, false);
+            state.set('colorEditor.config', colorConfig, false);
+
+            // Sync search state
+            state.set('search.selected', selectedSearchCountry, false);
+
+            // Sync auto-rotation state
+            state.set('autoRotation.enabled', autoRotateEnabled, false);
+            state.set('autoRotation.lastInteractionTime', lastInteractionTime, false);
+            state.set('autoRotation.idleTimer', idleTimeout, false);
+        }
 
         // Country data: ISO code, population (millions), area (km²), primary language
         const countryData = {
@@ -780,6 +861,19 @@
 
             // Add event listeners
             setupEventListeners();
+
+            // Sync state with initial variable values
+            syncStateWithVariables();
+
+            // Debug: Verify state is working
+            console.log('State manager initialized');
+            console.log('Quiz state:', state.get('quiz'));
+            console.log('Scene camera:', state.get('scene.camera'));
+
+            // Test reactive subscription
+            state.subscribe('quiz.score', (newValue, oldValue) => {
+                console.log(`Quiz score changed: ${oldValue} -> ${newValue}`);
+            });
 
             // Start animation loop
             animate();
@@ -2582,8 +2676,10 @@
             // Update score if correct
             if (isCorrect) {
                 quizScore++;
+                state.set('quiz.score', quizScore); // Sync to state
             }
             quizQuestionsAnswered++;
+            state.set('quiz.questionsAnswered', quizQuestionsAnswered); // Sync to state
 
             // Update score display
             updateScoreDisplay();
@@ -2963,8 +3059,10 @@
             // Update score if correct
             if (isCorrect) {
                 quizScore++;
+                state.set('quiz.score', quizScore); // Sync to state
             }
             quizQuestionsAnswered++;
+            state.set('quiz.questionsAnswered', quizQuestionsAnswered); // Sync to state
 
             // Update score display
             updateScoreDisplay();
