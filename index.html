@@ -215,9 +215,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/perlin.js/1.0/perlin.js"></script>
     <script>
-        console.log('=== SCRIPT STARTED ===');
-        alert('Script is loading!');
-
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
             constructor() {
@@ -3343,7 +3340,7 @@
                 }
 
                 // Update country info
-                document.querySelector('#flag-info .country-setText(name'), countryName);
+                setText(document.querySelector('#flag-info .country-name'), countryName);
                 elements.get('info-population').textContent =
                     data && data.pop !== 'N/A' ? `${data.pop}M` : 'N/A';
                 elements.get('info-area').textContent =
