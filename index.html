@@ -836,6 +836,9 @@
                     // Globe loaded successfully
                     countries = loadedCountries;
 
+                    // Get centroids for backwards compatibility with existing quiz/search code
+                    countryCentroids = globeManager.getCentroids();
+
                     // Initialize LabelManager
                     labelManager = new LabelManager(scene, camera, globeManager);
                     labelManager.createLabels(LARGE_COUNTRIES, SMALL_COUNTRIES);
