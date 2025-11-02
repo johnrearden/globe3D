@@ -116,6 +116,7 @@
             <div id="quiz-result"></div>
             <button id="quiz-start-btn">Start Quiz</button>
             <button id="quiz-next-btn" style="visibility: hidden;">Next Question</button>
+            <button id="quiz-cancel-btn" style="display: none;">Cancel Quiz</button>
         </div>
 
         <!-- Quiz Celebration Overlay -->
@@ -161,6 +162,7 @@
                 </div>
             </div>
             <div id="click-quiz-feedback"></div>
+            <button id="click-quiz-cancel-btn">Cancel Quiz</button>
         </div>
 
         <!-- Click Quiz Timer Bar -->
@@ -1427,6 +1429,10 @@
             elements.get('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
             elements.get('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
 
+            // Quiz cancel buttons
+            elements.get('quiz-cancel-btn').addEventListener('click', cancelQuiz);
+            elements.get('click-quiz-cancel-btn').addEventListener('click', cancelQuiz);
+
             // Click quiz buttons
             elements.get('click-quiz-close-btn').addEventListener('click', closeClickQuizResults);
             elements.get('click-quiz-results-overlay').addEventListener('click', closeClickQuizResults);
@@ -2674,6 +2680,108 @@
             // Resume auto-rotation
             // TEMPORARILY DISABLED
             // resumeAutoRotation();
+        }
+
+        function cancelQuiz() {
+            // Determine which quiz is active and end it without celebration
+            if (nameFlagQuiz && nameFlagQuiz.isActive()) {
+                // Clear any timers
+                if (nameFlagQuiz.autoAdvanceTimer) {
+                    clearTimeout(nameFlagQuiz.autoAdvanceTimer);
+                    nameFlagQuiz.autoAdvanceTimer = null;
+                }
+
+                // Set active to false without showing celebration
+                nameFlagQuiz.active = false;
+
+                // Update state
+                state.set('quiz.active', false);
+                state.set('quiz.mode', null);
+
+                // Remove quiz-active class
+                document.body.classList.remove('quiz-active');
+
+                // Hide quiz elements
+                hide(elements.get('quiz-score'));
+                hide(elements.get('quiz-question'));
+                elements.get('quiz-options').innerHTML = '';
+                hide(elements.get('quiz-container'));
+
+                // Reset globe highlighting
+                const countries = globeManager.getCountries();
+                countries.forEach(country => {
+                    country.material.vertexColors = true;
+                    country.material.color.setHex(0xffffff);
+                    country.material.needsUpdate = true;
+                });
+
+                // Show search and quiz button
+                show(elements.get('search-container'));
+                show(elements.get('take-quiz-btn'));
+
+                // Reset quiz UI
+                hide(elements.get('quiz-cancel-btn'));
+                elements.get('quiz-next-btn').style.visibility = 'hidden';
+                show(elements.get('quiz-start-btn'));
+                elements.get('quiz-start-btn').textContent = 'Start Quiz';
+
+            } else if (identifyFlagQuiz && identifyFlagQuiz.isActive()) {
+                // Clear any timers
+                if (identifyFlagQuiz.autoAdvanceTimer) {
+                    clearTimeout(identifyFlagQuiz.autoAdvanceTimer);
+                    identifyFlagQuiz.autoAdvanceTimer = null;
+                }
+
+                // Set active to false without showing celebration
+                identifyFlagQuiz.active = false;
+
+                // Update state
+                state.set('quiz.active', false);
+                state.set('quiz.mode', null);
+
+                // Remove quiz-active class
+                document.body.classList.remove('quiz-active');
+                document.body.classList.remove('flag-quiz-active');
+
+                // Hide quiz elements
+                hide(elements.get('quiz-score'));
+                hide(elements.get('quiz-question'));
+                hide(elements.get('quiz-flag-display'));
+                elements.get('quiz-options').innerHTML = '';
+                hide(elements.get('quiz-container'));
+
+                // Show search and quiz button
+                show(elements.get('search-container'));
+                show(elements.get('take-quiz-btn'));
+
+                // Reset quiz UI
+                hide(elements.get('quiz-cancel-btn'));
+                elements.get('quiz-next-btn').style.visibility = 'hidden';
+                show(elements.get('quiz-start-btn'));
+                elements.get('quiz-start-btn').textContent = 'Start Quiz';
+
+            } else if (clickQuiz && clickQuiz.isActive()) {
+                // Clear timer
+                if (clickQuiz.timerInterval) {
+                    clearInterval(clickQuiz.timerInterval);
+                    clickQuiz.timerInterval = null;
+                }
+
+                // Set active to false
+                clickQuiz.active = false;
+
+                // Update state
+                state.set('quiz.active', false);
+                state.set('quiz.mode', null);
+
+                // Hide click quiz UI
+                hide(elements.get('click-quiz-container'));
+                hide(elements.get('click-quiz-timer-bar-container'));
+
+                // Show search and quiz button
+                show(elements.get('search-container'));
+                show(elements.get('take-quiz-btn'));
+            }
         }
 
         // ===== FLAG RENDERER FUNCTIONS MOVED TO js/features/flag-renderer.js =====

@@ -62,6 +62,9 @@ export class NameFlagQuiz {
         this.elements.get('quiz-result').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
 
+        // Show cancel button
+        this.elements.get('quiz-cancel-btn').style.display = 'block';
+
         // Reset score display
         this.updateScoreDisplay();
 

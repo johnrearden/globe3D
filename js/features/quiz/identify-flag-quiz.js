@@ -193,6 +193,9 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
         this.elements.get('quiz-flag-display').style.display = 'none';
 
+        // Show cancel button
+        this.elements.get('quiz-cancel-btn').style.display = 'block';
+
         // Reset score display
         this.updateScoreDisplay();
 

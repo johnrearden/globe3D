@@ -370,6 +370,29 @@
             transform: scale(1.05);
         }
 
+        #quiz-cancel-btn, #click-quiz-cancel-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background-color: #666666;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #quiz-cancel-btn:hover, #click-quiz-cancel-btn:hover {
+            background-color: #CC0000;
+            transform: scale(1.05);
+        }
+
+        #click-quiz-cancel-btn {
+            margin-top: 15px;
+        }
+
         #quiz-result {
             color: #ffffff;
             font-size: 14px;
