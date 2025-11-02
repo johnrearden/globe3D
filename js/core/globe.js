@@ -188,6 +188,12 @@ export class GlobeManager {
                                 .join(' ');
                             child.userData.name = formattedName;
 
+                            // Skip duplicate "Czech" (keep "Czechia" as the official name)
+                            if (formattedName === 'Czech') {
+                                console.log('Skipping duplicate "Czech" country (using "Czechia" instead)');
+                                return;
+                            }
+
                             this.countries.push(child);
                         }
                     });
