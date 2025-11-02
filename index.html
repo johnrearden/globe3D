@@ -2844,7 +2844,8 @@
             const indicatorPos = direction.multiplyScalar(1.025);
 
             // Create circle geometry (ring)
-            const circleGeometry = new THREE.RingGeometry(0.025, 0.03, 32);
+            // Radius reduced by 30% (0.03 -> 0.021), thickness reduced by 50% (0.005 -> 0.0025)
+            const circleGeometry = new THREE.RingGeometry(0.0185, 0.021, 32);
             const circleMaterial = new THREE.MeshBasicMaterial({
                 color: 0xffffff,
                 side: THREE.DoubleSide,
