@@ -179,7 +179,9 @@ export class SceneManager {
                     progressFill.style.width = newProgress + '%';
                 }
                 if (progressText && message) {
-                    progressText.textContent = message + ' ' + Math.round(newProgress) + '%';
+                    // Only append percentage if message doesn't already contain it
+                    const hasPercentage = message.includes('%');
+                    progressText.textContent = hasPercentage ? message : message + ' ' + Math.round(newProgress) + '%';
                 } else if (progressText) {
                     progressText.textContent = 'Loading... ' + Math.round(newProgress) + '%';
                 }
@@ -199,7 +201,9 @@ export class SceneManager {
                 progressFill.style.width = percent + '%';
             }
             if (progressText && message) {
-                progressText.textContent = message + ' ' + Math.round(percent) + '%';
+                // Only append percentage if message doesn't already contain it
+                const hasPercentage = message.includes('%');
+                progressText.textContent = hasPercentage ? message : message + ' ' + Math.round(percent) + '%';
             } else if (progressText) {
                 progressText.textContent = 'Loading... ' + Math.round(percent) + '%';
             }
