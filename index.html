@@ -2885,20 +2885,15 @@
                     targetDistance = Math.max(camera.position.length(), 3.5);
                 }
             } else {
-                // Normal mode: Calculate distance for country to occupy exactly 40% of screen width
-                const fov = 75 * Math.PI / 180; // Camera FOV in radians
-                const maxHorizontalDimension = Math.max(bbox.x, bbox.z); // Use horizontal dimensions
-                const targetScreenPercentage = 0.4; // Country should occupy 40% of screen width
+                // Normal mode: Use fixed zoom levels based on country size
+                const countryName = country.userData.name;
 
-                // Calculate distance needed: d = size / (2 * tan(fov/2) * percentage)
-                let calculatedDistance = maxHorizontalDimension / (2 * Math.tan(fov / 2) * targetScreenPercentage);
-
-                // Apply multiplier to account for sphere curvature and ensure we're not too close
-                // The bbox dimensions are chord lengths on the sphere, so we need to zoom out more
-                calculatedDistance = calculatedDistance * 7.5;
-
-                // Clamp to camera zoom limits (min: 1.13, max: 2)
-                targetDistance = Math.max(1.13, Math.min(calculatedDistance, 2));
+                // Small countries zoom closer (1.15), all others zoom to 1.55
+                if (SMALL_COUNTRIES.has(countryName)) {
+                    targetDistance = 1.15;
+                } else {
+                    targetDistance = 1.55;
+                }
             }
 
             // Calculate target camera position
