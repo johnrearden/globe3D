@@ -1162,121 +1162,6 @@
             }
         }
 
-        async function loadWorldData() {
-            try {
-                console.log('Loading world globe...');
-
-                // Create DRACOLoader for decompressing the mesh
-                const dracoLoader = new THREE.DRACOLoader();
-                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-                dracoLoader.setDecoderConfig({ type: 'js' });
-
-                // Create GLTFLoader and attach DRACOLoader
-                const loader = new THREE.GLTFLoader();
-                loader.setDRACOLoader(dracoLoader);
-
-                // Load the pre-built globe GLB file
-                loader.load(
-                    'assets/world.glb',
-                    async function (gltf) {
-                        console.log('GLB loaded successfully');
-                        updateLoadingProgress(70, 'Processing countries...', true);
-
-                        // Add all meshes from the GLB to the globe
-                        gltf.scene.traverse((child) => {
-                            if (child.isMesh) {
-                                // Store reference for raycasting and interaction
-                                child.userData.isCountry = true;
-
-                                // Get the vertex color from the geometry (if available)
-                                const hasVertexColors = child.geometry.attributes.color !== undefined;
-
-                                // Set material to use vertex colors with Phong material for smooth lighting
-                                if (hasVertexColors) {
-                                    child.material = new THREE.MeshPhongMaterial({
-                                        vertexColors: true,
-                                        transparent: false,
-                                        side: THREE.FrontSide,
-                                        flatShading: false,
-                                        shininess: 30
-                                    });
-                                } else {
-                                    child.material = new THREE.MeshPhongMaterial({
-                                        color: 0x4FC3F7,
-                                        transparent: false,
-                                        side: THREE.FrontSide,
-                                        flatShading: false,
-                                        shininess: 30
-                                    });
-                                }
-
-                                // Extract country name from mesh name
-                                // Remove the trailing number (e.g., "_0", "_1") and convert to title case
-                                const countryName = child.name.replace(/_\d+$/, ''); // Remove trailing _number
-                                const formattedName = countryName
-                                    .replace(/_/g, ' ') // Replace underscores with spaces
-                                    .split(' ')
-                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                    .join(' ');
-                                child.userData.name = formattedName;
-
-                                countries.push(child);
-                            }
-                        });
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(78, 'Building globe...', true);
-
-                        // Add the entire scene to the globe
-                        globe.add(gltf.scene);
-
-                        console.log(`Loaded ${countries.length} country meshes`);
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(85, 'Calculating positions...', true);
-
-                        // Build country centroids cache for quiz
-                        buildCountryCentroidsCache();
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(90, 'Creating labels...', true);
-
-                        // Create country labels
-                        createCountryLabels();
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(95, 'Loading configuration...', true);
-
-                        // Load saved color configuration if available
-                        loadColorConfig();
-
-                        // Create country borders
-                        // createCountryBorders(); // Disabled for performance
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(100, 'Complete!', true);
-
-                        await new Promise(resolve => setTimeout(resolve, 400));
-                        hideLoading();
-                    },
-                    function (xhr) {
-                        // Progress callback - scale download to 0-70% of total progress
-                        const downloadPercent = (xhr.loaded / xhr.total * 100).toFixed(0);
-                        const scaledPercent = Math.floor(downloadPercent * 0.7);
-                        console.log(`Downloading: ${downloadPercent}% (scaled: ${scaledPercent}%)`);
-                        updateLoadingProgress(scaledPercent, `Downloading... ${downloadPercent}%`);
-                    },
-                    function (error) {
-                        console.error('Error loading GLB:', error);
-                        hideLoading();
-                    }
-                );
-
-            } catch (error) {
-                console.error('Error loading world data:', error);
-                hideLoading();
-            }
-        }
 
         // Helper function for latitude/longitude lines
         function latLngToVector3(lat, lng, radius = 1, height = 0) {
@@ -1605,6 +1490,55 @@
             console.log('Color configuration saved! Countries configured:', Object.keys(colorConfig).length);
         }
 
+        // Load color configuration from JSON
+        function loadColorConfig() {
+            // Try to fetch country-colors.json
+            fetch('country-colors.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No saved color config found');
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    colorConfig = config;
+                    console.log('Loaded color configuration for', Object.keys(colorConfig).length, 'countries');
+                    // Apply loaded config to existing country meshes
+                    applyColorConfig();
+                })
+                .catch(err => {
+                    console.log('No color config file found, using default colors');
+                });
+        }
+
+        // Apply saved color configuration to country meshes
+        function applyColorConfig() {
+            countries.forEach(country => {
+                const countryName = country.userData.name;
+                const color = colorConfig[countryName];
+
+                if (color) {
+                    // Apply color to the country mesh vertices
+                    const geometry = country.geometry;
+                    const colorAttribute = geometry.getAttribute('color');
+
+                    if (colorAttribute) {
+                        const colors = colorAttribute.array;
+                        const vertexCount = colors.length / 3;
+
+                        // Set all vertices to the saved color
+                        for (let i = 0; i < vertexCount; i++) {
+                            colors[i * 3] = color[0];
+                            colors[i * 3 + 1] = color[1];
+                            colors[i * 3 + 2] = color[2];
+                        }
+
+                        colorAttribute.needsUpdate = true;
+                    }
+                }
+            });
+        }
+
         let currentSphereRadius = 1.014;
 
         function toggleSphere(event) {
@@ -1856,239 +1790,12 @@
         // ============================================
 
         // Build cache of country centroids for distance calculations
-        function buildCountryCentroidsCache() {
-            countryCentroids = [];
-
-            // Get unique country names
-            const uniqueCountries = new Map();
-
-            countries.forEach(mesh => {
-                const countryName = mesh.userData.name;
-                if (!uniqueCountries.has(countryName)) {
-                    uniqueCountries.set(countryName, []);
-                }
-                uniqueCountries.get(countryName).push(mesh);
-            });
-
-            // Calculate centroid for each unique country (average of all its meshes' centroids)
-            uniqueCountries.forEach((meshes, countryName) => {
-                const centroid = new THREE.Vector3(0, 0, 0);
-                let totalVertices = 0;
-
-                meshes.forEach(mesh => {
-                    const geometry = mesh.geometry;
-                    const positions = geometry.attributes.position;
-
-                    for (let i = 0; i < positions.count; i++) {
-                        const vertex = new THREE.Vector3(
-                            positions.getX(i),
-                            positions.getY(i),
-                            positions.getZ(i)
-                        );
-                        // Apply world transform
-                        mesh.localToWorld(vertex);
-                        centroid.add(vertex);
-                        totalVertices++;
-                    }
-                });
-
-                if (totalVertices > 0) {
-                    centroid.divideScalar(totalVertices);
-                    // Normalize to sphere surface (in case of small precision errors)
-                    centroid.normalize();
-
-                    countryCentroids.push({
-                        name: countryName,
-                        centroid: centroid,
-                        meshRefs: meshes
-                    });
-                }
-            });
-
-            console.log(`Built centroids cache for ${countryCentroids.length} countries`);
-        }
-
         // Create text label using canvas
-        function createTextLabel(text) {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-
-            // Set canvas size
-            canvas.width = 512;
-            canvas.height = 128;
-
-            // Configure text style
-            context.font = '32px Arial';
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-
-            // Draw dark gray text for contrast with ocean
-            context.fillStyle = '#686868';
-            context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-            // Create texture from canvas
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.needsUpdate = true;
-
-            return texture;
-        }
 
         // Create labels for all countries
-        function createCountryLabels() {
-            countryCentroids.forEach(countryData => {
-                const countryName = countryData.name;
-
-                // Determine country size category
-                let sizeCategory = 'medium'; // Default
-                let labelWidth, labelHeight;
-
-                if (LARGE_COUNTRIES.has(countryName)) {
-                    sizeCategory = 'large';
-                    labelWidth = 0.25;  // Larger labels for large countries
-                    labelHeight = 0.065;
-                } else if (SMALL_COUNTRIES.has(countryName)) {
-                    sizeCategory = 'small';
-                    labelWidth = 0.12;  // Smaller labels for small countries
-                    labelHeight = 0.032;
-                } else {
-                    sizeCategory = 'medium';
-                    labelWidth = 0.18;  // Medium labels for medium countries
-                    labelHeight = 0.048;
-                }
-
-                const labelTexture = createTextLabel(countryName);
-
-                // Create material with transparency
-                const labelMaterial = new THREE.MeshBasicMaterial({
-                    map: labelTexture,
-                    transparent: true,
-                    opacity: 1.0,
-                    side: THREE.DoubleSide,
-                    depthTest: false, // Disabled to ensure labels render on top
-                    depthWrite: false
-                });
-
-                // Create plane geometry with size based on country category
-                const labelGeometry = new THREE.PlaneGeometry(labelWidth, labelHeight);
-                const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-
-                // Position label at country centroid, slightly above surface
-                const labelPosition = countryData.centroid.clone().multiplyScalar(1.02);
-                labelMesh.position.copy(labelPosition);
-
-                // Orient label to face outward from globe center
-                labelMesh.lookAt(countryData.centroid.clone().multiplyScalar(2));
-
-                // Store reference to country name and size category
-                labelMesh.userData.countryName = countryName;
-                labelMesh.userData.sizeCategory = sizeCategory;
-
-                // Store default position and scale for reset functionality
-                labelDefaults[countryName] = {
-                    position: labelPosition.clone(),
-                    scale: 1.0,
-                    width: labelWidth,
-                    height: labelHeight
-                };
-
-                // Initially hide all labels
-                labelMesh.visible = false;
-
-                // Add to globe so it rotates with it
-                globe.add(labelMesh);
-                countryLabels.push(labelMesh);
-            });
-
-            console.log(`Created ${countryLabels.length} country labels`);
         }
 
         // Create borders for all countries using boundary edge detection
-        function createCountryBorders() {
-            console.log('Creating country borders...');
-
-            // Iterate through all country meshes
-            countries.forEach(countryMesh => {
-                const geometry = countryMesh.geometry;
-                const positionAttribute = geometry.attributes.position;
-
-                if (!positionAttribute) return;
-
-                // Build edge map to find boundary edges (edges that belong to only one triangle)
-                const edgeMap = new Map();
-                const indices = geometry.index ? geometry.index.array : null;
-
-                if (!indices) return; // Skip if no index buffer
-
-                // Process all triangles
-                for (let i = 0; i < indices.length; i += 3) {
-                    const a = indices[i];
-                    const b = indices[i + 1];
-                    const c = indices[i + 2];
-
-                    // Add the three edges of this triangle
-                    addEdge(edgeMap, a, b);
-                    addEdge(edgeMap, b, c);
-                    addEdge(edgeMap, c, a);
-                }
-
-                // Collect boundary edges (edges that appear only once)
-                const boundaryEdges = [];
-                edgeMap.forEach((count, key) => {
-                    if (count === 1) {
-                        const [v1, v2] = key.split(',').map(Number);
-                        boundaryEdges.push(v1, v2);
-                    }
-                });
-
-                if (boundaryEdges.length === 0) return;
-
-                // Create geometry from boundary edges
-                const borderGeometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(boundaryEdges.length * 3);
-
-                for (let i = 0; i < boundaryEdges.length; i++) {
-                    const vertexIndex = boundaryEdges[i];
-                    positions[i * 3] = positionAttribute.getX(vertexIndex);
-                    positions[i * 3 + 1] = positionAttribute.getY(vertexIndex);
-                    positions[i * 3 + 2] = positionAttribute.getZ(vertexIndex);
-                }
-
-                borderGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-                // Create line material with dark gray color
-                const lineMaterial = new THREE.LineBasicMaterial({
-                    color: 0x333333,
-                    linewidth: 1
-                });
-
-                // Create line segments from boundary edges
-                const borderLines = new THREE.LineSegments(borderGeometry, lineMaterial);
-
-                // Copy the country mesh's transform
-                borderLines.position.copy(countryMesh.position);
-                borderLines.rotation.copy(countryMesh.rotation);
-                borderLines.scale.copy(countryMesh.scale);
-
-                // Add to same parent as country mesh
-                if (countryMesh.parent) {
-                    countryMesh.parent.add(borderLines);
-                }
-
-                // Initially hide borders (only show when zoomed in)
-                borderLines.visible = false;
-
-                countryBorders.push(borderLines);
-            });
-
-            console.log(`Created borders for ${countryBorders.length} countries`);
-        }
-
-        // Helper function to add edges to the edge map
-        function addEdge(edgeMap, v1, v2) {
-            // Create a consistent key regardless of vertex order
-            const key = v1 < v2 ? `${v1},${v2}` : `${v2},${v1}`;
-            edgeMap.set(key, (edgeMap.get(key) || 0) + 1);
-        }
 
         // Calculate great circle distance between two countries (returns radians)
         // On a unit sphere, the great circle distance is the angle between two vectors
