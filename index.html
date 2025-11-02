@@ -846,7 +846,6 @@
 
                     // Get labels reference
                     countryLabels = labelManager.getLabels();
-                    labelDefaults = labelManager.labelDefaults;
 
                     // ===== PHASE 6: Initialize Quiz System =====
 
@@ -914,7 +913,7 @@
                         updateLabelVisibility: updateLabelVisibility
                     });
                     labelEditor.init();
-                    labelEditor.setDefaults(labelDefaults);
+                    labelEditor.setDefaults(labelManager.labelDefaults);
 
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
