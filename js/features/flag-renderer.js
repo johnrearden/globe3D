@@ -8,9 +8,6 @@ import { state } from '../data/state.js';
 // Access global THREE.js library
 const THREE = window.THREE;
 
-// Access global Perlin noise library
-const noise = window.noise;
-
 export class FlagRenderer {
     constructor(containerElement, elements) {
         this.containerElement = containerElement;
@@ -102,6 +99,12 @@ export class FlagRenderer {
     animateFlagWave(mesh, originalPositions, time) {
         if (!mesh || !originalPositions) return;
 
+        // Check if Perlin noise library is loaded
+        if (!window.noise || !window.noise.perlin2) {
+            console.warn('Perlin noise library not loaded yet');
+            return;
+        }
+
         const positions = mesh.geometry.attributes.position;
         const coeff = 72;
         const coeff2 = 65;
@@ -115,7 +118,7 @@ export class FlagRenderer {
             // Apply Perlin noise to Z position for wave effect
             positions.array[i * 3 + 2] = 1 +
                 (spacing / 25) *
-                noise.perlin2(
+                window.noise.perlin2(
                     x * (gap / coeff) + time,
                     y * (gap / coeff2)
                 );
