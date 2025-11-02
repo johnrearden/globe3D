@@ -533,9 +533,6 @@
             state.set('colorEditor.editMode', colorEditMode, false);
             state.set('colorEditor.config', colorConfig, false);
 
-            // Sync search state
-            state.set('search.selected', selectedSearchCountry, false);
-
             // Sync auto-rotation state
             state.set('autoRotation.enabled', autoRotateEnabled, false);
             state.set('autoRotation.lastInteractionTime', lastInteractionTime, false);
@@ -1036,8 +1033,10 @@
                 controls.autoRotate = true;
                 // No tilt animation - maintain current camera angle
 
-                // Clear the selected country highlight
-                selectedSearchCountry = null;
+                // Clear the search selection if searchManager exists
+                if (searchManager) {
+                    searchManager.clear();
+                }
 
                 // Reset all countries to normal state
                 countries.forEach(country => {
@@ -2195,9 +2194,6 @@
 
                 // Center on clicked country (if not in quiz mode)
                 if (!state.get('quiz.active')) {
-                    // Track the selected country so it stays highlighted
-                    selectedSearchCountry = selectedCountry.userData.name;
-
                     // Reset all countries to normal state first
                     countries.forEach(c => {
                         c.material.vertexColors = true;
