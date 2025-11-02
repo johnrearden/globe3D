@@ -2889,10 +2889,8 @@
                 const countryName = country.userData.name;
 
                 // Small countries zoom closer (1.15), all others zoom to 1.55
-                const isSmallCountry = SMALL_COUNTRIES.has(countryName);
-                console.log(`Zooming to ${countryName}: isSmall=${isSmallCountry}, targetDistance=${isSmallCountry ? 1.15 : 1.55}`);
-
-                if (isSmallCountry) {
+                // Note: Some small islands belong to larger countries, so they'll zoom to 1.55
+                if (SMALL_COUNTRIES.has(countryName)) {
                     targetDistance = 1.15;
                 } else {
                     targetDistance = 1.55;
