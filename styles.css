@@ -219,30 +219,32 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             background: linear-gradient(135deg, rgba(0, 20, 40, 0.95), rgba(0, 40, 80, 0.95));
-            padding: 40px 20px;
+            padding: 20px 20px 80px 20px;
+            overflow-y: auto;
         }
 
         body.flag-quiz-active #quiz-header {
             font-size: 24px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            margin-top: 40px;
         }
 
         body.flag-quiz-active #quiz-score {
             font-size: 18px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         body.flag-quiz-active #quiz-question {
             font-size: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             max-width: 600px;
         }
 
         body.flag-quiz-active #quiz-flag-display {
-            margin-bottom: 30px;
-            padding: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
             background-color: rgba(0, 0, 0, 0.5);
             border-radius: 12px;
         }
@@ -259,7 +261,7 @@
         }
 
         body.flag-quiz-active #quiz-flag-display canvas {
-            max-width: 90vw;
+            max-width: 400px;
             max-height: 40vh;
             width: auto;
             height: auto;
@@ -304,6 +306,7 @@
             display: block;
             margin: 0 auto;
             border-radius: 4px;
+            max-width: 400px;
         }
 
         .quiz-option {
@@ -387,7 +390,7 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            z-index: 10;
+            z-index: 200;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1356,7 +1359,7 @@
                 align-items: center;
                 justify-content: flex-start;
                 background: linear-gradient(135deg, rgba(0, 20, 40, 0.98), rgba(0, 40, 80, 0.98));
-                padding: 15px 12px;
+                padding: 15px 12px 100px 12px;
                 overflow-y: auto;
                 box-sizing: border-box;
             }
@@ -1372,6 +1375,7 @@
             body.flag-quiz-active #quiz-header {
                 font-size: 18px;
                 margin-bottom: 15px;
+                margin-top: 40px;
             }
 
             body.flag-quiz-active #quiz-score {
