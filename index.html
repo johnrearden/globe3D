@@ -361,6 +361,7 @@
         let mouse = new THREE.Vector2();
         let raycaster = new THREE.Raycaster();
         let selectedCountry = null;
+        let smallCountryIndicator = null; // White circle indicator for tiny countries
         let controls;
         let baseSphere;
         let mouseDownPos = new THREE.Vector2();
@@ -1050,6 +1051,9 @@
                     country.material.needsUpdate = true;
                 });
 
+                // Remove small country indicator
+                removeSmallCountryIndicator();
+
                 // Hide the flag container
                 if (flagRenderer) flagRenderer.hide();
             }
@@ -1529,6 +1533,9 @@
 
         // Zoom out to default view
         function zoomOutToDefault() {
+            // Remove small country indicator when zooming out
+            removeSmallCountryIndicator();
+
             const targetDistance = initialCameraDistance; // Return to initial camera distance
             const currentPos = camera.position.clone();
             const currentDistance = currentPos.length();
@@ -2203,6 +2210,9 @@
 
                 // Center on clicked country (if not in quiz mode)
                 if (!state.get('quiz.active')) {
+                    // Remove old small country indicator before showing new one
+                    removeSmallCountryIndicator();
+
                     // Reset all countries to normal state first
                     countries.forEach(c => {
                         c.material.vertexColors = true;
@@ -2793,6 +2803,78 @@
         // ===== SEARCH FUNCTIONS MOVED TO js/features/search.js =====
         // (Removed: onSearchInput, onSearchKeyDown, updateSearchSelection, selectCountryFromSearch, focusOnCountryByName)
 
+        // Create/update white circle indicator for small countries
+        function updateSmallCountryIndicator(country) {
+            // Remove old indicator if it exists
+            if (smallCountryIndicator) {
+                globe.remove(smallCountryIndicator);
+                smallCountryIndicator.geometry.dispose();
+                smallCountryIndicator.material.dispose();
+                smallCountryIndicator = null;
+            }
+
+            // Only show indicator for small countries
+            const countryName = country.userData.name;
+            if (!SMALL_COUNTRIES.has(countryName)) {
+                return;
+            }
+
+            // Get the country's centroid position
+            const geometry = country.geometry;
+            const positions = geometry.attributes.position;
+            let centerX = 0, centerY = 0, centerZ = 0;
+            const vertexCount = positions.count;
+
+            for (let i = 0; i < vertexCount; i++) {
+                centerX += positions.getX(i);
+                centerY += positions.getY(i);
+                centerZ += positions.getZ(i);
+            }
+
+            centerX /= vertexCount;
+            centerY /= vertexCount;
+            centerZ /= vertexCount;
+
+            // Apply country's world matrix
+            const worldPos = new THREE.Vector3(centerX, centerY, centerZ);
+            country.localToWorld(worldPos);
+
+            // Normalize and scale slightly above surface
+            const direction = worldPos.clone().normalize();
+            const indicatorPos = direction.multiplyScalar(1.025);
+
+            // Create circle geometry (ring)
+            const circleGeometry = new THREE.RingGeometry(0.025, 0.03, 32);
+            const circleMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            smallCountryIndicator = new THREE.Mesh(circleGeometry, circleMaterial);
+
+            // Position the circle
+            smallCountryIndicator.position.copy(indicatorPos);
+
+            // Orient the circle to face outward from globe center
+            smallCountryIndicator.lookAt(0, 0, 0);
+            smallCountryIndicator.rotateX(Math.PI);
+
+            // Add to globe
+            globe.add(smallCountryIndicator);
+        }
+
+        // Remove small country indicator
+        function removeSmallCountryIndicator() {
+            if (smallCountryIndicator) {
+                globe.remove(smallCountryIndicator);
+                smallCountryIndicator.geometry.dispose();
+                smallCountryIndicator.material.dispose();
+                smallCountryIndicator = null;
+            }
+        }
+
         // Rotate globe to center a country
         function rotateGlobeToCountry(country, isQuizMode = false) {
             // Get the country's position (centroid of all vertices)
@@ -2911,6 +2993,11 @@
 
                 if (progress < 1) {
                     requestAnimationFrame(animateRotation);
+                } else {
+                    // Animation complete - show indicator for small countries (except in quiz mode)
+                    if (!isQuizMode) {
+                        updateSmallCountryIndicator(country);
+                    }
                 }
             }
 
