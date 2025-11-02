@@ -229,6 +229,7 @@
         import { IdentifyFlagQuiz } from './js/features/quiz/identify-flag-quiz.js';
         import { ClickQuiz } from './js/features/quiz/click-quiz.js';
         import { FlagRenderer } from './js/features/flag-renderer.js';
+        import { SearchManager } from './js/features/search.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -445,11 +446,6 @@
         // Country borders
         let countryBorders = []; // Array of border line segments
 
-        // Search state
-        let searchResultsCache = '';
-        let selectedSearchCountry = null; // Track the country selected from search
-        let currentSearchIndex = -1; // Track currently selected search result index
-
         // Auto-rotation state
         let autoRotateEnabled = false;
         let lastInteractionTime = Date.now();
@@ -466,6 +462,7 @@
         let identifyFlagQuiz = null;
         let clickQuiz = null;
         let flagRenderer = null;
+        let searchManager = null;
 
         // ===== STATE SYNCHRONIZATION =====
         // Initialize state manager with current variable values
@@ -495,6 +492,11 @@
             // Sync flag renderer
             if (flagRenderer) {
                 state.set('flags.renderer', flagRenderer, false);
+            }
+
+            // Sync search manager
+            if (searchManager) {
+                state.set('search.manager', searchManager, false);
             }
 
             // Sync UI state
@@ -893,6 +895,18 @@
                     quizManager.registerMode('name-flag', nameFlagQuiz);
                     quizManager.registerMode('identify-flag', identifyFlagQuiz);
                     quizManager.registerMode('click-country', clickQuiz);
+
+                    // ===== PHASE 9: Initialize Search System =====
+                    searchManager = new SearchManager({
+                        elements: elements,
+                        globeManager: globeManager,
+                        flagRenderer: flagRenderer,
+                        countryData: countryData,
+                        countryToISO: countryToISO,
+                        rotateGlobeToCountry: rotateGlobeToCountry,
+                        resetIdleTimer: resetIdleTimer
+                    });
+                    searchManager.init();
 
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
@@ -1371,9 +1385,7 @@
             // Window resize
             window.addEventListener('resize', onWindowResize);
 
-            // Search input
-            elements.get('country-search').addEventListener('input', onSearchInput);
-            elements.get('country-search').addEventListener('keydown', onSearchKeyDown);
+            // Search input handled by SearchManager.init()
 
             // Quiz buttons
             elements.get('quiz-start-btn').addEventListener('click', showQuizModeSelector);
@@ -2671,149 +2683,8 @@
         // ===== FLAG RENDERER FUNCTIONS MOVED TO js/features/flag-renderer.js =====
         // (Removed: initFlagRenderer, createWavingFlag, updateFlagAnimation, showWavingFlag, hideWavingFlag)
 
-        // Handle search input
-        function onSearchInput(event) {
-            const searchTerm = event.target.value.toLowerCase().trim();
-            const resultsContainer = elements.get('search-results');
-
-            // Reset search index when user types
-            currentSearchIndex = -1;
-
-            // Clear results if search is empty
-            if (searchTerm === '') {
-                resultsContainer.innerHTML = '';
-                selectedSearchCountry = null; // Clear selection when search is empty
-                return;
-            }
-
-            // Get unique country names from the countries array
-            const uniqueCountryNames = [...new Set(countries.map(c => c.userData.name))];
-
-            // Filter countries that match the search term
-            const matchingCountries = uniqueCountryNames
-                .filter(name => name.toLowerCase().includes(searchTerm))
-                .sort();
-
-            // Display results
-            if (matchingCountries.length === 0) {
-                resultsContainer.innerHTML = '<div style="color: #e0e0e0; padding: 8px;">No countries found</div>';
-            } else {
-                resultsContainer.innerHTML = matchingCountries
-                    .map(name => `<div class="search-result-item" data-country="${name}">${name}</div>`)
-                    .join('');
-
-                // Add click handlers to results
-                resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const countryName = item.getAttribute('data-country');
-                        selectCountryFromSearch(countryName);
-                    });
-                });
-            }
-        }
-
-        // Handle Enter key and arrow keys in search
-        function onSearchKeyDown(event) {
-            const resultsContainer = elements.get('search-results');
-            const resultItems = resultsContainer.querySelectorAll('.search-result-item');
-
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                if (resultItems.length > 0) {
-                    currentSearchIndex = (currentSearchIndex + 1) % resultItems.length;
-                    updateSearchSelection(resultItems);
-                }
-            } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                if (resultItems.length > 0) {
-                    currentSearchIndex = currentSearchIndex <= 0 ? resultItems.length - 1 : currentSearchIndex - 1;
-                    updateSearchSelection(resultItems);
-                }
-            } else if (event.key === 'Enter') {
-                const searchTerm = event.target.value.trim();
-
-                // Get unique country names
-                const uniqueCountryNames = [...new Set(countries.map(c => c.userData.name))];
-
-                // If user has navigated with arrow keys, use that selection
-                let matchedCountry = null;
-                if (currentSearchIndex >= 0 && currentSearchIndex < resultItems.length) {
-                    matchedCountry = resultItems[currentSearchIndex].getAttribute('data-country');
-                } else {
-                    // Try exact match first (case insensitive)
-                    matchedCountry = uniqueCountryNames.find(
-                        name => name.toLowerCase() === searchTerm.toLowerCase()
-                    );
-
-                    // If no exact match, try partial match (take first result)
-                    if (!matchedCountry) {
-                        const matches = uniqueCountryNames
-                            .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
-                            .sort();
-                        matchedCountry = matches[0];
-                    }
-                }
-
-                if (matchedCountry) {
-                    selectCountryFromSearch(matchedCountry);
-                    // Select all text in the input
-                    event.target.select();
-                }
-            }
-        }
-
-        // Update visual selection in search results
-        function updateSearchSelection(resultItems) {
-            resultItems.forEach((item, index) => {
-                if (index === currentSearchIndex) {
-                    item.style.backgroundColor = 'rgba(255, 140, 0, 0.2)';
-                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                    // Update input value with selected country
-                    elements.get('country-search').value = item.getAttribute('data-country');
-                } else {
-                    item.style.backgroundColor = '';
-                }
-            });
-        }
-
-        // Select country from search and hide results
-        function selectCountryFromSearch(countryName) {
-            selectedSearchCountry = countryName; // Track selected country
-            focusOnCountryByName(countryName);
-            // Hide search results after selection
-            elements.get('search-results').innerHTML = '';
-            currentSearchIndex = -1; // Reset search index
-
-            // Reset the idle timer to give user 10 seconds before rotation resumes
-            resetIdleTimer();
-        }
-
-        // Focus on country by name
-        function focusOnCountryByName(countryName) {
-            const country = countries.find(c => c.userData.name === countryName);
-            if (country) {
-                // Show the flag for this country
-                if (flagRenderer) {
-                    flagRenderer.show(countryName, countryData, countryToISO);
-                }
-
-                // Highlight the country on the globe
-                // Reset all countries first
-                countries.forEach(c => {
-                    c.material.vertexColors = true;
-                    c.material.color.setHex(0xffffff);
-                    c.material.needsUpdate = true;
-                });
-
-                // Highlight selected country
-                country.material.vertexColors = false;
-                country.material.color.setHex(0xFFFFFF);
-                country.material.needsUpdate = true;
-
-                // Rotate and tilt globe to center the country
-                rotateGlobeToCountry(country);
-            }
-        }
+        // ===== SEARCH FUNCTIONS MOVED TO js/features/search.js =====
+        // (Removed: onSearchInput, onSearchKeyDown, updateSearchSelection, selectCountryFromSearch, focusOnCountryByName)
 
         // Rotate globe to center a country
         function rotateGlobeToCountry(country, isQuizMode = false) {
