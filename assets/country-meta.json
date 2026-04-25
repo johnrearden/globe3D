@@ -1,8 +1,8 @@
 {
   "colorWidth": 4096,
   "colorHeight": 2048,
-  "idWidth": 2048,
-  "idHeight": 1024,
+  "idWidth": 4096,
+  "idHeight": 2048,
   "oceanId": 0,
   "oceanColor": [
     6,

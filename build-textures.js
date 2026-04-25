@@ -12,8 +12,14 @@ const OUTPUT_META = './assets/country-meta.json';
 
 const COLOR_W = 4096;
 const COLOR_H = 2048;
-const ID_W = 2048;
-const ID_H = 1024;
+const ID_W = 4096;
+const ID_H = 2048;
+
+// Connected-components cleanup: drop fragments smaller than this, except
+// always preserve each country's largest fragment so tiny countries
+// (Vatican, Monaco) keep their only rasterized pixel.
+const MIN_FRAGMENT_PX = 4;
+const FRAGDEBUG = process.env.FRAGDEBUG === '1';
 
 const SIMPLIFICATION_TOLERANCE = 0.006;
 const OCEAN_COLOR = [0x06, 0x1A, 0x33];
@@ -182,6 +188,147 @@ function rasterizeRingToBuffer(ring, W, H, writePixel) {
             );
         }
     }
+}
+
+// Two-pass connected-components cleanup. Pass 1 BFS-labels every same-id
+// 4-connected region; pass 2 erases regions smaller than MIN_FRAGMENT_PX,
+// EXCEPT each country's largest region is always kept (so tiny countries
+// like Vatican/Monaco — whose only fragment is sub-pixel — are preserved).
+// Removes the visible "floating pixel off the coast" artifact at its source.
+function cleanupFragments(idBuf, idW, idH, colorBuf, colorW, colorH, oceanColor, idToName) {
+    const W = idW, H = idH;
+    const N = W * H;
+
+    const labels = new Int32Array(N);     // 0 = unlabeled
+    const queue = new Int32Array(N);      // BFS scratch
+    const compId = [0];
+    const compSize = [0];
+    let nextLabel = 1;
+
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            const i = y * W + x;
+            if (labels[i] !== 0) continue;
+            const bi = i * 2;
+            const id = idBuf[bi] * 256 + idBuf[bi + 1];
+            if (id === 0) continue;
+
+            const label = nextLabel++;
+            labels[i] = label;
+            queue[0] = i;
+            let qHead = 0, qTail = 1;
+            let count = 0;
+
+            while (qHead < qTail) {
+                const pi = queue[qHead++];
+                count++;
+                const py = (pi / W) | 0;
+                const px = pi - py * W;
+
+                // Inlined 4-neighbor walk for speed.
+                if (py > 0) {
+                    const ni = pi - W;
+                    if (labels[ni] === 0) {
+                        const nbi = ni * 2;
+                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                    }
+                }
+                if (py < H - 1) {
+                    const ni = pi + W;
+                    if (labels[ni] === 0) {
+                        const nbi = ni * 2;
+                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                    }
+                }
+                if (px > 0) {
+                    const ni = pi - 1;
+                    if (labels[ni] === 0) {
+                        const nbi = ni * 2;
+                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                    }
+                }
+                if (px < W - 1) {
+                    const ni = pi + 1;
+                    if (labels[ni] === 0) {
+                        const nbi = ni * 2;
+                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                    }
+                }
+            }
+
+            compId.push(id);
+            compSize.push(count);
+        }
+    }
+
+    // Largest component per country id.
+    const largestForId = new Map();
+    for (let lbl = 1; lbl < compId.length; lbl++) {
+        const id = compId[lbl];
+        const sz = compSize[lbl];
+        const cur = largestForId.get(id);
+        if (!cur || sz > cur.size) largestForId.set(id, { label: lbl, size: sz });
+    }
+
+    // Mark drops.
+    const drop = new Uint8Array(compId.length);
+    const dropPerCountry = new Map();
+    let droppedComponents = 0;
+    let droppedPixels = 0;
+    for (let lbl = 1; lbl < compId.length; lbl++) {
+        const id = compId[lbl];
+        const sz = compSize[lbl];
+        if (lbl === largestForId.get(id).label) continue; // never drop the largest
+        if (sz >= MIN_FRAGMENT_PX) continue;
+        drop[lbl] = 1;
+        droppedComponents++;
+        droppedPixels += sz;
+        const cur = dropPerCountry.get(id) || { count: 0, pixels: 0 };
+        cur.count++;
+        cur.pixels += sz;
+        dropPerCountry.set(id, cur);
+    }
+
+    if (FRAGDEBUG) {
+        console.log(`[fragdebug] total components: ${compId.length - 1}`);
+        console.log(`[fragdebug] would drop: ${droppedComponents} components / ${droppedPixels} pixels (NOT erasing)`);
+        const top = [...dropPerCountry.entries()]
+            .sort((a, b) => b[1].pixels - a[1].pixels)
+            .slice(0, 30);
+        for (const [id, info] of top) {
+            const name = idToName ? idToName[id] : `id=${id}`;
+            console.log(`  ${name}: ${info.count} fragments / ${info.pixels} px`);
+        }
+        return { droppedComponents: 0, droppedPixels: 0 };
+    }
+
+    // Erase: zero id bytes and reset corresponding color pixels to ocean.
+    const cScaleX = colorW / W;
+    const cScaleY = colorH / H;
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            const i = y * W + x;
+            const lbl = labels[i];
+            if (lbl === 0 || !drop[lbl]) continue;
+            const bi = i * 2;
+            idBuf[bi] = 0;
+            idBuf[bi + 1] = 0;
+            const cxStart = Math.floor(x * cScaleX);
+            const cyStart = Math.floor(y * cScaleY);
+            const cxEnd = Math.max(cxStart + 1, Math.floor((x + 1) * cScaleX));
+            const cyEnd = Math.max(cyStart + 1, Math.floor((y + 1) * cScaleY));
+            for (let cy = cyStart; cy < cyEnd; cy++) {
+                for (let cx = cxStart; cx < cxEnd; cx++) {
+                    const ci = (cy * colorW + cx) * 3;
+                    colorBuf[ci] = oceanColor[0];
+                    colorBuf[ci + 1] = oceanColor[1];
+                    colorBuf[ci + 2] = oceanColor[2];
+                }
+            }
+        }
+    }
+
+    return { droppedComponents, droppedPixels };
 }
 
 // One pass: any id=0 pixel with at least one non-zero 4-neighbor takes the
@@ -370,6 +517,10 @@ function build() {
 
         console.log(`  ✓ ${displayName} (id=${id}): ${ringCount} rings, ~${totalPixels} color px`);
     }
+
+    console.log(FRAGDEBUG ? 'Analyzing fragments (FRAGDEBUG=1, no erase)...' : 'Cleaning up tiny isolated fragments...');
+    const cleanup = cleanupFragments(idBuf, ID_W, ID_H, colorBuf, COLOR_W, COLOR_H, OCEAN_COLOR, idToName);
+    console.log(`Removed ${cleanup.droppedComponents} fragments / ${cleanup.droppedPixels} pixels`);
 
     console.log('Dilating ID buffer (1px)...');
     dilateIds(idBuf, ID_W, ID_H, colorBuf, COLOR_W, COLOR_H);
