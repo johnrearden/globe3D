@@ -52,9 +52,8 @@ export class SearchManager {
             return;
         }
 
-        // Get unique country names from the countries array
-        const countries = this.globeManager.getCountries();
-        const uniqueCountryNames = [...new Set(countries.map(c => c.userData.name))];
+        // Get country names from the meta map
+        const uniqueCountryNames = this.globeManager.getCountryNames();
 
         // Filter countries that match the search term
         const matchingCountries = uniqueCountryNames
@@ -102,9 +101,8 @@ export class SearchManager {
         } else if (event.key === 'Enter') {
             const searchTerm = event.target.value.trim();
 
-            // Get unique country names
-            const countries = this.globeManager.getCountries();
-            const uniqueCountryNames = [...new Set(countries.map(c => c.userData.name))];
+            // Get country names from the meta map
+            const uniqueCountryNames = this.globeManager.getCountryNames();
 
             // If user has navigated with arrow keys, use that selection
             let matchedCountry = null;
@@ -172,32 +170,18 @@ export class SearchManager {
      * @param {string} countryName - Name of the country to focus on
      */
     focusOnCountryByName(countryName) {
-        const countries = this.globeManager.getCountries();
-        const country = countries.find(c => c.userData.name === countryName);
+        const record = this.globeManager.getCountryByName(countryName);
+        if (!record) return;
 
-        if (country) {
-            // Show the flag for this country
-            if (this.flagRenderer) {
-                this.flagRenderer.show(countryName, this.countryData, this.countryToISO);
-            }
+        if (this.flagRenderer) {
+            this.flagRenderer.show(countryName, this.countryData, this.countryToISO);
+        }
 
-            // Highlight the country on the globe
-            // Reset all countries first
-            countries.forEach(c => {
-                c.material.vertexColors = true;
-                c.material.color.setHex(0xffffff);
-                c.material.needsUpdate = true;
-            });
+        this.globeManager.clearSelection();
+        this.globeManager.setSelectedCountry(countryName);
 
-            // Highlight selected country
-            country.material.vertexColors = false;
-            country.material.color.setHex(0xFFFFFF);
-            country.material.needsUpdate = true;
-
-            // Rotate and tilt globe to center the country
-            if (this.rotateGlobeToCountry) {
-                this.rotateGlobeToCountry(country);
-            }
+        if (this.rotateGlobeToCountry) {
+            this.rotateGlobeToCountry(record);
         }
     }
 

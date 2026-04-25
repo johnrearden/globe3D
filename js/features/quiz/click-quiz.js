@@ -191,18 +191,7 @@ export class ClickQuiz {
      * @param {number} color - Hex color to flash
      */
     flashCountryColor(countryName, color) {
-        const countries = this.globeManager.getCountries();
-        const country = countries.find(c => c.userData.name === countryName);
-        if (country) {
-            const originalColor = country.material.color.getHex();
-            country.material.color.setHex(color);
-            country.material.needsUpdate = true;
-
-            setTimeout(() => {
-                country.material.color.setHex(originalColor);
-                country.material.needsUpdate = true;
-            }, 500);
-        }
+        this.globeManager.flashCountry(countryName, color, 500);
     }
 
     /**

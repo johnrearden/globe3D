@@ -57,53 +57,40 @@ export class CameraController {
     }
 
     /**
-     * Rotate globe to show a specific country
-     * @param {THREE.Mesh} country - Country mesh
+     * Rotate globe to show a specific country.
+     * @param {{centroid: THREE.Vector3, bbox: {minLat, maxLat, minLng, maxLng}}} countryRecord
+     *   Country record from globeManager.getCountryByName().
      * @param {boolean} isQuizMode - Whether in quiz mode (affects zoom)
      */
-    rotateToCountry(country, isQuizMode = false) {
-        // Get the country's position (centroid of all vertices)
-        const geometry = country.geometry;
-        const positions = geometry.attributes.position;
+    rotateToCountry(countryRecord, isQuizMode = false) {
+        if (!countryRecord || !countryRecord.centroid) return;
 
-        let centerX = 0, centerY = 0, centerZ = 0;
+        const centroid = countryRecord.centroid;
+        const bboxLatLng = countryRecord.bbox;
+
+        // Approximate the 3D bounding box from the four lat/lng bbox corners
+        // projected onto the unit sphere. Sufficient for the zoom heuristic.
+        const corners = [
+            this._latLngToVec3(bboxLatLng.minLat, bboxLatLng.minLng),
+            this._latLngToVec3(bboxLatLng.minLat, bboxLatLng.maxLng),
+            this._latLngToVec3(bboxLatLng.maxLat, bboxLatLng.minLng),
+            this._latLngToVec3(bboxLatLng.maxLat, bboxLatLng.maxLng)
+        ];
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
         let minZ = Infinity, maxZ = -Infinity;
-        const vertexCount = positions.count;
-
-        for (let i = 0; i < vertexCount; i++) {
-            const x = positions.getX(i);
-            const y = positions.getY(i);
-            const z = positions.getZ(i);
-
-            centerX += x;
-            centerY += y;
-            centerZ += z;
-
-            // Track bounding box
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
-            minZ = Math.min(minZ, z);
-            maxZ = Math.max(maxZ, z);
+        for (const v of corners) {
+            if (v.x < minX) minX = v.x;
+            if (v.x > maxX) maxX = v.x;
+            if (v.y < minY) minY = v.y;
+            if (v.y > maxY) maxY = v.y;
+            if (v.z < minZ) minZ = v.z;
+            if (v.z > maxZ) maxZ = v.z;
         }
-
-        centerX /= vertexCount;
-        centerY /= vertexCount;
-        centerZ /= vertexCount;
-
-        // Calculate bounding box size (approximate land area)
         const bbox = new THREE.Vector3(maxX - minX, maxY - minY, maxZ - minZ);
-        const bboxSize = bbox.length(); // Diagonal length of bounding box
+        const bboxSize = bbox.length();
 
-        // Apply country's world matrix to get actual position
-        const worldPos = new THREE.Vector3(centerX, centerY, centerZ);
-        country.localToWorld(worldPos);
-
-        // Normalize to get direction
-        worldPos.normalize();
+        const worldPos = centroid.clone().normalize();
 
         // Calculate the spherical angles to this position
         let phi = Math.acos(worldPos.y); // Polar angle
@@ -174,6 +161,16 @@ export class CameraController {
         };
 
         animateRotation();
+    }
+
+    _latLngToVec3(lat, lng) {
+        const phi = (90 - lat) * Math.PI / 180;
+        const theta = -(lng + 180) * Math.PI / 180;
+        return new THREE.Vector3(
+            Math.sin(phi) * Math.cos(theta),
+            Math.cos(phi),
+            Math.sin(phi) * Math.sin(theta)
+        );
     }
 
     /**

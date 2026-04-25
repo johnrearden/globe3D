@@ -98,12 +98,7 @@ export class NameFlagQuiz {
         this.elements.get('quiz-container').style.display = 'none';
 
         // Reset globe highlighting
-        const countries = this.globeManager.getCountries();
-        countries.forEach(country => {
-            country.material.vertexColors = true;
-            country.material.color.setHex(0xffffff);
-            country.material.needsUpdate = true;
-        });
+        this.globeManager.clearSelection();
 
         // Show celebration overlay with score
         this.showQuizCelebration(this.score, this.questionsAnswered);
@@ -218,28 +213,11 @@ export class NameFlagQuiz {
      * @param {Object} countryObj - Country centroid object
      */
     highlightQuizCountry(countryObj) {
-        const countries = this.globeManager.getCountries();
+        this.globeManager.setSelectedCountry(countryObj.name);
 
-        // Reset all countries
-        countries.forEach(country => {
-            country.material.vertexColors = true;
-            country.material.color.setHex(0xffffff);
-            country.material.needsUpdate = true;
-        });
-
-        // Get all mesh references for this country
-        const countryMeshes = countries.filter(mesh => mesh.userData.name === countryObj.name);
-
-        // Highlight the quiz country with white
-        countryMeshes.forEach(mesh => {
-            mesh.material.vertexColors = false;
-            mesh.material.color.setHex(0xFFFFFF);
-            mesh.material.needsUpdate = true;
-        });
-
-        // Rotate globe to center the country
-        if (countryMeshes.length > 0) {
-            this.rotateGlobeToCountry(countryMeshes[0], true);
+        const record = this.globeManager.getCountryByName(countryObj.name);
+        if (record) {
+            this.rotateGlobeToCountry(record, true);
         }
     }
 

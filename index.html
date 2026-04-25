@@ -88,18 +88,10 @@
             <div class="control-item">
                 • Scroll to zoom
             </div>
-            <div class="control-item" style="margin-top: 15px;">
-                <strong>Inner Sphere Radius:</strong>
-            </div>
-            <div class="control-item">
-                <span id="sphere-radius-value">1.014</span>
-                <button id="sphere-radius-down" style="margin-left: 10px; padding: 2px 8px;">▼</button>
-                <button id="sphere-radius-up" style="padding: 2px 8px;">▲</button>
-            </div>
             <div class="control-item">
                 <label for="sphere-toggle" style="width: auto;">
                     <input type="checkbox" id="sphere-toggle" checked style="width: auto; margin-right: 5px;">
-                    Show Inner Sphere
+                    Show Countries
                 </label>
             </div>
         </div>
@@ -216,8 +208,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/perlin.js/1.0/perlin.js"></script>
     <script type="module">
         // ===== IMPORTS =====
@@ -446,9 +436,6 @@
             'Tonga', 'Kiribati', 'Micronesia', 'Cape Verde', 'Samoa'
         ]);
 
-        // Country borders
-        let countryBorders = []; // Array of border line segments
-
         // Auto-rotation state
         let autoRotateEnabled = false;
         let lastInteractionTime = Date.now();
@@ -486,7 +473,6 @@
             state.set('countries.list', countries, false);
             state.set('countries.centroids', countryCentroids, false);
             state.set('countries.selected', selectedCountry, false);
-            state.set('countries.borders', countryBorders, false);
             if (mouse) state.set('mouse.position', mouse, false);
             if (raycaster) state.set('mouse.raycaster', raycaster, false);
             if (mouseDownPos) state.set('mouse.downPos', mouseDownPos, false);
@@ -935,6 +921,11 @@
                 // Update controls
                 cameraController.update();
 
+                // Drive the flash-fade for quiz feedback
+                if (globeManager) {
+                    globeManager.updateFlash();
+                }
+
                 // Update flag animations
                 if (flagRenderer && flagRenderer.isShowing()) {
                     flagRenderer.update();
@@ -1044,12 +1035,8 @@
                     searchManager.clear();
                 }
 
-                // Reset all countries to normal state
-                countries.forEach(country => {
-                    country.material.vertexColors = true;
-                    country.material.color.setHex(0xffffff);
-                    country.material.needsUpdate = true;
-                });
+                // Reset country highlight on the textured globe
+                globeManager.clearSelection();
 
                 // Remove small country indicator
                 removeSmallCountryIndicator();
@@ -1158,125 +1145,6 @@
             }
         }
 
-        async function loadWorldData() {
-            try {
-                console.log('Loading world globe...');
-
-                // Create DRACOLoader for decompressing the mesh
-                const dracoLoader = new THREE.DRACOLoader();
-                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-                dracoLoader.setDecoderConfig({ type: 'js' });
-
-                // Create GLTFLoader and attach DRACOLoader
-                const loader = new THREE.GLTFLoader();
-                loader.setDRACOLoader(dracoLoader);
-
-                // Load the pre-built globe GLB file
-                loader.load(
-                    'assets/world.glb',
-                    async function (gltf) {
-                        console.log('GLB loaded successfully');
-                        updateLoadingProgress(70, 'Processing countries...', true);
-
-                        // Add all meshes from the GLB to the globe
-                        gltf.scene.traverse((child) => {
-                            if (child.isMesh) {
-                                // Store reference for raycasting and interaction
-                                child.userData.isCountry = true;
-
-                                // Get the vertex color from the geometry (if available)
-                                const hasVertexColors = child.geometry.attributes.color !== undefined;
-
-                                // Set material to use vertex colors with Phong material for smooth lighting
-                                if (hasVertexColors) {
-                                    child.material = new THREE.MeshPhongMaterial({
-                                        vertexColors: true,
-                                        transparent: false,
-                                        side: THREE.FrontSide,
-                                        flatShading: false,
-                                        shininess: 30
-                                    });
-                                } else {
-                                    child.material = new THREE.MeshPhongMaterial({
-                                        color: 0x4FC3F7,
-                                        transparent: false,
-                                        side: THREE.FrontSide,
-                                        flatShading: false,
-                                        shininess: 30
-                                    });
-                                }
-
-                                // Extract country name from mesh name
-                                // Remove the trailing number (e.g., "_0", "_1") and convert to title case
-                                const countryName = child.name.replace(/_\d+$/, ''); // Remove trailing _number
-                                const formattedName = countryName
-                                    .replace(/_/g, ' ') // Replace underscores with spaces
-                                    .split(' ')
-                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                    .join(' ');
-                                child.userData.name = formattedName;
-
-                                countries.push(child);
-                            }
-                        });
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(78, 'Building globe...', true);
-
-                        // Add the entire scene to the globe
-                        globe.add(gltf.scene);
-
-                        console.log(`Loaded ${countries.length} country meshes`);
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(85, 'Calculating positions...', true);
-
-                        // Build country centroids cache for quiz
-                        buildCountryCentroidsCache();
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(90, 'Creating labels...', true);
-
-                        // Create country labels
-                        createCountryLabels();
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(95, 'Loading configuration...', true);
-
-                        // Load saved label configuration if available
-                        loadLabelConfig();
-
-                        // Load saved color configuration if available
-                        loadColorConfig();
-
-                        // Create country borders
-                        // createCountryBorders(); // Disabled for performance
-
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        updateLoadingProgress(100, 'Complete!', true);
-
-                        await new Promise(resolve => setTimeout(resolve, 400));
-                        hideLoading();
-                    },
-                    function (xhr) {
-                        // Progress callback - scale download to 0-70% of total progress
-                        const downloadPercent = (xhr.loaded / xhr.total * 100).toFixed(0);
-                        const scaledPercent = Math.floor(downloadPercent * 0.7);
-                        console.log(`Downloading: ${downloadPercent}% (scaled: ${scaledPercent}%)`);
-                        updateLoadingProgress(scaledPercent, `Downloading... ${downloadPercent}%`);
-                    },
-                    function (error) {
-                        console.error('Error loading GLB:', error);
-                        hideLoading();
-                    }
-                );
-
-            } catch (error) {
-                console.error('Error loading world data:', error);
-                hideLoading();
-            }
-        }
-
         // Helper function for latitude/longitude lines
         function latLngToVector3(lat, lng, radius = 1, height = 0) {
             const phi = (90 - lat) * Math.PI / 180;
@@ -1288,6 +1156,18 @@
             const z = r * Math.sin(phi) * Math.sin(theta);
 
             return new THREE.Vector3(x, y, z);
+        }
+
+        // Build-globe convention (negated theta) — matches the texture/centroid
+        // mapping. Used by rotateGlobeToCountry for bbox-corner projection.
+        function rotateGlobe_latLngToVec3(lat, lng) {
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = -(lng + 180) * Math.PI / 180;
+            return new THREE.Vector3(
+                Math.sin(phi) * Math.cos(theta),
+                Math.cos(phi),
+                Math.sin(phi) * Math.sin(theta)
+            );
         }
 
         function addLatLongLines() {
@@ -1444,9 +1324,7 @@
             elements.get('click-quiz-close-btn').addEventListener('click', closeClickQuizResults);
             elements.get('click-quiz-results-overlay').addEventListener('click', closeClickQuizResults);
 
-            // Sphere radius controls
-            elements.get('sphere-radius-up').addEventListener('click', increaseSphereRadius);
-            elements.get('sphere-radius-down').addEventListener('click', decreaseSphereRadius);
+            // Show-countries toggle
             elements.get('sphere-toggle').addEventListener('change', toggleSphere);
 
             // Edit mode keyboard shortcuts
@@ -1771,32 +1649,11 @@
                 });
         }
 
-        // Apply saved color configuration to country meshes
+        // Apply saved color configuration via the override texture.
         function applyColorConfig() {
-            countries.forEach(country => {
-                const countryName = country.userData.name;
-                const color = colorConfig[countryName];
-
-                if (color) {
-                    // Apply color to the country mesh vertices
-                    const geometry = country.geometry;
-                    const colorAttribute = geometry.getAttribute('color');
-
-                    if (colorAttribute) {
-                        const colors = colorAttribute.array;
-                        const vertexCount = colors.length / 3;
-
-                        // Set all vertices to the saved color
-                        for (let i = 0; i < vertexCount; i++) {
-                            colors[i * 3] = color[0];
-                            colors[i * 3 + 1] = color[1];
-                            colors[i * 3 + 2] = color[2];
-                        }
-
-                        colorAttribute.needsUpdate = true;
-                    }
-                }
-            });
+            if (globeManager) {
+                globeManager.applyColorOverrides(colorConfig);
+            }
         }
 
         // Open label editor modal for selected label
@@ -1984,39 +1841,16 @@
             }
         }
 
-        // Change country color to a random color from palette
-        function changeCountryColor(country) {
-            if (!country || !colorEditMode) return;
+        // Change country color to a random color from palette.
+        function changeCountryColor(countryName) {
+            if (!countryName || !colorEditMode) return;
 
-            const countryName = country.userData.name;
-
-            // Pick a random color from the palette
             const randomColor = COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
-
-            // Apply color to the country mesh
-            const geometry = country.geometry;
-            const colorAttribute = geometry.getAttribute('color');
-
-            if (colorAttribute) {
-                const colors = colorAttribute.array;
-                const vertexCount = colors.length / 3;
-
-                // Set all vertices to the new color
-                for (let i = 0; i < vertexCount; i++) {
-                    colors[i * 3] = randomColor[0];
-                    colors[i * 3 + 1] = randomColor[1];
-                    colors[i * 3 + 2] = randomColor[2];
-                }
-
-                colorAttribute.needsUpdate = true;
-            }
-
-            // Store in config
+            globeManager.setCountryColor(countryName, randomColor);
             colorConfig[countryName] = randomColor;
 
             console.log(`${countryName} color changed to [${randomColor.join(', ')}]`);
 
-            // Provide haptic feedback if available
             if (navigator.vibrate) {
                 navigator.vibrate(30);
             }
@@ -2037,50 +1871,12 @@
             console.log('Color configuration saved! Countries configured:', Object.keys(colorConfig).length);
         }
 
-        let currentSphereRadius = 1.014;
-
+        // Repurposed: the textured sphere is the only globe surface now, so
+        // the toggle controls whether countries are drawn (vs. ocean only).
         function toggleSphere(event) {
-            if (baseSphere) {
-                baseSphere.visible = event.target.checked;
+            if (globeManager) {
+                globeManager.setShowCountries(event.target.checked);
             }
-        }
-
-        function increaseSphereRadius() {
-            currentSphereRadius += 0.001;
-            updateSphereRadius();
-        }
-
-        function decreaseSphereRadius() {
-            currentSphereRadius -= 0.001;
-            updateSphereRadius();
-        }
-
-        function updateSphereRadius() {
-            // Update the display
-            setText(elements.get('sphere-radius-value'), currentSphereRadius.toFixed(3));
-
-            // Remove old sphere
-            if (baseSphere) {
-                globe.remove(baseSphere);
-                baseSphere.geometry.dispose();
-                baseSphere.material.dispose();
-            }
-
-            // Create new sphere with updated radius
-            const sphereGeometry = new THREE.SphereGeometry(currentSphereRadius, 64, 64);
-            const sphereMaterial = new THREE.MeshPhongMaterial({
-                color: 0x001a33, // Dark blue ocean color
-                transparent: false,
-                opacity: 1.0,
-                side: THREE.BackSide, // Render inside surface to block artifacts
-                depthWrite: true,
-                shininess: 30, // Moderate reflectivity
-                specular: 0x222222 // Subtle highlights
-            });
-            baseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            globe.add(baseSphere);
-
-            console.log('Sphere radius updated to:', currentSphereRadius.toFixed(3));
         }
 
         function onPointerDown(event) {
@@ -2185,50 +1981,38 @@
             // Color edit mode: Change country color on click
             if (colorEditMode) {
                 raycaster.setFromCamera(mouse, camera);
-                const colorIntersects = raycaster.intersectObjects(countries);
-
-                if (colorIntersects.length > 0) {
-                    changeCountryColor(colorIntersects[0].object);
-                    return; // Don't process normal country selection in color edit mode
+                const colorPick = globeManager.pick(raycaster.ray);
+                if (colorPick) {
+                    changeCountryColor(colorPick.name);
+                    return;
                 }
             }
 
             // Not a drag - treat as a click
-            // Handle click logic
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(countries);
+            const pickResult = globeManager.pick(raycaster.ray);
 
-            if (intersects.length > 0) {
-                selectedCountry = intersects[0].object;
-                console.log('Selected country:', selectedCountry.userData.name);
+            if (pickResult) {
+                const pickedName = pickResult.name;
+                selectedCountry = pickedName;
+                console.log('Selected country:', pickedName);
 
                 // Handle click quiz answer
                 if (clickQuiz && clickQuiz.isActive()) {
-                    clickQuiz.handleAnswer(selectedCountry.userData.name);
-                    return; // Don't process normal country selection
+                    clickQuiz.handleAnswer(pickedName);
+                    return;
                 }
 
                 // Center on clicked country (if not in quiz mode)
                 if (!state.get('quiz.active')) {
-                    // Remove old small country indicator before showing new one
                     removeSmallCountryIndicator();
 
-                    // Reset all countries to normal state first
-                    countries.forEach(c => {
-                        c.material.vertexColors = true;
-                        c.material.color.setHex(0xffffff);
-                        c.material.needsUpdate = true;
-                    });
+                    globeManager.clearSelection();
+                    globeManager.setSelectedCountry(pickedName);
 
-                    // Highlight only the clicked country
-                    selectedCountry.material.vertexColors = false;
-                    selectedCountry.material.color.setHex(0xFFFFFF);
-                    selectedCountry.material.needsUpdate = true;
-
-                    rotateGlobeToCountry(selectedCountry);
-                    // Show the flag for the clicked country
+                    rotateGlobeToCountry(pickedName);
                     if (flagRenderer) {
-                        flagRenderer.show(selectedCountry.userData.name, countryData, countryToISO);
+                        flagRenderer.show(pickedName, countryData, countryToISO);
                     }
                 }
             }
@@ -2295,14 +2079,8 @@
 
             // Raycast for hover effects (cursor change only)
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(countries);
-
-            // Change cursor on hover
-            if (intersects.length > 0) {
-                document.body.style.cursor = 'pointer';
-            } else {
-                document.body.style.cursor = 'default';
-            }
+            const hoverPick = globeManager.pick(raycaster.ray);
+            document.body.style.cursor = hoverPick ? 'pointer' : 'default';
         }
 
         function focusOnCountry(country) {
@@ -2387,241 +2165,6 @@
         // ============================================
         // QUIZ FUNCTIONALITY
         // ============================================
-
-        // Build cache of country centroids for distance calculations
-        function buildCountryCentroidsCache() {
-            countryCentroids = [];
-
-            // Get unique country names
-            const uniqueCountries = new Map();
-
-            countries.forEach(mesh => {
-                const countryName = mesh.userData.name;
-                if (!uniqueCountries.has(countryName)) {
-                    uniqueCountries.set(countryName, []);
-                }
-                uniqueCountries.get(countryName).push(mesh);
-            });
-
-            // Calculate centroid for each unique country (average of all its meshes' centroids)
-            uniqueCountries.forEach((meshes, countryName) => {
-                const centroid = new THREE.Vector3(0, 0, 0);
-                let totalVertices = 0;
-
-                meshes.forEach(mesh => {
-                    const geometry = mesh.geometry;
-                    const positions = geometry.attributes.position;
-
-                    for (let i = 0; i < positions.count; i++) {
-                        const vertex = new THREE.Vector3(
-                            positions.getX(i),
-                            positions.getY(i),
-                            positions.getZ(i)
-                        );
-                        // Apply world transform
-                        mesh.localToWorld(vertex);
-                        centroid.add(vertex);
-                        totalVertices++;
-                    }
-                });
-
-                if (totalVertices > 0) {
-                    centroid.divideScalar(totalVertices);
-                    // Normalize to sphere surface (in case of small precision errors)
-                    centroid.normalize();
-
-                    countryCentroids.push({
-                        name: countryName,
-                        centroid: centroid,
-                        meshRefs: meshes
-                    });
-                }
-            });
-
-            console.log(`Built centroids cache for ${countryCentroids.length} countries`);
-        }
-
-        // Create text label using canvas
-        function createTextLabel(text) {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-
-            // Set canvas size
-            canvas.width = 512;
-            canvas.height = 128;
-
-            // Configure text style
-            context.font = '32px Arial';
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-
-            // Draw dark gray text for contrast with ocean
-            context.fillStyle = '#686868';
-            context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-            // Create texture from canvas
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.needsUpdate = true;
-
-            return texture;
-        }
-
-        // Create labels for all countries
-        function createCountryLabels() {
-            countryCentroids.forEach(countryData => {
-                const countryName = countryData.name;
-
-                // Determine country size category
-                let sizeCategory = 'medium'; // Default
-                let labelWidth, labelHeight;
-
-                if (LARGE_COUNTRIES.has(countryName)) {
-                    sizeCategory = 'large';
-                    labelWidth = 0.25;  // Larger labels for large countries
-                    labelHeight = 0.065;
-                } else if (SMALL_COUNTRIES.has(countryName)) {
-                    sizeCategory = 'small';
-                    labelWidth = 0.12;  // Smaller labels for small countries
-                    labelHeight = 0.032;
-                } else {
-                    sizeCategory = 'medium';
-                    labelWidth = 0.18;  // Medium labels for medium countries
-                    labelHeight = 0.048;
-                }
-
-                const labelTexture = createTextLabel(countryName);
-
-                // Create material with transparency
-                const labelMaterial = new THREE.MeshBasicMaterial({
-                    map: labelTexture,
-                    transparent: true,
-                    opacity: 1.0,
-                    side: THREE.DoubleSide,
-                    depthTest: false, // Disabled to ensure labels render on top
-                    depthWrite: false
-                });
-
-                // Create plane geometry with size based on country category
-                const labelGeometry = new THREE.PlaneGeometry(labelWidth, labelHeight);
-                const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-
-                // Position label at country centroid, slightly above surface
-                const labelPosition = countryData.centroid.clone().multiplyScalar(1.02);
-                labelMesh.position.copy(labelPosition);
-
-                // Orient label to face outward from globe center
-                labelMesh.lookAt(countryData.centroid.clone().multiplyScalar(2));
-
-                // Store reference to country name and size category
-                labelMesh.userData.countryName = countryName;
-                labelMesh.userData.sizeCategory = sizeCategory;
-
-                // Store default position and scale for reset functionality
-                labelDefaults[countryName] = {
-                    position: labelPosition.clone(),
-                    scale: 1.0,
-                    width: labelWidth,
-                    height: labelHeight
-                };
-
-                // Initially hide all labels
-                labelMesh.visible = false;
-
-                // Add to globe so it rotates with it
-                globe.add(labelMesh);
-                countryLabels.push(labelMesh);
-            });
-
-            console.log(`Created ${countryLabels.length} country labels`);
-        }
-
-        // Create borders for all countries using boundary edge detection
-        function createCountryBorders() {
-            console.log('Creating country borders...');
-
-            // Iterate through all country meshes
-            countries.forEach(countryMesh => {
-                const geometry = countryMesh.geometry;
-                const positionAttribute = geometry.attributes.position;
-
-                if (!positionAttribute) return;
-
-                // Build edge map to find boundary edges (edges that belong to only one triangle)
-                const edgeMap = new Map();
-                const indices = geometry.index ? geometry.index.array : null;
-
-                if (!indices) return; // Skip if no index buffer
-
-                // Process all triangles
-                for (let i = 0; i < indices.length; i += 3) {
-                    const a = indices[i];
-                    const b = indices[i + 1];
-                    const c = indices[i + 2];
-
-                    // Add the three edges of this triangle
-                    addEdge(edgeMap, a, b);
-                    addEdge(edgeMap, b, c);
-                    addEdge(edgeMap, c, a);
-                }
-
-                // Collect boundary edges (edges that appear only once)
-                const boundaryEdges = [];
-                edgeMap.forEach((count, key) => {
-                    if (count === 1) {
-                        const [v1, v2] = key.split(',').map(Number);
-                        boundaryEdges.push(v1, v2);
-                    }
-                });
-
-                if (boundaryEdges.length === 0) return;
-
-                // Create geometry from boundary edges
-                const borderGeometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(boundaryEdges.length * 3);
-
-                for (let i = 0; i < boundaryEdges.length; i++) {
-                    const vertexIndex = boundaryEdges[i];
-                    positions[i * 3] = positionAttribute.getX(vertexIndex);
-                    positions[i * 3 + 1] = positionAttribute.getY(vertexIndex);
-                    positions[i * 3 + 2] = positionAttribute.getZ(vertexIndex);
-                }
-
-                borderGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-                // Create line material with dark gray color
-                const lineMaterial = new THREE.LineBasicMaterial({
-                    color: 0x333333,
-                    linewidth: 1
-                });
-
-                // Create line segments from boundary edges
-                const borderLines = new THREE.LineSegments(borderGeometry, lineMaterial);
-
-                // Copy the country mesh's transform
-                borderLines.position.copy(countryMesh.position);
-                borderLines.rotation.copy(countryMesh.rotation);
-                borderLines.scale.copy(countryMesh.scale);
-
-                // Add to same parent as country mesh
-                if (countryMesh.parent) {
-                    countryMesh.parent.add(borderLines);
-                }
-
-                // Initially hide borders (only show when zoomed in)
-                borderLines.visible = false;
-
-                countryBorders.push(borderLines);
-            });
-
-            console.log(`Created borders for ${countryBorders.length} countries`);
-        }
-
-        // Helper function to add edges to the edge map
-        function addEdge(edgeMap, v1, v2) {
-            // Create a consistent key regardless of vertex order
-            const key = v1 < v2 ? `${v1},${v2}` : `${v2},${v1}`;
-            edgeMap.set(key, (edgeMap.get(key) || 0) + 1);
-        }
 
         // Calculate great circle distance between two countries (returns radians)
         // On a unit sphere, the great circle distance is the angle between two vectors
@@ -2721,12 +2264,7 @@
                 hide(elements.get('quiz-container'));
 
                 // Reset globe highlighting
-                const countries = globeManager.getCountries();
-                countries.forEach(country => {
-                    country.material.vertexColors = true;
-                    country.material.color.setHex(0xffffff);
-                    country.material.needsUpdate = true;
-                });
+                globeManager.clearSelection();
 
                 // Show search and quiz button
                 show(elements.get('search-container'));
@@ -2804,8 +2342,7 @@
         // (Removed: onSearchInput, onSearchKeyDown, updateSearchSelection, selectCountryFromSearch, focusOnCountryByName)
 
         // Create/update white circle indicator for small countries
-        function updateSmallCountryIndicator(country) {
-            // Remove old indicator if it exists
+        function updateSmallCountryIndicator(countryName) {
             if (smallCountryIndicator) {
                 globe.remove(smallCountryIndicator);
                 smallCountryIndicator.geometry.dispose();
@@ -2813,38 +2350,14 @@
                 smallCountryIndicator = null;
             }
 
-            // Only show indicator for small countries
-            const countryName = country.userData.name;
-            if (!SMALL_COUNTRIES.has(countryName)) {
-                return;
-            }
+            if (!SMALL_COUNTRIES.has(countryName)) return;
 
-            // Get the country's centroid position
-            const geometry = country.geometry;
-            const positions = geometry.attributes.position;
-            let centerX = 0, centerY = 0, centerZ = 0;
-            const vertexCount = positions.count;
+            const record = globeManager.getCountryByName(countryName);
+            if (!record || !record.centroid) return;
 
-            for (let i = 0; i < vertexCount; i++) {
-                centerX += positions.getX(i);
-                centerY += positions.getY(i);
-                centerZ += positions.getZ(i);
-            }
-
-            centerX /= vertexCount;
-            centerY /= vertexCount;
-            centerZ /= vertexCount;
-
-            // Apply country's world matrix
-            const worldPos = new THREE.Vector3(centerX, centerY, centerZ);
-            country.localToWorld(worldPos);
-
-            // Normalize and scale slightly above surface
-            const direction = worldPos.clone().normalize();
+            const direction = record.centroid.clone().normalize();
             const indicatorPos = direction.multiplyScalar(1.025);
 
-            // Create circle geometry (ring)
-            // Radius reduced by 30% (0.03 -> 0.021), thickness reduced by 50% (0.005 -> 0.0025)
             const circleGeometry = new THREE.RingGeometry(0.0185, 0.021, 32);
             const circleMaterial = new THREE.MeshBasicMaterial({
                 color: 0xffffff,
@@ -2852,17 +2365,10 @@
                 transparent: true,
                 opacity: 0.9
             });
-
             smallCountryIndicator = new THREE.Mesh(circleGeometry, circleMaterial);
-
-            // Position the circle
             smallCountryIndicator.position.copy(indicatorPos);
-
-            // Orient the circle to face outward from globe center
             smallCountryIndicator.lookAt(0, 0, 0);
             smallCountryIndicator.rotateX(Math.PI);
-
-            // Add to globe
             globe.add(smallCountryIndicator);
         }
 
@@ -2876,67 +2382,54 @@
             }
         }
 
-        // Rotate globe to center a country
-        function rotateGlobeToCountry(country, isQuizMode = false) {
-            // Get the country's position (centroid of all vertices)
-            const geometry = country.geometry;
-            const positions = geometry.attributes.position;
+        // Rotate globe to center a country. Accepts either a country name
+        // (string) or a country record { name, centroid, bbox }.
+        function rotateGlobeToCountry(arg, isQuizMode = false) {
+            let record = null;
+            if (typeof arg === 'string') {
+                record = globeManager.getCountryByName(arg);
+            } else if (arg && arg.centroid) {
+                record = arg;
+            }
+            if (!record || !record.centroid) return;
 
-            let centerX = 0, centerY = 0, centerZ = 0;
+            const countryName = record.name;
+            const bboxLatLng = record.bbox || { minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 };
+
+            // Approximate the 3D bbox of the country from its lat/lng bbox
+            // corners projected onto the unit sphere.
+            const corners = [
+                rotateGlobe_latLngToVec3(bboxLatLng.minLat, bboxLatLng.minLng),
+                rotateGlobe_latLngToVec3(bboxLatLng.minLat, bboxLatLng.maxLng),
+                rotateGlobe_latLngToVec3(bboxLatLng.maxLat, bboxLatLng.minLng),
+                rotateGlobe_latLngToVec3(bboxLatLng.maxLat, bboxLatLng.maxLng)
+            ];
             let minX = Infinity, maxX = -Infinity;
             let minY = Infinity, maxY = -Infinity;
             let minZ = Infinity, maxZ = -Infinity;
-            const vertexCount = positions.count;
-
-            for (let i = 0; i < vertexCount; i++) {
-                const x = positions.getX(i);
-                const y = positions.getY(i);
-                const z = positions.getZ(i);
-
-                centerX += x;
-                centerY += y;
-                centerZ += z;
-
-                // Track bounding box
-                minX = Math.min(minX, x);
-                maxX = Math.max(maxX, x);
-                minY = Math.min(minY, y);
-                maxY = Math.max(maxY, y);
-                minZ = Math.min(minZ, z);
-                maxZ = Math.max(maxZ, z);
+            for (const v of corners) {
+                if (v.x < minX) minX = v.x; if (v.x > maxX) maxX = v.x;
+                if (v.y < minY) minY = v.y; if (v.y > maxY) maxY = v.y;
+                if (v.z < minZ) minZ = v.z; if (v.z > maxZ) maxZ = v.z;
             }
+            const bboxSize = Math.sqrt(
+                (maxX - minX) * (maxX - minX) +
+                (maxY - minY) * (maxY - minY) +
+                (maxZ - minZ) * (maxZ - minZ)
+            );
 
-            centerX /= vertexCount;
-            centerY /= vertexCount;
-            centerZ /= vertexCount;
+            const worldPos = record.centroid.clone().normalize();
 
-            // Calculate bounding box size (approximate land area)
-            const bbox = new THREE.Vector3(maxX - minX, maxY - minY, maxZ - minZ);
-            const bboxSize = bbox.length(); // Diagonal length of bounding box
+            let phi = Math.acos(worldPos.y);
+            const theta = Math.atan2(worldPos.z, worldPos.x);
 
-            // Apply country's world matrix to get actual position
-            const worldPos = new THREE.Vector3(centerX, centerY, centerZ);
-            country.localToWorld(worldPos);
-
-            // Normalize to get direction
-            worldPos.normalize();
-
-            // Calculate the spherical angles to this position
-            let phi = Math.acos(worldPos.y); // Polar angle
-            const theta = Math.atan2(worldPos.z, worldPos.x); // Azimuthal angle
-
-            // Adjust phi to position camera lower during quiz mode on mobile only
-            // This prevents the quiz container from obscuring the highlighted country
             const isMobile = window.innerWidth <= 768;
             if (isQuizMode && isMobile) {
-                phi = phi + 0.4; // Move camera down by ~23 degrees
+                phi = phi + 0.4;
             }
 
-            // Calculate target camera distance
             let targetDistance;
-
             if (isQuizMode) {
-                // Quiz mode: Use fixed distances to keep zoomed out
                 if (bboxSize < 0.15) {
                     targetDistance = 2.0;
                 } else if (bboxSize < 0.25) {
@@ -2947,11 +2440,6 @@
                     targetDistance = Math.max(camera.position.length(), 3.5);
                 }
             } else {
-                // Normal mode: Use fixed zoom levels based on country size
-                const countryName = country.userData.name;
-
-                // Small countries zoom closer (1.15), all others zoom to 1.55
-                // Note: Some small islands belong to larger countries, so they'll zoom to 1.55
                 if (SMALL_COUNTRIES.has(countryName)) {
                     targetDistance = 1.15;
                 } else {
@@ -2959,32 +2447,27 @@
                 }
             }
 
-            // Calculate target camera position
             const targetCameraPos = new THREE.Vector3(
                 targetDistance * Math.sin(phi) * Math.cos(theta),
                 targetDistance * Math.cos(phi),
                 targetDistance * Math.sin(phi) * Math.sin(theta)
             );
 
-            // Animate camera to new position
             const startPos = camera.position.clone();
             const startDist = startPos.length();
-            const duration = 1000; // ms
+            const duration = 1000;
             const startTime = Date.now();
 
             function animateRotation() {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
 
-                // Ease in-out cubic
                 const easeProgress = progress < 0.5
                     ? 4 * progress * progress * progress
                     : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
-                // Interpolate position
                 const newPos = new THREE.Vector3().lerpVectors(startPos, targetCameraPos, easeProgress);
 
-                // Interpolate distance as well for smooth zoom
                 const newDist = startDist + (targetDistance - startDist) * easeProgress;
                 newPos.setLength(newDist);
 
@@ -2995,9 +2478,8 @@
                 if (progress < 1) {
                     requestAnimationFrame(animateRotation);
                 } else {
-                    // Animation complete - show indicator for small countries (except in quiz mode)
                     if (!isQuizMode) {
-                        updateSmallCountryIndicator(country);
+                        updateSmallCountryIndicator(countryName);
                     }
                 }
             }
@@ -3019,26 +2501,6 @@
 
                 labelManager.updateVisibility();
             }
-        }
-
-        // Update border visibility based on camera distance
-        function updateBorderVisibility() {
-            if (countryBorders.length === 0) return;
-
-            // Calculate camera distance from globe center
-            const cameraDistance = camera.position.length();
-
-            // Show borders when zoomed in (zoom range is 1.5-10)
-            // Show borders at medium to close zoom levels
-            const BORDER_THRESHOLD = 5.0;
-
-            // Show borders when camera is closer than threshold
-            const showBorders = cameraDistance < BORDER_THRESHOLD;
-
-            // Update all border visibility
-            countryBorders.forEach(border => {
-                border.visible = showBorders;
-            });
         }
 
         // Update zoom widget display

@@ -2,14 +2,13 @@
 
 ## Project Overview
 
-Globe3D is an interactive 3D web application that displays a rotating globe with all countries as separate, clickable meshes. The project features country selection, quizzes, and an advanced label editor for manually positioning country name labels.
+Globe3D is an interactive 3D web application that displays a rotating globe with all countries baked into a single textured sphere. The project features country selection, quizzes, and an advanced label editor for manually positioning country name labels.
 
 ## Technology Stack
 
 - **Three.js** (r128) - 3D rendering library
 - **OrbitControls** - Camera control
-- **GLTFLoader** - 3D model loading
-- **DRACOLoader** - Mesh compression/decompression
+- **Custom ShaderMaterial** - Globe rendering (color + ID texture)
 - **Vanilla JavaScript** - No frameworks
 - **HTML5/CSS3** - UI and styling
 
@@ -18,10 +17,13 @@ Globe3D is an interactive 3D web application that displays a rotating globe with
 ```
 globe3d/
 ├── index.html              # Main application (all-in-one file)
-├── build-globe.js          # Node.js script to generate globe GLB from GeoJSON
+├── build-textures.js       # Node.js script to bake GeoJSON → globe textures
 ├── assets/
-│   └── world.glb          # Pre-built 3D globe model (5.1 MB, Draco compressed)
+│   ├── world-color.png    # Equirectangular RGB color texture (4096×2048)
+│   ├── world-id.bin       # Equirectangular country-ID texture (2048×1024, raw RG bytes)
+│   └── country-meta.json  # Country IDs, centroids, bboxes, name↔id maps
 ├── package.json           # Build dependencies
+├── country-colors.json    # (Optional) Per-country color overrides
 └── label-config.json      # (Optional) Custom label positions/sizes
 ```
 
@@ -30,9 +32,9 @@ globe3d/
 ### 1. Interactive 3D Globe
 - **Zoom range:** 1.13 (closest) to 10.00 (farthest)
 - **Controls:** Drag to rotate, scroll/pinch to zoom
-- **Country meshes:** ~195 separate, clickable 3D objects
-- **Vertex colors:** Random darker colors per country
-- **Raycasting:** Click detection for countries and labels
+- **Surface:** Single SphereGeometry with custom ShaderMaterial — one draw call
+- **Country identification:** Per-country ID baked into a parallel texture; the fragment shader samples both color and ID textures.
+- **Picking:** Ray-sphere intersection + lookup into a CPU-side ID buffer (O(1) per pick)
 
 ### 2. Country Labels
 - **Auto-generated:** Canvas-based text textures
@@ -95,24 +97,28 @@ controls.enablePan = false;    // No panning
 ```
 
 ### Globe Sphere Radius
-- **Country meshes:** Radius ~1.0 (with 0.02 extrusion)
+- **Globe surface:** Radius 1.0 (single textured sphere)
 - **Labels:** Positioned at radius 1.02
-- **Inner sphere:** Adjustable radius (default 1.014)
+- **Lat/long line set:** Radius 1.001
 
 ## Build Process
 
-The globe is pre-built using `build-globe.js`:
+The globe textures are pre-built using `build-textures.js`:
 
 1. **Input:** GeoJSON files from `world-geojson` npm package
 2. **Process:**
-   - Convert lat/lng to 3D sphere coordinates
-   - Triangulate polygons with earcut
-   - Subdivide large countries to prevent dipping
-   - Apply random vertex colors
-   - Extrude by 0.02 units
-3. **Output:** Draco-compressed GLB file (~5.1 MB)
+   - Simplify polygons (`simplify-js`, tolerance 0.006)
+   - Antimeridian split (edges with |Δlng| > 180 split at ±180)
+   - Compute centroid + bbox from each country's largest ring
+   - Triangulate split rings with `earcut`
+   - Edge-function scanline rasterizer fills color (4096×2048 RGB) and ID (2048×1024 RG) buffers
+   - 1-pixel ID dilation eliminates seam ambiguity at country borders
+3. **Output:**
+   - `assets/world-color.png` (~250 KB)
+   - `assets/world-id.bin` (~4 MB raw, ~250 KB gzipped)
+   - `assets/country-meta.json` (~75 KB)
 
-Run build: `node build-globe.js`
+Run build: `node build-textures.js` (or `npm run build:globe`)
 
 ## State Management
 
@@ -121,7 +127,7 @@ Run build: `node build-globe.js`
 - `selectedLabel` - Currently selected label mesh
 - `labelConfig` - Custom positions/scales (persisted)
 - `labelDefaults` - Original positions (for reset)
-- `countries[]` - Array of country meshes
+- `globeManager` - Owns the textured-sphere mesh, ID buffer, and country lookups (`pick`, `setSelectedCountry`, `flashCountry`, `setCountryColor`, `getCountryByName`, `getCountryNames`, `getCentroids`)
 - `countryLabels[]` - Array of label meshes
 
 ### Event Flow
@@ -165,10 +171,13 @@ Run build: `node build-globe.js`
 
 ## Performance Considerations
 
-- **Draco compression:** Reduces GLB size by ~80%
+- **Single draw call** for the entire globe surface (vs. ~195 in the previous per-country mesh era)
+- **O(1) picking** via CPU-side ID texture lookup (replaces linear `intersectObjects(countries)`)
+- **Highlighting via uniform write** — no buffer mutation, no `material.needsUpdate` cost
+- **Color overrides via 256×1 DataTexture** — `country-colors.json` updates one pixel per country
+- **Mipmapped color texture** with anisotropy for low fragment-shader bandwidth at far zoom
 - **Selective rendering:** Labels hidden when not facing camera
-- **Deferred loading:** GLB loaded asynchronously
-- **Border rendering:** Disabled by default (performance)
+- **Deferred loading:** Textures + meta JSON fetched in parallel
 
 ## Key Coordinates
 
@@ -191,10 +200,11 @@ Run build: `node build-globe.js`
 
 ## Known Limitations
 
-- All code in single HTML file (intentional design choice)
-- Country borders disabled for performance
-- No search index (linear search through countries)
-- Label font is fixed (Arial, black text)
+- Most code in single HTML file (modules under `js/` for the larger systems)
+- Country borders not currently drawn (could be re-added via shader neighbor sampling on the ID texture)
+- No search index (linear search through country names)
+- Label font is fixed (Arial, gray text)
+- Per-country mesh manipulation (e.g., scale or move a single country) is no longer supported — the globe is one mesh.
 
 ## Future Enhancement Ideas
 
@@ -212,7 +222,7 @@ Run build: `node build-globe.js`
 
 ## Credits
 
-- Globe geometry from `world-geojson` npm package
+- Country geometry from `world-geojson` npm package
 - Flag icons from `flag-icons` library
 - 3D rendering by Three.js
-- Label editor developed with Claude Code assistance
+- Label editor and textured-globe migration developed with Claude Code assistance
