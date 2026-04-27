@@ -14,29 +14,36 @@ const THREE = window.THREE;
 const SPHERE_RADIUS = 1.0;
 const SPHERE_SEGMENTS = 96;
 const PALETTE_W = 256;
-const COASTLINE_RADIUS = 1.0005;
+const COUNTRY_MESH_SCALE = 1.002; // raises country mesh above ocean sphere; build-time
+// triangle subdivision (MAX_CHORD_SAG in build-textures.js) keeps every triangle's
+// chord-vs-arc sag well below this offset so country interiors clear the ocean.
 
+// Same shader for both the ocean sphere (aCountryId = 0 for every vertex) and
+// the merged country mesh (aCountryId = each country's ID). The fragment shader
+// looks up the per-country color from the palette texture; id=0 falls through
+// to the ocean-color uniform.
 const VERTEX_SHADER = /* glsl */`
-varying vec3 vLocalPosition;
+attribute float aCountryId;
+varying float vCountryId;
 varying vec3 vWorldPosition;
 varying vec3 vNormalW;
 
 void main() {
-    vLocalPosition = position;
+    vCountryId = aCountryId;
+    // Both meshes are unit-sphere geometry, so the surface normal is the
+    // normalized local position. This avoids relying on SphereGeometry's
+    // baked normal attribute and works for the merged country mesh too.
+    vec3 nrmLocal = normalize(position);
     vec4 worldPos = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPos.xyz;
-    vNormalW = normalize(mat3(modelMatrix) * normal);
+    vNormalW = normalize(mat3(modelMatrix) * nrmLocal);
     gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
 `;
 
-// UV is computed from the local-space position so the mapping matches the
-// build-time convention (build-textures.js's negated theta) regardless of
-// SphereGeometry's default UV layout.
 const FRAGMENT_SHADER = /* glsl */`
 precision highp float;
 
-uniform sampler2D uIdTex;
 uniform sampler2D uPaletteTex;
 uniform float uPaletteW;
 uniform float uSelectedId;
@@ -48,21 +55,12 @@ uniform vec3 uOceanColor;
 uniform vec3 uAmbient;
 uniform float uDiffuse;
 
-varying vec3 vLocalPosition;
+varying float vCountryId;
 varying vec3 vWorldPosition;
 varying vec3 vNormalW;
 
 void main() {
-    vec3 nrm = normalize(vLocalPosition);
-    float theta = atan(-nrm.z, nrm.x);
-    if (theta < 0.0) theta += 6.283185307179586;
-    float u = theta / 6.283185307179586;
-    float v = acos(clamp(nrm.y, -1.0, 1.0)) / 3.141592653589793;
-
-    vec4 idSample = texture2D(uIdTex, vec2(u, v));
-    float idHi = floor(idSample.r * 255.0 + 0.5);
-    float idLo = floor(idSample.g * 255.0 + 0.5);
-    float id = idHi * 256.0 + idLo;
+    float id = vCountryId;
 
     // Palette is the single source of truth for country fills.
     // RGB = country color; A = visibility (0 = hidden → ocean, 1 = full).
@@ -99,10 +97,9 @@ export class GlobeManager {
     constructor(scene) {
         this.scene = scene;
         this.globe = null;
-        this.sphereMesh = null;
-        this.coastlineMesh = null;
+        this.oceanMesh = null;       // background sphere (radius 1.0)
+        this.countryMesh = null;     // merged vector country fills (radius 1.0008)
         this.material = null;
-        this.idTexture = null;
         this.paletteTexture = null;
         this.paletteDefaults = null; // build-time palette snapshot for resets
 
@@ -150,83 +147,40 @@ export class GlobeManager {
     }
 
     /**
-     * Decode world-borders.bin and render every country's simplified rings as
-     * a single LineSegments mesh on a thin shell above the globe surface. This
-     * recovers the crisp-edge appearance that the per-country triangulated
-     * meshes used to give us at close zoom — vector lines stay sharp at any
-     * distance while the underlying palette-driven fill stays uniform.
+     * Decode world-mesh.bin into a single BufferGeometry holding every country's
+     * triangulated polygon, with a per-vertex aCountryId attribute that lets the
+     * fragment shader pick each pixel's color out of the palette texture.
+     *
+     * Format: [u32 vertexCount][u32 indexCount]
+     *         [f32 positions × 3*vertexCount]
+     *         [u8 ids × vertexCount, padded up to 4-byte alignment]
+     *         [u32 indices × indexCount]
      */
-    addCoastlines(buffer) {
-        if (!buffer) return;
+    _buildCountryMesh(buffer) {
         const view = new DataView(buffer);
-        const ringCount = view.getUint32(0, true);
-        let off = 4;
+        const vertexCount = view.getUint32(0, true);
+        const indexCount = view.getUint32(4, true);
+        const idsPadded = (vertexCount + 3) & ~3;
+        const posOffset = 8;
+        const idsOffset = posOffset + vertexCount * 12;
+        const idxOffset = idsOffset + idsPadded;
 
-        // Two segment endpoints per edge × 3 floats per endpoint.
-        // Pre-pass: count segments so we can allocate a single Float32Array.
-        let segCount = 0;
-        let scanOff = off;
-        for (let r = 0; r < ringCount; r++) {
-            const verts = view.getUint16(scanOff, true);
-            scanOff += 2 + verts * 8;
-            if (verts >= 2) segCount += verts; // closed ring: N edges (last one wraps)
-        }
-
-        const positions = new Float32Array(segCount * 6);
-        let pi = 0;
-        const tmp = new THREE.Vector3();
-        for (let r = 0; r < ringCount; r++) {
-            const verts = view.getUint16(off, true);
-            off += 2;
-            if (verts < 2) {
-                off += verts * 8;
-                continue;
-            }
-            // Project each vertex once and reuse for the segments [v_i, v_{i+1}],
-            // closing the loop with [v_{N-1}, v_0].
-            const projected = new Float32Array(verts * 3);
-            for (let v = 0; v < verts; v++) {
-                const lng = view.getFloat32(off, true); off += 4;
-                const lat = view.getFloat32(off, true); off += 4;
-                this._latLngToXYZ(lat, lng, COASTLINE_RADIUS, tmp);
-                projected[v * 3] = tmp.x;
-                projected[v * 3 + 1] = tmp.y;
-                projected[v * 3 + 2] = tmp.z;
-            }
-            for (let v = 0; v < verts; v++) {
-                const a = v;
-                const b = (v + 1) % verts;
-                positions[pi++] = projected[a * 3];
-                positions[pi++] = projected[a * 3 + 1];
-                positions[pi++] = projected[a * 3 + 2];
-                positions[pi++] = projected[b * 3];
-                positions[pi++] = projected[b * 3 + 1];
-                positions[pi++] = projected[b * 3 + 2];
-            }
-        }
+        const positions = new Float32Array(buffer, posOffset, vertexCount * 3);
+        const ids = new Uint8Array(buffer, idsOffset, vertexCount);
+        const indices = new Uint32Array(buffer, idxOffset, indexCount);
 
         const geom = new THREE.BufferGeometry();
         geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.LineBasicMaterial({
-            color: 0x222222,
-            opacity: 0.7,
-            transparent: true,
-            depthWrite: false
-        });
-        const mesh = new THREE.LineSegments(geom, material);
-        this.coastlineMesh = mesh;
-        this.globe.add(mesh);
-        console.log(`Coastlines: ${ringCount} rings, ${segCount} segments`);
-    }
+        geom.setAttribute('aCountryId', new THREE.BufferAttribute(ids, 1));
+        geom.setIndex(new THREE.BufferAttribute(indices, 1));
+        // Bounding sphere covers the unit sphere — frustum-cull the whole mesh
+        // as a unit (still one draw call per frame).
+        geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1.01);
 
-    /** In-place version of latLngToVector3 that writes into a target vector. */
-    _latLngToXYZ(lat, lng, radius, target) {
-        const phi = (90 - lat) * Math.PI / 180;
-        const theta = -(lng + 180) * Math.PI / 180;
-        target.x = radius * Math.sin(phi) * Math.cos(theta);
-        target.y = radius * Math.cos(phi);
-        target.z = radius * Math.sin(phi) * Math.sin(theta);
-        return target;
+        const mesh = new THREE.Mesh(geom, this.material);
+        mesh.userData.isGlobeSurface = true;
+        console.log(`Country mesh: ${vertexCount} vertices, ${indexCount / 3} triangles`);
+        return mesh;
     }
 
     addLatLongLines() {
@@ -277,8 +231,8 @@ export class GlobeManager {
                 if (!r.ok) throw new Error(`Failed to fetch country-palette.bin: ${r.status}`);
                 return r.arrayBuffer();
             });
-            const bordersPromise = fetch('assets/world-borders.bin').then(r => {
-                if (!r.ok) throw new Error(`Failed to fetch world-borders.bin: ${r.status}`);
+            const meshPromise = fetch('assets/world-mesh.bin').then(r => {
+                if (!r.ok) throw new Error(`Failed to fetch world-mesh.bin: ${r.status}`);
                 return r.arrayBuffer();
             });
             const metaPromise = fetch('assets/country-meta.json').then(r => {
@@ -286,10 +240,10 @@ export class GlobeManager {
                 return r.json();
             });
 
-            const [idBuffer, paletteBuffer, bordersBuffer, meta] =
-                await Promise.all([idPromise, palettePromise, bordersPromise, metaPromise]);
+            const [idBuffer, paletteBuffer, meshBuffer, meta] =
+                await Promise.all([idPromise, palettePromise, meshPromise, metaPromise]);
 
-            if (onProgress) onProgress(70, 'Building shader...');
+            if (onProgress) onProgress(70, 'Building globe...');
 
             this.idW = meta.idWidth;
             this.idH = meta.idHeight;
@@ -298,28 +252,11 @@ export class GlobeManager {
             if (this.idBytes.length !== expected) {
                 throw new Error(`world-id.bin size mismatch: got ${this.idBytes.length}, expected ${expected}`);
             }
-
-            // ID texture: packed into RGBA so it works under WebGL1 without
-            // depending on RG/LuminanceAlpha format support. R=idHi, G=idLo.
-            const rgbaId = new Uint8Array(this.idW * this.idH * 4);
-            for (let i = 0; i < this.idW * this.idH; i++) {
-                rgbaId[i * 4] = this.idBytes[i * 2];
-                rgbaId[i * 4 + 1] = this.idBytes[i * 2 + 1];
-                rgbaId[i * 4 + 2] = 0;
-                rgbaId[i * 4 + 3] = 255;
-            }
-            const idTex = new THREE.DataTexture(rgbaId, this.idW, this.idH, THREE.RGBAFormat, THREE.UnsignedByteType);
-            idTex.minFilter = THREE.NearestFilter;
-            idTex.magFilter = THREE.NearestFilter;
-            idTex.generateMipmaps = false;
-            idTex.wrapS = THREE.RepeatWrapping;
-            idTex.wrapT = THREE.ClampToEdgeWrapping;
-            idTex.needsUpdate = true;
-            this.idTexture = idTex;
+            // Note: idBytes stays CPU-side for O(1) picking. The GPU never sees the
+            // ID buffer in this build — country IDs come from a per-vertex attribute
+            // on the merged country mesh instead.
 
             // Country palette: 256×1 RGBA. RGB = country color, A = visibility.
-            // Single source of truth for all country fills (replaces the old
-            // bulky world-color.png + 256-pixel override stack).
             const paletteBytes = new Uint8Array(paletteBuffer);
             if (paletteBytes.length !== PALETTE_W * 4) {
                 throw new Error(`country-palette.bin size mismatch: got ${paletteBytes.length}, expected ${PALETTE_W * 4}`);
@@ -336,7 +273,6 @@ export class GlobeManager {
 
             this.material = new THREE.ShaderMaterial({
                 uniforms: {
-                    uIdTex: { value: idTex },
                     uPaletteTex: { value: paletteTex },
                     uPaletteW: { value: PALETTE_W },
                     uSelectedId: { value: 0 },
@@ -350,13 +286,28 @@ export class GlobeManager {
                 },
                 vertexShader: VERTEX_SHADER,
                 fragmentShader: FRAGMENT_SHADER,
-                side: THREE.FrontSide
+                side: THREE.FrontSide,
+                // Polygon offset prevents flicker where neighboring countries share
+                // borders and produce coincident triangle edges from the source GeoJSON.
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -1
             });
 
-            const sphereGeo = new THREE.SphereGeometry(SPHERE_RADIUS, SPHERE_SEGMENTS, SPHERE_SEGMENTS);
-            this.sphereMesh = new THREE.Mesh(sphereGeo, this.material);
-            this.sphereMesh.userData.isGlobeSurface = true;
-            this.globe.add(this.sphereMesh);
+            // Ocean sphere — the same shader runs with aCountryId=0 everywhere,
+            // which falls through to the ocean-color uniform. Visible wherever
+            // the country mesh isn't drawn.
+            const oceanGeo = new THREE.SphereGeometry(SPHERE_RADIUS, SPHERE_SEGMENTS, SPHERE_SEGMENTS);
+            const oceanIds = new Uint8Array(oceanGeo.attributes.position.count);
+            oceanGeo.setAttribute('aCountryId', new THREE.BufferAttribute(oceanIds, 1));
+            this.oceanMesh = new THREE.Mesh(oceanGeo, this.material);
+            this.oceanMesh.userData.isGlobeSurface = true;
+            this.globe.add(this.oceanMesh);
+
+            // Merged country mesh — vector polygon fills, one draw call.
+            this.countryMesh = this._buildCountryMesh(meshBuffer);
+            this.countryMesh.scale.setScalar(COUNTRY_MESH_SCALE);
+            this.globe.add(this.countryMesh);
 
             if (onProgress) onProgress(85, 'Indexing countries...');
 
@@ -382,12 +333,9 @@ export class GlobeManager {
             state.set('countries.list', [], false);
             state.set('countries.centroids', this.countryCentroids, false);
 
-            if (onProgress) onProgress(95, 'Drawing coastlines...');
-            this.addCoastlines(bordersBuffer);
-
             if (onProgress) onProgress(100, 'Complete!');
 
-            console.log(`Loaded ${this.countryCentroids.length} countries (textured)`);
+            console.log(`Loaded ${this.countryCentroids.length} countries (vector mesh)`);
             if (onComplete) onComplete([]);
         } catch (error) {
             console.error('Error loading textured globe:', error);
@@ -659,15 +607,15 @@ export class GlobeManager {
     }
 
     /**
-     * The textured sphere doubles as the ocean (where no country is drawn) and
-     * the land. Returned for any consumer that toggles "show base sphere".
+     * The ocean sphere is the base surface — visible wherever no country is
+     * drawn. Returned for any consumer that needs a "globe surface" reference.
      */
     getBaseSphere() {
-        return this.sphereMesh;
+        return this.oceanMesh;
     }
 
-    /** For raycasting: the single mesh covering the entire globe surface. */
+    /** For raycasting: the ocean sphere covers the entire globe surface. */
     getSphereMesh() {
-        return this.sphereMesh;
+        return this.oceanMesh;
     }
 }

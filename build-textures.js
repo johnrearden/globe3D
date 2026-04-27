@@ -6,7 +6,7 @@ const simplify = require('simplify-js');
 
 const COUNTRIES_DIR = './node_modules/world-geojson/countries/';
 const OUTPUT_PALETTE = './assets/country-palette.bin';
-const OUTPUT_BORDERS = './assets/world-borders.bin';
+const OUTPUT_MESH = './assets/world-mesh.bin';
 const OUTPUT_ID = './assets/world-id.bin';
 const OUTPUT_META = './assets/country-meta.json';
 
@@ -22,6 +22,12 @@ const FRAGDEBUG = process.env.FRAGDEBUG === '1';
 
 const SIMPLIFICATION_TOLERANCE = 0.006;
 const OCEAN_COLOR = [0x06, 0x1A, 0x33];
+
+// Maximum chord-vs-arc sag (depth that a flat triangle's interior dips below
+// the unit sphere). Anything above this gets recursively subdivided. The
+// runtime country mesh sits at scale ~1.002, so threshold 0.0015 keeps every
+// triangle's interior comfortably above the ocean sphere at radius 1.0.
+const MAX_CHORD_SAG = 0.0015;
 
 const VERY_LARGE_COUNTRIES_FILES = ['russia', 'canada'];
 const LARGE_COUNTRIES_FILES = ['china', 'usa', 'brazil', 'australia', 'india', 'argentina', 'kazakhstan', 'algeria'];
@@ -187,6 +193,75 @@ function rasterizeRingToBuffer(ring, W, H, writePixel) {
             );
         }
     }
+}
+
+// Subdivide a single ring's triangulation until every triangle's chord-arc
+// sag is below `threshold`. Each iteration splits every triangle 1-to-4 using
+// great-circle midpoints on the three edges. Adjacent triangles share their
+// midpoints via memoization, so no T-junctions appear within a ring. Different
+// rings are independent (they don't share edges with other rings), so per-ring
+// uniform subdivision is enough — neighboring rings stay watertight by virtue
+// of having no shared geometry.
+//
+// We can't subdivide selectively: if one triangle splits and its neighbor
+// doesn't, the neighbor's straight chord edge and the subdivided triangle's
+// bulged sphere-midpoint edge diverge by ~chord-arc sag, leaving a visible
+// gap that exposes whatever's drawn behind. Uniform subdivision avoids this.
+function subdivideTriangles(positions, indices, threshold) {
+    let verts = positions.map(p => [p[0], p[1], p[2]]);
+    let inds = Array.from(indices);
+
+    const sag = (a, b, c) => {
+        const cx = (a[0] + b[0] + c[0]) / 3;
+        const cy = (a[1] + b[1] + c[1]) / 3;
+        const cz = (a[2] + b[2] + c[2]) / 3;
+        return 1 - Math.sqrt(cx * cx + cy * cy + cz * cz);
+    };
+
+    const maxSag = () => {
+        let m = 0;
+        for (let i = 0; i < inds.length; i += 3) {
+            const s = sag(verts[inds[i]], verts[inds[i + 1]], verts[inds[i + 2]]);
+            if (s > m) m = s;
+        }
+        return m;
+    };
+
+    // Hard cap on subdivision passes — each pass quadruples the triangle count,
+    // so 5 passes = 1024×. In practice we converge in 0–3 passes.
+    let safety = 5;
+    while (safety-- > 0 && maxSag() > threshold) {
+        const next = [];
+        const midCache = new Map();
+        const getMid = (i, j) => {
+            const key = i < j ? `${i},${j}` : `${j},${i}`;
+            const cached = midCache.get(key);
+            if (cached !== undefined) return cached;
+            const a = verts[i], b = verts[j];
+            let mx = (a[0] + b[0]) * 0.5;
+            let my = (a[1] + b[1]) * 0.5;
+            let mz = (a[2] + b[2]) * 0.5;
+            const len = Math.sqrt(mx * mx + my * my + mz * mz);
+            mx /= len; my /= len; mz /= len;
+            verts.push([mx, my, mz]);
+            const idx = verts.length - 1;
+            midCache.set(key, idx);
+            return idx;
+        };
+        for (let i = 0; i < inds.length; i += 3) {
+            const a = inds[i], b = inds[i + 1], c = inds[i + 2];
+            const ab = getMid(a, b);
+            const bc = getMid(b, c);
+            const ca = getMid(c, a);
+            next.push(a, ab, ca);
+            next.push(ab, b, bc);
+            next.push(ca, bc, c);
+            next.push(ab, bc, ca);
+        }
+        inds = next;
+    }
+
+    return { positions: verts, indices: inds };
 }
 
 // Two-pass connected-components cleanup. Pass 1 BFS-labels every same-id
@@ -364,8 +439,12 @@ function build() {
     const idBuf = new Uint8Array(ID_W * ID_H * 2);
     // Country-color palette: index by id, RGBA. id=0 reserved for ocean (alpha=0).
     const palette = new Uint8Array(MAX_COUNTRIES * 4);
-    // Ring data for the vector coastline overlay (unfolded, lng/lat).
-    const allRings = [];
+    // Merged country mesh accumulators. Vertex positions are unit-sphere xyz;
+    // each ring's earcut indices are offset to the global vertex layout.
+    const meshPositions = []; // flat [x,y,z, x,y,z, ...]
+    const meshIds = [];       // [id, id, ...] (uint8)
+    const meshIndices = [];   // [a,b,c, a,b,c, ...]
+    let meshTriangles = 0;
 
     const countriesMeta = [];
     const nameToId = {};
@@ -441,13 +520,45 @@ function build() {
                     largestRingBbox = ringBbox(unfolded);
                 }
 
-                // Capture for the coastline overlay (lng/lat, antimeridian-unfolded).
-                const flat = new Float32Array(unfolded.length * 2);
+                // Triangulate (earcut, 2D lng/lat space) then project each
+                // vertex onto the unit sphere using the runtime's convention.
+                // Antimeridian wrapping is automatic: lng=185 and lng=-175 map
+                // to the same 3D point (sin/cos are periodic).
+                const flat = new Array(unfolded.length * 2);
                 for (let vi = 0; vi < unfolded.length; vi++) {
                     flat[vi * 2] = unfolded[vi][0];
                     flat[vi * 2 + 1] = unfolded[vi][1];
                 }
-                allRings.push(flat);
+                const triIdx = earcut(flat, null, 2);
+                if (triIdx.length > 0) {
+                    const ringPositions = new Array(unfolded.length);
+                    for (let vi = 0; vi < unfolded.length; vi++) {
+                        const lng = unfolded[vi][0];
+                        const lat = unfolded[vi][1];
+                        const phi = (90 - lat) * Math.PI / 180;
+                        const theta = -(lng + 180) * Math.PI / 180;
+                        const sphi = Math.sin(phi);
+                        ringPositions[vi] = [
+                            sphi * Math.cos(theta),
+                            Math.cos(phi),
+                            sphi * Math.sin(theta)
+                        ];
+                    }
+                    // Subdivide oversized interior triangles so their centroids
+                    // clear the ocean sphere at radius 1.0 once scaled by 1.002.
+                    const sub = subdivideTriangles(ringPositions, Array.from(triIdx), MAX_CHORD_SAG);
+                    const baseVert = meshPositions.length / 3;
+                    for (const p of sub.positions) {
+                        meshPositions.push(p[0]);
+                        meshPositions.push(p[1]);
+                        meshPositions.push(p[2]);
+                        meshIds.push(id);
+                    }
+                    for (let ti = 0; ti < sub.indices.length; ti++) {
+                        meshIndices.push(baseVert + sub.indices[ti]);
+                    }
+                    meshTriangles += sub.indices.length / 3;
+                }
 
                 rasterizeRingToBuffer(unfolded, ID_W, ID_H, writeId);
                 ringCount++;
@@ -498,26 +609,27 @@ function build() {
     console.log(`Writing ${OUTPUT_PALETTE}...`);
     fs.writeFileSync(OUTPUT_PALETTE, Buffer.from(palette.buffer));
 
-    console.log(`Writing ${OUTPUT_BORDERS}...`);
-    let totalVerts = 0;
-    let totalBytes = 4; // header: ringCount
-    for (const r of allRings) {
-        totalVerts += r.length / 2;
-        totalBytes += 2 + r.byteLength; // vertexCount + vertices
+    console.log(`Writing ${OUTPUT_MESH}...`);
+    const vertCount = meshIds.length;
+    const idxCount = meshIndices.length;
+    if (vertCount === 0 || idxCount === 0) {
+        throw new Error(`empty country mesh: vertCount=${vertCount}, idxCount=${idxCount}`);
     }
-    const bordersBuf = Buffer.alloc(totalBytes);
-    bordersBuf.writeUInt32LE(allRings.length, 0);
-    let off = 4;
-    for (const r of allRings) {
-        const verts = r.length / 2;
-        if (verts > 0xffff) {
-            throw new Error(`ring vertex count ${verts} exceeds uint16; raise format width`);
-        }
-        bordersBuf.writeUInt16LE(verts, off); off += 2;
-        Buffer.from(r.buffer, r.byteOffset, r.byteLength).copy(bordersBuf, off);
-        off += r.byteLength;
-    }
-    fs.writeFileSync(OUTPUT_BORDERS, bordersBuf);
+    // Layout: [u32 vertCount][u32 idxCount][f32 xyz × vertCount][u8 ids × vertCount, padded to 4][u32 indices × idxCount]
+    const idsPadded = (vertCount + 3) & ~3;
+    const meshBytes = 8 + vertCount * 12 + idsPadded + idxCount * 4;
+    const meshBuf = Buffer.alloc(meshBytes);
+    meshBuf.writeUInt32LE(vertCount, 0);
+    meshBuf.writeUInt32LE(idxCount, 4);
+    let mOff = 8;
+    const positionsView = new Float32Array(meshBuf.buffer, meshBuf.byteOffset + mOff, vertCount * 3);
+    for (let i = 0; i < vertCount * 3; i++) positionsView[i] = meshPositions[i];
+    mOff += vertCount * 12;
+    for (let i = 0; i < vertCount; i++) meshBuf[mOff + i] = meshIds[i];
+    mOff += idsPadded;
+    const indicesView = new Uint32Array(meshBuf.buffer, meshBuf.byteOffset + mOff, idxCount);
+    for (let i = 0; i < idxCount; i++) indicesView[i] = meshIndices[i];
+    fs.writeFileSync(OUTPUT_MESH, meshBuf);
 
     console.log(`Writing ${OUTPUT_ID}...`);
     fs.writeFileSync(OUTPUT_ID, Buffer.from(idBuf.buffer));
@@ -536,12 +648,12 @@ function build() {
     fs.writeFileSync(OUTPUT_META, JSON.stringify(meta, null, 2));
 
     const paletteSize = fs.statSync(OUTPUT_PALETTE).size;
-    const bordersSize = fs.statSync(OUTPUT_BORDERS).size;
+    const meshSize = fs.statSync(OUTPUT_MESH).size;
     const idSize = fs.statSync(OUTPUT_ID).size;
     const metaSize = fs.statSync(OUTPUT_META).size;
     console.log(`\nDone.`);
     console.log(`  ${OUTPUT_PALETTE}: ${paletteSize} bytes`);
-    console.log(`  ${OUTPUT_BORDERS}: ${(bordersSize / 1024).toFixed(1)} KB (${allRings.length} rings, ${totalVerts} vertices)`);
+    console.log(`  ${OUTPUT_MESH}: ${(meshSize / 1024 / 1024).toFixed(2)} MB (${vertCount} vertices, ${meshTriangles} triangles)`);
     console.log(`  ${OUTPUT_ID}: ${(idSize / 1024 / 1024).toFixed(2)} MB (gzip recommended)`);
     console.log(`  ${OUTPUT_META}: ${(metaSize / 1024).toFixed(1)} KB`);
     console.log(`  ${countriesMeta.length} countries`);

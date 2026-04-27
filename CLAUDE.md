@@ -8,7 +8,7 @@ Globe3D is an interactive 3D web application that displays a rotating globe with
 
 - **Three.js** (r128) - 3D rendering library
 - **OrbitControls** - Camera control
-- **Custom ShaderMaterial** - Globe rendering (ID texture + per-country palette)
+- **Custom ShaderMaterial** - Vector country fills driven by per-vertex country ID + palette texture
 - **Vanilla JavaScript** - No frameworks
 - **HTML5/CSS3** - UI and styling
 
@@ -19,9 +19,9 @@ globe3d/
 ├── index.html               # Main application (all-in-one file)
 ├── build-textures.js        # Node.js script to bake GeoJSON → globe assets
 ├── assets/
-│   ├── world-id.bin         # Equirectangular country-ID texture (4096×2048, raw RG bytes)
+│   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~3.8 MB)
+│   ├── world-id.bin         # Equirectangular country-ID texture for picking (4096×2048, raw RG bytes)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
-│   ├── world-borders.bin    # Simplified country rings (vector coastline overlay)
 │   └── country-meta.json    # Country IDs, centroids, bboxes, name↔id maps
 ├── package.json             # Build dependencies
 ├── country-colors.json      # (Optional) Per-country color overrides
@@ -33,10 +33,9 @@ globe3d/
 ### 1. Interactive 3D Globe
 - **Zoom range:** 1.13 (closest) to 10.00 (farthest)
 - **Controls:** Drag to rotate, scroll/pinch to zoom
-- **Surface:** Single SphereGeometry with custom ShaderMaterial — one draw call. The fragment shader samples the ID texture and looks up each pixel's color in a 256-pixel palette texture (RGB = country color, A = visibility).
-- **Coastlines:** Vector overlay rendered as a single LineSegments mesh at radius 1.0005 from `world-borders.bin`. Always drawn — gives crisp country borders at any zoom.
-- **Country identification:** Per-country ID baked into the ID texture.
-- **Picking:** Ray-sphere intersection + lookup into a CPU-side ID buffer (O(1) per pick)
+- **Surface:** Two meshes sharing one ShaderMaterial: an ocean SphereGeometry at radius 1.0 (uniform aCountryId=0 → ocean color) plus a merged country mesh at radius 1.0008 (each vertex tagged with its country ID, fragment shader looks up the color in a 256-pixel palette texture). Vector polygon edges — mathematically crisp at any zoom, no rasterization staircase.
+- **Country identification:** Per-vertex `aCountryId` attribute; the same ID is also rasterized into a CPU-side ID buffer (`world-id.bin`) for fast picking.
+- **Picking:** Ray-sphere intersection + lookup into the CPU-side ID buffer (O(1) per pick)
 - **Subgroup display:** `globeManager.showOnly([names])`, `showAll()`, `hideCountry(name)`, `fadeOthers([names], dimAlpha)` — each is a few-byte mutation of the palette texture.
 
 ### 2. Country Labels
@@ -100,8 +99,8 @@ controls.enablePan = false;    // No panning
 ```
 
 ### Globe Sphere Radius
-- **Globe surface:** Radius 1.0 (single textured sphere)
-- **Coastline overlay:** Radius 1.0005 (single LineSegments mesh)
+- **Ocean sphere:** Radius 1.0 (background)
+- **Country mesh:** Radius 1.0008 (vector polygons, scaled at runtime)
 - **Lat/long line set:** Radius 1.001
 - **Labels:** Positioned at radius 1.02
 
@@ -112,18 +111,17 @@ The globe assets are pre-built using `build-textures.js`:
 1. **Input:** GeoJSON files from `world-geojson` npm package
 2. **Process:**
    - Simplify polygons (`simplify-js`, tolerance 0.006)
-   - Antimeridian split (edges with |Δlng| > 180 split at ±180)
+   - Antimeridian unfolding (edges with |Δlng| > 180 are continued past ±180 to keep rings continuous)
    - Compute centroid + bbox from each country's largest ring
-   - Triangulate split rings with `earcut`
-   - Edge-function scanline rasterizer fills the 4096×2048 ID buffer
-   - Connected-components cleanup drops tiny isolated fragments (preserves each country's largest)
+   - Triangulate each unfolded ring with `earcut`; project each vertex to the unit sphere; accumulate into one merged vertex/index/country-id arrays for `world-mesh.bin`
+   - Edge-function scanline rasterizer also fills the 4096×2048 ID buffer (used at runtime only for picking)
+   - Connected-components cleanup drops tiny isolated fragments from the ID buffer (preserves each country's largest)
    - 1-pixel ID dilation eliminates seam ambiguity at country borders
    - Per-country chosen RGB (from `country-colors.json` or random palette) is written into a 256×1 RGBA palette
-   - Simplified rings are serialized into a vector borders binary
 3. **Output:**
-   - `assets/world-id.bin` (~16 MB raw, ~90 KB gzipped)
+   - `assets/world-mesh.bin` (~3.8 MB raw, ~2.2 MB gzipped — vertex positions, per-vertex IDs, uint32 indices)
+   - `assets/world-id.bin` (~16 MB raw, ~90 KB gzipped — picking only)
    - `assets/country-palette.bin` (1 KB)
-   - `assets/world-borders.bin` (~1.3 MB raw, ~1.1 MB gzipped, ~5,900 rings)
    - `assets/country-meta.json` (~75 KB)
 
 Run build: `node build-textures.js` (or `npm run build:globe`)
@@ -180,13 +178,13 @@ Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
 
 ## Performance Considerations
 
-- **Two draw calls** for the entire globe: textured sphere + LineSegments coastline overlay (vs. ~195 in the per-country mesh era).
-- **O(1) picking** via CPU-side ID texture lookup (replaces linear `intersectObjects(countries)`)
+- **Two draw calls** for the entire globe: ocean sphere + merged country mesh (vs. ~195 in the per-country mesh era). Mobile GL pain comes from per-draw-call setup, not vertex throughput; 150k triangles is well under any modern GPU's per-frame vertex budget.
+- **Vector polygon fills** — country edges are mathematical polygon edges, sharp at any zoom. No rasterization staircase, no bulk color texture.
+- **O(1) picking** via CPU-side ID buffer lookup (the GPU never sees the ID texture in this build)
 - **Highlighting / subgroup display via 1-byte palette mutation** — `setCountryColor`, `showOnly`, `fadeOthers` all rewrite a few bytes of the 1 KB palette texture and flip `needsUpdate`. No frame cost, no shader recompile.
-- **No bulk color texture** — country fills are driven by an ID lookup into the 256-pixel palette, saving ~43 MB GPU vs. the original 4096×2048 RGB color texture.
-- **Vector coastlines** stay crisp at any zoom — the LineSegments mesh has ~169k vertices in one geometry; canvas-level MSAA antialiases the lines.
+- **Polygon offset** on the country material prevents flicker where neighboring countries share borders.
 - **Selective rendering:** Labels hidden when not facing camera
-- **Deferred loading:** ID buffer, palette, borders, and meta JSON fetched in parallel
+- **Deferred loading:** ID buffer, palette, mesh, and meta JSON fetched in parallel
 
 ## Key Coordinates
 
