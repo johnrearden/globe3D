@@ -3,17 +3,16 @@ const path = require('path');
 const earcutModule = require('earcut');
 const earcut = earcutModule.default || earcutModule;
 const simplify = require('simplify-js');
-const { PNG } = require('pngjs');
 
 const COUNTRIES_DIR = './node_modules/world-geojson/countries/';
-const OUTPUT_COLOR = './assets/world-color.png';
+const OUTPUT_PALETTE = './assets/country-palette.bin';
+const OUTPUT_BORDERS = './assets/world-borders.bin';
 const OUTPUT_ID = './assets/world-id.bin';
 const OUTPUT_META = './assets/country-meta.json';
 
-const COLOR_W = 4096;
-const COLOR_H = 2048;
 const ID_W = 4096;
 const ID_H = 2048;
+const MAX_COUNTRIES = 256;
 
 // Connected-components cleanup: drop fragments smaller than this, except
 // always preserve each country's largest fragment so tiny countries
@@ -195,7 +194,7 @@ function rasterizeRingToBuffer(ring, W, H, writePixel) {
 // EXCEPT each country's largest region is always kept (so tiny countries
 // like Vatican/Monaco — whose only fragment is sub-pixel — are preserved).
 // Removes the visible "floating pixel off the coast" artifact at its source.
-function cleanupFragments(idBuf, idW, idH, colorBuf, colorW, colorH, oceanColor, idToName) {
+function cleanupFragments(idBuf, idW, idH, idToName) {
     const W = idW, H = idH;
     const N = W * H;
 
@@ -302,9 +301,7 @@ function cleanupFragments(idBuf, idW, idH, colorBuf, colorW, colorH, oceanColor,
         return { droppedComponents: 0, droppedPixels: 0 };
     }
 
-    // Erase: zero id bytes and reset corresponding color pixels to ocean.
-    const cScaleX = colorW / W;
-    const cScaleY = colorH / H;
+    // Erase: zero id bytes for dropped fragments.
     for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
             const i = y * W + x;
@@ -313,18 +310,6 @@ function cleanupFragments(idBuf, idW, idH, colorBuf, colorW, colorH, oceanColor,
             const bi = i * 2;
             idBuf[bi] = 0;
             idBuf[bi + 1] = 0;
-            const cxStart = Math.floor(x * cScaleX);
-            const cyStart = Math.floor(y * cScaleY);
-            const cxEnd = Math.max(cxStart + 1, Math.floor((x + 1) * cScaleX));
-            const cyEnd = Math.max(cyStart + 1, Math.floor((y + 1) * cScaleY));
-            for (let cy = cyStart; cy < cyEnd; cy++) {
-                for (let cx = cxStart; cx < cxEnd; cx++) {
-                    const ci = (cy * colorW + cx) * 3;
-                    colorBuf[ci] = oceanColor[0];
-                    colorBuf[ci + 1] = oceanColor[1];
-                    colorBuf[ci + 2] = oceanColor[2];
-                }
-            }
         }
     }
 
@@ -332,18 +317,13 @@ function cleanupFragments(idBuf, idW, idH, colorBuf, colorW, colorH, oceanColor,
 }
 
 // One pass: any id=0 pixel with at least one non-zero 4-neighbor takes the
-// neighbor's id and copies the neighbor's color from colorBuf at its scaled
-// coords. Eliminates seam ambiguity at country borders and lets us run the ID
-// texture at half resolution without picking precision loss.
-function dilateIds(idBuf, idW, idH, colorBuf, colorW, colorH) {
+// neighbor's id. Eliminates seam ambiguity at country borders.
+function dilateIds(idBuf, idW, idH) {
     const src = new Uint8Array(idBuf);
-    const sx = colorW / idW;
-    const sy = colorH / idH;
     for (let y = 0; y < idH; y++) {
         for (let x = 0; x < idW; x++) {
             const idx = (y * idW + x) * 2;
             if (src[idx] !== 0 || src[idx + 1] !== 0) continue;
-            let nx = -1, ny = -1;
             const tries = [
                 [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
             ];
@@ -353,21 +333,8 @@ function dilateIds(idBuf, idW, idH, colorBuf, colorW, colorH) {
                 if (src[ti] !== 0 || src[ti + 1] !== 0) {
                     idBuf[idx] = src[ti];
                     idBuf[idx + 1] = src[ti + 1];
-                    nx = tx; ny = ty;
                     break;
                 }
-            }
-            if (nx >= 0) {
-                // Copy color from the corresponding color-buffer pixel.
-                const cx = Math.min(colorW - 1, Math.floor((nx + 0.5) * sx));
-                const cy = Math.min(colorH - 1, Math.floor((ny + 0.5) * sy));
-                const srcCi = (cy * colorW + cx) * 3;
-                const dstCx = Math.min(colorW - 1, Math.floor((x + 0.5) * sx));
-                const dstCy = Math.min(colorH - 1, Math.floor((y + 0.5) * sy));
-                const dstCi = (dstCy * colorW + dstCx) * 3;
-                colorBuf[dstCi] = colorBuf[srcCi];
-                colorBuf[dstCi + 1] = colorBuf[srcCi + 1];
-                colorBuf[dstCi + 2] = colorBuf[srcCi + 2];
             }
         }
     }
@@ -394,14 +361,11 @@ function build() {
     console.log(`Found ${countryFiles.length} country files`);
 
     // Allocate buffers
-    const colorBuf = new Uint8Array(COLOR_W * COLOR_H * 3);
     const idBuf = new Uint8Array(ID_W * ID_H * 2);
-    // Initialize color buffer to ocean
-    for (let i = 0; i < COLOR_W * COLOR_H; i++) {
-        colorBuf[i * 3] = OCEAN_COLOR[0];
-        colorBuf[i * 3 + 1] = OCEAN_COLOR[1];
-        colorBuf[i * 3 + 2] = OCEAN_COLOR[2];
-    }
+    // Country-color palette: index by id, RGBA. id=0 reserved for ocean (alpha=0).
+    const palette = new Uint8Array(MAX_COUNTRIES * 4);
+    // Ring data for the vector coastline overlay (unfolded, lng/lat).
+    const allRings = [];
 
     const countriesMeta = [];
     const nameToId = {};
@@ -431,6 +395,14 @@ function build() {
             Math.max(0, Math.min(255, Math.round(colorRGB01[2] * 255)))
         ];
 
+        // Write into the country palette: alpha=255 means "visible at this color".
+        if (id < MAX_COUNTRIES) {
+            palette[id * 4] = colorBytes[0];
+            palette[id * 4 + 1] = colorBytes[1];
+            palette[id * 4 + 2] = colorBytes[2];
+            palette[id * 4 + 3] = 255;
+        }
+
         const idHi = (id >> 8) & 0xff;
         const idLo = id & 0xff;
 
@@ -438,20 +410,11 @@ function build() {
         let largestRingCentroidLngLat = null;
         let largestRingBbox = null;
 
-        const writeColor = (px, py) => {
-            const i = (py * COLOR_W + px) * 3;
-            colorBuf[i] = colorBytes[0];
-            colorBuf[i + 1] = colorBytes[1];
-            colorBuf[i + 2] = colorBytes[2];
-        };
         const writeId = (px, py) => {
             const i = (py * ID_W + px) * 2;
             idBuf[i] = idHi;
             idBuf[i + 1] = idLo;
         };
-
-        let totalPixels = 0;
-        const colorWriteCounting = (px, py) => { writeColor(px, py); totalPixels++; };
 
         let ringCount = 0;
         for (const feat of geo.features) {
@@ -478,7 +441,14 @@ function build() {
                     largestRingBbox = ringBbox(unfolded);
                 }
 
-                rasterizeRingToBuffer(unfolded, COLOR_W, COLOR_H, colorWriteCounting);
+                // Capture for the coastline overlay (lng/lat, antimeridian-unfolded).
+                const flat = new Float32Array(unfolded.length * 2);
+                for (let vi = 0; vi < unfolded.length; vi++) {
+                    flat[vi * 2] = unfolded[vi][0];
+                    flat[vi * 2 + 1] = unfolded[vi][1];
+                }
+                allRings.push(flat);
+
                 rasterizeRingToBuffer(unfolded, ID_W, ID_H, writeId);
                 ringCount++;
             }
@@ -515,54 +485,63 @@ function build() {
         nameToId[displayName] = id;
         idToName[id] = displayName;
 
-        console.log(`  ✓ ${displayName} (id=${id}): ${ringCount} rings, ~${totalPixels} color px`);
+        console.log(`  ✓ ${displayName} (id=${id}): ${ringCount} rings`);
     }
 
     console.log(FRAGDEBUG ? 'Analyzing fragments (FRAGDEBUG=1, no erase)...' : 'Cleaning up tiny isolated fragments...');
-    const cleanup = cleanupFragments(idBuf, ID_W, ID_H, colorBuf, COLOR_W, COLOR_H, OCEAN_COLOR, idToName);
+    const cleanup = cleanupFragments(idBuf, ID_W, ID_H, idToName);
     console.log(`Removed ${cleanup.droppedComponents} fragments / ${cleanup.droppedPixels} pixels`);
 
     console.log('Dilating ID buffer (1px)...');
-    dilateIds(idBuf, ID_W, ID_H, colorBuf, COLOR_W, COLOR_H);
+    dilateIds(idBuf, ID_W, ID_H);
 
-    // Encode color buffer to PNG
-    console.log(`Encoding ${OUTPUT_COLOR}...`);
-    const png = new PNG({ width: COLOR_W, height: COLOR_H, colorType: 2 /* RGB */ });
-    // pngjs expects RGBA in png.data; for colorType=2 (RGB), we provide RGB only
-    // Actually pngjs always uses RGBA internally; we set colorType=2 in the output.
-    // The simplest path: build an RGBA buffer with alpha=255.
-    const rgba = Buffer.alloc(COLOR_W * COLOR_H * 4);
-    for (let i = 0; i < COLOR_W * COLOR_H; i++) {
-        rgba[i * 4] = colorBuf[i * 3];
-        rgba[i * 4 + 1] = colorBuf[i * 3 + 1];
-        rgba[i * 4 + 2] = colorBuf[i * 3 + 2];
-        rgba[i * 4 + 3] = 255;
+    console.log(`Writing ${OUTPUT_PALETTE}...`);
+    fs.writeFileSync(OUTPUT_PALETTE, Buffer.from(palette.buffer));
+
+    console.log(`Writing ${OUTPUT_BORDERS}...`);
+    let totalVerts = 0;
+    let totalBytes = 4; // header: ringCount
+    for (const r of allRings) {
+        totalVerts += r.length / 2;
+        totalBytes += 2 + r.byteLength; // vertexCount + vertices
     }
-    png.data = rgba;
-    fs.writeFileSync(OUTPUT_COLOR, PNG.sync.write(png));
+    const bordersBuf = Buffer.alloc(totalBytes);
+    bordersBuf.writeUInt32LE(allRings.length, 0);
+    let off = 4;
+    for (const r of allRings) {
+        const verts = r.length / 2;
+        if (verts > 0xffff) {
+            throw new Error(`ring vertex count ${verts} exceeds uint16; raise format width`);
+        }
+        bordersBuf.writeUInt16LE(verts, off); off += 2;
+        Buffer.from(r.buffer, r.byteOffset, r.byteLength).copy(bordersBuf, off);
+        off += r.byteLength;
+    }
+    fs.writeFileSync(OUTPUT_BORDERS, bordersBuf);
 
     console.log(`Writing ${OUTPUT_ID}...`);
     fs.writeFileSync(OUTPUT_ID, Buffer.from(idBuf.buffer));
 
     console.log(`Writing ${OUTPUT_META}...`);
     const meta = {
-        colorWidth: COLOR_W,
-        colorHeight: COLOR_H,
         idWidth: ID_W,
         idHeight: ID_H,
         oceanId: 0,
         oceanColor: OCEAN_COLOR,
+        paletteCountries: MAX_COUNTRIES,
         countries: countriesMeta,
         nameToId,
         idToName
     };
     fs.writeFileSync(OUTPUT_META, JSON.stringify(meta, null, 2));
 
-    const colorSize = fs.statSync(OUTPUT_COLOR).size;
+    const paletteSize = fs.statSync(OUTPUT_PALETTE).size;
+    const bordersSize = fs.statSync(OUTPUT_BORDERS).size;
     const idSize = fs.statSync(OUTPUT_ID).size;
     const metaSize = fs.statSync(OUTPUT_META).size;
     console.log(`\nDone.`);
-    console.log(`  ${OUTPUT_COLOR}: ${(colorSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  ${OUTPUT_PALETTE}: ${paletteSize} bytes`);
+    console.log(`  ${OUTPUT_BORDERS}: ${(bordersSize / 1024).toFixed(1)} KB (${allRings.length} rings, ${totalVerts} vertices)`);
     console.log(`  ${OUTPUT_ID}: ${(idSize / 1024 / 1024).toFixed(2)} MB (gzip recommended)`);
     console.log(`  ${OUTPUT_META}: ${(metaSize / 1024).toFixed(1)} KB`);
     console.log(`  ${countriesMeta.length} countries`);

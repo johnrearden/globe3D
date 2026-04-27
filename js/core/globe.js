@@ -13,7 +13,8 @@ const THREE = window.THREE;
 
 const SPHERE_RADIUS = 1.0;
 const SPHERE_SEGMENTS = 96;
-const OVERRIDE_W = 256;
+const PALETTE_W = 256;
+const COASTLINE_RADIUS = 1.0005;
 
 const VERTEX_SHADER = /* glsl */`
 varying vec3 vLocalPosition;
@@ -35,10 +36,9 @@ void main() {
 const FRAGMENT_SHADER = /* glsl */`
 precision highp float;
 
-uniform sampler2D uColorTex;
 uniform sampler2D uIdTex;
-uniform sampler2D uOverrideTex;
-uniform float uOverrideW;
+uniform sampler2D uPaletteTex;
+uniform float uPaletteW;
 uniform float uSelectedId;
 uniform float uFlashId;
 uniform vec3 uFlashColor;
@@ -59,19 +59,17 @@ void main() {
     float u = theta / 6.283185307179586;
     float v = acos(clamp(nrm.y, -1.0, 1.0)) / 3.141592653589793;
 
-    vec4 baseColor = texture2D(uColorTex, vec2(u, v));
-
     vec4 idSample = texture2D(uIdTex, vec2(u, v));
     float idHi = floor(idSample.r * 255.0 + 0.5);
     float idLo = floor(idSample.g * 255.0 + 0.5);
     float id = idHi * 256.0 + idLo;
 
-    vec3 color = baseColor.rgb;
-
-    // Per-country override (preserves existing country-colors.json behaviour).
+    // Palette is the single source of truth for country fills.
+    // RGB = country color; A = visibility (0 = hidden → ocean, 1 = full).
+    vec3 color = uOceanColor;
     if (id > 0.5) {
-        vec4 override = texture2D(uOverrideTex, vec2((id + 0.5) / uOverrideW, 0.5));
-        color = mix(color, override.rgb, override.a);
+        vec4 entry = texture2D(uPaletteTex, vec2((id + 0.5) / uPaletteW, 0.5));
+        color = mix(uOceanColor, entry.rgb, entry.a);
     }
 
     if (uShowCountries < 0.5) {
@@ -102,10 +100,11 @@ export class GlobeManager {
         this.scene = scene;
         this.globe = null;
         this.sphereMesh = null;
+        this.coastlineMesh = null;
         this.material = null;
-        this.colorTexture = null;
         this.idTexture = null;
-        this.overrideTexture = null;
+        this.paletteTexture = null;
+        this.paletteDefaults = null; // build-time palette snapshot for resets
 
         this.idBytes = null;        // Uint8Array, packed [idHi, idLo, ...]
         this.idW = 0;
@@ -150,6 +149,86 @@ export class GlobeManager {
         return new THREE.Vector3(x, y, z);
     }
 
+    /**
+     * Decode world-borders.bin and render every country's simplified rings as
+     * a single LineSegments mesh on a thin shell above the globe surface. This
+     * recovers the crisp-edge appearance that the per-country triangulated
+     * meshes used to give us at close zoom — vector lines stay sharp at any
+     * distance while the underlying palette-driven fill stays uniform.
+     */
+    addCoastlines(buffer) {
+        if (!buffer) return;
+        const view = new DataView(buffer);
+        const ringCount = view.getUint32(0, true);
+        let off = 4;
+
+        // Two segment endpoints per edge × 3 floats per endpoint.
+        // Pre-pass: count segments so we can allocate a single Float32Array.
+        let segCount = 0;
+        let scanOff = off;
+        for (let r = 0; r < ringCount; r++) {
+            const verts = view.getUint16(scanOff, true);
+            scanOff += 2 + verts * 8;
+            if (verts >= 2) segCount += verts; // closed ring: N edges (last one wraps)
+        }
+
+        const positions = new Float32Array(segCount * 6);
+        let pi = 0;
+        const tmp = new THREE.Vector3();
+        for (let r = 0; r < ringCount; r++) {
+            const verts = view.getUint16(off, true);
+            off += 2;
+            if (verts < 2) {
+                off += verts * 8;
+                continue;
+            }
+            // Project each vertex once and reuse for the segments [v_i, v_{i+1}],
+            // closing the loop with [v_{N-1}, v_0].
+            const projected = new Float32Array(verts * 3);
+            for (let v = 0; v < verts; v++) {
+                const lng = view.getFloat32(off, true); off += 4;
+                const lat = view.getFloat32(off, true); off += 4;
+                this._latLngToXYZ(lat, lng, COASTLINE_RADIUS, tmp);
+                projected[v * 3] = tmp.x;
+                projected[v * 3 + 1] = tmp.y;
+                projected[v * 3 + 2] = tmp.z;
+            }
+            for (let v = 0; v < verts; v++) {
+                const a = v;
+                const b = (v + 1) % verts;
+                positions[pi++] = projected[a * 3];
+                positions[pi++] = projected[a * 3 + 1];
+                positions[pi++] = projected[a * 3 + 2];
+                positions[pi++] = projected[b * 3];
+                positions[pi++] = projected[b * 3 + 1];
+                positions[pi++] = projected[b * 3 + 2];
+            }
+        }
+
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.LineBasicMaterial({
+            color: 0x222222,
+            opacity: 0.7,
+            transparent: true,
+            depthWrite: false
+        });
+        const mesh = new THREE.LineSegments(geom, material);
+        this.coastlineMesh = mesh;
+        this.globe.add(mesh);
+        console.log(`Coastlines: ${ringCount} rings, ${segCount} segments`);
+    }
+
+    /** In-place version of latLngToVector3 that writes into a target vector. */
+    _latLngToXYZ(lat, lng, radius, target) {
+        const phi = (90 - lat) * Math.PI / 180;
+        const theta = -(lng + 180) * Math.PI / 180;
+        target.x = radius * Math.sin(phi) * Math.cos(theta);
+        target.y = radius * Math.cos(phi);
+        target.z = radius * Math.sin(phi) * Math.sin(theta);
+        return target;
+    }
+
     addLatLongLines() {
         const radius = 1.001;
         const lineMaterial = new THREE.LineBasicMaterial({
@@ -188,24 +267,18 @@ export class GlobeManager {
     async loadGlobe(onProgress, onComplete, onError) {
         try {
             console.log('Loading textured globe...');
-            if (onProgress) onProgress(5, 'Fetching textures...');
+            if (onProgress) onProgress(5, 'Fetching globe data...');
 
-            const colorPromise = new Promise((resolve, reject) => {
-                const loader = new THREE.TextureLoader();
-                loader.load(
-                    'assets/world-color.png',
-                    (tex) => resolve(tex),
-                    (xhr) => {
-                        if (onProgress && xhr.total) {
-                            const pct = Math.floor((xhr.loaded / xhr.total) * 50);
-                            onProgress(5 + pct, `Downloading color map... ${Math.floor(xhr.loaded / xhr.total * 100)}%`);
-                        }
-                    },
-                    (err) => reject(err)
-                );
-            });
             const idPromise = fetch('assets/world-id.bin').then(r => {
                 if (!r.ok) throw new Error(`Failed to fetch world-id.bin: ${r.status}`);
+                return r.arrayBuffer();
+            });
+            const palettePromise = fetch('assets/country-palette.bin').then(r => {
+                if (!r.ok) throw new Error(`Failed to fetch country-palette.bin: ${r.status}`);
+                return r.arrayBuffer();
+            });
+            const bordersPromise = fetch('assets/world-borders.bin').then(r => {
+                if (!r.ok) throw new Error(`Failed to fetch world-borders.bin: ${r.status}`);
                 return r.arrayBuffer();
             });
             const metaPromise = fetch('assets/country-meta.json').then(r => {
@@ -213,7 +286,8 @@ export class GlobeManager {
                 return r.json();
             });
 
-            const [colorTex, idBuffer, meta] = await Promise.all([colorPromise, idPromise, metaPromise]);
+            const [idBuffer, paletteBuffer, bordersBuffer, meta] =
+                await Promise.all([idPromise, palettePromise, bordersPromise, metaPromise]);
 
             if (onProgress) onProgress(70, 'Building shader...');
 
@@ -224,25 +298,6 @@ export class GlobeManager {
             if (this.idBytes.length !== expected) {
                 throw new Error(`world-id.bin size mismatch: got ${this.idBytes.length}, expected ${expected}`);
             }
-
-            // Color texture: linear filtering with mipmaps + anisotropy.
-            // flipY=false so it matches the ID DataTexture's orientation —
-            // both have row 0 = north pole, so v=0 in the shader maps to the
-            // north pole for both. Without this, PNG would be flipped relative
-            // to the IDs and the globe colors appear vertically inverted.
-            colorTex.flipY = false;
-            colorTex.colorSpace = THREE.SRGBColorSpace || colorTex.colorSpace;
-            colorTex.minFilter = THREE.LinearMipmapLinearFilter;
-            colorTex.magFilter = THREE.LinearFilter;
-            colorTex.generateMipmaps = true;
-            colorTex.wrapS = THREE.RepeatWrapping;
-            colorTex.wrapT = THREE.ClampToEdgeWrapping;
-            const renderer = state.get('scene.renderer');
-            if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
-                colorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-            }
-            colorTex.needsUpdate = true;
-            this.colorTexture = colorTex;
 
             // ID texture: packed into RGBA so it works under WebGL1 without
             // depending on RG/LuminanceAlpha format support. R=idHi, G=idLo.
@@ -262,23 +317,28 @@ export class GlobeManager {
             idTex.needsUpdate = true;
             this.idTexture = idTex;
 
-            // Override texture: 256×1 RGBA. Initially all zeros (no override).
-            const overrideData = new Uint8Array(OVERRIDE_W * 4);
-            const overrideTex = new THREE.DataTexture(overrideData, OVERRIDE_W, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
-            overrideTex.minFilter = THREE.NearestFilter;
-            overrideTex.magFilter = THREE.NearestFilter;
-            overrideTex.generateMipmaps = false;
-            overrideTex.needsUpdate = true;
-            this.overrideTexture = overrideTex;
+            // Country palette: 256×1 RGBA. RGB = country color, A = visibility.
+            // Single source of truth for all country fills (replaces the old
+            // bulky world-color.png + 256-pixel override stack).
+            const paletteBytes = new Uint8Array(paletteBuffer);
+            if (paletteBytes.length !== PALETTE_W * 4) {
+                throw new Error(`country-palette.bin size mismatch: got ${paletteBytes.length}, expected ${PALETTE_W * 4}`);
+            }
+            this.paletteDefaults = new Uint8Array(paletteBytes); // copy for resets
+            const paletteTex = new THREE.DataTexture(paletteBytes, PALETTE_W, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
+            paletteTex.minFilter = THREE.NearestFilter;
+            paletteTex.magFilter = THREE.NearestFilter;
+            paletteTex.generateMipmaps = false;
+            paletteTex.needsUpdate = true;
+            this.paletteTexture = paletteTex;
 
             const oceanColor = meta.oceanColor || [6, 26, 51];
 
             this.material = new THREE.ShaderMaterial({
                 uniforms: {
-                    uColorTex: { value: colorTex },
                     uIdTex: { value: idTex },
-                    uOverrideTex: { value: overrideTex },
-                    uOverrideW: { value: OVERRIDE_W },
+                    uPaletteTex: { value: paletteTex },
+                    uPaletteW: { value: PALETTE_W },
                     uSelectedId: { value: 0 },
                     uFlashId: { value: 0 },
                     uFlashColor: { value: new THREE.Color(0, 1, 0) },
@@ -321,6 +381,9 @@ export class GlobeManager {
 
             state.set('countries.list', [], false);
             state.set('countries.centroids', this.countryCentroids, false);
+
+            if (onProgress) onProgress(95, 'Drawing coastlines...');
+            this.addCoastlines(bordersBuffer);
 
             if (onProgress) onProgress(100, 'Complete!');
 
@@ -425,31 +488,38 @@ export class GlobeManager {
     }
 
     setCountryColor(name, rgb01) {
-        if (!this.overrideTexture) return;
+        if (!this.paletteTexture) return;
         const id = this.nameToId[name];
-        if (id === undefined || id < 1 || id >= OVERRIDE_W) return;
-        const data = this.overrideTexture.image.data;
+        if (id === undefined || id < 1 || id >= PALETTE_W) return;
+        const data = this.paletteTexture.image.data;
         data[id * 4] = Math.max(0, Math.min(255, Math.round(rgb01[0] * 255)));
         data[id * 4 + 1] = Math.max(0, Math.min(255, Math.round(rgb01[1] * 255)));
         data[id * 4 + 2] = Math.max(0, Math.min(255, Math.round(rgb01[2] * 255)));
         data[id * 4 + 3] = 255;
-        this.overrideTexture.needsUpdate = true;
+        this.paletteTexture.needsUpdate = true;
     }
 
-    clearCountryColor(name) {
-        if (!this.overrideTexture) return;
+    /** Restore a country to its build-time default color and full visibility. */
+    resetCountryColor(name) {
+        if (!this.paletteTexture || !this.paletteDefaults) return;
         const id = this.nameToId[name];
-        if (id === undefined || id < 1 || id >= OVERRIDE_W) return;
-        const data = this.overrideTexture.image.data;
-        data[id * 4] = 0;
-        data[id * 4 + 1] = 0;
-        data[id * 4 + 2] = 0;
-        data[id * 4 + 3] = 0;
-        this.overrideTexture.needsUpdate = true;
+        if (id === undefined || id < 1 || id >= PALETTE_W) return;
+        const data = this.paletteTexture.image.data;
+        const off = id * 4;
+        data[off] = this.paletteDefaults[off];
+        data[off + 1] = this.paletteDefaults[off + 1];
+        data[off + 2] = this.paletteDefaults[off + 2];
+        data[off + 3] = this.paletteDefaults[off + 3];
+        this.paletteTexture.needsUpdate = true;
+    }
+
+    /** Back-compat alias for callers still referencing the override-era API. */
+    clearCountryColor(name) {
+        this.resetCountryColor(name);
     }
 
     applyColorOverrides(config) {
-        if (!config || !this.overrideTexture) return;
+        if (!config || !this.paletteTexture) return;
         // Match country-colors.json's flexible name-matching against the
         // canonical names in nameToId.
         for (const configName in config) {
@@ -457,13 +527,13 @@ export class GlobeManager {
             if (!Array.isArray(rgb) || rgb.length < 3) continue;
             const id = this._lookupIdLoose(configName);
             if (id === undefined) continue;
-            const data = this.overrideTexture.image.data;
+            const data = this.paletteTexture.image.data;
             data[id * 4] = Math.max(0, Math.min(255, Math.round(rgb[0] * 255)));
             data[id * 4 + 1] = Math.max(0, Math.min(255, Math.round(rgb[1] * 255)));
             data[id * 4 + 2] = Math.max(0, Math.min(255, Math.round(rgb[2] * 255)));
             data[id * 4 + 3] = 255;
         }
-        this.overrideTexture.needsUpdate = true;
+        this.paletteTexture.needsUpdate = true;
     }
 
     _lookupIdLoose(name) {
@@ -478,21 +548,83 @@ export class GlobeManager {
         return undefined;
     }
 
+    /**
+     * Emit only countries whose palette entry differs from the build-time default.
+     * Output format is unchanged from the old override-texture serializer so
+     * existing label-config / country-colors.json consumers keep working.
+     */
     serializeColorOverrides() {
         const out = {};
-        if (!this.overrideTexture) return out;
-        const data = this.overrideTexture.image.data;
-        for (let id = 1; id < OVERRIDE_W; id++) {
-            if (data[id * 4 + 3] === 0) continue;
+        if (!this.paletteTexture || !this.paletteDefaults) return out;
+        const data = this.paletteTexture.image.data;
+        const def = this.paletteDefaults;
+        for (let id = 1; id < PALETTE_W; id++) {
+            const off = id * 4;
+            if (data[off] === def[off]
+                && data[off + 1] === def[off + 1]
+                && data[off + 2] === def[off + 2]
+                && data[off + 3] === def[off + 3]) continue;
             const name = this.idToName[id];
             if (!name) continue;
             out[name] = [
-                data[id * 4] / 255,
-                data[id * 4 + 1] / 255,
-                data[id * 4 + 2] / 255
+                data[off] / 255,
+                data[off + 1] / 255,
+                data[off + 2] / 255
             ];
         }
         return out;
+    }
+
+    /**
+     * Show only the listed countries; everyone else renders as ocean.
+     * Coastline overlay is unaffected — borders are always drawn.
+     */
+    showOnly(names) {
+        if (!this.paletteTexture) return;
+        const data = this.paletteTexture.image.data;
+        const allow = new Set();
+        for (const name of names) {
+            const id = this._lookupIdLoose(name);
+            if (id !== undefined) allow.add(id);
+        }
+        for (let id = 1; id < PALETTE_W; id++) {
+            data[id * 4 + 3] = allow.has(id) ? 255 : 0;
+        }
+        this.paletteTexture.needsUpdate = true;
+    }
+
+    /** Restore full visibility for every country (alpha=1 from build defaults). */
+    showAll() {
+        if (!this.paletteTexture || !this.paletteDefaults) return;
+        const data = this.paletteTexture.image.data;
+        for (let id = 1; id < PALETTE_W; id++) {
+            data[id * 4 + 3] = this.paletteDefaults[id * 4 + 3];
+        }
+        this.paletteTexture.needsUpdate = true;
+    }
+
+    hideCountry(name) {
+        if (!this.paletteTexture) return;
+        const id = this._lookupIdLoose(name);
+        if (id === undefined || id < 1 || id >= PALETTE_W) return;
+        this.paletteTexture.image.data[id * 4 + 3] = 0;
+        this.paletteTexture.needsUpdate = true;
+    }
+
+    /** Highlighted countries stay at full color; everyone else fades toward ocean. */
+    fadeOthers(names, dimAlpha = 0.25) {
+        if (!this.paletteTexture) return;
+        const data = this.paletteTexture.image.data;
+        const focus = new Set();
+        for (const name of names) {
+            const id = this._lookupIdLoose(name);
+            if (id !== undefined) focus.add(id);
+        }
+        const dim = Math.max(0, Math.min(255, Math.round(dimAlpha * 255)));
+        for (let id = 1; id < PALETTE_W; id++) {
+            data[id * 4 + 3] = focus.has(id) ? 255 : dim;
+        }
+        this.paletteTexture.needsUpdate = true;
     }
 
     setShowCountries(show) {
