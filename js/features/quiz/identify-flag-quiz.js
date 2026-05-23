@@ -353,13 +353,10 @@ export class IdentifyFlagQuiz {
         optionButtons.forEach(button => {
             button.disabled = true;
 
-            // Highlight correct and incorrect answers
+            // Highlight correct and incorrect answers (color only — appending a label here
+            // mutates button size and reflows neighbours).
             if (button.dataset.country === this.currentQuestion.correctCountry) {
                 button.classList.add('correct');
-                const label = document.createElement('span');
-                label.className = 'correct-label';
-                label.textContent = 'correct answer';
-                button.appendChild(label);
             } else if (button.dataset.country === selectedCountry && !isCorrect) {
                 button.classList.add('incorrect');
             }

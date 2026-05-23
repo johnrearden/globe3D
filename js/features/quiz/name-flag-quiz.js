@@ -244,14 +244,10 @@ export class NameFlagQuiz {
         optionButtons.forEach(button => {
             button.disabled = true;
 
-            // Highlight correct and incorrect answers
+            // Highlight correct and incorrect answers (color only — no appended label,
+            // because appending mutates the button's intrinsic size and reflows the grid).
             if (button.dataset.country === this.currentQuestion.correctCountry) {
                 button.classList.add('correct');
-                // Add "CORRECT ANSWER" label to correct answer button
-                const label = document.createElement('span');
-                label.className = 'correct-label';
-                label.textContent = 'correct answer';
-                button.appendChild(label);
             } else if (button.dataset.country === selectedCountry && !isCorrect) {
                 button.classList.add('incorrect');
             }

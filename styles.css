@@ -1386,6 +1386,34 @@
                 margin-top: 8px;
             }
 
+            /* Name the Country quiz (mobile): hide the zoom controls so they don't compete
+               with the quiz panel for screen space. */
+            body.quiz-active #zoom-out-btn,
+            body.quiz-active #zoom-widget {
+                display: none !important;
+            }
+
+            /* Header + score on one row. The cancel "X" is already absolute top:8/right:8,
+               so dropping these two onto a single inline-block row puts all three visually
+               on the same row. !important beats the inline display:block set by the quiz JS. */
+            body.quiz-active #quiz-header,
+            body.quiz-active #quiz-score {
+                display: inline-block !important;
+                vertical-align: middle;
+                margin-right: 12px;
+                margin-bottom: 8px;
+            }
+
+            /* 2x2 grid of answer options (4 choices per question). */
+            body.quiz-active #quiz-options {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            body.quiz-active .quiz-option {
+                margin: 0;
+            }
+
             /* Flag Quiz Fullscreen on Mobile */
             body.flag-quiz-active #quiz-container {
                 position: fixed;
