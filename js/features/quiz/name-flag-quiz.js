@@ -53,6 +53,12 @@ export class NameFlagQuiz {
         const optionsContainer = this.elements.get('quiz-options');
         optionsContainer.innerHTML = '';
 
+        // Clear any inline display overrides left over from cancelQuiz/end —
+        // otherwise the container stays hidden and the Take Quiz button stays
+        // visible despite the CSS rules driven by body.quiz-active.
+        this.elements.get('quiz-container').style.display = '';
+        this.elements.get('take-quiz-btn').style.display = '';
+
         // Show quiz elements
         this.elements.get('quiz-score').style.display = 'block';
         this.elements.get('quiz-question').style.display = 'block';
@@ -103,13 +109,18 @@ export class NameFlagQuiz {
         // Show celebration overlay with score
         this.showQuizCelebration(this.score, this.questionsAnswered);
 
-        // Add click event to celebration close button
+        // Play Again returns to the quiz-mode chooser so the user can pick
+        // any quiz, not just re-enter this one. Clear the inline display
+        // override on #quiz-container — leaving it as 'none' would beat the
+        // CSS rules (e.g. body.flag-quiz-active) that the next quiz's start()
+        // relies on to show the panel.
         this.elements.get('celebration-close-btn').onclick = () => {
             this.elements.get('quiz-celebration-overlay').style.display = 'none';
-            this.elements.get('quiz-container').style.display = 'block';
+            this.elements.get('quiz-container').style.display = '';
             this.elements.get('quiz-next-btn').style.visibility = 'hidden';
             this.elements.get('quiz-start-btn').style.display = 'block';
-            this.elements.get('quiz-start-btn').textContent = 'Play Again';
+            this.elements.get('quiz-start-btn').textContent = 'Start Quiz';
+            this.elements.get('quiz-mode-selector').style.display = 'block';
         };
     }
 

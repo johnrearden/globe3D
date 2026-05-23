@@ -94,12 +94,13 @@ export class ClickQuiz {
         // Show celebration overlay with score
         this.showQuizCelebration(this.score, this.currentIndex, timeInfo);
 
-        // Add click event to celebration close button
+        // Play Again returns to the quiz-mode chooser so the user can pick
+        // any quiz, not just re-enter this one.
         this.elements.get('celebration-close-btn').onclick = () => {
             this.elements.get('quiz-celebration-overlay').style.display = 'none';
-            // Show search and quiz button again
             this.elements.get('search-container').style.display = 'block';
             this.elements.get('take-quiz-btn').style.display = 'block';
+            this.elements.get('quiz-mode-selector').style.display = 'block';
         };
     }
 

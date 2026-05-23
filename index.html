@@ -46,6 +46,7 @@
         <button id="zoom-out-btn">🌍 Zoom Out</button>
         <div id="loading">Loading world map data...</div>
         <button id="take-quiz-btn">Take Quiz</button>
+        <button id="dev-edit-toggle" title="Show developer edit tools">✎</button>
         <button id="edit-mode-btn">Edit Labels</button>
         <button id="save-config-btn" style="display: none;">Save Config</button>
         <button id="fine-tune-btn" style="display: none;">Fine Tune</button>
@@ -1346,6 +1347,9 @@
             renderer.domElement.addEventListener('wheel', onWheelForLabelResize, { passive: false, capture: true });
 
             // Edit mode UI buttons
+            elements.get('dev-edit-toggle').addEventListener('click', () => {
+                document.body.classList.toggle('dev-edit-open');
+            });
             elements.get('edit-mode-btn').addEventListener('click', toggleEditMode);
             elements.get('save-config-btn').addEventListener('click', saveLabelConfig);
             elements.get('fine-tune-btn').addEventListener('click', openLabelEditorModal);

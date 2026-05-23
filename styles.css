@@ -1824,3 +1824,105 @@
                 font-size: 18px;
             }
         }
+
+        /* ============================================================
+           Layout overrides — applied last so they win on cascade order.
+
+           - Hide Zoom Out + Zoom Widget always (kept in DOM in place).
+           - Show Take Quiz on desktop too, top-left under search.
+           - Gate Edit Labels + Edit Colors behind the small ✎ toggle
+             button (body.dev-edit-open). Their save/fine-tune/swatch
+             siblings keep their own internal show/hide logic.
+           ============================================================ */
+
+        #zoom-out-btn,
+        #zoom-widget {
+            display: none !important;
+        }
+
+        /* Small dev-edit toggle in the top-right corner (where Zoom Out
+           used to live). Toggles body.dev-edit-open. */
+        #dev-edit-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            z-index: 150;
+            background-color: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        #dev-edit-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.85);
+            transform: scale(1.05);
+        }
+        body.dev-edit-open #dev-edit-toggle {
+            background-color: rgba(76, 175, 80, 0.85);
+            border-color: #4CAF50;
+        }
+
+        /* Hide developer edit buttons unless the toggle is open. Beats
+           the desktop+mobile media-query rules that set display: block. */
+        #edit-mode-btn,
+        #edit-colors-btn {
+            display: none !important;
+        }
+        body.dev-edit-open #edit-mode-btn,
+        body.dev-edit-open #edit-colors-btn {
+            display: block !important;
+        }
+
+        /* Take Quiz pinned to the actual top-left corner. Margin matches
+           the search container (top:20px left:20px on desktop, 10px on
+           mobile). Wins over the older mobile rule that placed it at
+           top:110px. */
+        #take-quiz-btn {
+            top: 20px !important;
+            left: 20px !important;
+        }
+        @media (min-width: 769px) {
+            #take-quiz-btn {
+                display: block;
+                position: fixed;
+                z-index: 150;
+                background-color: #FF8C00;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+            #take-quiz-btn:hover {
+                background-color: #FF6500;
+                transform: scale(1.05);
+            }
+            body.quiz-active #take-quiz-btn {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #take-quiz-btn {
+                top: 10px !important;
+                left: 10px !important;
+            }
+            #dev-edit-toggle {
+                top: 10px;
+                right: 10px;
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+        }
