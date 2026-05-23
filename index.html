@@ -1339,8 +1339,11 @@
             // Edit mode keyboard shortcuts
             window.addEventListener('keydown', onKeyDown);
 
-            // Edit mode wheel event for font size adjustment
-            renderer.domElement.addEventListener('wheel', onWheelForLabelResize, { passive: false });
+            // Edit mode wheel event for font size adjustment.
+            // capture: true so it runs before OrbitControls' bubbling-phase wheel listener,
+            // and we stopImmediatePropagation in the handler when we actually consume the event,
+            // otherwise OrbitControls also zooms on the same wheel tick.
+            renderer.domElement.addEventListener('wheel', onWheelForLabelResize, { passive: false, capture: true });
 
             // Edit mode UI buttons
             elements.get('edit-mode-btn').addEventListener('click', toggleEditMode);
@@ -1384,6 +1387,8 @@
         function onWheelForLabelResize(event) {
             if (editMode && selectedLabel) {
                 event.preventDefault();
+                // Stop OrbitControls (and any other wheel listeners) from also handling this tick.
+                event.stopImmediatePropagation();
 
                 const countryName = selectedLabel.userData.countryName;
                 if (!labelConfig[countryName]) {
