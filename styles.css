@@ -937,6 +937,37 @@
             display: none;
         }
 
+        /* Swatch panel: shared rules (positioning lives in media queries below) */
+        #swatch-panel {
+            grid-template-columns: repeat(4, 28px);
+            gap: 4px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 150;
+        }
+
+        .swatch {
+            width: 28px;
+            height: 28px;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            box-sizing: border-box;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .swatch.active {
+            border-color: #ffffff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+        }
+
         /* Zoom Widget Styles */
         #zoom-widget {
             position: fixed;
@@ -1108,6 +1139,12 @@
                 background-color: #0097A7;
                 transform: scale(1.05);
             }
+
+            #swatch-panel {
+                position: fixed;
+                top: 370px;
+                left: 20px;
+            }
         }
 
         /* Mobile styles */
@@ -1255,6 +1292,12 @@
                 transform: scale(1.05);
             }
 
+            #swatch-panel {
+                position: fixed;
+                top: 385px;
+                left: 10px;
+            }
+
             /* Hide Take Quiz button during quiz */
             body.quiz-active #take-quiz-btn {
                 display: none;
@@ -1265,8 +1308,9 @@
             body.quiz-active #save-config-btn,
             body.quiz-active #fine-tune-btn,
             body.quiz-active #edit-colors-btn,
-            body.quiz-active #save-colors-btn {
-                display: none;
+            body.quiz-active #save-colors-btn,
+            body.quiz-active #swatch-panel {
+                display: none !important;
             }
 
             /* Zoom widget on mobile - position on right side */

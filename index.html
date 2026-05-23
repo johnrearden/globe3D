@@ -51,6 +51,7 @@
         <button id="fine-tune-btn" style="display: none;">Fine Tune</button>
         <button id="edit-colors-btn">Edit Colors</button>
         <button id="save-colors-btn" style="display: none;">Save Colors</button>
+        <div id="swatch-panel" style="display: none;"></div>
 
         <!-- Zoom Level Widget -->
         <div id="zoom-widget">
@@ -208,7 +209,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/perlin.js/1.0/perlin.js"></script>
     <script type="module">
         // ===== IMPORTS =====
         import { state } from './js/data/state.js';
@@ -397,19 +397,27 @@
         // Color edit mode variables
         let colorEditMode = false;
         let colorConfig = {}; // Stores custom country colors
+        let activeColorIndex = 0; // Index into COLOR_PALETTE for the swatch UI
 
-        // Curated color palette (10 distinct colors in darker tones for lighting)
+        // Curated palette: 16 dark hues chosen for ~5:1+ contrast against white label text
+        // while keeping enough chroma to read as distinct, vivid country colors.
         const COLOR_PALETTE = [
-            [0.2, 0.5, 0.25],   // Forest Green
-            [0.45, 0.45, 0.15], // Olive/Yellow-Green
-            [0.5, 0.35, 0.15],  // Orange/Rust
-            [0.35, 0.2, 0.45],  // Purple/Violet
-            [0.2, 0.45, 0.45],  // Teal/Cyan
-            [0.4, 0.3, 0.2],    // Brown/Earth
-            [0.5, 0.45, 0.2],   // Dark Yellow/Gold
-            [0.45, 0.25, 0.35], // Magenta/Deep Pink
-            [0.2, 0.25, 0.4],   // Navy/Dark Blue
-            [0.4, 0.2, 0.25]    // Burgundy/Wine Red
+            [0.50, 0.10, 0.15], // Crimson
+            [0.55, 0.25, 0.10], // Rust
+            [0.50, 0.35, 0.08], // Bronze
+            [0.45, 0.42, 0.10], // Olive Gold
+            [0.28, 0.42, 0.12], // Moss
+            [0.10, 0.42, 0.20], // Forest
+            [0.08, 0.40, 0.32], // Pine
+            [0.10, 0.35, 0.48], // Lagoon
+            [0.12, 0.22, 0.50], // Sapphire
+            [0.25, 0.15, 0.50], // Indigo
+            [0.40, 0.15, 0.50], // Violet
+            [0.48, 0.12, 0.42], // Plum
+            [0.52, 0.10, 0.28], // Berry
+            [0.42, 0.18, 0.15], // Mahogany
+            [0.32, 0.22, 0.15], // Coffee
+            [0.22, 0.30, 0.38]  // Slate
         ];
 
         // Country size categories for label sizing and visibility
@@ -1037,6 +1045,7 @@
 
                 // Reset country highlight on the textured globe
                 globeManager.clearSelection();
+                if (labelManager) labelManager.setHighlight(null);
 
                 // Remove small country indicator
                 removeSmallCountryIndicator();
@@ -1341,6 +1350,7 @@
             // Color edit mode UI buttons
             elements.get('edit-colors-btn').addEventListener('click', toggleColorEditMode);
             elements.get('save-colors-btn').addEventListener('click', saveColorConfig);
+            buildSwatchPanel();
 
             // Label editor modal buttons
             elements.get('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
@@ -1812,20 +1822,41 @@
             }
         }
 
+        // Build the swatch panel from COLOR_PALETTE. Each swatch sets activeColorIndex on click.
+        function buildSwatchPanel() {
+            const panel = elements.get('swatch-panel');
+            if (!panel) return;
+            panel.innerHTML = '';
+            COLOR_PALETTE.forEach((rgb, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'swatch' + (i === activeColorIndex ? ' active' : '');
+                btn.style.backgroundColor = `rgb(${Math.round(rgb[0] * 255)}, ${Math.round(rgb[1] * 255)}, ${Math.round(rgb[2] * 255)})`;
+                btn.dataset.colorIndex = i;
+                btn.addEventListener('click', () => {
+                    activeColorIndex = i;
+                    panel.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+                panel.appendChild(btn);
+            });
+        }
+
         // Toggle color edit mode
         function toggleColorEditMode() {
             colorEditMode = !colorEditMode;
 
             const editBtn = elements.get('edit-colors-btn');
             const saveBtn = elements.get('save-colors-btn');
+            const swatchPanel = elements.get('swatch-panel');
 
             if (colorEditMode) {
-                console.log('Color edit mode ENABLED - Click countries to change colors');
+                console.log('Color edit mode ENABLED - Pick a swatch, then click countries');
 
                 // Update UI
                 addClass(editBtn, 'active');
                 setText(editBtn, 'Exit Color Edit');
                 show(saveBtn);
+                if (swatchPanel) swatchPanel.style.display = 'grid';
 
                 // Disable label edit mode if active
                 if (editMode) {
@@ -1838,18 +1869,19 @@
                 removeClass(editBtn, 'active');
                 setText(editBtn, 'Edit Colors');
                 hide(saveBtn);
+                if (swatchPanel) swatchPanel.style.display = 'none';
             }
         }
 
-        // Change country color to a random color from palette.
+        // Change country color to the currently-selected swatch.
         function changeCountryColor(countryName) {
             if (!countryName || !colorEditMode) return;
 
-            const randomColor = COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
-            globeManager.setCountryColor(countryName, randomColor);
-            colorConfig[countryName] = randomColor;
+            const color = COLOR_PALETTE[activeColorIndex];
+            globeManager.setCountryColor(countryName, color);
+            colorConfig[countryName] = color;
 
-            console.log(`${countryName} color changed to [${randomColor.join(', ')}]`);
+            console.log(`${countryName} color changed to [${color.join(', ')}]`);
 
             if (navigator.vibrate) {
                 navigator.vibrate(30);
@@ -2009,6 +2041,7 @@
 
                     globeManager.clearSelection();
                     globeManager.setSelectedCountry(pickedName);
+                    if (labelManager) labelManager.setHighlight(pickedName);
 
                     rotateGlobeToCountry(pickedName);
                     if (flagRenderer) {
@@ -2265,6 +2298,7 @@
 
                 // Reset globe highlighting
                 globeManager.clearSelection();
+                if (labelManager) labelManager.setHighlight(null);
 
                 // Show search and quiz button
                 show(elements.get('search-container'));

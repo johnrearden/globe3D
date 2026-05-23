@@ -40,7 +40,7 @@ export class CameraController {
 
         // Enable rotation
         this.controls.enableRotate = true;
-        this.controls.rotateSpeed = 0.5;
+        this.controls.rotateSpeed = 1.0;
 
         // Auto-rotate disabled initially
         this.controls.autoRotate = false;

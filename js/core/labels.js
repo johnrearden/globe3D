@@ -16,11 +16,19 @@ export class LabelManager {
         this.labels = [];
         this.labelConfig = {};
         this.labelDefaults = {};
+        this.currentHighlight = null;
 
         // Constants
         this.ZOOM_FAR = 6.0;      // Show only large country labels
         this.ZOOM_MEDIUM = 3.5;   // Show large + medium labels
         this.ZOOM_CLOSE = 2.2;    // Show all labels
+
+        // Hide every label when the camera is farther than this — labels only appear when zoomed in.
+        this.LABEL_HIDE_ABOVE = 1.6;
+
+        // Only show labels within this angular distance of the screen-center point on the globe.
+        // Larger = more labels visible at the edges (where they rotate ugly); smaller = tighter cluster.
+        this.LABEL_VISIBILITY_ANGLE_DEG = 12;
     }
 
     /**
@@ -55,14 +63,20 @@ export class LabelManager {
 
             const labelTexture = this.createTextLabel(name);
 
-            // Create material with transparency
+            // Create material with transparency.
+            // DoubleSide: empirically the only setting that renders text right-side-up here.
+            // FrontSide produced mirror-flipped + upside-down text in this configuration, which
+            // means the plane's effective front-face is on the inward side of the sphere.
             const labelMaterial = new THREE.MeshBasicMaterial({
                 map: labelTexture,
                 transparent: true,
                 opacity: 1.0,
                 side: THREE.DoubleSide,
                 depthTest: false,
-                depthWrite: false
+                depthWrite: false,
+                // Discards near-transparent fragments. Low (0.01) so labels fade smoothly under
+                // the per-frame opacity lerp instead of eroding pixel-by-pixel as opacity drops.
+                alphaTest: 0.01
             });
 
             // Create plane geometry with size based on country category
@@ -101,99 +115,146 @@ export class LabelManager {
         state.set('labels.defaults', this.labelDefaults, false);
 
         console.log(`Created ${this.labels.length} labels`);
+
+        // Font-load race guard. The synchronous pass above can run before the browser's
+        // FontFaceSet has resolved Arial — when that happens, fillText produces garbage-textured
+        // rectangles for some labels (the intermittent "corrupted background" bug, cleared by
+        // a reload that warms the cache). Force-loading the font and then repainting once
+        // guarantees every texture is drawn with a fully resolved font.
+        if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
+            document.fonts.load('32px Arial').then(() => this.repaintAllLabels());
+        }
     }
 
     /**
-     * Create a text label texture
+     * Recreate every label's canvas texture in place. Used by the font-load race guard to
+     * fix textures that may have been drawn before Arial was resolved by the browser.
+     * Highlight state is preserved automatically because it lives on material.color, not
+     * on the texture itself.
+     */
+    repaintAllLabels() {
+        this.labels.forEach(label => {
+            const oldTexture = label.material.map;
+            const newTexture = this.createTextLabel(label.userData.countryName);
+            label.material.map = newTexture;
+            label.material.needsUpdate = true;
+            if (oldTexture) oldTexture.dispose();
+        });
+    }
+
+    /**
+     * Create a text label texture. Text is always drawn white; the actual displayed colour
+     * is produced by tinting through material.color (white for default, black for highlighted).
+     * Keeps the texture immutable and avoids per-highlight texture swaps.
      * @param {string} text - Label text
      * @returns {THREE.Texture}
      */
     createTextLabel(text) {
+        // Size MUST be set before getContext so the context binds to the final dimensions;
+        // setting width/height afterwards re-initialises canvas state and can leave the GPU
+        // upload racing with uninitialised pixel memory.
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-
-        // Set canvas size (fixed)
         canvas.width = 512;
         canvas.height = 128;
+        const context = canvas.getContext('2d');
 
-        // Configure text style
+        // Explicit clear so the texture upload never sees garbage in transparent regions.
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
         context.font = '32px Arial';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
 
-        // Draw dark gray text for contrast with ocean
-        context.fillStyle = '#686868';
+        context.fillStyle = '#FFFFFF';
         context.fillText(text, canvas.width / 2, canvas.height / 2);
 
-        // Create texture from canvas
         const texture = new THREE.CanvasTexture(canvas);
+        // Disable mipmaps: averaging antialiased-text alpha across mip levels otherwise
+        // produces visible rectangular halos / "random pixel" blocks at distance.
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
         texture.needsUpdate = true;
 
         return texture;
     }
 
     /**
-     * Update label visibility based on camera distance and direction
+     * Switch which label is rendered in highlighted (black) form.
+     * Pass null to clear. Repaints the canvas textures of the affected labels.
+     * @param {string|null} name
+     */
+    setHighlight(name) {
+        if (name === this.currentHighlight) return;
+
+        const previous = this.currentHighlight;
+        this.currentHighlight = name || null;
+
+        // Toggle material.color rather than swapping textures. The texture has white text;
+        // tinting it black via material.color produces the highlighted look. This avoids
+        // every texture-replacement code path that was producing invisible labels.
+        const setLabelColor = (countryName, hex) => {
+            if (!countryName) return;
+            const label = this.labels.find(l => l.userData.countryName === countryName);
+            if (label) label.material.color.setHex(hex);
+        };
+
+        setLabelColor(previous, 0xFFFFFF);
+        setLabelColor(this.currentHighlight, 0x000000);
+    }
+
+    /**
+     * Update label visibility based on camera distance and direction.
+     * Each label has a target opacity (1 or 0) and material.opacity is lerped toward it,
+     * so transitions fade smoothly instead of popping.
      */
     updateVisibility() {
-        // Hide all labels during quiz mode
         const quizActive = state.get('quiz.active');
-        if (quizActive) {
-            this.labels.forEach(label => {
-                label.visible = false;
-            });
-            return;
-        }
-
         const cameraDistance = this.camera.position.length();
 
-        // Determine which size categories to show based on zoom
-        let showLarge = false;
-        let showMedium = false;
-        let showSmall = false;
-
-        if (cameraDistance >= this.ZOOM_FAR) {
-            // Far zoom - show only large countries
-            showLarge = true;
-        } else if (cameraDistance >= this.ZOOM_MEDIUM) {
-            // Medium zoom - show large and medium countries
-            showLarge = true;
-            showMedium = true;
-        } else {
-            // Close zoom - show all countries
-            showLarge = true;
-            showMedium = true;
-            showSmall = true;
+        // Resolve the per-zoom-band rules up front (constant across all labels this frame).
+        let showLarge = false, showMedium = false, showSmall = false;
+        if (!quizActive && cameraDistance <= this.LABEL_HIDE_ABOVE) {
+            if (cameraDistance >= this.ZOOM_FAR) {
+                showLarge = true;
+            } else if (cameraDistance >= this.ZOOM_MEDIUM) {
+                showLarge = true; showMedium = true;
+            } else {
+                showLarge = true; showMedium = true; showSmall = true;
+            }
         }
 
-        // Get camera direction
         const cameraDirection = new THREE.Vector3();
         this.camera.getWorldDirection(cameraDirection);
 
+        // labelPosition (outward) and cameraDirection (into globe) are antiparallel at center,
+        // so dot = -cos(angle). Cutoff at -cos(LABEL_VISIBILITY_ANGLE_DEG).
+        const visibilityCutoff = -Math.cos(this.LABEL_VISIBILITY_ANGLE_DEG * Math.PI / 180);
+
+        // Per-frame fade step. ~0.08 gives a ~200ms fade at 60 fps. Increase for faster, decrease for slower.
+        const fadeStep = 0.08;
+
         this.labels.forEach(label => {
             const sizeCategory = label.userData.sizeCategory;
+            let shouldShow =
+                (sizeCategory === 'large' && showLarge) ||
+                (sizeCategory === 'medium' && showMedium) ||
+                (sizeCategory === 'small' && showSmall);
 
-            // Determine if this label should be shown based on zoom level
-            let shouldShowByZoom = false;
-            if (sizeCategory === 'large') {
-                shouldShowByZoom = showLarge;
-            } else if (sizeCategory === 'medium') {
-                shouldShowByZoom = showMedium;
-            } else if (sizeCategory === 'small') {
-                shouldShowByZoom = showSmall;
+            if (shouldShow) {
+                const dotProduct = label.position.clone().normalize().dot(cameraDirection);
+                shouldShow = dotProduct < visibilityCutoff;
             }
 
-            if (!shouldShowByZoom) {
-                label.visible = false;
-                return;
-            }
+            const target = shouldShow ? 1 : 0;
+            const current = label.material.opacity;
+            const delta = target - current;
+            label.material.opacity = Math.abs(delta) <= fadeStep
+                ? target
+                : current + Math.sign(delta) * fadeStep;
 
-            // Check if label is front-facing (visible from camera)
-            const labelPosition = label.position.clone().normalize();
-            const dotProduct = labelPosition.dot(cameraDirection);
-
-            // Show label if it's facing the camera (dot product < 0, since camera looks inward)
-            label.visible = dotProduct < -0.1;
+            // Skip drawing labels that have fully faded out.
+            label.visible = label.material.opacity > 0.01;
         });
     }
 
