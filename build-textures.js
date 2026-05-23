@@ -121,8 +121,14 @@ const COLOR_PALETTES = [
     [0.4, 0.3, 0.2], [0.35, 0.25, 0.15], [0.45, 0.35, 0.2]
 ];
 
-function randomColorRGB01() {
-    return COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
+// Deterministic palette pick keyed on country name. Same name = same colour on every
+// rebuild, so unedited countries stay stable instead of reshuffling each bake.
+function stableColorRGB01(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+    }
+    return COLOR_PALETTES[Math.abs(hash) % COLOR_PALETTES.length];
 }
 
 function lookupColorOverride(displayName, fileName, colorConfig) {
@@ -467,7 +473,7 @@ function build() {
         }
 
         const colorOverride = lookupColorOverride(displayName, fileName, colorConfig);
-        const colorRGB01 = colorOverride || randomColorRGB01();
+        const colorRGB01 = colorOverride || stableColorRGB01(displayName);
         const colorBytes = [
             Math.max(0, Math.min(255, Math.round(colorRGB01[0] * 255))),
             Math.max(0, Math.min(255, Math.round(colorRGB01[1] * 255))),
