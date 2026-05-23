@@ -46,6 +46,7 @@
         <button id="zoom-out-btn">🌍 Zoom Out</button>
         <div id="loading">Loading world map data...</div>
         <button id="take-quiz-btn">Take Quiz</button>
+        <button id="bounce-btn">Bounce</button>
         <button id="dev-edit-toggle" title="Show developer edit tools">✎</button>
         <button id="edit-mode-btn">Edit Labels</button>
         <button id="save-config-btn" style="display: none;">Save Config</button>
@@ -223,6 +224,7 @@
         import { ClickQuiz } from './js/features/quiz/click-quiz.js';
         import { FlagRenderer } from './js/features/flag-renderer.js';
         import { SearchManager } from './js/features/search.js';
+        import { BounceAnimation } from './js/features/bounce-animation.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -383,6 +385,9 @@
 
         // Country labels
         let countryLabels = []; // Array of label meshes
+
+        // Bounce animation (experimental, branch: bouncing)
+        let bounceAnimation = null;
 
         // Edit mode variables
         let editMode = false;
@@ -906,6 +911,14 @@
                     });
                     searchManager.init();
 
+                    // Bounce animation (experimental)
+                    bounceAnimation = new BounceAnimation({
+                        globeGroup: globe,
+                        camera: camera,
+                        renderer: renderer
+                    });
+                    window.bounceGlobe = () => bounceAnimation.start();
+
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     loadLabelConfig();
@@ -953,6 +966,11 @@
                 // Update label visibility
                 if (labelManager) {
                     labelManager.updateVisibility();
+                }
+
+                // Drive the bounce animation if running
+                if (bounceAnimation) {
+                    bounceAnimation.update();
                 }
 
                 // Update UI widgets
@@ -1350,6 +1368,9 @@
             elements.get('dev-edit-toggle').addEventListener('click', () => {
                 document.body.classList.toggle('dev-edit-open');
             });
+            elements.get('bounce-btn').addEventListener('click', () => {
+                if (bounceAnimation) bounceAnimation.start();
+            });
             elements.get('edit-mode-btn').addEventListener('click', toggleEditMode);
             elements.get('save-config-btn').addEventListener('click', saveLabelConfig);
             elements.get('fine-tune-btn').addEventListener('click', openLabelEditorModal);
@@ -1384,6 +1405,9 @@
                 if (editMode) {
                     saveLabelConfig();
                 }
+            } else if (event.key === 'b' || event.key === 'B') {
+                // Experimental bounce animation (branch: bouncing)
+                if (bounceAnimation) bounceAnimation.start();
             }
         }
 

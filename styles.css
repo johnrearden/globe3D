@@ -1913,10 +1913,39 @@
             }
         }
 
+        /* Bounce button — mobile only, sits directly below Take Quiz. */
+        #bounce-btn {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             #take-quiz-btn {
                 top: 10px !important;
                 left: 10px !important;
+            }
+            #bounce-btn {
+                display: block;
+                position: fixed;
+                top: 55px;
+                left: 10px;
+                z-index: 150;
+                background-color: #9C27B0;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+            #bounce-btn:hover {
+                background-color: #7B1FA2;
+                transform: scale(1.05);
+            }
+            body.quiz-active #bounce-btn {
+                display: none;
             }
             #dev-edit-toggle {
                 top: 10px;
