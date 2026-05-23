@@ -2459,13 +2459,8 @@
 
             const worldPos = record.centroid.clone().normalize();
 
-            let phi = Math.acos(worldPos.y);
+            const phi = Math.acos(worldPos.y);
             const theta = Math.atan2(worldPos.z, worldPos.x);
-
-            const isMobile = window.innerWidth <= 768;
-            if (isQuizMode && isMobile) {
-                phi = phi + 0.4;
-            }
 
             let targetDistance;
             if (isQuizMode) {
