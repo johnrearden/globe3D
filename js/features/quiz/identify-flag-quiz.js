@@ -270,9 +270,18 @@ export class IdentifyFlagQuiz {
             return null;
         }
 
-        // Select random country from available countries as the correct answer
-        const correctIndex = Math.floor(Math.random() * availableCountries.length);
-        const correctCountry = availableCountries[correctIndex];
+        // The correct answer must have an ISO code so displayFlag can fetch its flag.
+        // Without this filter, a country missing from countryToISO causes displayFlag
+        // to early-return without clearing the previous flag, leaving stale art on screen.
+        const flaggable = availableCountries.filter(c => this.countryToISO[c.name]);
+        if (flaggable.length === 0) {
+            console.error('No remaining countries with flags available for quiz');
+            return null;
+        }
+
+        // Select random country from flaggable countries as the correct answer
+        const correctIndex = Math.floor(Math.random() * flaggable.length);
+        const correctCountry = flaggable[correctIndex];
 
         // Mark this country as used
         this.usedCountries.push(correctCountry.name);
