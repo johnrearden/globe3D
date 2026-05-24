@@ -152,11 +152,16 @@ export class IdentifyFlagQuiz {
             }
         );
 
-        // Add the canvas to the quiz flag display but keep it hidden
+        // Attach the canvas the first time only. Toggling display between
+        // questions collapses the container and bounces the Next button.
+        // Once visible, leave it visible — the canvas will render transparent
+        // for the brief moment between removing the old mesh and the new
+        // texture arriving.
         const flagDisplay = this.elements.get('quiz-flag-display');
-        flagDisplay.innerHTML = ''; // Clear any existing content
-        flagDisplay.appendChild(this.renderer.domElement);
-        flagDisplay.style.display = 'none'; // Keep hidden until texture loads
+        if (this.renderer.domElement.parentNode !== flagDisplay) {
+            flagDisplay.innerHTML = '';
+            flagDisplay.appendChild(this.renderer.domElement);
+        }
     }
 
     /**
