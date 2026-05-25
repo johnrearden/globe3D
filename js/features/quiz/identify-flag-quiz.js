@@ -390,8 +390,8 @@ export class IdentifyFlagQuiz {
         // Don't show any result message
         this.elements.get('quiz-result').style.display = 'none';
 
-        // End quiz after 10 questions
-        if (this.questionsAnswered >= 10) {
+        // TEMP: shortened from 10 to 2 while iterating on the Quiz Complete screen
+        if (this.questionsAnswered >= 2) {
             setTimeout(() => {
                 this.end();
             }, 2000);

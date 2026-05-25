@@ -434,11 +434,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95));
+            background: transparent;
             z-index: 10000;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            padding-top: 24px;
+            pointer-events: none;
             animation: fadeIn 0.5s ease-in;
         }
 
@@ -450,11 +452,12 @@
         #quiz-celebration-content {
             text-align: center;
             color: white;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.1);
+            padding: 16px 24px;
+            background: rgba(211, 211, 211, 0.2);
             border-radius: 20px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
             animation: bounceIn 0.8s ease-out;
         }
 
@@ -476,8 +479,8 @@
         }
 
         #celebration-title {
-            font-size: 3rem;
-            margin-bottom: 20px;
+            font-size: 2rem;
+            margin: 0 0 8px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             animation: pulse 2s ease-in-out infinite;
         }
@@ -492,22 +495,22 @@
         }
 
         #celebration-message {
-            font-size: 1.8rem;
-            margin-bottom: 15px;
+            font-size: 1.2rem;
+            margin: 0 0 6px;
             font-weight: bold;
         }
 
         #celebration-score {
-            font-size: 2.5rem;
-            margin: 30px 0;
+            font-size: 1.4rem;
+            margin: 8px 0 12px;
             font-weight: bold;
             color: #FFD700;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         #celebration-close-btn {
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 8px 24px;
+            font-size: 1rem;
             background: linear-gradient(135deg, #FF6B6B, #FF8E53);
             border: none;
             border-radius: 50px;
@@ -525,20 +528,20 @@
 
         @media (max-width: 768px) {
             #celebration-title {
-                font-size: 2rem;
+                font-size: 1.6rem;
             }
 
             #celebration-message {
-                font-size: 1.3rem;
+                font-size: 1.1rem;
             }
 
             #celebration-score {
-                font-size: 2rem;
+                font-size: 1.3rem;
             }
 
             #celebration-close-btn {
-                padding: 12px 30px;
-                font-size: 1rem;
+                padding: 8px 22px;
+                font-size: 0.95rem;
             }
         }
 
@@ -1877,6 +1880,11 @@
         }
         body.dev-edit-open #edit-mode-btn,
         body.dev-edit-open #edit-colors-btn {
+            display: block !important;
+        }
+
+        /* Surface the zoom-level indicator alongside the dev edit buttons. */
+        body.dev-edit-open #zoom-widget {
             display: block !important;
         }
 
