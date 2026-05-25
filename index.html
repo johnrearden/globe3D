@@ -47,6 +47,7 @@
         <div id="loading">Loading world map data...</div>
         <button id="take-quiz-btn">Take Quiz</button>
         <button id="bounce-btn">Bounce</button>
+        <button id="shatter-btn">Shatter</button>
         <button id="dev-edit-toggle" title="Show developer edit tools">✎</button>
         <button id="edit-mode-btn">Edit Labels</button>
         <button id="save-config-btn" style="display: none;">Save Config</button>
@@ -225,6 +226,7 @@
         import { FlagRenderer } from './js/features/flag-renderer.js';
         import { SearchManager } from './js/features/search.js';
         import { BounceAnimation } from './js/features/bounce-animation.js';
+        import { ShatterAnimation } from './js/features/shatter-animation.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -325,8 +327,14 @@
 
             const overlay = elements.get('quiz-celebration-overlay');
             showFlex(overlay);
-            triggerConfetti();
-            if (bounceAnimation) bounceAnimation.start();
+
+            const fraction = total > 0 ? score / total : 0;
+            if (fraction <= SHATTER_THRESHOLD) {
+                if (shatterAnimation) shatterAnimation.start();
+            } else {
+                triggerConfetti();
+                if (bounceAnimation) bounceAnimation.start();
+            }
         }
 
         /**
@@ -388,6 +396,11 @@
 
         // Bounce animation (experimental, branch: bouncing)
         let bounceAnimation = null;
+        let shatterAnimation = null;
+
+        // Score fraction at or below which the celebration shatters the globe
+        // instead of bouncing it.
+        const SHATTER_THRESHOLD = 0.3;
 
         // Edit mode variables
         let editMode = false;
@@ -919,6 +932,33 @@
                     });
                     window.bounceGlobe = () => bounceAnimation.start();
 
+                    // Shatter animation — fires on low-score quiz completions.
+                    // Bursts the globe into flying triangular shards textured
+                    // with a baked equirectangular world-map snapshot.
+                    const oceanColorVec = globeManager.material.uniforms.uOceanColor.value;
+                    shatterAnimation = new ShatterAnimation({
+                        globeGroup: globe,
+                        scene: scene,
+                        camera: camera,
+                        controls: controls,
+                        initialCameraDistance: initialCameraDistance,
+                        idBytes: globeManager.idBytes,
+                        idW: globeManager.idW,
+                        idH: globeManager.idH,
+                        paletteBytes: globeManager.paletteDefaults,
+                        oceanColor: [
+                            Math.round(oceanColorVec.r * 255),
+                            Math.round(oceanColorVec.g * 255),
+                            Math.round(oceanColorVec.b * 255)
+                        ]
+                    });
+                    // Closing the celebration panel restores the globe from
+                    // any in-progress shatter. addEventListener coexists with
+                    // each quiz's per-end onclick handler.
+                    elements.get('celebration-close-btn').addEventListener('click', () => {
+                        if (shatterAnimation) shatterAnimation.restore();
+                    });
+
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     loadLabelConfig();
@@ -971,6 +1011,9 @@
                 // Drive the bounce animation if running
                 if (bounceAnimation) {
                     bounceAnimation.update();
+                }
+                if (shatterAnimation) {
+                    shatterAnimation.update();
                 }
 
                 // Update UI widgets
@@ -1370,6 +1413,16 @@
             });
             elements.get('bounce-btn').addEventListener('click', () => {
                 if (bounceAnimation) bounceAnimation.start();
+            });
+            // Shatter button toggles: bursts the globe on first click,
+            // restores it on a second click if still running.
+            elements.get('shatter-btn').addEventListener('click', () => {
+                if (!shatterAnimation) return;
+                if (shatterAnimation.running) {
+                    shatterAnimation.restore();
+                } else {
+                    shatterAnimation.start();
+                }
             });
             elements.get('edit-mode-btn').addEventListener('click', toggleEditMode);
             elements.get('save-config-btn').addEventListener('click', saveLabelConfig);

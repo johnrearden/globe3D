@@ -1921,8 +1921,9 @@
             }
         }
 
-        /* Bounce button — mobile only, sits directly below Take Quiz. */
-        #bounce-btn {
+        /* Bounce + Shatter buttons — mobile only, stacked under Take Quiz. */
+        #bounce-btn,
+        #shatter-btn {
             display: none;
         }
 
@@ -1931,13 +1932,12 @@
                 top: 10px !important;
                 left: 10px !important;
             }
-            #bounce-btn {
+            #bounce-btn,
+            #shatter-btn {
                 display: block;
                 position: fixed;
-                top: 55px;
                 left: 10px;
                 z-index: 150;
-                background-color: #9C27B0;
                 border: none;
                 border-radius: 6px;
                 color: #ffffff;
@@ -1948,11 +1948,24 @@
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
                 transition: all 0.3s;
             }
+            #bounce-btn {
+                top: 55px;
+                background-color: #9C27B0;
+            }
+            #shatter-btn {
+                top: 100px;
+                background-color: #FF5722;
+            }
             #bounce-btn:hover {
                 background-color: #7B1FA2;
                 transform: scale(1.05);
             }
-            body.quiz-active #bounce-btn {
+            #shatter-btn:hover {
+                background-color: #D84315;
+                transform: scale(1.05);
+            }
+            body.quiz-active #bounce-btn,
+            body.quiz-active #shatter-btn {
                 display: none;
             }
             #dev-edit-toggle {
