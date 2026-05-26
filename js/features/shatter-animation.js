@@ -13,12 +13,14 @@
  * so the explosion has room to breathe before the shards leave the
  * frustum. No downward tilt — the burst is 3D, not a flat surface.
  *
- * Each shard is a tangent-plane triangle sampled at a uniformly-random
- * point on the unit sphere. All shards share one MeshBasicMaterial
- * whose map is a baked equirectangular snapshot of the globe (same
- * palette + ID buffer the globe itself uses), and each shard's UVs
- * are computed from its vertex spherical coordinates — so the shards
- * read as actual pieces of the globe's surface flying apart.
+ * Each shard is an irregular convex polygon (5–8 perimeter vertices
+ * with jittered radii and angles) lying in the tangent plane at a
+ * uniformly-random point on the unit sphere, fan-triangulated from a
+ * center vertex. All shards share one MeshBasicMaterial whose map is
+ * a baked equirectangular snapshot of the globe (same palette + ID
+ * buffer the globe itself uses), and each shard's UVs are computed
+ * from its vertex spherical coordinates — so the shards read as
+ * actual pieces of the globe's surface flying apart.
  */
 
 const THREE = window.THREE;
@@ -26,6 +28,10 @@ const THREE = window.THREE;
 const SHARD_COUNT = 90;
 const SHARD_BASE_SIZE = 0.13;
 const SHARD_SIZE_VAR = 0.07;
+const SHARD_MIN_VERTS = 5;
+const SHARD_MAX_VERTS = 8;
+const SHARD_RADIUS_JITTER = 0.55;    // ±55% of nominal radius per vertex
+const SHARD_ANGLE_JITTER = 0.55;     // ±55% of inter-vertex step
 
 // Initial burst velocity ranges (units/s)
 const SHATTER_BASE_SPEED = 4.5;
@@ -38,7 +44,7 @@ const SHATTER_ANGULAR_VEL = 4.0;     // max per-axis (rad/s)
 // constant gravity, this gives a terminal vertical speed of GRAVITY / DRAG_K
 // (≈1.25 units/s downward at the chosen values). The result is an initial
 // outward burst that quickly slows and gives way to a gentle settle.
-const SHATTER_GRAVITY = 1.5;
+const SHATTER_GRAVITY = 3.5;
 const SHATTER_DRAG_K = 1.2;
 // Per-shard sinusoidal wobble — the spiralling sway as it drifts down.
 const WOBBLE_AMP_MIN = 0.15;
@@ -183,22 +189,41 @@ export class ShatterAnimation {
             const rotAngle = Math.random() * Math.PI * 2;
             const size = SHARD_BASE_SIZE + Math.random() * SHARD_SIZE_VAR;
 
-            // Equilateral triangle in the tangent plane.
-            const positions = [];
+            // Irregular convex polygon in the tangent plane: a center
+            // vertex plus N perimeter vertices with jittered radii and
+            // angles, fan-triangulated. Varying N (5–8) plus the jitter
+            // gives each shard a distinct leaf-like silhouette.
+            const vertCount = SHARD_MIN_VERTS +
+                Math.floor(Math.random() * (SHARD_MAX_VERTS - SHARD_MIN_VERTS + 1));
+            const step = (Math.PI * 2) / vertCount;
+
+            const positions = [center.x, center.y, center.z];
             const uvs = [];
-            for (let k = 0; k < 3; k++) {
-                const a = rotAngle + (k * 2 * Math.PI) / 3;
+            const [cu, cv] = dirToUV(center);
+            uvs.push(cu, cv);
+
+            for (let k = 0; k < vertCount; k++) {
+                const a = rotAngle + k * step
+                    + (Math.random() - 0.5) * step * SHARD_ANGLE_JITTER;
+                const r = size * (1 + (Math.random() - 0.5) * 2 * SHARD_RADIUS_JITTER);
                 const vertex = center.clone()
-                    .add(t1.clone().multiplyScalar(Math.cos(a) * size))
-                    .add(t2.clone().multiplyScalar(Math.sin(a) * size));
+                    .add(t1.clone().multiplyScalar(Math.cos(a) * r))
+                    .add(t2.clone().multiplyScalar(Math.sin(a) * r));
                 positions.push(vertex.x, vertex.y, vertex.z);
                 const [uu, vv] = dirToUV(vertex);
                 uvs.push(uu, vv);
             }
 
+            // Fan triangles from center (index 0) around the perimeter
+            // ring (indices 1..vertCount), closing back to vertex 1.
+            const indices = [];
+            for (let k = 1; k < vertCount; k++) indices.push(0, k, k + 1);
+            indices.push(0, vertCount, 1);
+
             const geom = new THREE.BufferGeometry();
             geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geom.setIndex(indices);
 
             const mesh = new THREE.Mesh(geom, material);
             this.shardsGroup.add(mesh);
