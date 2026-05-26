@@ -32,11 +32,16 @@ const BOUNCE_PEAKS = [1.0, 0.55, 0.30, 1.0];
 const SQUASH_Y = 0.81;       // Y-scale at peak compression (~19% squash)
 const SPHERE_RADIUS = 1.0008; // matches the country-mesh radius
 
+// Camera settles here while the bounce plays, and stays here afterward.
+const TARGET_CAMERA_DISTANCE = 3.17;
+const ZOOM_MS = 700;         // camera ease into TARGET_CAMERA_DISTANCE
+
 export class BounceAnimation {
-    constructor({ globeGroup, camera, renderer }) {
+    constructor({ globeGroup, camera, renderer, controls }) {
         this.group = globeGroup;
         this.camera = camera;
         this.renderer = renderer;
+        this.controls = controls;
 
         this.running = false;
         this.startTime = 0;
@@ -47,12 +52,17 @@ export class BounceAnimation {
         // something else has nudged position/scale between bounces.
         this.restY = globeGroup.position.y;
         this.restScale = globeGroup.scale.clone();
+
+        // Camera zoom state — the bounce zooms to TARGET_CAMERA_DISTANCE
+        // along the user's current view direction at start, then stays
+        // there once the animation completes.
+        this.fromCameraPos = camera.position.clone();
+        this.targetCameraPos = camera.position.clone();
     }
 
-    /** Convert a vertical pixel distance into scene units at the current
+    /** Convert a vertical pixel distance into scene units at the given
      *  camera distance, so the bounce reads as ~100 px regardless of zoom. */
-    _pixelsToWorld(px) {
-        const dist = this.camera.position.length();
+    _pixelsToWorld(px, dist) {
         const fovRad = (this.camera.fov * Math.PI) / 180;
         const worldHeightAtGlobe = 2 * dist * Math.tan(fovRad / 2);
         const canvasHeight = this.renderer.domElement.clientHeight || window.innerHeight;
@@ -92,11 +102,21 @@ export class BounceAnimation {
         if (this.running) return;
         this.running = true;
         this.startTime = performance.now();
-        this.fallDistWorld = this._pixelsToWorld(FALL_PIXELS);
+        // Fall is sized for the settled camera distance so the bounce
+        // reads as ~100 px once the camera has eased in.
+        this.fallDistWorld = this._pixelsToWorld(FALL_PIXELS, TARGET_CAMERA_DISTANCE);
         // Refresh rest pose in case the group moved since construction.
         this.restY = this.group.position.y;
         this.restScale.copy(this.group.scale);
         this.phases = this._buildPhases();
+
+        // Snapshot the camera's current pose and compute the settle target
+        // along the same view direction.
+        this.fromCameraPos.copy(this.camera.position);
+        const dir = this.camera.position.clone();
+        if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+        dir.normalize();
+        this.targetCameraPos.copy(dir).multiplyScalar(TARGET_CAMERA_DISTANCE);
     }
 
     /** Per-frame update. Call from the render loop. */
@@ -104,6 +124,17 @@ export class BounceAnimation {
         if (!this.running) return;
 
         const elapsed = performance.now() - this.startTime;
+
+        // Camera lerp from fromCameraPos to targetCameraPos over the first
+        // ZOOM_MS, then snap and stop touching the camera. Camera stays at
+        // TARGET_CAMERA_DISTANCE after the bounce completes.
+        if (elapsed <= ZOOM_MS) {
+            const u = Math.min(1, elapsed / ZOOM_MS);
+            const eased = 1 - Math.pow(1 - u, 3);
+            this.camera.position.lerpVectors(this.fromCameraPos, this.targetCameraPos, eased);
+            this.camera.lookAt(0, 0, 0);
+            if (this.controls) this.controls.update();
+        }
 
         // Locate current phase.
         let phaseStart = 0;

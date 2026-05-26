@@ -48,6 +48,7 @@
         <button id="take-quiz-btn">Take Quiz</button>
         <button id="bounce-btn">Bounce</button>
         <button id="shatter-btn">Shatter</button>
+        <button id="pinball-btn">Pinball</button>
         <button id="dev-edit-toggle" title="Show developer edit tools">✎</button>
         <button id="edit-mode-btn">Edit Labels</button>
         <button id="save-config-btn" style="display: none;">Save Config</button>
@@ -227,6 +228,7 @@
         import { SearchManager } from './js/features/search.js';
         import { BounceAnimation } from './js/features/bounce-animation.js';
         import { ShatterAnimation } from './js/features/shatter-animation.js';
+        import { PinballAnimation } from './js/features/pinball-animation.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -331,6 +333,9 @@
             const fraction = total > 0 ? score / total : 0;
             if (fraction <= SHATTER_THRESHOLD) {
                 if (shatterAnimation) shatterAnimation.start();
+            } else if (fraction >= PINBALL_THRESHOLD) {
+                triggerConfetti();
+                if (pinballAnimation) pinballAnimation.start(PINBALL_DURATION_MS);
             } else {
                 triggerConfetti();
                 if (bounceAnimation) bounceAnimation.start();
@@ -397,10 +402,16 @@
         // Bounce animation (experimental, branch: bouncing)
         let bounceAnimation = null;
         let shatterAnimation = null;
+        let pinballAnimation = null;
 
         // Score fraction at or below which the celebration shatters the globe
         // instead of bouncing it.
         const SHATTER_THRESHOLD = 0.3;
+        // Score fraction at which the celebration triggers the pinball
+        // (cube-bounce) animation instead of the simple drop bounce.
+        const PINBALL_THRESHOLD = 1.0;
+        // How long the pinball plays before auto-restoring to rest pose.
+        const PINBALL_DURATION_MS = 3000;
 
         // Edit mode variables
         let editMode = false;
@@ -928,7 +939,8 @@
                     bounceAnimation = new BounceAnimation({
                         globeGroup: globe,
                         camera: camera,
-                        renderer: renderer
+                        renderer: renderer,
+                        controls: controls
                     });
                     window.bounceGlobe = () => bounceAnimation.start();
 
@@ -952,11 +964,23 @@
                             Math.round(oceanColorVec.b * 255)
                         ]
                     });
+                    // Pinball animation — fires on 100%-correct quiz
+                    // completions. Bounces the globe inside an imaginary
+                    // cube spanning ~90% of the narrower viewport dimension.
+                    pinballAnimation = new PinballAnimation({
+                        globeGroup: globe,
+                        camera: camera,
+                        controls: controls,
+                        renderer: renderer,
+                        initialCameraDistance: initialCameraDistance
+                    });
+
                     // Closing the celebration panel restores the globe from
-                    // any in-progress shatter. addEventListener coexists with
-                    // each quiz's per-end onclick handler.
+                    // any in-progress shatter or pinball. addEventListener
+                    // coexists with each quiz's per-end onclick handler.
                     elements.get('celebration-close-btn').addEventListener('click', () => {
                         if (shatterAnimation) shatterAnimation.restore();
+                        if (pinballAnimation) pinballAnimation.restore();
                     });
 
                     // Load saved configurations
@@ -1014,6 +1038,9 @@
                 }
                 if (shatterAnimation) {
                     shatterAnimation.update();
+                }
+                if (pinballAnimation) {
+                    pinballAnimation.update();
                 }
 
                 // Update UI widgets
@@ -1422,6 +1449,15 @@
                     shatterAnimation.restore();
                 } else {
                     shatterAnimation.start();
+                }
+            });
+            // Pinball button toggles the cube-bouncing animation.
+            elements.get('pinball-btn').addEventListener('click', () => {
+                if (!pinballAnimation) return;
+                if (pinballAnimation.running) {
+                    pinballAnimation.restore();
+                } else {
+                    pinballAnimation.start();
                 }
             });
             elements.get('edit-mode-btn').addEventListener('click', toggleEditMode);

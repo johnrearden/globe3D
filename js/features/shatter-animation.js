@@ -6,8 +6,16 @@
  * shards which fly outward in all directions, tumbling under a mild
  * downward gravity until they leave the visible frustum.
  *
- *   zooming → exploding (shards in flight) → exploded (off-screen, held)
- *   restore() → restoring (globe scales back + camera returns) → idle
+ *   zooming → exploding (shards in flight) → restoring (shards
+ *   converge + globe scales back + camera settles at 3.17) → idle
+ *
+ * At the end of the explosion the shards reassemble: their parent
+ * group's scale eases from 1 → 0, which simultaneously pulls every
+ * shard toward the group origin and shrinks them to nothing. The
+ * underlying globe scales back up over the same window, so the shards
+ * "fold back into" the globe. The camera settles at a fixed
+ * RESTORE_CAMERA_DISTANCE rather than wherever the user was looking
+ * from, matching the bounce/pinball animations' settle behavior.
  *
  * The camera zooms out along the user's current view direction first
  * so the explosion has room to breathe before the shards leave the
@@ -52,12 +60,13 @@ const WOBBLE_AMP_MAX = 0.35;
 const WOBBLE_FREQ_MIN = 2.0;         // rad/s (sway period ≈ 3s)
 const WOBBLE_FREQ_MAX = 5.0;         // rad/s (sway period ≈ 1.25s)
 
-const SHATTER_DURATION_S = 4.0;      // when the shards group hides itself
-const RESTORE_MS = 600;              // globe scale-back-up + camera return
+const SHATTER_DURATION_S = 4.0;      // when shards auto-begin reassembly
+const RESTORE_MS = 600;              // shard reassembly + globe scale-back + camera settle
 
 const ZOOM_OUT_MS = 700;
 const ZOOM_OUT_FACTOR = 4.5;         // multiplier on initialCameraDistance
 const MAX_CAMERA_DISTANCE = 10;      // matches OrbitControls.maxDistance
+const RESTORE_CAMERA_DISTANCE = 3.17; // camera settles here after reassembly
 
 const MAP_TEX_W = 1024;
 const MAP_TEX_H = 512;
@@ -134,14 +143,19 @@ export class ShatterAnimation {
         this.paletteBytes = paletteBytes;
         this.oceanColor = oceanColor;
 
-        this.state = 'idle'; // 'zooming' | 'exploding' | 'exploded' | 'restoring'
+        this.state = 'idle'; // 'zooming' | 'exploding' | 'restoring'
         this.startTime = 0;
 
         this.restScale = globeGroup.scale.clone();
         this._restoreFromScale = globeGroup.scale.clone();
+        this._restoreFromShardScale = 1;
 
         this.savedCameraPos = camera.position.clone();
         this.zoomedCameraPos = camera.position.clone();
+        // The camera always settles at RESTORE_CAMERA_DISTANCE along the
+        // user's view direction, independent of where they were looking
+        // from when the shatter triggered.
+        this.restoreTargetCameraPos = camera.position.clone();
         this._restoreFromCameraPos = camera.position.clone();
 
         this._buildShards();
@@ -265,16 +279,18 @@ export class ShatterAnimation {
     }
 
     start() {
-        if (this.state !== 'idle' && this.state !== 'exploded') return;
+        if (this.state !== 'idle') return;
 
         this.restScale.copy(this.group.scale);
 
-        // Snapshot the current camera pose and compute the zoom-out target
-        // along the same view direction.
+        // Snapshot the current camera pose. savedCameraPos is the zoom-out
+        // lerp source; restoreTargetCameraPos is the post-reassembly settle
+        // point (constant 3.17 along view direction).
         this.savedCameraPos.copy(this.camera.position);
         const dir = this.camera.position.clone();
         if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
         dir.normalize();
+        this.restoreTargetCameraPos.copy(dir).multiplyScalar(RESTORE_CAMERA_DISTANCE);
         const targetDist = Math.min(
             this.initialCameraDistance * ZOOM_OUT_FACTOR,
             MAX_CAMERA_DISTANCE
@@ -301,18 +317,23 @@ export class ShatterAnimation {
     _beginExploding() {
         this.group.scale.set(0, 0, 0);
         this.shardsGroup.visible = true;
+        // Reset the shards-group scale in case a previous restore shrunk it.
+        this.shardsGroup.scale.setScalar(1);
         this.startTime = performance.now();
         this.state = 'exploding';
     }
 
-    /** Restore the globe (scale back up + camera back to saved view).
-     *  Snapshots the in-progress pose so a mid-zoom or mid-explosion close
-     *  still eases back cleanly. */
+    /** Begin the reassembly + settle: shards converge to origin (shards-
+     *  group scale → 0), globe scales back up, camera eases to the 3.17
+     *  settle point. Snapshots the in-progress pose so a mid-zoom or mid-
+     *  explosion interrupt still eases back cleanly. */
     restore() {
         if (this.state === 'idle' || this.state === 'restoring') return;
-        this.shardsGroup.visible = false;
+        // Do NOT hide shards — they'll converge + shrink as part of the
+        // reassembly. The final hide happens at the end of restoring.
         this._restoreFromScale.copy(this.group.scale);
         this._restoreFromCameraPos.copy(this.camera.position);
+        this._restoreFromShardScale = this.shardsGroup.scale.x;
         this.startTime = performance.now();
         this.state = 'restoring';
     }
@@ -365,14 +386,17 @@ export class ShatterAnimation {
                 );
             }
             if (t > SHATTER_DURATION_S) {
-                this.shardsGroup.visible = false;
-                this.state = 'exploded';
+                // Hand off to the reassembly + settle pass; keeps shards
+                // visible so they can converge into the globe.
+                this.restore();
             }
         } else if (this.state === 'restoring') {
             const t = performance.now() - this.startTime;
             if (t >= RESTORE_MS) {
                 this.group.scale.copy(this.restScale);
-                this.camera.position.copy(this.savedCameraPos);
+                this.shardsGroup.visible = false;
+                this.shardsGroup.scale.setScalar(1);
+                this.camera.position.copy(this.restoreTargetCameraPos);
                 this.camera.lookAt(0, 0, 0);
                 this.controls.update();
                 this.state = 'idle';
@@ -380,15 +404,18 @@ export class ShatterAnimation {
             }
             const u = t / RESTORE_MS;
             const eased = 1 - Math.pow(1 - u, 2);
+            // Shards reassemble: shrinking the parent group's scale pulls
+            // every shard toward the group origin (0,0,0) and shrinks them
+            // to nothing simultaneously.
+            this.shardsGroup.scale.setScalar(this._restoreFromShardScale * (1 - eased));
             this.group.scale.set(
                 this._restoreFromScale.x + (this.restScale.x - this._restoreFromScale.x) * eased,
                 this._restoreFromScale.y + (this.restScale.y - this._restoreFromScale.y) * eased,
                 this._restoreFromScale.z + (this.restScale.z - this._restoreFromScale.z) * eased
             );
-            this.camera.position.lerpVectors(this._restoreFromCameraPos, this.savedCameraPos, eased);
+            this.camera.position.lerpVectors(this._restoreFromCameraPos, this.restoreTargetCameraPos, eased);
             this.camera.lookAt(0, 0, 0);
             this.controls.update();
         }
-        // 'exploded': nothing to do; held until restore() is called.
     }
 }

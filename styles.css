@@ -1921,9 +1921,10 @@
             }
         }
 
-        /* Bounce + Shatter buttons — mobile only, stacked under Take Quiz. */
+        /* Bounce + Shatter + Pinball buttons — mobile only, stacked under Take Quiz. */
         #bounce-btn,
-        #shatter-btn {
+        #shatter-btn,
+        #pinball-btn {
             display: none;
         }
 
@@ -1933,7 +1934,8 @@
                 left: 10px !important;
             }
             #bounce-btn,
-            #shatter-btn {
+            #shatter-btn,
+            #pinball-btn {
                 display: block;
                 position: fixed;
                 left: 10px;
@@ -1956,6 +1958,10 @@
                 top: 100px;
                 background-color: #FF5722;
             }
+            #pinball-btn {
+                top: 145px;
+                background-color: #4CAF50;
+            }
             #bounce-btn:hover {
                 background-color: #7B1FA2;
                 transform: scale(1.05);
@@ -1964,8 +1970,13 @@
                 background-color: #D84315;
                 transform: scale(1.05);
             }
+            #pinball-btn:hover {
+                background-color: #388E3C;
+                transform: scale(1.05);
+            }
             body.quiz-active #bounce-btn,
-            body.quiz-active #shatter-btn {
+            body.quiz-active #shatter-btn,
+            body.quiz-active #pinball-btn {
                 display: none;
             }
             #dev-edit-toggle {
