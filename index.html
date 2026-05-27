@@ -2189,8 +2189,8 @@
                 // Project mouse position onto sphere surface
                 raycaster.setFromCamera(mouse, camera);
 
-                // Create a sphere to intersect with (at radius 1.02 where labels are)
-                const sphereGeometry = new THREE.SphereGeometry(1.02, 32, 32);
+                // Create a sphere to intersect with (at radius 1.005 where labels are)
+                const sphereGeometry = new THREE.SphereGeometry(1.005, 32, 32);
                 const sphereMesh = new THREE.Mesh(sphereGeometry);
                 const sphereIntersects = raycaster.intersectObject(sphereMesh);
 

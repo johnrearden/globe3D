@@ -83,8 +83,11 @@ export class LabelManager {
             const labelGeometry = new THREE.PlaneGeometry(labelWidth, labelHeight);
             const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
 
-            // Position at centroid, slightly above surface
-            const labelPosition = centroid.clone().multiplyScalar(1.02);
+            // Position at centroid, just above the country mesh surface
+            // (radius 1.0008). 1.005 keeps a thin gap to avoid sub-pixel
+            // intersection with the mesh while making the parallax between
+            // label and surface much less noticeable at close zoom.
+            const labelPosition = centroid.clone().multiplyScalar(1.005);
             labelMesh.position.copy(labelPosition);
 
             // Orient label to face outward from globe center
