@@ -40,10 +40,9 @@ export class ClickQuiz {
         state.set('quiz.active', true);
         state.set('quiz.mode', 'click-country');
 
-        // TEMP: shortened from 10 to 2 while iterating on the Quiz Complete screen
         const centroids = this.globeManager.getCentroids();
         const shuffled = [...centroids].sort(() => Math.random() - 0.5);
-        this.countries = shuffled.slice(0, 2).map(c => c.name);
+        this.countries = shuffled.slice(0, 10).map(c => c.name);
 
         // Disable auto-rotation during quiz
         const controls = this.cameraController.getControls();
@@ -153,8 +152,7 @@ export class ClickQuiz {
             setTimeout(() => {
                 this.currentIndex++;
 
-                // TEMP: shortened from 10 to 2 while iterating on the Quiz Complete screen
-                if (this.currentIndex >= 2) {
+                if (this.currentIndex >= 10) {
                     // Quiz complete!
                     this.end(true);
                 } else {

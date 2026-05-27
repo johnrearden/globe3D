@@ -329,6 +329,9 @@
 
             const overlay = elements.get('quiz-celebration-overlay');
             showFlex(overlay);
+            // Hide background UI chrome (buttons, widgets, search, etc.)
+            // so the celebration message + animations are the only focus.
+            document.body.classList.add('celebration-active');
 
             const fraction = total > 0 ? score / total : 0;
             if (fraction <= SHATTER_THRESHOLD) {
@@ -981,6 +984,7 @@
                     elements.get('celebration-close-btn').addEventListener('click', () => {
                         if (shatterAnimation) shatterAnimation.restore();
                         if (pinballAnimation) pinballAnimation.restore();
+                        document.body.classList.remove('celebration-active');
                     });
 
                     // Load saved configurations

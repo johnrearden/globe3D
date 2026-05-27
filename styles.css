@@ -1921,6 +1921,30 @@
             }
         }
 
+        /* Hide all UI chrome (buttons, widgets, search, flag panel, dev tools)
+           while the Quiz Complete celebration is showing, so only the globe,
+           any active animation, and the celebration card remain visible. */
+        body.celebration-active #zoom-out-btn,
+        body.celebration-active #take-quiz-btn,
+        body.celebration-active #bounce-btn,
+        body.celebration-active #shatter-btn,
+        body.celebration-active #pinball-btn,
+        body.celebration-active #dev-edit-toggle,
+        body.celebration-active #edit-mode-btn,
+        body.celebration-active #save-config-btn,
+        body.celebration-active #fine-tune-btn,
+        body.celebration-active #edit-colors-btn,
+        body.celebration-active #save-colors-btn,
+        body.celebration-active #swatch-panel,
+        body.celebration-active #zoom-widget,
+        body.celebration-active #flag-container,
+        body.celebration-active #search-container,
+        body.celebration-active #seo-content,
+        body.celebration-active #controls,
+        body.celebration-active #info-area {
+            display: none !important;
+        }
+
         /* Bounce + Shatter + Pinball buttons — mobile only, stacked under Take Quiz. */
         #bounce-btn,
         #shatter-btn,

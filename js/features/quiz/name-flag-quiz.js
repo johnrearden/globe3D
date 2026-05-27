@@ -267,8 +267,7 @@ export class NameFlagQuiz {
         // Don't show any result message - button feedback is sufficient
         this.elements.get('quiz-result').style.display = 'none';
 
-        // TEMP: shortened from 10 to 2 while iterating on the Quiz Complete screen
-        if (this.questionsAnswered >= 2) {
+        if (this.questionsAnswered >= 10) {
             setTimeout(() => {
                 this.end();
             }, 2000);

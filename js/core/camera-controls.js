@@ -27,9 +27,12 @@ export class CameraController {
         // Create OrbitControls
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
 
-        // Enable damping for smooth movement
+        // Enable damping for smooth movement. Lower dampingFactor → longer
+        // inertia after the user releases the pointer; at 0.02 the angular
+        // velocity decays to ~37% over ~0.83s at 60fps (vs ~0.33s at the
+        // OrbitControls default of 0.05).
         this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
+        this.controls.dampingFactor = 0.02;
 
         // Keep earth centered - no panning
         this.controls.enablePan = false;
@@ -261,12 +264,33 @@ export class CameraController {
     }
 
     /**
-     * Update controls (call in render loop)
+     * Update controls (call in render loop).
+     *
+     * Also retunes `controls.zoomSpeed` and `controls.rotateSpeed` to
+     * the current zoom level so a wheel tick or pointer drag reads as
+     * a roughly consistent visible change at every distance.
+     *
+     * - zoomSpeed: OrbitControls multiplies distance by `0.95^zoomSpeed`
+     *   per tick (~5% at zoomSpeed=1). At close zoom the gap to the
+     *   globe surface is tiny so we drop it sharply. Ramp 0.25 → 1.5.
+     * - rotateSpeed: angular change per pixel of drag is constant in
+     *   OrbitControls, but at close zoom the surface fills the screen
+     *   so the same angle reads as a much larger on-screen motion.
+     *   Anchored at (dist=1.13 → 0.25) and (dist=3.17 → 0.63) — 50%
+     *   faster than the previous mapping at the typical settle
+     *   distance — with the line extrapolated to ~1.90 at maxDistance.
      */
     update() {
-        if (this.controls) {
-            this.controls.update();
-        }
+        if (!this.controls) return;
+
+        const dist = this.camera.position.length();
+        const minDist = this.controls.minDistance;
+        const maxDist = this.controls.maxDistance;
+        const t = Math.max(0, Math.min(1, (dist - minDist) / (maxDist - minDist)));
+        this.controls.zoomSpeed = 0.25 + t * 1.25;
+        this.controls.rotateSpeed = 0.25 + t * 1.65;
+
+        this.controls.update();
     }
 
     /**
