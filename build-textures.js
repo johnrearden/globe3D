@@ -132,11 +132,15 @@ function stableColorRGB01(name) {
 }
 
 function lookupColorOverride(displayName, fileName, colorConfig) {
+    const b = fileName.toLowerCase().replace(/\s+/g, '');
+    const c = displayName.toLowerCase().replace(/\s+/g, '');
+    // Exact (whitespace-insensitive) match only. Substring matching conflates names
+    // where one is a substring of another (e.g. "Sudan" ⊂ "South Sudan"), causing an
+    // override to bleed onto the wrong country. Config keys are full country names, so
+    // an exact match is always available.
     for (const configName in colorConfig) {
         const a = configName.toLowerCase().replace(/\s+/g, '');
-        const b = fileName.toLowerCase().replace(/\s+/g, '');
-        const c = displayName.toLowerCase().replace(/\s+/g, '');
-        if (a === b || a === c || a.includes(b) || b.includes(a) || a.includes(c) || c.includes(a)) {
+        if (a === b || a === c) {
             return colorConfig[configName];
         }
     }
