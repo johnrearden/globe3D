@@ -940,6 +940,49 @@
             display: none;
         }
 
+        #edit-zoom-btn {
+            display: none;
+        }
+
+        #save-zoom-btn {
+            display: none;
+        }
+
+        /* Level panel: shared rules (positioning lives in media queries below) */
+        #level-panel {
+            grid-template-columns: repeat(2, 72px);
+            gap: 4px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 150;
+        }
+
+        .level-btn {
+            height: 28px;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #444;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .level-btn:hover {
+            transform: scale(1.08);
+        }
+
+        .level-btn.active {
+            border-color: #ffffff;
+            background-color: #00838F;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+        }
+
         /* Swatch panel: shared rules (positioning lives in media queries below) */
         #swatch-panel {
             grid-template-columns: repeat(4, 28px);
@@ -1148,6 +1191,60 @@
                 top: 370px;
                 left: 20px;
             }
+
+            #edit-zoom-btn {
+                display: block;
+                position: fixed;
+                top: 420px;
+                left: 20px;
+                z-index: 150;
+                background-color: #009688;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #edit-zoom-btn.active {
+                background-color: #FFA500;
+            }
+
+            #edit-zoom-btn:hover {
+                transform: scale(1.05);
+            }
+
+            #save-zoom-btn {
+                position: fixed;
+                top: 470px;
+                left: 20px;
+                z-index: 150;
+                background-color: #00BCD4;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #save-zoom-btn:hover {
+                background-color: #0097A7;
+                transform: scale(1.05);
+            }
+
+            #level-panel {
+                position: fixed;
+                top: 520px;
+                left: 20px;
+            }
         }
 
         /* Mobile styles */
@@ -1301,6 +1398,60 @@
                 left: 10px;
             }
 
+            #edit-zoom-btn {
+                display: block;
+                position: fixed;
+                top: 435px;
+                left: 10px;
+                z-index: 150;
+                background-color: #009688;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #edit-zoom-btn.active {
+                background-color: #FFA500;
+            }
+
+            #edit-zoom-btn:hover {
+                transform: scale(1.05);
+            }
+
+            #save-zoom-btn {
+                position: fixed;
+                top: 480px;
+                left: 10px;
+                z-index: 150;
+                background-color: #00BCD4;
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px 15px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                transition: all 0.3s;
+            }
+
+            #save-zoom-btn:hover {
+                background-color: #0097A7;
+                transform: scale(1.05);
+            }
+
+            #level-panel {
+                position: fixed;
+                top: 525px;
+                left: 10px;
+            }
+
             /* Hide Take Quiz button during quiz */
             body.quiz-active #take-quiz-btn {
                 display: none;
@@ -1312,7 +1463,10 @@
             body.quiz-active #fine-tune-btn,
             body.quiz-active #edit-colors-btn,
             body.quiz-active #save-colors-btn,
-            body.quiz-active #swatch-panel {
+            body.quiz-active #swatch-panel,
+            body.quiz-active #edit-zoom-btn,
+            body.quiz-active #save-zoom-btn,
+            body.quiz-active #level-panel {
                 display: none !important;
             }
 
@@ -1875,11 +2029,13 @@
         /* Hide developer edit buttons unless the toggle is open. Beats
            the desktop+mobile media-query rules that set display: block. */
         #edit-mode-btn,
-        #edit-colors-btn {
+        #edit-colors-btn,
+        #edit-zoom-btn {
             display: none !important;
         }
         body.dev-edit-open #edit-mode-btn,
-        body.dev-edit-open #edit-colors-btn {
+        body.dev-edit-open #edit-colors-btn,
+        body.dev-edit-open #edit-zoom-btn {
             display: block !important;
         }
 
@@ -1936,6 +2092,9 @@
         body.celebration-active #edit-colors-btn,
         body.celebration-active #save-colors-btn,
         body.celebration-active #swatch-panel,
+        body.celebration-active #edit-zoom-btn,
+        body.celebration-active #save-zoom-btn,
+        body.celebration-active #level-panel,
         body.celebration-active #zoom-widget,
         body.celebration-active #flag-container,
         body.celebration-active #search-container,

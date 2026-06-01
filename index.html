@@ -56,6 +56,9 @@
         <button id="edit-colors-btn">Edit Colors</button>
         <button id="save-colors-btn" style="display: none;">Save Colors</button>
         <div id="swatch-panel" style="display: none;"></div>
+        <button id="edit-zoom-btn">Edit Zoom</button>
+        <button id="save-zoom-btn" style="display: none;">Save Zoom</button>
+        <div id="level-panel" style="display: none;"></div>
 
         <!-- Zoom Level Widget -->
         <div id="zoom-widget">
@@ -229,6 +232,7 @@
         import { BounceAnimation } from './js/features/bounce-animation.js';
         import { ShatterAnimation } from './js/features/shatter-animation.js';
         import { PinballAnimation } from './js/features/pinball-animation.js';
+        import { FocusZoomRegistry, LEVELS, LEVEL_DISTANCES } from './js/core/focus-zoom.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         class ElementCache {
@@ -431,6 +435,12 @@
         let colorEditMode = false;
         let colorConfig = {}; // Stores custom country colors
         let activeColorIndex = 0; // Index into COLOR_PALETTE for the swatch UI
+
+        // Focus-zoom level variables (per-country focus distance + label visibility)
+        let focusRegistry = null;     // FocusZoomRegistry, built once globe data loads
+        let zoomEditMode = false;
+        let zoomConfig = {};          // Stores manual level overrides ({name: 'E'})
+        let activeLevel = 'C';        // Selected level in the Edit Zoom panel
 
         // Curated palette: 16 dark hues chosen for ~5:1+ contrast against white label text
         // while keeping enough chroma to read as distinct, vivid country colors.
@@ -884,6 +894,16 @@
                     countryLabels = labelManager.getLabels();
                     labelDefaults = labelManager.labelDefaults;
 
+                    // Classify every country into a focus-zoom level (A–H) by bbox
+                    // width. The chosen distance drives click/search/quiz focus AND
+                    // each label's appearance threshold.
+                    focusRegistry = new FocusZoomRegistry();
+                    const countryRecords = globeManager.getCountryNames()
+                        .map(n => globeManager.getCountryByName(n))
+                        .filter(Boolean);
+                    focusRegistry.buildFromCountries(countryRecords);
+                    labelManager.applyFocusZoom(focusRegistry);
+
                     // ===== PHASE 6: Initialize Quiz System =====
 
                     // Initialize QuizManager
@@ -991,6 +1011,7 @@
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     loadLabelConfig();
                     loadColorConfig();
+                    loadZoomConfig();
 
                     // Complete loading
                     sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
@@ -1082,7 +1103,7 @@
             controls.enablePan = false;
 
             // Set zoom limits (distance from center)
-            controls.minDistance = 1.13;  // Closest zoom (optimal close view)
+            controls.minDistance = 1.14;  // Closest zoom (optimal close view)
             controls.maxDistance = 10;   // Farthest zoom
 
             // No restrictions on vertical rotation - user can tilt freely
@@ -1473,6 +1494,11 @@
             elements.get('save-colors-btn').addEventListener('click', saveColorConfig);
             buildSwatchPanel();
 
+            // Focus-zoom edit mode UI buttons
+            elements.get('edit-zoom-btn').addEventListener('click', toggleZoomEditMode);
+            elements.get('save-zoom-btn').addEventListener('click', saveZoomConfig);
+            buildLevelPanel();
+
             // Label editor modal buttons
             elements.get('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
             elements.get('label-editor-overlay').addEventListener('click', closeLabelEditorModal);
@@ -1792,6 +1818,28 @@
             }
         }
 
+        // Load manual focus-zoom level overrides (country-zoom.json).
+        function loadZoomConfig() {
+            fetch('country-zoom.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No saved zoom config found');
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    zoomConfig = config;
+                    console.log('Loaded zoom configuration for', Object.keys(zoomConfig).length, 'countries');
+                    if (focusRegistry) {
+                        focusRegistry.applyOverrides(zoomConfig);
+                        if (labelManager) labelManager.applyFocusZoom(focusRegistry);
+                    }
+                })
+                .catch(err => {
+                    console.log('No zoom config file found, using default levels');
+                });
+        }
+
         // Open label editor modal for selected label
         function openLabelEditorModal() {
             if (!selectedLabel) return;
@@ -2029,6 +2077,88 @@
             console.log('Color configuration saved! Countries configured:', Object.keys(colorConfig).length);
         }
 
+        // Build the A–H level panel. Each button sets activeLevel on click.
+        function buildLevelPanel() {
+            const panel = elements.get('level-panel');
+            if (!panel) return;
+            panel.innerHTML = '';
+            LEVELS.forEach(lvl => {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn' + (lvl === activeLevel ? ' active' : '');
+                btn.textContent = `${lvl} · ${LEVEL_DISTANCES[lvl].toFixed(2)}`;
+                btn.dataset.level = lvl;
+                btn.addEventListener('click', () => {
+                    activeLevel = lvl;
+                    panel.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+                panel.appendChild(btn);
+            });
+        }
+
+        // Toggle focus-zoom edit mode
+        function toggleZoomEditMode() {
+            zoomEditMode = !zoomEditMode;
+
+            const editBtn = elements.get('edit-zoom-btn');
+            const saveBtn = elements.get('save-zoom-btn');
+            const levelPanel = elements.get('level-panel');
+
+            if (zoomEditMode) {
+                console.log('Zoom edit mode ENABLED - Pick a level, then click countries');
+
+                addClass(editBtn, 'active');
+                setText(editBtn, 'Exit Zoom Edit');
+                show(saveBtn);
+                if (levelPanel) levelPanel.style.display = 'grid';
+
+                // Disable other edit modes if active
+                if (editMode) toggleEditMode();
+                if (colorEditMode) toggleColorEditMode();
+            } else {
+                console.log('Zoom edit mode DISABLED');
+
+                removeClass(editBtn, 'active');
+                setText(editBtn, 'Edit Zoom');
+                hide(saveBtn);
+                if (levelPanel) levelPanel.style.display = 'none';
+            }
+        }
+
+        // Assign the currently-selected level to a country, then preview the framing.
+        function setCountryFocusLevel(countryName) {
+            if (!countryName || !zoomEditMode || !focusRegistry) return;
+
+            focusRegistry.setLevel(countryName, activeLevel);
+            zoomConfig[countryName] = activeLevel;
+            if (labelManager) labelManager.applyFocusZoom(focusRegistry);
+
+            console.log(`${countryName} focus level set to ${activeLevel} (${LEVEL_DISTANCES[activeLevel]})`);
+
+            // Preview the new framing immediately.
+            rotateGlobeToCountry(countryName);
+
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        }
+
+        // Save focus-zoom overrides to JSON file
+        function saveZoomConfig() {
+            const overrides = focusRegistry ? focusRegistry.getOverrides() : zoomConfig;
+            const dataStr = JSON.stringify(overrides, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'country-zoom.json';
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('Zoom configuration saved! Countries configured:', Object.keys(overrides).length);
+        }
+
         // Repurposed: the textured sphere is the only globe surface now, so
         // the toggle controls whether countries are drawn (vs. ocean only).
         function toggleSphere(event) {
@@ -2142,6 +2272,16 @@
                 const colorPick = globeManager.pick(raycaster.ray);
                 if (colorPick) {
                     changeCountryColor(colorPick.name);
+                    return;
+                }
+            }
+
+            // Zoom edit mode: Assign focus level on click
+            if (zoomEditMode) {
+                raycaster.setFromCamera(mouse, camera);
+                const zoomPick = globeManager.pick(raycaster.ray);
+                if (zoomPick) {
+                    setCountryFocusLevel(zoomPick.name);
                     return;
                 }
             }
@@ -2501,12 +2641,78 @@
         // ===== SEARCH FUNCTIONS MOVED TO js/features/search.js =====
         // (Removed: onSearchInput, onSearchKeyDown, updateSearchSelection, selectCountryFromSearch, focusOnCountryByName)
 
-        // Create/update white circle indicator for small countries
+        // Radius at which the small-country marker sits. Matches the label
+        // height (labels live at 1.005 in js/core/labels.js); kept a hair under
+        // so the country label renders on top of the white disc.
+        const SMALL_INDICATOR_RADIUS = 1.0045;
+
+        // Dispose every geometry/material under an indicator group.
+        function disposeIndicator(obj) {
+            obj.traverse(child => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            });
+        }
+
+        // Yellow arrow lying in the local tangent (XY) plane, tip just outside
+        // the disc edge and tail up-and-to-the-left at ~30° above horizontal.
+        // Helps locate tiny countries that sit at a grazing angle and aren't
+        // otherwise visible. The parent group is oriented so local +X is
+        // screen-right and +Y is screen-up.
+        function buildPointerArrow(discRadius) {
+            const arrow = new THREE.Group();
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                side: THREE.DoubleSide,
+                transparent: true,
+                depthWrite: false
+            });
+
+            const angle = Math.PI * 5 / 6;                 // 150° → upper-left
+            const outward = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0);
+            const tipDist = discRadius * 0.15;             // near the disc centre
+            const shaftLen = discRadius * 0.65;            // stays inside the disc
+            const headLen = 0.006;
+            const headWidth = 0.006;
+            const shaftWidth = 0.002;
+
+            const tip = outward.clone().multiplyScalar(tipDist);
+            const tail = outward.clone().multiplyScalar(tipDist + shaftLen);
+            const dir = tip.clone().sub(tail).normalize();  // points at the country
+            const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+
+            // Shaft (thin box) from the tail to the base of the head.
+            const headBase = tip.clone().add(dir.clone().multiplyScalar(-headLen));
+            const shaftCenter = tail.clone().add(headBase).multiplyScalar(0.5);
+            const shaft = new THREE.Mesh(
+                new THREE.BoxGeometry(shaftWidth, shaftLen - headLen, 0.0005),
+                mat
+            );
+            shaft.position.copy(shaftCenter);
+            shaft.quaternion.copy(quat);
+            shaft.renderOrder = 1;
+
+            // Head (cone) with its apex at the tip.
+            const head = new THREE.Mesh(
+                new THREE.ConeGeometry(headWidth / 2, headLen, 16),
+                mat
+            );
+            head.position.copy(tip.clone().add(dir.clone().multiplyScalar(-headLen / 2)));
+            head.quaternion.copy(quat);
+            head.renderOrder = 1;
+
+            arrow.add(shaft);
+            arrow.add(head);
+            arrow.position.z = 0.001;  // float just above the disc, toward the camera
+            return arrow;
+        }
+
+        // Create/update the marker for small countries: a semi-opaque white
+        // filled disc at label height plus a yellow arrow pointing at it.
         function updateSmallCountryIndicator(countryName) {
             if (smallCountryIndicator) {
                 globe.remove(smallCountryIndicator);
-                smallCountryIndicator.geometry.dispose();
-                smallCountryIndicator.material.dispose();
+                disposeIndicator(smallCountryIndicator);
                 smallCountryIndicator = null;
             }
 
@@ -2516,28 +2722,38 @@
             if (!record || !record.centroid) return;
 
             const direction = record.centroid.clone().normalize();
-            const indicatorPos = direction.multiplyScalar(1.025);
+            const group = new THREE.Group();
+            group.position.copy(direction.clone().multiplyScalar(SMALL_INDICATOR_RADIUS));
+            // Face outward from the globe centre: local +Z points at the camera,
+            // +X is screen-right, +Y is screen-up.
+            group.lookAt(direction.clone().multiplyScalar(SMALL_INDICATOR_RADIUS + 1));
 
-            const circleGeometry = new THREE.RingGeometry(0.0185, 0.021, 32);
-            const circleMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.9
-            });
-            smallCountryIndicator = new THREE.Mesh(circleGeometry, circleMaterial);
-            smallCountryIndicator.position.copy(indicatorPos);
-            smallCountryIndicator.lookAt(0, 0, 0);
-            smallCountryIndicator.rotateX(Math.PI);
-            globe.add(smallCountryIndicator);
+            // Semi-opaque white filled disc.
+            const discRadius = 0.02;
+            const disc = new THREE.Mesh(
+                new THREE.CircleGeometry(discRadius, 48),
+                new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5,
+                    depthWrite: false
+                })
+            );
+            disc.renderOrder = 0;
+            group.add(disc);
+
+            group.add(buildPointerArrow(discRadius));
+
+            smallCountryIndicator = group;
+            globe.add(group);
         }
 
         // Remove small country indicator
         function removeSmallCountryIndicator() {
             if (smallCountryIndicator) {
                 globe.remove(smallCountryIndicator);
-                smallCountryIndicator.geometry.dispose();
-                smallCountryIndicator.material.dispose();
+                disposeIndicator(smallCountryIndicator);
                 smallCountryIndicator = null;
             }
         }
@@ -2554,53 +2770,18 @@
             if (!record || !record.centroid) return;
 
             const countryName = record.name;
-            const bboxLatLng = record.bbox || { minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 };
-
-            // Approximate the 3D bbox of the country from its lat/lng bbox
-            // corners projected onto the unit sphere.
-            const corners = [
-                rotateGlobe_latLngToVec3(bboxLatLng.minLat, bboxLatLng.minLng),
-                rotateGlobe_latLngToVec3(bboxLatLng.minLat, bboxLatLng.maxLng),
-                rotateGlobe_latLngToVec3(bboxLatLng.maxLat, bboxLatLng.minLng),
-                rotateGlobe_latLngToVec3(bboxLatLng.maxLat, bboxLatLng.maxLng)
-            ];
-            let minX = Infinity, maxX = -Infinity;
-            let minY = Infinity, maxY = -Infinity;
-            let minZ = Infinity, maxZ = -Infinity;
-            for (const v of corners) {
-                if (v.x < minX) minX = v.x; if (v.x > maxX) maxX = v.x;
-                if (v.y < minY) minY = v.y; if (v.y > maxY) maxY = v.y;
-                if (v.z < minZ) minZ = v.z; if (v.z > maxZ) maxZ = v.z;
-            }
-            const bboxSize = Math.sqrt(
-                (maxX - minX) * (maxX - minX) +
-                (maxY - minY) * (maxY - minY) +
-                (maxZ - minZ) * (maxZ - minZ)
-            );
 
             const worldPos = record.centroid.clone().normalize();
 
             const phi = Math.acos(worldPos.y);
             const theta = Math.atan2(worldPos.z, worldPos.x);
 
-            let targetDistance;
-            if (isQuizMode) {
-                if (bboxSize < 0.15) {
-                    targetDistance = 2.0;
-                } else if (bboxSize < 0.25) {
-                    targetDistance = 2.5;
-                } else if (bboxSize < 0.4) {
-                    targetDistance = 3.0;
-                } else {
-                    targetDistance = Math.max(camera.position.length(), 3.5);
-                }
-            } else {
-                if (SMALL_COUNTRIES.has(countryName)) {
-                    targetDistance = 1.15;
-                } else {
-                    targetDistance = 1.55;
-                }
-            }
+            // Universal focus distance: the country's A–H level (by bbox width),
+            // identical for click, search, and quiz. This distance also doubles
+            // as the country label's appearance threshold (js/core/labels.js).
+            const targetDistance = focusRegistry
+                ? focusRegistry.distanceOf(countryName)
+                : 1.55;
 
             const targetCameraPos = new THREE.Vector3(
                 targetDistance * Math.sin(phi) * Math.cos(theta),

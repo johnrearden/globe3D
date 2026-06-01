@@ -38,7 +38,7 @@ export class CameraController {
         this.controls.enablePan = false;
 
         // Set zoom limits (distance from center)
-        this.controls.minDistance = 1.13;  // Closest zoom (optimal close view)
+        this.controls.minDistance = 1.14;  // Closest zoom (optimal close view)
         this.controls.maxDistance = 10;   // Farthest zoom
 
         // Enable rotation

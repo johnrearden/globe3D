@@ -29,6 +29,12 @@ export class LabelManager {
         // Only show labels within this angular distance of the screen-center point on the globe.
         // Larger = more labels visible at the edges (where they rotate ugly); smaller = tighter cluster.
         this.LABEL_VISIBILITY_ANGLE_DEG = 12;
+
+        // Labels appear at focusZoom × this margin, i.e. slightly farther out than
+        // the country's focus distance. Without the margin a label's threshold sits
+        // exactly at the settle distance, so per-frame jitter at rest flips it
+        // on/off (thrashing). 1.06 keeps the label comfortably on once focused.
+        this.LABEL_APPEAR_MARGIN = 1.06;
     }
 
     /**
@@ -207,25 +213,34 @@ export class LabelManager {
     }
 
     /**
+     * Stamp each label with its country's focus-zoom distance. A label is shown
+     * when the camera is at or inside that distance (see updateVisibility), so the
+     * focus zoom doubles as the label's appearance threshold. Re-callable after
+     * overrides load or a manual reclassification.
+     * @param {import('./focus-zoom.js').FocusZoomRegistry} registry
+     */
+    applyFocusZoom(registry) {
+        if (!registry) return;
+        this.labels.forEach(label => {
+            // Pad the threshold so the label appears a touch farther out than the
+            // focus distance — prevents on/off thrashing at the settle point.
+            label.userData.focusZoom =
+                registry.distanceOf(label.userData.countryName) * this.LABEL_APPEAR_MARGIN;
+        });
+    }
+
+    /**
      * Update label visibility based on camera distance and direction.
      * Each label has a target opacity (1 or 0) and material.opacity is lerped toward it,
      * so transitions fade smoothly instead of popping.
+     *
+     * A label appears once the camera is at or inside that country's focus-zoom
+     * distance (userData.focusZoom) — so it's guaranteed visible at the focus zoom
+     * and every closer zoom — and only while it sits within the center cone.
      */
     updateVisibility() {
         const quizActive = state.get('quiz.active');
         const cameraDistance = this.camera.position.length();
-
-        // Resolve the per-zoom-band rules up front (constant across all labels this frame).
-        let showLarge = false, showMedium = false, showSmall = false;
-        if (!quizActive && cameraDistance <= this.LABEL_HIDE_ABOVE) {
-            if (cameraDistance >= this.ZOOM_FAR) {
-                showLarge = true;
-            } else if (cameraDistance >= this.ZOOM_MEDIUM) {
-                showLarge = true; showMedium = true;
-            } else {
-                showLarge = true; showMedium = true; showSmall = true;
-            }
-        }
 
         const cameraDirection = new THREE.Vector3();
         this.camera.getWorldDirection(cameraDirection);
@@ -238,11 +253,9 @@ export class LabelManager {
         const fadeStep = 0.08;
 
         this.labels.forEach(label => {
-            const sizeCategory = label.userData.sizeCategory;
-            let shouldShow =
-                (sizeCategory === 'large' && showLarge) ||
-                (sizeCategory === 'medium' && showMedium) ||
-                (sizeCategory === 'small' && showSmall);
+            // Default focus zoom for any label missing a classification.
+            const focusZoom = label.userData.focusZoom || 1.28;
+            let shouldShow = !quizActive && cameraDistance <= focusZoom;
 
             if (shouldShow) {
                 const dotProduct = label.position.clone().normalize().dot(cameraDirection);
