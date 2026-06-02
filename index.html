@@ -2814,9 +2814,10 @@
                 if (progress < 1) {
                     requestAnimationFrame(animateRotation);
                 } else {
-                    if (!isQuizMode) {
-                        updateSmallCountryIndicator(countryName);
-                    }
+                    // Show the disc + arrow for tiny countries on plain
+                    // navigation and in the Name the Country quiz alike — both
+                    // reveal the target country on the globe.
+                    updateSmallCountryIndicator(countryName);
                 }
             }
 
