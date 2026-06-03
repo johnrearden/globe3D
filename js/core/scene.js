@@ -77,6 +77,9 @@ export class SceneManager {
         // Setup lights
         this.setupLights();
 
+        // Soft atmospheric halo to separate the dark ocean from the dark space.
+        this.addAtmosphere();
+
         // Sync to state
         state.set('scene.scene', this.scene, false);
         state.set('scene.camera', this.camera, false);
@@ -113,6 +116,56 @@ export class SceneManager {
 
         // Store reference for updating position with camera
         this.scene.userData.cameraLight = directionalLight;
+    }
+
+    /**
+     * Add a soft back-lit atmospheric halo around the globe. A sphere slightly
+     * larger than the globe, rendered BackSide with additive blending and a
+     * Fresnel term that peaks at the limb — so light appears to wrap around the
+     * planet's edge, lifting the dark ocean off the near-black space background.
+     */
+    addAtmosphere() {
+        const atmosphereMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                // glowColor: { value: new THREE.Color(0x5aa0e6) },
+                glowColor: { value: new THREE.Color(0xffffff) },
+                coefficient: { value: 0.75 },
+                power: { value: 3.5 }
+            },
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 glowColor;
+                uniform float coefficient;
+                uniform float power;
+                varying vec3 vNormal;
+                void main() {
+                    // dot ~1 facing the camera, ~0 at the rim — so the glow
+                    // concentrates at the limb and fades toward the disc center.
+                    float intensity = pow(coefficient - dot(vNormal, vec3(0.0, 0.0, 1.0)), power);
+                    intensity = clamp(intensity, 0.0, 1.0);
+                    gl_FragColor = vec4(glowColor, 1.0) * intensity;
+                }
+            `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false
+        });
+
+        const atmosphere = new THREE.Mesh(
+            new THREE.SphereGeometry(1.0, 64, 64),
+            atmosphereMaterial
+        );
+        atmosphere.scale.setScalar(1.18);
+        atmosphere.renderOrder = -1;
+        this.scene.add(atmosphere);
+        this.atmosphere = atmosphere;
     }
 
     /**

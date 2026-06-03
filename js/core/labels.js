@@ -189,7 +189,7 @@ export class LabelManager {
     }
 
     /**
-     * Switch which label is rendered in highlighted (black) form.
+     * Switch which label is rendered in highlighted (mid-gray) form.
      * Pass null to clear. Repaints the canvas textures of the affected labels.
      * @param {string|null} name
      */
@@ -200,8 +200,8 @@ export class LabelManager {
         this.currentHighlight = name || null;
 
         // Toggle material.color rather than swapping textures. The texture has white text;
-        // tinting it black via material.color produces the highlighted look. This avoids
-        // every texture-replacement code path that was producing invisible labels.
+        // tinting it mid-gray via material.color produces the highlighted look — readable
+        // against both the dark ocean and the white highlighted country fill.
         const setLabelColor = (countryName, hex) => {
             if (!countryName) return;
             const label = this.labels.find(l => l.userData.countryName === countryName);
@@ -209,7 +209,7 @@ export class LabelManager {
         };
 
         setLabelColor(previous, 0xFFFFFF);
-        setLabelColor(this.currentHighlight, 0x000000);
+        setLabelColor(this.currentHighlight, 0x808080);
     }
 
     /**

@@ -245,7 +245,8 @@
         body.flag-quiz-active #quiz-flag-display {
             margin-bottom: 20px;
             padding: 15px;
-            background-color: rgba(0, 0, 0, 0.5);
+            /* Match the country info panel's gray so black flags keep contrast. */
+            background-color: rgba(50, 50, 50, 0.95);
             border-radius: 12px;
         }
 
@@ -298,7 +299,8 @@
             margin-bottom: 15px;
             text-align: center;
             padding: 10px;
-            background-color: rgba(0, 0, 0, 0.3);
+            /* Match the country info panel's gray so black flags keep contrast. */
+            background-color: rgba(50, 50, 50, 0.95);
             border-radius: 8px;
         }
 
