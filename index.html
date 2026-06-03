@@ -38,7 +38,7 @@
                 <div id="loading-progress-fill"></div>
                 <div id="loading-progress-text">Loading... 0%</div>
             </div>
-            <button id="start-button" style="display: none;">Start Exploring</button>
+            <div id="start-hint" style="display: none;">Tap anywhere to explore</div>
         </div>
     </div>
 
@@ -825,7 +825,9 @@
             'Palau': 'pw', 'Marshall Islands': 'mh', 'Nauru': 'nr', 'Tuvalu': 'tv'
         };
 
-        // Hide SEO content when start button is clicked
+        // Dismiss the intro overlay on any tap/click (enabled once loading
+        // completes — see hideLoading). The seoContentHidden guard makes this
+        // idempotent.
         function hideSeoContent() {
             if (!seoContentHidden) {
                 seoContentHidden = true;
@@ -839,14 +841,6 @@
                 }
             }
         }
-
-        // Add click event listener to start button (will be available after loading completes)
-        // Using event delegation to ensure button is available
-        document.addEventListener('click', function(event) {
-            if (event.target && event.target.id === 'start-button') {
-                hideSeoContent();
-            }
-        });
 
         // Initialize the scene
         function init() {
@@ -880,6 +874,10 @@
 
             // Get controls reference
             controls = cameraController.getControls();
+
+            // Gently spin the globe behind the intro screen while assets load.
+            // Existing interaction handlers stop auto-rotation on first user input.
+            cameraController.enableAutoRotation();
 
             // 4. Load world data and create labels
             globeManager.loadGlobe(
@@ -961,6 +959,7 @@
 
                         const panel = document.createElement('div');
                         panel.id = 'light-dev-panel';
+                        panel.classList.add('ld-hidden'); // hidden by default; '💡 Lights' toggle reveals it
                         for (const s of specs) {
                             const wrap = document.createElement('div');
                             wrap.className = 'ldw';
@@ -1106,6 +1105,12 @@
                     loadLabelConfig();
                     loadColorConfig();
                     loadZoomConfig();
+
+                    // Texture fully loaded — reveal the globe by smoothly bringing
+                    // the scene up from black to full lighting. The scene lights and
+                    // the country shader's own lighting uniforms ramp in together.
+                    sceneManager.fadeInLights();
+                    globeManager.fadeInLighting();
 
                     // Complete loading
                     sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
@@ -2552,16 +2557,23 @@
 
             // Keep fun facts rotating even after loading completes
 
-            // Convert progress bar to start button
+            // Swap the progress bar for the "tap anywhere" hint, and enable
+            // tap/click anywhere on the intro to dismiss it (now that the globe
+            // is loaded and revealed).
             const progressBar = elements.get('loading-progress-bar');
-            const startButton = elements.get('start-button');
+            const startHint = elements.get('start-hint');
+            const seoContent = elements.get('seo-content');
 
             if (progressBar) {
                 hide(progressBar);
             }
 
-            if (startButton) {
-                show(startButton);
+            if (startHint) {
+                show(startHint);
+            }
+
+            if (seoContent) {
+                seoContent.addEventListener('click', hideSeoContent, { once: true });
             }
         }
 

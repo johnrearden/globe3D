@@ -113,6 +113,33 @@ export class SceneManager {
 
         // Store reference for updating position with camera
         this.scene.userData.cameraLight = directionalLight;
+
+        // Start fully dark and remember each light's target intensity. The scene
+        // is revealed with a smooth lights-up (fadeInLights) once the globe
+        // texture has finished loading. NOTE: the country ShaderMaterial lights
+        // itself and ignores these lights — GlobeManager.fadeInLighting() ramps
+        // the matching shader uniforms so the textured globe reveals in step.
+        this.lights = [ambientLight, directionalLight, pointLight1, pointLight2];
+        this.lightTargets = this.lights.map(l => l.intensity);
+        this.lights.forEach(l => { l.intensity = 0; });
+    }
+
+    /**
+     * Smoothly raise every scene light from 0 to its default intensity.
+     * The running render loop picks up the new intensities each frame.
+     * @param {number} duration - Fade duration in milliseconds
+     */
+    fadeInLights(duration = 1500) {
+        if (!this.lights) return;
+        const targets = this.lightTargets;
+        const start = performance.now();
+        const step = (now) => {
+            const t = Math.min((now - start) / duration, 1);
+            const e = t * t * (3 - 2 * t); // smoothstep ease
+            this.lights.forEach((l, i) => { l.intensity = targets[i] * e; });
+            if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
     }
 
     /**

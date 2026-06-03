@@ -14,6 +14,13 @@ const THREE = window.THREE;
 const SPHERE_RADIUS = 1.0;
 const SPHERE_SEGMENTS = 96;
 const PALETTE_W = 256;
+// Default ocean color (matches the `meta.oceanColor` fallback used in loadGlobe).
+// Used to tint the pre-load placeholder sphere so it matches the real ocean.
+const DEFAULT_OCEAN_COLOR = [6, 26, 51];
+
+// Default shader lighting levels. The globe is created fully dark (these at 0)
+// and ramped up to these targets by fadeInLighting() once the texture loads.
+const LIGHTING_TARGETS = { ambient: 0.7, diffuse: 0.8, specStrength: 0.18 };
 const COUNTRY_MESH_SCALE = 1.002; // raises country mesh above ocean sphere; build-time
 // triangle subdivision (MAX_CHORD_SAG in build-textures.js) keeps every triangle's
 // chord-vs-arc sag well below this offset so country interiors clear the ocean.
@@ -151,11 +158,68 @@ export class GlobeManager {
         this.scene.add(this.globe);
 
         this.addLatLongLines();
+        this.showPlaceholder();
 
         state.set('scene.globe', this.globe, false);
         state.set('scene.baseSphere', null, false);
 
         console.log('GlobeManager initialized (textured-sphere)');
+    }
+
+    /**
+     * Add a lit, ocean-colored placeholder sphere so the globe is visible
+     * immediately — before the ~3.8 MB country mesh and palette finish loading.
+     * Unlike the country ShaderMaterial (which lights itself), this stock
+     * MeshPhongMaterial is lit by the scene lights set up in SceneManager.
+     * Replaced by the real ocean sphere in loadGlobe (see removePlaceholder).
+     */
+    showPlaceholder() {
+        if (this.placeholderMesh) return;
+        const geo = new THREE.SphereGeometry(SPHERE_RADIUS, SPHERE_SEGMENTS, SPHERE_SEGMENTS);
+        const mat = new THREE.MeshPhongMaterial({
+            color: new THREE.Color(
+                DEFAULT_OCEAN_COLOR[0] / 255,
+                DEFAULT_OCEAN_COLOR[1] / 255,
+                DEFAULT_OCEAN_COLOR[2] / 255
+            )
+        });
+        this.placeholderMesh = new THREE.Mesh(geo, mat);
+        this.globe.add(this.placeholderMesh);
+    }
+
+    /**
+     * Remove the placeholder sphere once the real ocean sphere is ready. The
+     * real ocean is the same radius, so the swap is seamless (no z-fight, no gap).
+     */
+    removePlaceholder() {
+        if (!this.placeholderMesh) return;
+        this.globe.remove(this.placeholderMesh);
+        this.placeholderMesh.geometry.dispose();
+        this.placeholderMesh.material.dispose();
+        this.placeholderMesh = null;
+    }
+
+    /**
+     * Smoothly raise the textured globe's shader lighting from black to its
+     * default levels (LIGHTING_TARGETS). Pair with SceneManager.fadeInLights()
+     * to reveal the whole scene once the texture has finished loading. Uniform
+     * values are read every frame by the running render loop, so mutating them
+     * here is enough — no needsUpdate required.
+     * @param {number} duration - Fade duration in milliseconds
+     */
+    fadeInLighting(duration = 1500) {
+        if (!this.material) return;
+        const u = this.material.uniforms;
+        const start = performance.now();
+        const step = (now) => {
+            const t = Math.min((now - start) / duration, 1);
+            const e = t * t * (3 - 2 * t); // smoothstep ease
+            u.uAmbient.value.setScalar(LIGHTING_TARGETS.ambient * e);
+            u.uDiffuse.value = LIGHTING_TARGETS.diffuse * e;
+            u.uSpecStrength.value = LIGHTING_TARGETS.specStrength * e;
+            if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
     }
 
     /**
@@ -315,13 +379,15 @@ export class GlobeManager {
                     uFlashAlpha: { value: 0 },
                     uShowCountries: { value: 1 },
                     uOceanColor: { value: new THREE.Color(oceanColor[0] / 255, oceanColor[1] / 255, oceanColor[2] / 255) },
-                    uAmbient: { value: new THREE.Color(0.7, 0.7, 0.7) },
-                    uDiffuse: { value: 0.8 },
+                    // Lighting starts at 0 (black globe) and is ramped up to
+                    // LIGHTING_TARGETS by fadeInLighting() once the texture loads.
+                    uAmbient: { value: new THREE.Color(0, 0, 0) },
+                    uDiffuse: { value: 0.0 },
                     // Camera-relative light (view space) + glossy specular sheen.
                     // Direction points up/left/toward-camera so the visible face
                     // is always lit and the highlight sits off-center. Tune live.
                     uLightDir: { value: new THREE.Vector3(-0.4, 0.5, 1.0) },
-                    uSpecStrength: { value: 0.18 }, // 0.25
+                    uSpecStrength: { value: 0.0 }, // target 0.18
                     uShininess: { value: 12.0 }, // 24
                     uSpecColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
                     uOceanSpecBoost: { value: 1.7 }
@@ -344,6 +410,7 @@ export class GlobeManager {
             oceanGeo.setAttribute('aCountryId', new THREE.BufferAttribute(oceanIds, 1));
             this.oceanMesh = new THREE.Mesh(oceanGeo, this.material);
             this.oceanMesh.userData.isGlobeSurface = true;
+            this.removePlaceholder();
             this.globe.add(this.oceanMesh);
 
             // Merged country mesh — vector polygon fills, one draw call.
