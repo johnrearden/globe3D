@@ -135,6 +135,9 @@ export class GlobeManager {
         this.idToName = {};
         this.countryCentroids = []; // [{name, centroid: Vector3, meshRef: null}]
 
+        this.capitals = {};         // {countryName: {name, lat, lng}} (sidecar, fail-soft)
+        this.capitalMarker = null;  // reusable marker mesh for the capitals quiz
+
         this.flashTimer = null;     // {id, color, startTime, duration}
 
         // Reusable ray helpers.
@@ -263,8 +266,16 @@ export class GlobeManager {
                 return r.json();
             });
 
-            const [idBuffer, paletteBuffer, meshBuffer, meta] =
-                await Promise.all([idPromise, palettePromise, meshPromise, metaPromise]);
+            // Capital cities are an optional sidecar (like label-config/country-colors):
+            // fail soft to {} so a missing file never blocks the globe from loading.
+            const capitalsPromise = fetch('assets/capitals.json')
+                .then(r => r.ok ? r.json() : {})
+                .catch(() => ({}));
+
+            const [idBuffer, paletteBuffer, meshBuffer, meta, capitals] =
+                await Promise.all([idPromise, palettePromise, meshPromise, metaPromise, capitalsPromise]);
+
+            this.capitals = capitals || {};
 
             if (onProgress) onProgress(70, 'Building globe...');
 
@@ -634,6 +645,50 @@ export class GlobeManager {
 
     getCountryNames() {
         return Object.keys(this.nameToId);
+    }
+
+    /**
+     * @returns {Object} {countryName: {name, lat, lng}} capital map (may be empty)
+     */
+    getCapitalsData() {
+        return this.capitals;
+    }
+
+    /**
+     * @returns {{name, lat, lng} | null} the capital entry for a country, or null
+     */
+    getCapital(name) {
+        return this.capitals[name] || null;
+    }
+
+    /**
+     * Drop (or move) a small marker dot at a capital's lat/lng. The marker lives
+     * inside the globe group so it rotates with the surface. Used by the capitals
+     * quiz to reveal where a capital sits once the answer is shown.
+     */
+    showCapitalMarker(lat, lng) {
+        if (!this.globe) return;
+        if (!this.capitalMarker) {
+            const geo = new THREE.SphereGeometry(0.012, 12, 12);
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffd54a,
+                depthTest: false,
+                transparent: true
+            });
+            this.capitalMarker = new THREE.Mesh(geo, mat);
+            this.capitalMarker.renderOrder = 999; // draw on top of the country fills
+            this.globe.add(this.capitalMarker);
+        }
+        const pos = this.latLngToVector3(lat, lng, SPHERE_RADIUS, 0.015);
+        this.capitalMarker.position.copy(pos);
+        this.capitalMarker.visible = true;
+    }
+
+    /**
+     * Hide the capital marker (between questions / on quiz end).
+     */
+    clearCapitalMarker() {
+        if (this.capitalMarker) this.capitalMarker.visible = false;
     }
 
     /**

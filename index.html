@@ -148,6 +148,10 @@
                         <h3>Find the Country</h3>
                         <p>Click on the correct country when given its name - 10 questions in 45 seconds!</p>
                     </button>
+                    <button class="quiz-mode-option" id="capital-quiz-btn">
+                        <h3>Capital Cities</h3>
+                        <p>Match countries to their capital cities - the question flips direction at random</p>
+                    </button>
                 </div>
                 <button id="quiz-mode-close">Cancel</button>
             </div>
@@ -228,6 +232,7 @@
         import { NameFlagQuiz } from './js/features/quiz/name-flag-quiz.js';
         import { IdentifyFlagQuiz } from './js/features/quiz/identify-flag-quiz.js';
         import { ClickQuiz } from './js/features/quiz/click-quiz.js';
+        import { CapitalCitiesQuiz } from './js/features/quiz/capital-cities-quiz.js';
         import { FlagRenderer } from './js/features/flag-renderer.js';
         import { SearchManager } from './js/features/search.js';
         import { BounceAnimation } from './js/features/bounce-animation.js';
@@ -503,6 +508,7 @@
         let nameFlagQuiz = null;
         let identifyFlagQuiz = null;
         let clickQuiz = null;
+        let capitalCitiesQuiz = null;
         let flagRenderer = null;
         let searchManager = null;
 
@@ -1018,10 +1024,21 @@
                         clearQuizTimers: clearQuizTimers
                     });
 
+                    capitalCitiesQuiz = new CapitalCitiesQuiz({
+                        globeManager: globeManager,
+                        cameraController: cameraController,
+                        elements: elements,
+                        rotateGlobeToCountry: rotateGlobeToCountry,
+                        showQuizCelebration: showQuizCelebration,
+                        clearQuizTimers: clearQuizTimers,
+                        calculateGreatCircleDistance: calculateGreatCircleDistance
+                    });
+
                     // Register quiz modes with QuizManager
                     quizManager.registerMode('name-flag', nameFlagQuiz);
                     quizManager.registerMode('identify-flag', identifyFlagQuiz);
                     quizManager.registerMode('click-country', clickQuiz);
+                    quizManager.registerMode('capital', capitalCitiesQuiz);
 
                     // ===== PHASE 9: Initialize Search System =====
                     searchManager = new SearchManager({
@@ -1487,12 +1504,18 @@
                     clearTimeout(identifyFlagQuiz.autoAdvanceTimer);
                     identifyFlagQuiz.autoAdvanceTimer = null;
                 }
+                if (capitalCitiesQuiz && capitalCitiesQuiz.isActive() && capitalCitiesQuiz.autoAdvanceTimer) {
+                    clearTimeout(capitalCitiesQuiz.autoAdvanceTimer);
+                    capitalCitiesQuiz.autoAdvanceTimer = null;
+                }
 
                 // Call appropriate next function based on current quiz mode
                 if (identifyFlagQuiz && identifyFlagQuiz.isActive()) {
                     identifyFlagQuiz.nextQuestion();
                 } else if (nameFlagQuiz && nameFlagQuiz.isActive()) {
                     nameFlagQuiz.nextQuestion();
+                } else if (capitalCitiesQuiz && capitalCitiesQuiz.isActive()) {
+                    capitalCitiesQuiz.nextQuestion();
                 }
             });
             elements.get('take-quiz-btn').addEventListener('click', showQuizModeSelector);
@@ -1512,6 +1535,10 @@
             elements.get('find-country-quiz-btn').addEventListener('click', () => {
                 hideQuizModeSelector();
                 clickQuiz.start();
+            });
+            elements.get('capital-quiz-btn').addEventListener('click', () => {
+                hideQuizModeSelector();
+                capitalCitiesQuiz.start();
             });
             elements.get('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
             elements.get('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
@@ -2641,6 +2668,44 @@
 
                 // Reset globe highlighting
                 globeManager.clearSelection();
+                if (labelManager) labelManager.setHighlight(null);
+
+                // Show search and quiz button
+                show(elements.get('search-container'));
+                show(elements.get('take-quiz-btn'));
+
+                // Reset quiz UI
+                hide(elements.get('quiz-cancel-btn'));
+                elements.get('quiz-next-btn').style.visibility = 'hidden';
+                show(elements.get('quiz-start-btn'));
+                elements.get('quiz-start-btn').textContent = 'Start Quiz';
+
+            } else if (capitalCitiesQuiz && capitalCitiesQuiz.isActive()) {
+                // Clear any timers
+                if (capitalCitiesQuiz.autoAdvanceTimer) {
+                    clearTimeout(capitalCitiesQuiz.autoAdvanceTimer);
+                    capitalCitiesQuiz.autoAdvanceTimer = null;
+                }
+
+                // Set active to false without showing celebration
+                capitalCitiesQuiz.active = false;
+
+                // Update state
+                state.set('quiz.active', false);
+                state.set('quiz.mode', null);
+
+                // Remove quiz-active class
+                document.body.classList.remove('quiz-active');
+
+                // Hide quiz elements
+                hide(elements.get('quiz-score'));
+                hide(elements.get('quiz-question'));
+                elements.get('quiz-options').innerHTML = '';
+                hide(elements.get('quiz-container'));
+
+                // Reset globe highlighting + capital marker
+                globeManager.clearSelection();
+                globeManager.clearCapitalMarker();
                 if (labelManager) labelManager.setHighlight(null);
 
                 // Show search and quiz button
