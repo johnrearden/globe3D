@@ -193,6 +193,17 @@ export class FlagRenderer {
                 data && data.area !== 'N/A' ? data.area : 'N/A';
             this.elements.get('info-language').textContent =
                 data && data.lang !== 'N/A' ? data.lang : 'N/A';
+
+            // Dependencies carry a sovereign parent ("Territory of: Denmark").
+            // Sovereign states have no parent — hide the row entirely.
+            const parentRow = this.elements.get('info-parent-row');
+            const parentVal = this.elements.get('info-parent');
+            if (data && data.parent) {
+                if (parentVal) parentVal.textContent = data.parent;
+                if (parentRow) parentRow.style.display = '';
+            } else if (parentRow) {
+                parentRow.style.display = 'none';
+            }
         }
 
         // Show flag container (fixed position in top right)

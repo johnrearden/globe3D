@@ -131,8 +131,16 @@ export class NameFlagQuiz {
     generateQuestion() {
         const centroids = this.globeManager.getCentroids();
 
+        // Exclude overseas territories / dependencies (Greenland, Pitcairn, …).
+        // They stay clickable on the globe, but are too obscure / numerous to be
+        // fair quiz targets — drop them as both answers and distractors.
+        const depNames = new Set(Object.keys(
+            this.globeManager.getDependencyData ? this.globeManager.getDependencyData() : {}
+        ));
+        const quizCentroids = centroids.filter(c => !depNames.has(c.name));
+
         // Filter out countries already used in this quiz
-        const availableCountries = centroids.filter(c => !this.usedCountries.includes(c.name));
+        const availableCountries = quizCentroids.filter(c => !this.usedCountries.includes(c.name));
 
         if (availableCountries.length < 4) {
             console.error('Not enough unused countries for quiz');
@@ -147,7 +155,7 @@ export class NameFlagQuiz {
         this.usedCountries.push(correctCountry.name);
 
         // Calculate distances to all other countries (including used ones for distractors)
-        const distancesWithCountries = centroids
+        const distancesWithCountries = quizCentroids
             .filter(country => country.name !== correctCountry.name)
             .map(country => ({
                 country: country,

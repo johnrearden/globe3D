@@ -73,6 +73,7 @@
             <div id="flag-container-content">
                 <div id="flag-info">
                     <div class="country-name"></div>
+                    <div class="info-item" id="info-parent-row" style="display:none"><span class="info-label">Territory of:</span> <span id="info-parent"></span></div>
                     <div class="info-item"><span class="info-label">Population:</span> <span id="info-population"></span></div>
                     <div class="info-item"><span class="info-label">Area:</span> <span id="info-area"></span></div>
                     <div class="info-item"><span class="info-label">Language:</span> <span id="info-language"></span></div>
@@ -903,6 +904,15 @@
                         .filter(Boolean);
                     focusRegistry.buildFromCountries(countryRecords);
                     labelManager.applyFocusZoom(focusRegistry);
+
+                    // Merge baked-in dependencies (Greenland, Puerto Rico, …) into
+                    // the runtime country data so the flag panel shows each one's
+                    // own flag + sovereign parent. Existing hand-authored entries
+                    // win over the generated defaults.
+                    const depData = globeManager.getDependencyData();
+                    for (const name in depData) {
+                        countryData[name] = Object.assign({}, depData[name], countryData[name]);
+                    }
 
                     // ===== PHASE 6: Initialize Quiz System =====
 
@@ -2309,7 +2319,7 @@
                     globeManager.setSelectedCountry(pickedName);
                     if (labelManager) labelManager.setHighlight(pickedName);
 
-                    rotateGlobeToCountry(pickedName);
+                    rotateGlobeToCountry(pickedName, false, pickResult.point);
                     if (flagRenderer) {
                         flagRenderer.show(pickedName, countryData, countryToISO);
                     }
@@ -2760,7 +2770,7 @@
 
         // Rotate globe to center a country. Accepts either a country name
         // (string) or a country record { name, centroid, bbox }.
-        function rotateGlobeToCountry(arg, isQuizMode = false) {
+        function rotateGlobeToCountry(arg, isQuizMode = false, aimPoint = null) {
             let record = null;
             if (typeof arg === 'string') {
                 record = globeManager.getCountryByName(arg);
@@ -2771,7 +2781,10 @@
 
             const countryName = record.name;
 
-            const worldPos = record.centroid.clone().normalize();
+            // When the caller passes the exact clicked point (same local frame as
+            // centroids), aim there instead of the country centroid — so clicking
+            // a far-flung landmass keeps focus on it, not the country's main mass.
+            const worldPos = (aimPoint || record.centroid).clone().normalize();
 
             const phi = Math.acos(worldPos.y);
             const theta = Math.atan2(worldPos.z, worldPos.x);

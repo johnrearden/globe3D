@@ -324,7 +324,12 @@ export class GlobeManager {
                     id: c.id,
                     name: c.name,
                     centroid,
-                    bbox: c.bbox
+                    bbox: c.bbox,
+                    // Dependency-only fields (Greenland, Puerto Rico, …): own flag
+                    // code, sovereign parent, and optional pop/area/lang.
+                    iso: c.iso || null,
+                    parent: c.parent || null,
+                    info: c.info || null
                 };
                 this.countriesById[c.id] = record;
                 this.countryCentroids.push({ name: c.name, centroid, meshRef: null });
@@ -388,7 +393,10 @@ export class GlobeManager {
         if (id === 0) return null;
         const name = this.idToName[id] || null;
         if (!name) return null;
-        return { id, name };
+        // `point` is the local-space hit on the unit sphere — same frame as the
+        // stored country centroids — so callers can focus exactly where the user
+        // clicked rather than on the country's (possibly distant) centroid.
+        return { id, name, point: this._tmpVec.clone() };
     }
 
     setSelectedCountry(name) {
@@ -595,6 +603,29 @@ export class GlobeManager {
 
     getCountryNames() {
         return Object.keys(this.nameToId);
+    }
+
+    /**
+     * Build a {name: {iso, parent, pop, area, lang}} map for every dependency /
+     * overseas territory baked into the assets (entries carrying an iso code).
+     * Merged into the runtime countryData table so the flag panel can show the
+     * territory's own flag and its sovereign parent.
+     * @returns {Object}
+     */
+    getDependencyData() {
+        const out = {};
+        for (const rec of this.countriesById) {
+            if (!rec || !rec.iso) continue;
+            const info = rec.info || {};
+            out[rec.name] = {
+                iso: rec.iso,
+                parent: rec.parent || null,
+                pop: info.pop !== undefined ? info.pop : 'N/A',
+                area: info.area !== undefined ? info.area : 'N/A',
+                lang: info.lang !== undefined ? info.lang : 'N/A'
+            };
+        }
+        return out;
     }
 
     /** Deprecated — countries are no longer separate meshes. */

@@ -145,6 +145,28 @@
       }
     },
     {
+      "id": 238,
+      "name": "Norfolk Island",
+      "centroid": [
+        0.8550853076485563,
+        -0.48531377298659034,
+        0.18248193990938982
+      ],
+      "bbox": {
+        "minLng": 167.90679931640625,
+        "maxLng": 168.00704956054688,
+        "minLat": -29.07837571206272,
+        "maxLat": -28.983516668237453
+      },
+      "iso": "nf",
+      "parent": "Australia",
+      "info": {
+        "pop": 0.002,
+        "area": "35 km²",
+        "lang": "English"
+      }
+    },
+    {
       "id": 10,
       "name": "Austria",
       "centroid": [
@@ -703,6 +725,21 @@
       "id": 47,
       "name": "Denmark",
       "centroid": [
+        -0.54983330269215,
+        0.8302038573226314,
+        0.09189610730203147
+      ],
+      "bbox": {
+        "minLng": 8.056411743164062,
+        "maxLng": 10.98358154296875,
+        "minLat": 54.71192884840614,
+        "maxLat": 57.76133353261141
+      }
+    },
+    {
+      "id": 200,
+      "name": "Greenland",
+      "centroid": [
         -0.19851560325259202,
         0.9645265374846306,
         -0.17401182072827412
@@ -712,6 +749,35 @@
         "maxLng": -11.00830078125,
         "minLat": 59.66219187669592,
         "maxLat": 83.68419872801596
+      },
+      "iso": "gl",
+      "parent": "Denmark",
+      "info": {
+        "pop": 0.06,
+        "area": "2.17M km²",
+        "lang": "Greenlandic, Danish"
+      }
+    },
+    {
+      "id": 201,
+      "name": "Faroe Islands",
+      "centroid": [
+        -0.4639754580223935,
+        0.8840791328702713,
+        -0.05595409883341307
+      ],
+      "bbox": {
+        "minLng": -7.72064208984375,
+        "maxLng": -6.22100830078125,
+        "minLat": 61.73412712398737,
+        "maxLat": 62.40564022164232
+      },
+      "iso": "fo",
+      "parent": "Denmark",
+      "info": {
+        "pop": 0.05,
+        "area": "1.4K km²",
+        "lang": "Faroese, Danish"
       }
     },
     {
@@ -925,6 +991,28 @@
       }
     },
     {
+      "id": 223,
+      "name": "Åland Islands",
+      "centroid": [
+        -0.46676193466608473,
+        0.8677748039831701,
+        0.17058776602894024
+      ],
+      "bbox": {
+        "minLng": 19.370269775390625,
+        "maxLng": 20.655670166015625,
+        "minLat": 59.89513686452462,
+        "maxLat": 60.477525439108994
+      },
+      "iso": "ax",
+      "parent": "Finland",
+      "info": {
+        "pop": 0.03,
+        "area": "1.5K km²",
+        "lang": "Swedish"
+      }
+    },
+    {
       "id": 62,
       "name": "France",
       "centroid": [
@@ -937,6 +1025,270 @@
         "maxLng": 8.235626220703011,
         "minLat": 42.33251347020306,
         "maxLat": 51.10007257240614
+      }
+    },
+    {
+      "id": 205,
+      "name": "French Guiana",
+      "centroid": [
+        -0.5972030845610462,
+        0.06876807960275214,
+        -0.7991366760564311
+      ],
+      "bbox": {
+        "minLng": -54.60479736328125,
+        "maxLng": -51.620635986328125,
+        "minLat": 2.1143880930418404,
+        "maxLat": 5.773134857924344
+      },
+      "iso": "gf",
+      "parent": "France",
+      "info": {
+        "pop": 0.3,
+        "area": "84K km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 206,
+      "name": "Guadeloupe",
+      "centroid": [
+        -0.45706176638562407,
+        0.27948666456431587,
+        -0.8443824643129242
+      ],
+      "bbox": {
+        "minLng": -61.820755004882926,
+        "maxLng": -61.162261962890625,
+        "minLat": 15.935580656785602,
+        "maxLat": 16.52694879928785
+      },
+      "iso": "gp",
+      "parent": "France",
+      "info": {
+        "pop": 0.4,
+        "area": "1.6K km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 207,
+      "name": "Martinique",
+      "centroid": [
+        -0.4688843892027583,
+        0.25288237021057375,
+        -0.8462847844541685
+      ],
+      "bbox": {
+        "minLng": -61.23916625976574,
+        "maxLng": -60.80039978027344,
+        "minLat": 14.376155191012126,
+        "maxLat": 14.885732421313993
+      },
+      "iso": "mq",
+      "parent": "France",
+      "info": {
+        "pop": 0.37,
+        "area": "1.1K km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 208,
+      "name": "Réunion",
+      "centroid": [
+        -0.5279124209419547,
+        -0.3604854829374374,
+        0.7689984996126892
+      ],
+      "bbox": {
+        "minLng": 55.19805908203125,
+        "maxLng": 55.847625732421875,
+        "minLat": -21.40449100321618,
+        "maxLat": -20.847261769257095
+      },
+      "iso": "re",
+      "parent": "France",
+      "info": {
+        "pop": 0.87,
+        "area": "2.5K km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 209,
+      "name": "Mayotte",
+      "centroid": [
+        -0.68756709448338,
+        -0.2219970511078224,
+        0.6913528765276915
+      ],
+      "bbox": {
+        "minLng": 45.01029968261719,
+        "maxLng": 45.3076171875,
+        "minLat": -13.032655603554847,
+        "maxLat": -12.626267851523913
+      },
+      "iso": "yt",
+      "parent": "France",
+      "info": {
+        "pop": 0.3,
+        "area": "374 km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 210,
+      "name": "New Caledonia",
+      "centroid": [
+        0.9018334042249281,
+        -0.3634325714013509,
+        0.23369483748829237
+      ],
+      "bbox": {
+        "minLng": 163.90365600585938,
+        "maxLng": 167.06085205078114,
+        "minLat": -22.492257220085193,
+        "maxLat": -19.939787281995017
+      },
+      "iso": "nc",
+      "parent": "France",
+      "info": {
+        "pop": 0.27,
+        "area": "18.6K km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 211,
+      "name": "French Polynesia",
+      "centroid": [
+        0.8153103158327122,
+        -0.2610997655447473,
+        -0.5168133138080337
+      ],
+      "bbox": {
+        "minLng": -147.9583740234375,
+        "maxLng": -147.20169067382812,
+        "minLat": -15.34246459514245,
+        "maxLat": -14.900994720775
+      },
+      "iso": "pf",
+      "parent": "France",
+      "info": {
+        "pop": 0.28,
+        "area": "4.2K km²",
+        "lang": "French, Tahitian"
+      }
+    },
+    {
+      "id": 212,
+      "name": "Saint Pierre and Miquelon",
+      "centroid": [
+        -0.37843196610043156,
+        0.7308397709711953,
+        -0.5680338688847105
+      ],
+      "bbox": {
+        "minLng": -56.42852783203125,
+        "maxLng": -56.22528076171875,
+        "minLat": 46.76902781837645,
+        "maxLat": 47.156104775044035
+      },
+      "iso": "pm",
+      "parent": "France",
+      "info": {
+        "pop": 0.006,
+        "area": "242 km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 213,
+      "name": "Wallis and Futuna",
+      "centroid": [
+        0.9685828048628031,
+        -0.24667730203020038,
+        -0.03158573708505696
+      ],
+      "bbox": {
+        "minLng": -178.19000244140625,
+        "maxLng": -178.0451202392578,
+        "minLat": -14.317614840171844,
+        "maxLat": -14.2304412782669
+      },
+      "iso": "wf",
+      "parent": "France",
+      "info": {
+        "pop": 0.011,
+        "area": "142 km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 214,
+      "name": "Saint Martin",
+      "centroid": [
+        -0.4306882965208693,
+        0.3103586488176618,
+        -0.8474580227622056
+      ],
+      "bbox": {
+        "minLng": -63.15464973449707,
+        "maxLng": -63.0040168762207,
+        "minLat": 18.046072966841475,
+        "maxLat": 18.126765209578224
+      },
+      "iso": "mf",
+      "parent": "France",
+      "info": {
+        "pop": 0.03,
+        "area": "53 km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 215,
+      "name": "Saint Barthélemy",
+      "centroid": [
+        -0.43450762591844433,
+        0.30739385032744226,
+        -0.8465885327593253
+      ],
+      "bbox": {
+        "minLng": -62.88196563720703,
+        "maxLng": -62.78635025024414,
+        "minLat": 17.867831671395813,
+        "maxLat": 17.93186570821009
+      },
+      "iso": "bl",
+      "parent": "France",
+      "info": {
+        "pop": 0.01,
+        "area": "25 km²",
+        "lang": "French"
+      }
+    },
+    {
+      "id": 216,
+      "name": "French Southern Territories",
+      "centroid": [
+        -0.22847703117658216,
+        -0.758005907831332,
+        0.6109216724896352
+      ],
+      "bbox": {
+        "minLng": 68.6267852783202,
+        "maxLng": 70.5706787109375,
+        "minLat": -49.74578130615573,
+        "maxLat": -48.64742780553353
+      },
+      "iso": "tf",
+      "parent": "France",
+      "info": {
+        "pop": "N/A",
+        "area": "7.7K km²",
+        "lang": "French"
       }
     },
     {
@@ -1870,6 +2222,72 @@
       }
     },
     {
+      "id": 202,
+      "name": "Aruba",
+      "centroid": [
+        -0.33438160648730625,
+        0.21660714306693984,
+        -0.9172078754651787
+      ],
+      "bbox": {
+        "minLng": -70.08453369140625,
+        "maxLng": -69.85519409179688,
+        "minLat": 12.3990239587457,
+        "maxLat": 12.637658279835078
+      },
+      "iso": "aw",
+      "parent": "Netherlands",
+      "info": {
+        "pop": 0.11,
+        "area": "180 km²",
+        "lang": "Dutch, Papiamento"
+      }
+    },
+    {
+      "id": 203,
+      "name": "Curaçao",
+      "centroid": [
+        -0.35081009656011225,
+        0.21111183730174804,
+        -0.912339886392437
+      ],
+      "bbox": {
+        "minLng": -69.17404174804688,
+        "maxLng": -68.71536254882812,
+        "minLat": 12.013800730428164,
+        "maxLat": 12.412436216375175
+      },
+      "iso": "cw",
+      "parent": "Netherlands",
+      "info": {
+        "pop": 0.15,
+        "area": "444 km²",
+        "lang": "Dutch, Papiamento"
+      }
+    },
+    {
+      "id": 204,
+      "name": "Sint Maarten",
+      "centroid": [
+        -0.4307742953488058,
+        0.309631839280773,
+        -0.8476801463820804
+      ],
+      "bbox": {
+        "minLng": -63.139801025390625,
+        "maxLng": -63.012685775756836,
+        "minLat": 18.003060041838175,
+        "maxLat": 18.063985115892226
+      },
+      "iso": "sx",
+      "parent": "Netherlands",
+      "info": {
+        "pop": 0.04,
+        "area": "34 km²",
+        "lang": "Dutch, English"
+      }
+    },
+    {
       "id": 125,
       "name": "New Zealand",
       "centroid": [
@@ -1882,6 +2300,28 @@
         "maxLng": 174.41619873046875,
         "minLat": -46.681478800917844,
         "maxLat": -40.46993497635154
+      }
+    },
+    {
+      "id": 239,
+      "name": "Tokelau",
+      "centroid": [
+        0.9771370877615273,
+        -0.15949929928218518,
+        -0.1405812407450332
+      ],
+      "bbox": {
+        "minLng": -171.87320709228516,
+        "maxLng": -171.7609405517578,
+        "minLat": -9.234959792129816,
+        "maxLat": -9.097689716256223
+      },
+      "iso": "tk",
+      "parent": "New Zealand",
+      "info": {
+        "pop": 0.0015,
+        "area": "12 km²",
+        "lang": "Tokelauan, English"
       }
     },
     {
@@ -1987,6 +2427,28 @@
         "maxLng": 31.179199218749996,
         "minLat": 57.95130242376526,
         "maxLat": 71.20457467835712
+      }
+    },
+    {
+      "id": 222,
+      "name": "Svalbard",
+      "centroid": [
+        -0.19018874795493038,
+        0.9802320764996256,
+        0.054528124418211824
+      ],
+      "bbox": {
+        "minLng": 10.5963134765625,
+        "maxLng": 22.225341796875,
+        "minLat": 76.44619476618422,
+        "maxLat": 80.07273895540946
+      },
+      "iso": "sj",
+      "parent": "Norway",
+      "info": {
+        "pop": 0.003,
+        "area": "61K km²",
+        "lang": "Norwegian"
       }
     },
     {
@@ -2830,6 +3292,314 @@
       }
     },
     {
+      "id": 224,
+      "name": "Falkland Islands",
+      "centroid": [
+        -0.31392842104615387,
+        -0.7850275823054601,
+        -0.5340230720475594
+      ],
+      "bbox": {
+        "minLng": -61.50695800781249,
+        "maxLng": -57.6617431640625,
+        "minLat": -52.414147367821286,
+        "maxLat": -50.97399437028297
+      },
+      "iso": "fk",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.003,
+        "area": "12K km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 225,
+      "name": "South Georgia and South Sandwich Islands",
+      "centroid": [
+        -0.4668908084431278,
+        -0.812613588260707,
+        -0.34881532243492513
+      ],
+      "bbox": {
+        "minLng": -38.27911376953125,
+        "maxLng": -35.73577880859375,
+        "minLat": -54.919249918422686,
+        "maxLat": -53.94800423286644
+      },
+      "iso": "gs",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": "N/A",
+        "area": "3.9K km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 226,
+      "name": "Turks and Caicos Islands",
+      "centroid": [
+        -0.28886881262536057,
+        0.370995911503521,
+        -0.8825626565519786
+      ],
+      "bbox": {
+        "minLng": -72.388916015625,
+        "maxLng": -71.43310546875,
+        "minLat": 21.417276156993662,
+        "maxLat": 21.978707571386263
+      },
+      "iso": "tc",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.05,
+        "area": "948 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 227,
+      "name": "British Virgin Islands",
+      "centroid": [
+        -0.40898803475629053,
+        0.3160378056782472,
+        -0.8560659395211713
+      ],
+      "bbox": {
+        "minLng": -64.63119506835938,
+        "maxLng": -64.29817199707031,
+        "minLat": 18.3017286930179,
+        "maxLat": 18.544720641988363
+      },
+      "iso": "vg",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.03,
+        "area": "151 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 228,
+      "name": "Anguilla",
+      "centroid": [
+        -0.43049457171692734,
+        0.312678450565088,
+        -0.8467033779751179
+      ],
+      "bbox": {
+        "minLng": -63.18992614746094,
+        "maxLng": -62.91389465332031,
+        "minLat": 18.147156759688098,
+        "maxLat": 18.309551463162894
+      },
+      "iso": "ai",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.015,
+        "area": "91 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 229,
+      "name": "Montserrat",
+      "centroid": [
+        -0.4468067958422066,
+        0.2880193322579645,
+        -0.8469997352035578
+      ],
+      "bbox": {
+        "minLng": -62.2540283203125,
+        "maxLng": -62.129058837890625,
+        "minLat": 16.660532774982972,
+        "maxLat": 16.832803876082206
+      },
+      "iso": "ms",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.005,
+        "area": "102 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 230,
+      "name": "Cayman Islands",
+      "centroid": [
+        -0.14343113568794214,
+        0.3308633132551857,
+        -0.9327148424127645
+      ],
+      "bbox": {
+        "minLng": -81.43409729003906,
+        "maxLng": -81.07017517089842,
+        "minLat": 19.254756553409987,
+        "maxLat": 19.407668674391182
+      },
+      "iso": "ky",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.07,
+        "area": "264 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 231,
+      "name": "Bermuda",
+      "centroid": [
+        -0.360211521833734,
+        0.5345240240686947,
+        -0.7645467462697326
+      ],
+      "bbox": {
+        "minLng": -64.896240234375,
+        "maxLng": -64.63874816894531,
+        "minLat": 32.23894019350488,
+        "maxLat": 32.39851580247402
+      },
+      "iso": "bm",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.06,
+        "area": "54 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 232,
+      "name": "Jersey",
+      "centroid": [
+        -0.6527992914678693,
+        0.7571398746287247,
+        -0.024337117870591604
+      ],
+      "bbox": {
+        "minLng": -2.274169921875,
+        "maxLng": -1.9981384277343748,
+        "minLat": 49.14578361775004,
+        "maxLat": 49.278556648075146
+      },
+      "iso": "je",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.1,
+        "area": "116 km²",
+        "lang": "English, French"
+      }
+    },
+    {
+      "id": 233,
+      "name": "Guernsey",
+      "centroid": [
+        -0.6493436418093408,
+        0.7599333316022743,
+        -0.02922612464303792
+      ],
+      "bbox": {
+        "minLng": -2.68341064453125,
+        "maxLng": -2.4884033203125,
+        "minLat": 49.41141994899947,
+        "maxLat": 49.513618487218466
+      },
+      "iso": "gg",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.06,
+        "area": "78 km²",
+        "lang": "English, French"
+      }
+    },
+    {
+      "id": 234,
+      "name": "Isle of Man",
+      "centroid": [
+        -0.5827567791680393,
+        0.8113257957656,
+        -0.04631403090866783
+      ],
+      "bbox": {
+        "minLng": -4.849090576171874,
+        "maxLng": -4.291534423828125,
+        "minLat": 54.034392876186416,
+        "maxLat": 54.42532191246645
+      },
+      "iso": "im",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.08,
+        "area": "572 km²",
+        "lang": "English, Manx"
+      }
+    },
+    {
+      "id": 235,
+      "name": "Gibraltar",
+      "centroid": [
+        -0.8041010908058913,
+        0.5897020551860762,
+        -0.07531880159756693
+      ],
+      "bbox": {
+        "minLng": -5.369653701782227,
+        "maxLng": -5.335664749145508,
+        "minLat": 36.10716133091688,
+        "maxLat": 36.154924818703805
+      },
+      "iso": "gi",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.03,
+        "area": "6.8 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 236,
+      "name": "Saint Helena",
+      "centroid": [
+        -0.7792211760946405,
+        -0.603372757577108,
+        -0.16957498087713788
+      ],
+      "bbox": {
+        "minLng": -12.37060546875,
+        "maxLng": -12.185211181640623,
+        "minLat": -37.189860709456575,
+        "maxLat": -37.03983207971425
+      },
+      "iso": "sh",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.005,
+        "area": "394 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 237,
+      "name": "Pitcairn Islands",
+      "centroid": [
+        0.5648064434108528,
+        -0.4126843007547112,
+        -0.7146225223096304
+      ],
+      "bbox": {
+        "minLng": -128.3697509765625,
+        "maxLng": -128.2811737060547,
+        "minLat": -24.430896378620496,
+        "maxLat": -24.31894247331205
+      },
+      "iso": "pn",
+      "parent": "United Kingdom",
+      "info": {
+        "pop": 0.00005,
+        "area": "47 km²",
+        "lang": "English"
+      }
+    },
+    {
       "id": 189,
       "name": "Uruguay",
       "centroid": [
@@ -2857,6 +3627,116 @@
         "maxLng": -66.9287109375,
         "minLat": 24.784240964957117,
         "maxLat": 49.38237278700955
+      }
+    },
+    {
+      "id": 217,
+      "name": "Puerto Rico",
+      "centroid": [
+        -0.3791034777407007,
+        0.3127131085190904,
+        -0.8709139250954906
+      ],
+      "bbox": {
+        "minLng": -67.313232421875,
+        "maxLng": -65.533447265625,
+        "minLat": 17.85851867611397,
+        "maxLat": 18.547324589827422
+      },
+      "iso": "pr",
+      "parent": "United States",
+      "info": {
+        "pop": 3.2,
+        "area": "9K km²",
+        "lang": "Spanish, English"
+      }
+    },
+    {
+      "id": 218,
+      "name": "United States Virgin Islands",
+      "centroid": [
+        -0.40616219963820926,
+        0.3045671485136396,
+        -0.8615515768840087
+      ],
+      "bbox": {
+        "minLng": -64.91683959960938,
+        "maxLng": -64.55360412597656,
+        "minLat": 17.665614097606255,
+        "maxLat": 17.79576579725599
+      },
+      "iso": "vi",
+      "parent": "United States",
+      "info": {
+        "pop": 0.09,
+        "area": "347 km²",
+        "lang": "English"
+      }
+    },
+    {
+      "id": 219,
+      "name": "Guam",
+      "centroid": [
+        0.7945076275638004,
+        0.23246899280229807,
+        0.5609953628403949
+      ],
+      "bbox": {
+        "minLng": 144.60479736328125,
+        "maxLng": 144.97695922851562,
+        "minLat": 13.21588212346288,
+        "maxLat": 13.67267581866982
+      },
+      "iso": "gu",
+      "parent": "United States",
+      "info": {
+        "pop": 0.17,
+        "area": "540 km²",
+        "lang": "English, Chamorro"
+      }
+    },
+    {
+      "id": 220,
+      "name": "Northern Mariana Islands",
+      "centroid": [
+        0.7977470906330839,
+        0.26200400723200407,
+        0.5430961973544116
+      ],
+      "bbox": {
+        "minLng": 145.67596435546875,
+        "maxLng": 145.85174560546875,
+        "minLat": 15.06947143170227,
+        "maxLat": 15.306704110253888
+      },
+      "iso": "mp",
+      "parent": "United States",
+      "info": {
+        "pop": 0.05,
+        "area": "464 km²",
+        "lang": "English, Chamorro"
+      }
+    },
+    {
+      "id": 221,
+      "name": "American Samoa",
+      "centroid": [
+        0.9563084542892777,
+        -0.246954096358201,
+        -0.15648582858123883
+      ],
+      "bbox": {
+        "minLng": -170.86143493652344,
+        "maxLng": -170.53871154785156,
+        "minLat": -14.380811152512683,
+        "maxLat": -14.219791816003891
+      },
+      "iso": "as",
+      "parent": "United States",
+      "info": {
+        "pop": 0.05,
+        "area": "199 km²",
+        "lang": "English, Samoan"
       }
     },
     {
@@ -3005,6 +3885,7 @@
     "Argentina": 7,
     "Armenia": 8,
     "Australia": 9,
+    "Norfolk Island": 238,
     "Austria": 10,
     "Azerbaijan": 11,
     "Bahamas": 12,
@@ -3043,6 +3924,8 @@
     "Czechia": 45,
     "Democratic Congo": 46,
     "Denmark": 47,
+    "Greenland": 200,
+    "Faroe Islands": 201,
     "Djibouti": 48,
     "Dominica": 49,
     "Dominican Republic": 50,
@@ -3057,7 +3940,20 @@
     "Ethiopia": 59,
     "Fiji": 60,
     "Finland": 61,
+    "Åland Islands": 223,
     "France": 62,
+    "French Guiana": 205,
+    "Guadeloupe": 206,
+    "Martinique": 207,
+    "Réunion": 208,
+    "Mayotte": 209,
+    "New Caledonia": 210,
+    "French Polynesia": 211,
+    "Saint Pierre and Miquelon": 212,
+    "Wallis and Futuna": 213,
+    "Saint Martin": 214,
+    "Saint Barthélemy": 215,
+    "French Southern Territories": 216,
     "Gabon": 63,
     "Gambia": 64,
     "Georgia": 65,
@@ -3120,7 +4016,11 @@
     "Nauru": 122,
     "Nepal": 123,
     "Netherlands": 124,
+    "Aruba": 202,
+    "Curaçao": 203,
+    "Sint Maarten": 204,
     "New Zealand": 125,
+    "Tokelau": 239,
     "Nicaragua": 126,
     "Niger": 127,
     "Nigeria": 128,
@@ -3128,6 +4028,7 @@
     "North Korea": 130,
     "North Macedonia": 131,
     "Norway": 132,
+    "Svalbard": 222,
     "Oman": 133,
     "Pakistan": 134,
     "Palau": 135,
@@ -3184,8 +4085,27 @@
     "Ukraine": 186,
     "United Arab Emirates": 187,
     "United Kingdom": 188,
+    "Falkland Islands": 224,
+    "South Georgia and South Sandwich Islands": 225,
+    "Turks and Caicos Islands": 226,
+    "British Virgin Islands": 227,
+    "Anguilla": 228,
+    "Montserrat": 229,
+    "Cayman Islands": 230,
+    "Bermuda": 231,
+    "Jersey": 232,
+    "Guernsey": 233,
+    "Isle of Man": 234,
+    "Gibraltar": 235,
+    "Saint Helena": 236,
+    "Pitcairn Islands": 237,
     "Uruguay": 189,
     "Usa": 190,
+    "Puerto Rico": 217,
+    "United States Virgin Islands": 218,
+    "Guam": 219,
+    "Northern Mariana Islands": 220,
+    "American Samoa": 221,
     "Uzbekistan": 191,
     "Vanuatu": 192,
     "Vatican": 193,
@@ -3395,6 +4315,46 @@
     "196": "Western Sahara",
     "197": "Yemen",
     "198": "Zambia",
-    "199": "Zimbabwe"
+    "199": "Zimbabwe",
+    "200": "Greenland",
+    "201": "Faroe Islands",
+    "202": "Aruba",
+    "203": "Curaçao",
+    "204": "Sint Maarten",
+    "205": "French Guiana",
+    "206": "Guadeloupe",
+    "207": "Martinique",
+    "208": "Réunion",
+    "209": "Mayotte",
+    "210": "New Caledonia",
+    "211": "French Polynesia",
+    "212": "Saint Pierre and Miquelon",
+    "213": "Wallis and Futuna",
+    "214": "Saint Martin",
+    "215": "Saint Barthélemy",
+    "216": "French Southern Territories",
+    "217": "Puerto Rico",
+    "218": "United States Virgin Islands",
+    "219": "Guam",
+    "220": "Northern Mariana Islands",
+    "221": "American Samoa",
+    "222": "Svalbard",
+    "223": "Åland Islands",
+    "224": "Falkland Islands",
+    "225": "South Georgia and South Sandwich Islands",
+    "226": "Turks and Caicos Islands",
+    "227": "British Virgin Islands",
+    "228": "Anguilla",
+    "229": "Montserrat",
+    "230": "Cayman Islands",
+    "231": "Bermuda",
+    "232": "Jersey",
+    "233": "Guernsey",
+    "234": "Isle of Man",
+    "235": "Gibraltar",
+    "236": "Saint Helena",
+    "237": "Pitcairn Islands",
+    "238": "Norfolk Island",
+    "239": "Tokelau"
   }
 }

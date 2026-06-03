@@ -3,6 +3,7 @@ const path = require('path');
 const earcutModule = require('earcut');
 const earcut = earcutModule.default || earcutModule;
 const simplify = require('simplify-js');
+const { DEPENDENCIES, pointInBboxes } = require('./dependencies');
 
 const COUNTRIES_DIR = './node_modules/world-geojson/countries/';
 const OUTPUT_PALETTE = './assets/country-palette.bin';
@@ -107,6 +108,27 @@ function ringBbox(ring) {
         if (lat > maxLat) maxLat = lat;
     }
     return { minLng, maxLng, minLat, maxLat };
+}
+
+// Build a country-meta row from a largest-ring accumulator (the wrapping /
+// clamping the per-file loop used to do inline). `extra` carries dependency-only
+// fields (iso, parent, info). Shared by parents and dependencies.
+function buildMetaRow(id, name, accum, extra) {
+    const ll = (accum && accum.centroidLngLat) || [0, 0];
+    let centroidLng = ll[0];
+    while (centroidLng > 180) centroidLng -= 360;
+    while (centroidLng < -180) centroidLng += 360;
+    const centroidLat = Math.max(-90, Math.min(90, ll[1]));
+    const centroid = latLngToVector3(centroidLat, centroidLng);
+
+    let bbox = (accum && accum.bbox) || { minLng: 0, maxLng: 0, minLat: 0, maxLat: 0 };
+    bbox = {
+        minLng: Math.max(-180, Math.min(180, bbox.minLng)),
+        maxLng: Math.max(-180, Math.min(180, bbox.maxLng)),
+        minLat: Math.max(-90, Math.min(90, bbox.minLat)),
+        maxLat: Math.max(-90, Math.min(90, bbox.maxLat))
+    };
+    return Object.assign({ id, name, centroid, bbox }, extra || {});
 }
 
 const COLOR_PALETTES = [
@@ -462,6 +484,28 @@ function build() {
 
     let nextId = 1;
 
+    // Pre-assign each curated dependency its own country ID, after the parent
+    // files (which take 1..countryFiles.length). Routing in the per-file loop
+    // reassigns a parent's far-flung rings to these IDs by bounding box.
+    const depBaseId = countryFiles.length + 1;
+    const depsByFile = {};
+    let depCursor = depBaseId;
+    for (const dep of DEPENDENCIES) {
+        dep.id = depCursor++;
+        dep._matched = 0;
+        (depsByFile[dep.parentFile] = depsByFile[dep.parentFile] || []).push(dep);
+        if (dep.id < MAX_COUNTRIES) {
+            const rgb = lookupColorOverride(dep.name, dep.name, colorConfig) || stableColorRGB01(dep.name);
+            palette[dep.id * 4] = Math.max(0, Math.min(255, Math.round(rgb[0] * 255)));
+            palette[dep.id * 4 + 1] = Math.max(0, Math.min(255, Math.round(rgb[1] * 255)));
+            palette[dep.id * 4 + 2] = Math.max(0, Math.min(255, Math.round(rgb[2] * 255)));
+            palette[dep.id * 4 + 3] = 255;
+        } else {
+            console.warn(`  ⚠ dependency "${dep.name}" id ${dep.id} exceeds palette size ${MAX_COUNTRIES}`);
+        }
+    }
+    console.log(`Assigned ${DEPENDENCIES.length} dependency IDs (${depBaseId}..${depCursor - 1})`);
+
     for (const file of countryFiles) {
         const filePath = path.join(COUNTRIES_DIR, file);
         const fileName = path.basename(file, '.json');
@@ -492,18 +536,12 @@ function build() {
             palette[id * 4 + 3] = 255;
         }
 
-        const idHi = (id >> 8) & 0xff;
-        const idLo = id & 0xff;
+        // Dependencies hosted in this file (Greenland in denmark.json, etc.).
+        const fileDeps = depsByFile[fileName] || [];
 
-        let largestRingArea = 0;
-        let largestRingCentroidLngLat = null;
-        let largestRingBbox = null;
-
-        const writeId = (px, py) => {
-            const i = (py * ID_W + px) * 2;
-            idBuf[i] = idHi;
-            idBuf[i + 1] = idLo;
-        };
+        // Largest-ring accumulator per target ID (parent + each of its deps), so
+        // every entity gets a centroid/bbox from its OWN largest ring.
+        const accumById = new Map();
 
         let ringCount = 0;
         for (const feat of geo.features) {
@@ -522,12 +560,37 @@ function build() {
 
                 const unfolded = unfoldRing(simplified);
 
-                // Largest-ring tracking
+                // Route this ring to a dependency (own ID) or the parent. Match
+                // the ring's centroid against each dependency's bbox set; wrap
+                // lng into [-180,180] first (unfolding can push it out of range).
+                const ringC = ringCentroid(unfolded);
+                let routeLng = ringC[0];
+                while (routeLng > 180) routeLng -= 360;
+                while (routeLng < -180) routeLng += 360;
+                let targetId = id;
+                for (const dep of fileDeps) {
+                    if (pointInBboxes(routeLng, ringC[1], dep.bboxes)) {
+                        targetId = dep.id;
+                        dep._matched++;
+                        break;
+                    }
+                }
+                const tHi = (targetId >> 8) & 0xff;
+                const tLo = targetId & 0xff;
+                const writeId = (px, py) => {
+                    const i = (py * ID_W + px) * 2;
+                    idBuf[i] = tHi;
+                    idBuf[i + 1] = tLo;
+                };
+
+                // Largest-ring tracking, per target ID.
                 const area = Math.abs(ringSignedArea(unfolded));
-                if (area > largestRingArea) {
-                    largestRingArea = area;
-                    largestRingCentroidLngLat = ringCentroid(unfolded);
-                    largestRingBbox = ringBbox(unfolded);
+                let acc = accumById.get(targetId);
+                if (!acc) { acc = { area: 0, centroidLngLat: null, bbox: null }; accumById.set(targetId, acc); }
+                if (area > acc.area) {
+                    acc.area = area;
+                    acc.centroidLngLat = ringC;
+                    acc.bbox = ringBbox(unfolded);
                 }
 
                 // Triangulate (earcut, 2D lng/lat space) then project each
@@ -562,7 +625,7 @@ function build() {
                         meshPositions.push(p[0]);
                         meshPositions.push(p[1]);
                         meshPositions.push(p[2]);
-                        meshIds.push(id);
+                        meshIds.push(targetId);
                     }
                     for (let ti = 0; ti < sub.indices.length; ti++) {
                         meshIndices.push(baseVert + sub.indices[ti]);
@@ -575,38 +638,34 @@ function build() {
             }
         }
 
-        if (!largestRingCentroidLngLat) {
-            console.log(`  ! ${displayName}: no rings, skipping`);
-            // still record the country at the assigned id to keep ids contiguous
+        const parentAccum = accumById.get(id);
+        if (!parentAccum) {
+            console.log(`  ! ${displayName}: no rings (after dependency routing)`);
         }
-
-        const centroidLngLat = largestRingCentroidLngLat || [0, 0];
-        // Wrap centroid lng back into [-180, 180] (unfolding may have moved it out)
-        let centroidLng = centroidLngLat[0];
-        while (centroidLng > 180) centroidLng -= 360;
-        while (centroidLng < -180) centroidLng += 360;
-        const centroidLat = Math.max(-90, Math.min(90, centroidLngLat[1]));
-        const centroid = latLngToVector3(centroidLat, centroidLng);
-
-        let bbox = largestRingBbox || { minLng: 0, maxLng: 0, minLat: 0, maxLat: 0 };
-        // Clamp bbox to valid lat range; clamp lng wraps below
-        bbox = {
-            minLng: Math.max(-180, Math.min(180, bbox.minLng)),
-            maxLng: Math.max(-180, Math.min(180, bbox.maxLng)),
-            minLat: Math.max(-90, Math.min(90, bbox.minLat)),
-            maxLat: Math.max(-90, Math.min(90, bbox.maxLat))
-        };
-
-        countriesMeta.push({
-            id,
-            name: displayName,
-            centroid,
-            bbox
-        });
+        countriesMeta.push(buildMetaRow(id, displayName, parentAccum));
         nameToId[displayName] = id;
         idToName[id] = displayName;
 
-        console.log(`  ✓ ${displayName} (id=${id}): ${ringCount} rings`);
+        const depRingCount = fileDeps.reduce((s, d) => s + d._matched, 0);
+        console.log(`  ✓ ${displayName} (id=${id}): ${ringCount} rings (${ringCount - depRingCount} kept, ${depRingCount} → dependencies)`);
+
+        // Emit a meta row for each dependency that captured geometry; carry its
+        // iso / parent / info so the runtime can flag it and label its parent.
+        for (const dep of fileDeps) {
+            const acc = accumById.get(dep.id);
+            if (!acc) {
+                console.warn(`    ⚠ dependency "${dep.name}" (iso=${dep.iso}) matched 0 rings in ${fileName}.json — not emitted`);
+                continue;
+            }
+            countriesMeta.push(buildMetaRow(dep.id, dep.name, acc, {
+                iso: dep.iso,
+                parent: dep.parentName,
+                info: dep.info || null
+            }));
+            nameToId[dep.name] = dep.id;
+            idToName[dep.id] = dep.name;
+            console.log(`    ↳ ${dep.name} (id=${dep.id}, iso=${dep.iso}): ${dep._matched} rings`);
+        }
     }
 
     console.log(FRAGDEBUG ? 'Analyzing fragments (FRAGDEBUG=1, no erase)...' : 'Cleaning up tiny isolated fragments...');
