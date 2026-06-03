@@ -662,40 +662,30 @@ export class GlobeManager {
     }
 
     /**
-     * Build (once) a canvas texture of a small black city/buildings icon with a
-     * thin white outline, so it stays legible on any country color.
+     * Build (once) a canvas texture of a small black dot ringed by a black
+     * circle — a simple location marker.
      */
     _buildCapitalIconTexture() {
         if (this._capitalIconTexture) return this._capitalIconTexture;
         const S = 64;
+        const c = S / 2;
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = S;
         const ctx = canvas.getContext('2d');
 
-        // Three buildings of varying heights sitting on a common baseline — a
-        // simple "city skyline" silhouette. [x, y, w, h] in canvas pixels.
-        const base = 54;
-        const buildings = [
-            [10, 30, 14, base - 30],
-            [26, 16, 14, base - 16],
-            [42, 38, 12, base - 38]
-        ];
-
         ctx.fillStyle = '#000000';
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        ctx.lineJoin = 'round';
-        for (const [x, y, w, h] of buildings) {
-            ctx.strokeRect(x, y, w, h);
-            ctx.fillRect(x, y, w, h);
-        }
+        ctx.strokeStyle = '#000000';
 
-        // A couple of "windows" punched out of the tallest building.
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(30, 22, 3, 3);
-        ctx.fillRect(36, 22, 3, 3);
-        ctx.fillRect(30, 30, 3, 3);
-        ctx.fillRect(36, 30, 3, 3);
+        // Outer ring (stroked circle) with a transparent gap to the inner dot.
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(c, c, 24, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner filled dot.
+        ctx.beginPath();
+        ctx.arc(c, c, 9, 0, Math.PI * 2);
+        ctx.fill();
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.minFilter = THREE.LinearFilter;
@@ -717,7 +707,7 @@ export class GlobeManager {
                 transparent: true
             });
             this.capitalMarker = new THREE.Sprite(mat);
-            this.capitalMarker.scale.setScalar(0.05);
+            this.capitalMarker.scale.setScalar(0.022);
             this.capitalMarker.renderOrder = 999; // draw on top of the country fills
             this.globe.add(this.capitalMarker);
         }
