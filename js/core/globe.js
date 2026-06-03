@@ -662,20 +662,62 @@ export class GlobeManager {
     }
 
     /**
-     * Drop (or move) a small marker dot at a capital's lat/lng. The marker lives
-     * inside the globe group so it rotates with the surface. Used by the capitals
-     * quiz to reveal where a capital sits once the answer is shown.
+     * Build (once) a canvas texture of a small black city/buildings icon with a
+     * thin white outline, so it stays legible on any country color.
+     */
+    _buildCapitalIconTexture() {
+        if (this._capitalIconTexture) return this._capitalIconTexture;
+        const S = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = S;
+        const ctx = canvas.getContext('2d');
+
+        // Three buildings of varying heights sitting on a common baseline — a
+        // simple "city skyline" silhouette. [x, y, w, h] in canvas pixels.
+        const base = 54;
+        const buildings = [
+            [10, 30, 14, base - 30],
+            [26, 16, 14, base - 16],
+            [42, 38, 12, base - 38]
+        ];
+
+        ctx.fillStyle = '#000000';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        for (const [x, y, w, h] of buildings) {
+            ctx.strokeRect(x, y, w, h);
+            ctx.fillRect(x, y, w, h);
+        }
+
+        // A couple of "windows" punched out of the tallest building.
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(30, 22, 3, 3);
+        ctx.fillRect(36, 22, 3, 3);
+        ctx.fillRect(30, 30, 3, 3);
+        ctx.fillRect(36, 30, 3, 3);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.minFilter = THREE.LinearFilter;
+        this._capitalIconTexture = tex;
+        return tex;
+    }
+
+    /**
+     * Drop (or move) a small city-icon marker at a capital's lat/lng. The marker
+     * lives inside the globe group so it rotates with the surface. Used by the
+     * capitals quiz to reveal where a capital sits once the answer is shown.
      */
     showCapitalMarker(lat, lng) {
         if (!this.globe) return;
         if (!this.capitalMarker) {
-            const geo = new THREE.SphereGeometry(0.012, 12, 12);
-            const mat = new THREE.MeshBasicMaterial({
-                color: 0xffd54a,
+            const mat = new THREE.SpriteMaterial({
+                map: this._buildCapitalIconTexture(),
                 depthTest: false,
                 transparent: true
             });
-            this.capitalMarker = new THREE.Mesh(geo, mat);
+            this.capitalMarker = new THREE.Sprite(mat);
+            this.capitalMarker.scale.setScalar(0.05);
             this.capitalMarker.renderOrder = 999; // draw on top of the country fills
             this.globe.add(this.capitalMarker);
         }
