@@ -707,7 +707,7 @@ export class GlobeManager {
                 transparent: true
             });
             this.capitalMarker = new THREE.Sprite(mat);
-            this.capitalMarker.scale.setScalar(0.022);
+            this.capitalMarker.scale.setScalar(0.0055);
             this.capitalMarker.renderOrder = 999; // draw on top of the country fills
             this.globe.add(this.capitalMarker);
         }
