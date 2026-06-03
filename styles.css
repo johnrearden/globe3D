@@ -2106,11 +2106,46 @@
             display: none !important;
         }
 
-        /* Bounce + Shatter + Pinball buttons — mobile only, stacked under Take Quiz. */
+        /* Bounce + Shatter + Pinball — experimental animation triggers. Gated
+           behind the ✎ dev-edit toggle and stacked directly under it (top-right),
+           so they never overlap the left-column edit buttons. Hidden until the
+           toggle opens body.dev-edit-open. */
         #bounce-btn,
         #shatter-btn,
         #pinball-btn {
             display: none;
+            position: fixed;
+            right: 20px;
+            z-index: 150;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
+        }
+        #bounce-btn  { top: 66px;  background-color: #9C27B0; }
+        #shatter-btn { top: 111px; background-color: #FF5722; }
+        #pinball-btn { top: 156px; background-color: #4CAF50; }
+        #bounce-btn:hover  { background-color: #7B1FA2; transform: scale(1.05); }
+        #shatter-btn:hover { background-color: #D84315; transform: scale(1.05); }
+        #pinball-btn:hover { background-color: #388E3C; transform: scale(1.05); }
+
+        body.dev-edit-open #bounce-btn,
+        body.dev-edit-open #shatter-btn,
+        body.dev-edit-open #pinball-btn {
+            display: block;
+        }
+        body.quiz-active #bounce-btn,
+        body.quiz-active #shatter-btn,
+        body.quiz-active #pinball-btn,
+        body.celebration-active #bounce-btn,
+        body.celebration-active #shatter-btn,
+        body.celebration-active #pinball-btn {
+            display: none !important;
         }
 
         @media (max-width: 768px) {
@@ -2118,52 +2153,10 @@
                 top: 10px !important;
                 left: 10px !important;
             }
-            #bounce-btn,
-            #shatter-btn,
-            #pinball-btn {
-                display: block;
-                position: fixed;
-                left: 10px;
-                z-index: 150;
-                border: none;
-                border-radius: 6px;
-                color: #ffffff;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 10px 15px;
-                cursor: pointer;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-                transition: all 0.3s;
-            }
-            #bounce-btn {
-                top: 55px;
-                background-color: #9C27B0;
-            }
-            #shatter-btn {
-                top: 100px;
-                background-color: #FF5722;
-            }
-            #pinball-btn {
-                top: 145px;
-                background-color: #4CAF50;
-            }
-            #bounce-btn:hover {
-                background-color: #7B1FA2;
-                transform: scale(1.05);
-            }
-            #shatter-btn:hover {
-                background-color: #D84315;
-                transform: scale(1.05);
-            }
-            #pinball-btn:hover {
-                background-color: #388E3C;
-                transform: scale(1.05);
-            }
-            body.quiz-active #bounce-btn,
-            body.quiz-active #shatter-btn,
-            body.quiz-active #pinball-btn {
-                display: none;
-            }
+            /* Mobile: tuck the trio under the smaller top-right ✎ toggle. */
+            #bounce-btn  { top: 48px;  right: 10px; }
+            #shatter-btn { top: 90px;  right: 10px; }
+            #pinball-btn { top: 132px; right: 10px; }
             #dev-edit-toggle {
                 top: 10px;
                 right: 10px;

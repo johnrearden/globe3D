@@ -916,6 +916,71 @@
                         countryData[name] = Object.assign({}, depData[name], countryData[name]);
                     }
 
+                    // ===== TEMP DEV: live lighting sliders (remove when done tuning) =====
+                    // A "💡 Lights" toggle pinned to the very bottom of the screen, with a
+                    // slider bar floating just above it. Wired straight to the globe shader's
+                    // lighting uniforms. Hidden during quizzes/celebration so it never covers
+                    // the (sometimes fullscreen) quiz UI. Styling lives in one injected
+                    // <style> so the whole feature is self-contained and easy to delete.
+                    (function setupLightDevPanel() {
+                        const U = globeManager.material && globeManager.material.uniforms;
+                        if (!U) return;
+                        const specs = [
+                            { label: 'Ambient',    min: 0, max: 1.5, step: 0.05, get: () => U.uAmbient.value.r,     set: v => U.uAmbient.value.setScalar(v) },
+                            { label: 'Diffuse',     min: 0, max: 1.5, step: 0.05, get: () => U.uDiffuse.value,       set: v => { U.uDiffuse.value = v; } },
+                            { label: 'Specular',    min: 0, max: 1.0, step: 0.02, get: () => U.uSpecStrength.value,   set: v => { U.uSpecStrength.value = v; } },
+                            { label: 'Shininess',   min: 2, max: 120, step: 1,    get: () => U.uShininess.value,      set: v => { U.uShininess.value = v; } },
+                            { label: 'Ocean glint', min: 0, max: 3.0, step: 0.1,  get: () => U.uOceanSpecBoost.value, set: v => { U.uOceanSpecBoost.value = v; } }
+                        ];
+
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            /* Panel floats just above the toggle; fit-content + max-width
+                               so it can use the full viewport up to the cap and wrap on a phone. */
+                            #light-dev-panel{position:fixed;left:0;right:0;bottom:54px;margin:0 auto;width:fit-content;z-index:300;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 14px;padding:10px 14px;max-width:calc(100vw - 16px);box-sizing:border-box;background:rgba(20,24,32,0.92);border:1px solid rgba(120,150,190,0.3);border-radius:10px;font-family:Arial,sans-serif;color:#dfe6f0;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,0.5);}
+                            #light-dev-panel.ld-hidden{display:none;}
+                            #light-dev-panel .ldw{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;min-width:84px;}
+                            #light-dev-panel .ldw input{width:96px;}
+                            #light-dev-panel .ldl{font-weight:bold;color:#9fb6d4;}
+                            /* Toggle pinned to the very bottom. Left:10 on mobile (where the
+                               #controls box is hidden); shifted right of #controls on desktop. */
+                            #light-dev-toggle{position:fixed;left:10px;bottom:8px;z-index:301;padding:8px 12px;background:rgba(20,24,32,0.92);border:1px solid rgba(120,150,190,0.3);border-radius:8px;color:#dfe6f0;font-family:Arial,sans-serif;font-size:12px;cursor:pointer;}
+                            @media(min-width:769px){#light-dev-toggle{left:175px;}}
+                            /* Keep clear of the (sometimes fullscreen) quiz UI. */
+                            body.quiz-active #light-dev-panel,body.quiz-active #light-dev-toggle,
+                            body.flag-quiz-active #light-dev-panel,body.flag-quiz-active #light-dev-toggle,
+                            body.celebration-active #light-dev-panel,body.celebration-active #light-dev-toggle{display:none !important;}
+                        `;
+                        document.head.appendChild(style);
+
+                        const panel = document.createElement('div');
+                        panel.id = 'light-dev-panel';
+                        for (const s of specs) {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'ldw';
+                            const label = document.createElement('span');
+                            label.className = 'ldl';
+                            label.textContent = s.label;
+                            const input = document.createElement('input');
+                            input.type = 'range';
+                            input.min = s.min; input.max = s.max; input.step = s.step;
+                            input.value = s.get();
+                            const val = document.createElement('span');
+                            const render = () => { val.textContent = Number(input.value).toFixed(2); };
+                            render();
+                            input.addEventListener('input', () => { s.set(parseFloat(input.value)); render(); });
+                            wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(val);
+                            panel.appendChild(wrap);
+                        }
+                        document.body.appendChild(panel);
+
+                        const toggle = document.createElement('button');
+                        toggle.id = 'light-dev-toggle';
+                        toggle.textContent = '💡 Lights';
+                        toggle.addEventListener('click', () => panel.classList.toggle('ld-hidden'));
+                        document.body.appendChild(toggle);
+                    })();
+
                     // ===== PHASE 6: Initialize Quiz System =====
 
                     // Initialize QuizManager

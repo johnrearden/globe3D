@@ -22,7 +22,7 @@ const MIN_FRAGMENT_PX = 4;
 const FRAGDEBUG = process.env.FRAGDEBUG === '1';
 
 const SIMPLIFICATION_TOLERANCE = 0.006;
-const OCEAN_COLOR = [0x06, 0x1A, 0x33];
+const OCEAN_COLOR = [0x08, 0x1E, 0x39]; // lightened ocean; original was [0x06, 0x1A, 0x33]
 
 // Maximum chord-vs-arc sag (depth that a flat triangle's interior dips below
 // the unit sphere). Anything above this gets recursively subdivided. The

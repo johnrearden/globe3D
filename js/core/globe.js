@@ -25,8 +25,8 @@ const COUNTRY_MESH_SCALE = 1.002; // raises country mesh above ocean sphere; bui
 const VERTEX_SHADER = /* glsl */`
 attribute float aCountryId;
 varying float vCountryId;
-varying vec3 vWorldPosition;
-varying vec3 vNormalW;
+varying vec3 vViewPos;
+varying vec3 vViewNormal;
 
 void main() {
     vCountryId = aCountryId;
@@ -34,10 +34,13 @@ void main() {
     // normalized local position. This avoids relying on SphereGeometry's
     // baked normal attribute and works for the merged country mesh too.
     vec3 nrmLocal = normalize(position);
-    vec4 worldPos = modelMatrix * vec4(position, 1.0);
-    vWorldPosition = worldPos.xyz;
-    vNormalW = normalize(mat3(modelMatrix) * nrmLocal);
-    gl_Position = projectionMatrix * viewMatrix * worldPos;
+    // View-space lighting (camera-relative). normalMatrix is the inverse-
+    // transpose of the modelView matrix, giving a correct view-space normal —
+    // and correctly handling the non-uniform squash of the bounce animation.
+    vViewNormal = normalize(normalMatrix * nrmLocal);
+    vec4 viewPos = modelViewMatrix * vec4(position, 1.0);
+    vViewPos = viewPos.xyz;
+    gl_Position = projectionMatrix * viewPos;
 }
 `;
 
@@ -54,10 +57,15 @@ uniform float uShowCountries;
 uniform vec3 uOceanColor;
 uniform vec3 uAmbient;
 uniform float uDiffuse;
+uniform vec3 uLightDir;        // light direction in VIEW space (camera-relative)
+uniform float uSpecStrength;   // glossy highlight strength
+uniform float uShininess;      // highlight tightness (higher = smaller, sharper)
+uniform vec3 uSpecColor;       // highlight tint
+uniform float uOceanSpecBoost; // extra gloss on the ocean (water glint)
 
 varying float vCountryId;
-varying vec3 vWorldPosition;
-varying vec3 vNormalW;
+varying vec3 vViewPos;
+varying vec3 vViewNormal;
 
 void main() {
     float id = vCountryId;
@@ -84,10 +92,25 @@ void main() {
         color = mix(color, uFlashColor, uFlashAlpha);
     }
 
-    // Camera-aligned directional light + ambient.
-    vec3 lightDir = normalize(cameraPosition - vWorldPosition);
-    float ndotl = max(dot(normalize(vNormalW), lightDir), 0.0);
-    vec3 lit = color * (uAmbient + uDiffuse * ndotl);
+    // Camera-relative (view-space) lighting: the light is fixed relative to the
+    // viewer, so the hemisphere you are looking at is ALWAYS lit — orbiting the
+    // camera never reveals a dark side. uLightDir is offset up/left of the view
+    // axis, so the specular highlight sits off-center for a glossy, dimensional
+    // look. Bounce/pinball still shift the shading because the geometry moves
+    // relative to the view, and it scales perfectly at every zoom.
+    vec3 N = normalize(vViewNormal);
+    vec3 V = normalize(-vViewPos);       // camera is at the origin in view space
+    vec3 L = normalize(uLightDir);       // constant view-space light direction
+    float ndotl = max(dot(N, L), 0.0);
+
+    // Specular highlight — the glossy sheen that makes the surface look less
+    // matte. Gated by ndotl so it never appears on the unlit side. The ocean
+    // gets an extra boost so it reads like a water glint.
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(N, H), 0.0), uShininess) * ndotl;
+    float specStrength = (id < 0.5) ? uSpecStrength * uOceanSpecBoost : uSpecStrength;
+
+    vec3 lit = color * (uAmbient + uDiffuse * ndotl) + uSpecColor * (spec * specStrength);
 
     gl_FragColor = vec4(lit, 1.0);
 }
@@ -282,7 +305,15 @@ export class GlobeManager {
                     uShowCountries: { value: 1 },
                     uOceanColor: { value: new THREE.Color(oceanColor[0] / 255, oceanColor[1] / 255, oceanColor[2] / 255) },
                     uAmbient: { value: new THREE.Color(0.7, 0.7, 0.7) },
-                    uDiffuse: { value: 0.8 }
+                    uDiffuse: { value: 0.8 },
+                    // Camera-relative light (view space) + glossy specular sheen.
+                    // Direction points up/left/toward-camera so the visible face
+                    // is always lit and the highlight sits off-center. Tune live.
+                    uLightDir: { value: new THREE.Vector3(-0.4, 0.5, 1.0) },
+                    uSpecStrength: { value: 0.18 }, // 0.25
+                    uShininess: { value: 12.0 }, // 24
+                    uSpecColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
+                    uOceanSpecBoost: { value: 1.7 }
                 },
                 vertexShader: VERTEX_SHADER,
                 fragmentShader: FRAGMENT_SHADER,
