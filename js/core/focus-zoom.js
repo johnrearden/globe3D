@@ -33,7 +33,7 @@ export const EXAMPLE_COUNTRIES = {
     C: 'Romania',
     D: 'Ukraine',
     E: 'India',
-    F: 'Usa',
+    F: 'USA',
     G: 'China',
     H: 'Russia'
 };

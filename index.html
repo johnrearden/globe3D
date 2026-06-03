@@ -582,6 +582,7 @@
 
         // Country data: ISO code, population (millions), area (km²), primary language
         const countryData = {
+            'USA': { iso: 'us', pop: 331.9, area: '9.8M km²', lang: 'English' },
             'United States': { iso: 'us', pop: 331.9, area: '9.8M km²', lang: 'English' },
             'Canada': { iso: 'ca', pop: 38.2, area: '9.9M km²', lang: 'English, French' },
             'Mexico': { iso: 'mx', pop: 126.7, area: '1.9M km²', lang: 'Spanish' },
@@ -772,6 +773,7 @@
 
         // Legacy ISO mapping for backward compatibility
         const countryToISO = {
+            'USA': 'us',
             'United States': 'us', 'Canada': 'ca', 'Mexico': 'mx', 'Brazil': 'br', 'Argentina': 'ar',
             'Chile': 'cl', 'Peru': 'pe', 'Colombia': 'co', 'Venezuela': 've', 'Ecuador': 'ec',
             'United Kingdom': 'gb', 'France': 'fr', 'Germany': 'de', 'Italy': 'it', 'Spain': 'es',

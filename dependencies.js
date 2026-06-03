@@ -45,9 +45,6 @@ const DEPENDENCIES = [
     { name: 'Curaçao', iso: 'cw', parentFile: 'netherlands', parentName: 'Netherlands',
       info: { pop: 0.15, area: '444 km²', lang: 'Dutch, Papiamento' },
       bboxes: [bb(-69.3, -68.6, 11.9, 12.5)] },
-    { name: 'Sint Maarten', iso: 'sx', parentFile: 'netherlands', parentName: 'Netherlands',
-      info: { pop: 0.04, area: '34 km²', lang: 'Dutch, English' },
-      bboxes: [bb(-63.15, -62.95, 17.98, 18.13)] },
 
     // ── France ───────────────────────────────────────────────────────────
     { name: 'French Guiana', iso: 'gf', parentFile: 'france', parentName: 'France',
@@ -77,9 +74,6 @@ const DEPENDENCIES = [
     { name: 'Wallis and Futuna', iso: 'wf', parentFile: 'france', parentName: 'France',
       info: { pop: 0.011, area: '142 km²', lang: 'French' },
       bboxes: [bb(-178.3, -177.9, -14.5, -14.1)] },
-    { name: 'Saint Martin', iso: 'mf', parentFile: 'france', parentName: 'France',
-      info: { pop: 0.03, area: '53 km²', lang: 'French' },
-      bboxes: [bb(-63.18, -62.97, 18.0, 18.15)] },
     { name: 'Saint Barthélemy', iso: 'bl', parentFile: 'france', parentName: 'France',
       info: { pop: 0.01, area: '25 km²', lang: 'French' },
       bboxes: [bb(-62.92, -62.75, 17.86, 17.96)] },
@@ -118,7 +112,7 @@ const DEPENDENCIES = [
     { name: 'Falkland Islands', iso: 'fk', parentFile: 'united_kingdom', parentName: 'United Kingdom',
       info: { pop: 0.003, area: '12K km²', lang: 'English' },
       bboxes: [bb(-61.8, -57.5, -53.0, -50.8)] },
-    { name: 'South Georgia and South Sandwich Islands', iso: 'gs', parentFile: 'united_kingdom', parentName: 'United Kingdom',
+    { name: 'S. Georgia & S. Sandwich Is.', iso: 'gs', parentFile: 'united_kingdom', parentName: 'United Kingdom',
       info: { pop: 'N/A', area: '3.9K km²', lang: 'English' },
       bboxes: [bb(-38.5, -35.5, -55.1, -53.7), bb(-28.3, -26.0, -59.7, -56.1)] },
     { name: 'Turks and Caicos Islands', iso: 'tc', parentFile: 'united_kingdom', parentName: 'United Kingdom',

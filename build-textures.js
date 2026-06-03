@@ -169,7 +169,13 @@ function lookupColorOverride(displayName, fileName, colorConfig) {
     return null;
 }
 
+// Display names that title-casing would mangle (acronyms, etc.).
+const DISPLAY_NAME_OVERRIDES = {
+    usa: 'USA'
+};
+
 function fileNameToDisplayName(fileName) {
+    if (DISPLAY_NAME_OVERRIDES[fileName]) return DISPLAY_NAME_OVERRIDES[fileName];
     return fileName.replace(/_/g, ' ').split(' ')
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');

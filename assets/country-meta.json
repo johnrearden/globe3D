@@ -145,7 +145,7 @@
       }
     },
     {
-      "id": 238,
+      "id": 236,
       "name": "Norfolk Island",
       "centroid": [
         0.8550853076485563,
@@ -991,7 +991,7 @@
       }
     },
     {
-      "id": 223,
+      "id": 221,
       "name": "Åland Islands",
       "centroid": [
         -0.46676193466608473,
@@ -1028,7 +1028,7 @@
       }
     },
     {
-      "id": 205,
+      "id": 204,
       "name": "French Guiana",
       "centroid": [
         -0.5972030845610462,
@@ -1050,7 +1050,7 @@
       }
     },
     {
-      "id": 206,
+      "id": 205,
       "name": "Guadeloupe",
       "centroid": [
         -0.45706176638562407,
@@ -1072,7 +1072,7 @@
       }
     },
     {
-      "id": 207,
+      "id": 206,
       "name": "Martinique",
       "centroid": [
         -0.4688843892027583,
@@ -1094,7 +1094,7 @@
       }
     },
     {
-      "id": 208,
+      "id": 207,
       "name": "Réunion",
       "centroid": [
         -0.5279124209419547,
@@ -1116,7 +1116,7 @@
       }
     },
     {
-      "id": 209,
+      "id": 208,
       "name": "Mayotte",
       "centroid": [
         -0.68756709448338,
@@ -1138,7 +1138,7 @@
       }
     },
     {
-      "id": 210,
+      "id": 209,
       "name": "New Caledonia",
       "centroid": [
         0.9018334042249281,
@@ -1160,7 +1160,7 @@
       }
     },
     {
-      "id": 211,
+      "id": 210,
       "name": "French Polynesia",
       "centroid": [
         0.8153103158327122,
@@ -1182,7 +1182,7 @@
       }
     },
     {
-      "id": 212,
+      "id": 211,
       "name": "Saint Pierre and Miquelon",
       "centroid": [
         -0.37843196610043156,
@@ -1204,7 +1204,7 @@
       }
     },
     {
-      "id": 213,
+      "id": 212,
       "name": "Wallis and Futuna",
       "centroid": [
         0.9685828048628031,
@@ -1226,29 +1226,7 @@
       }
     },
     {
-      "id": 214,
-      "name": "Saint Martin",
-      "centroid": [
-        -0.4306882965208693,
-        0.3103586488176618,
-        -0.8474580227622056
-      ],
-      "bbox": {
-        "minLng": -63.15464973449707,
-        "maxLng": -63.0040168762207,
-        "minLat": 18.046072966841475,
-        "maxLat": 18.126765209578224
-      },
-      "iso": "mf",
-      "parent": "France",
-      "info": {
-        "pop": 0.03,
-        "area": "53 km²",
-        "lang": "French"
-      }
-    },
-    {
-      "id": 215,
+      "id": 213,
       "name": "Saint Barthélemy",
       "centroid": [
         -0.43450762591844433,
@@ -1270,7 +1248,7 @@
       }
     },
     {
-      "id": 216,
+      "id": 214,
       "name": "French Southern Territories",
       "centroid": [
         -0.22847703117658216,
@@ -2266,28 +2244,6 @@
       }
     },
     {
-      "id": 204,
-      "name": "Sint Maarten",
-      "centroid": [
-        -0.4307742953488058,
-        0.309631839280773,
-        -0.8476801463820804
-      ],
-      "bbox": {
-        "minLng": -63.139801025390625,
-        "maxLng": -63.012685775756836,
-        "minLat": 18.003060041838175,
-        "maxLat": 18.063985115892226
-      },
-      "iso": "sx",
-      "parent": "Netherlands",
-      "info": {
-        "pop": 0.04,
-        "area": "34 km²",
-        "lang": "Dutch, English"
-      }
-    },
-    {
       "id": 125,
       "name": "New Zealand",
       "centroid": [
@@ -2303,7 +2259,7 @@
       }
     },
     {
-      "id": 239,
+      "id": 237,
       "name": "Tokelau",
       "centroid": [
         0.9771370877615273,
@@ -2430,7 +2386,7 @@
       }
     },
     {
-      "id": 222,
+      "id": 220,
       "name": "Svalbard",
       "centroid": [
         -0.19018874795493038,
@@ -3292,7 +3248,7 @@
       }
     },
     {
-      "id": 224,
+      "id": 222,
       "name": "Falkland Islands",
       "centroid": [
         -0.31392842104615387,
@@ -3314,8 +3270,8 @@
       }
     },
     {
-      "id": 225,
-      "name": "South Georgia and South Sandwich Islands",
+      "id": 223,
+      "name": "S. Georgia & S. Sandwich Is.",
       "centroid": [
         -0.4668908084431278,
         -0.812613588260707,
@@ -3336,7 +3292,7 @@
       }
     },
     {
-      "id": 226,
+      "id": 224,
       "name": "Turks and Caicos Islands",
       "centroid": [
         -0.28886881262536057,
@@ -3358,7 +3314,7 @@
       }
     },
     {
-      "id": 227,
+      "id": 225,
       "name": "British Virgin Islands",
       "centroid": [
         -0.40898803475629053,
@@ -3380,7 +3336,7 @@
       }
     },
     {
-      "id": 228,
+      "id": 226,
       "name": "Anguilla",
       "centroid": [
         -0.43049457171692734,
@@ -3402,7 +3358,7 @@
       }
     },
     {
-      "id": 229,
+      "id": 227,
       "name": "Montserrat",
       "centroid": [
         -0.4468067958422066,
@@ -3424,7 +3380,7 @@
       }
     },
     {
-      "id": 230,
+      "id": 228,
       "name": "Cayman Islands",
       "centroid": [
         -0.14343113568794214,
@@ -3446,7 +3402,7 @@
       }
     },
     {
-      "id": 231,
+      "id": 229,
       "name": "Bermuda",
       "centroid": [
         -0.360211521833734,
@@ -3468,7 +3424,7 @@
       }
     },
     {
-      "id": 232,
+      "id": 230,
       "name": "Jersey",
       "centroid": [
         -0.6527992914678693,
@@ -3490,7 +3446,7 @@
       }
     },
     {
-      "id": 233,
+      "id": 231,
       "name": "Guernsey",
       "centroid": [
         -0.6493436418093408,
@@ -3512,7 +3468,7 @@
       }
     },
     {
-      "id": 234,
+      "id": 232,
       "name": "Isle of Man",
       "centroid": [
         -0.5827567791680393,
@@ -3534,7 +3490,7 @@
       }
     },
     {
-      "id": 235,
+      "id": 233,
       "name": "Gibraltar",
       "centroid": [
         -0.8041010908058913,
@@ -3556,7 +3512,7 @@
       }
     },
     {
-      "id": 236,
+      "id": 234,
       "name": "Saint Helena",
       "centroid": [
         -0.7792211760946405,
@@ -3578,7 +3534,7 @@
       }
     },
     {
-      "id": 237,
+      "id": 235,
       "name": "Pitcairn Islands",
       "centroid": [
         0.5648064434108528,
@@ -3616,7 +3572,7 @@
     },
     {
       "id": 190,
-      "name": "Usa",
+      "name": "USA",
       "centroid": [
         0.12145810139979443,
         0.6361118058887488,
@@ -3630,7 +3586,7 @@
       }
     },
     {
-      "id": 217,
+      "id": 215,
       "name": "Puerto Rico",
       "centroid": [
         -0.3791034777407007,
@@ -3652,7 +3608,7 @@
       }
     },
     {
-      "id": 218,
+      "id": 216,
       "name": "United States Virgin Islands",
       "centroid": [
         -0.40616219963820926,
@@ -3674,7 +3630,7 @@
       }
     },
     {
-      "id": 219,
+      "id": 217,
       "name": "Guam",
       "centroid": [
         0.7945076275638004,
@@ -3696,7 +3652,7 @@
       }
     },
     {
-      "id": 220,
+      "id": 218,
       "name": "Northern Mariana Islands",
       "centroid": [
         0.7977470906330839,
@@ -3718,7 +3674,7 @@
       }
     },
     {
-      "id": 221,
+      "id": 219,
       "name": "American Samoa",
       "centroid": [
         0.9563084542892777,
@@ -3885,7 +3841,7 @@
     "Argentina": 7,
     "Armenia": 8,
     "Australia": 9,
-    "Norfolk Island": 238,
+    "Norfolk Island": 236,
     "Austria": 10,
     "Azerbaijan": 11,
     "Bahamas": 12,
@@ -3940,20 +3896,19 @@
     "Ethiopia": 59,
     "Fiji": 60,
     "Finland": 61,
-    "Åland Islands": 223,
+    "Åland Islands": 221,
     "France": 62,
-    "French Guiana": 205,
-    "Guadeloupe": 206,
-    "Martinique": 207,
-    "Réunion": 208,
-    "Mayotte": 209,
-    "New Caledonia": 210,
-    "French Polynesia": 211,
-    "Saint Pierre and Miquelon": 212,
-    "Wallis and Futuna": 213,
-    "Saint Martin": 214,
-    "Saint Barthélemy": 215,
-    "French Southern Territories": 216,
+    "French Guiana": 204,
+    "Guadeloupe": 205,
+    "Martinique": 206,
+    "Réunion": 207,
+    "Mayotte": 208,
+    "New Caledonia": 209,
+    "French Polynesia": 210,
+    "Saint Pierre and Miquelon": 211,
+    "Wallis and Futuna": 212,
+    "Saint Barthélemy": 213,
+    "French Southern Territories": 214,
     "Gabon": 63,
     "Gambia": 64,
     "Georgia": 65,
@@ -4018,9 +3973,8 @@
     "Netherlands": 124,
     "Aruba": 202,
     "Curaçao": 203,
-    "Sint Maarten": 204,
     "New Zealand": 125,
-    "Tokelau": 239,
+    "Tokelau": 237,
     "Nicaragua": 126,
     "Niger": 127,
     "Nigeria": 128,
@@ -4028,7 +3982,7 @@
     "North Korea": 130,
     "North Macedonia": 131,
     "Norway": 132,
-    "Svalbard": 222,
+    "Svalbard": 220,
     "Oman": 133,
     "Pakistan": 134,
     "Palau": 135,
@@ -4085,27 +4039,27 @@
     "Ukraine": 186,
     "United Arab Emirates": 187,
     "United Kingdom": 188,
-    "Falkland Islands": 224,
-    "South Georgia and South Sandwich Islands": 225,
-    "Turks and Caicos Islands": 226,
-    "British Virgin Islands": 227,
-    "Anguilla": 228,
-    "Montserrat": 229,
-    "Cayman Islands": 230,
-    "Bermuda": 231,
-    "Jersey": 232,
-    "Guernsey": 233,
-    "Isle of Man": 234,
-    "Gibraltar": 235,
-    "Saint Helena": 236,
-    "Pitcairn Islands": 237,
+    "Falkland Islands": 222,
+    "S. Georgia & S. Sandwich Is.": 223,
+    "Turks and Caicos Islands": 224,
+    "British Virgin Islands": 225,
+    "Anguilla": 226,
+    "Montserrat": 227,
+    "Cayman Islands": 228,
+    "Bermuda": 229,
+    "Jersey": 230,
+    "Guernsey": 231,
+    "Isle of Man": 232,
+    "Gibraltar": 233,
+    "Saint Helena": 234,
+    "Pitcairn Islands": 235,
     "Uruguay": 189,
-    "Usa": 190,
-    "Puerto Rico": 217,
-    "United States Virgin Islands": 218,
-    "Guam": 219,
-    "Northern Mariana Islands": 220,
-    "American Samoa": 221,
+    "USA": 190,
+    "Puerto Rico": 215,
+    "United States Virgin Islands": 216,
+    "Guam": 217,
+    "Northern Mariana Islands": 218,
+    "American Samoa": 219,
     "Uzbekistan": 191,
     "Vanuatu": 192,
     "Vatican": 193,
@@ -4306,7 +4260,7 @@
     "187": "United Arab Emirates",
     "188": "United Kingdom",
     "189": "Uruguay",
-    "190": "Usa",
+    "190": "USA",
     "191": "Uzbekistan",
     "192": "Vanuatu",
     "193": "Vatican",
@@ -4320,41 +4274,39 @@
     "201": "Faroe Islands",
     "202": "Aruba",
     "203": "Curaçao",
-    "204": "Sint Maarten",
-    "205": "French Guiana",
-    "206": "Guadeloupe",
-    "207": "Martinique",
-    "208": "Réunion",
-    "209": "Mayotte",
-    "210": "New Caledonia",
-    "211": "French Polynesia",
-    "212": "Saint Pierre and Miquelon",
-    "213": "Wallis and Futuna",
-    "214": "Saint Martin",
-    "215": "Saint Barthélemy",
-    "216": "French Southern Territories",
-    "217": "Puerto Rico",
-    "218": "United States Virgin Islands",
-    "219": "Guam",
-    "220": "Northern Mariana Islands",
-    "221": "American Samoa",
-    "222": "Svalbard",
-    "223": "Åland Islands",
-    "224": "Falkland Islands",
-    "225": "South Georgia and South Sandwich Islands",
-    "226": "Turks and Caicos Islands",
-    "227": "British Virgin Islands",
-    "228": "Anguilla",
-    "229": "Montserrat",
-    "230": "Cayman Islands",
-    "231": "Bermuda",
-    "232": "Jersey",
-    "233": "Guernsey",
-    "234": "Isle of Man",
-    "235": "Gibraltar",
-    "236": "Saint Helena",
-    "237": "Pitcairn Islands",
-    "238": "Norfolk Island",
-    "239": "Tokelau"
+    "204": "French Guiana",
+    "205": "Guadeloupe",
+    "206": "Martinique",
+    "207": "Réunion",
+    "208": "Mayotte",
+    "209": "New Caledonia",
+    "210": "French Polynesia",
+    "211": "Saint Pierre and Miquelon",
+    "212": "Wallis and Futuna",
+    "213": "Saint Barthélemy",
+    "214": "French Southern Territories",
+    "215": "Puerto Rico",
+    "216": "United States Virgin Islands",
+    "217": "Guam",
+    "218": "Northern Mariana Islands",
+    "219": "American Samoa",
+    "220": "Svalbard",
+    "221": "Åland Islands",
+    "222": "Falkland Islands",
+    "223": "S. Georgia & S. Sandwich Is.",
+    "224": "Turks and Caicos Islands",
+    "225": "British Virgin Islands",
+    "226": "Anguilla",
+    "227": "Montserrat",
+    "228": "Cayman Islands",
+    "229": "Bermuda",
+    "230": "Jersey",
+    "231": "Guernsey",
+    "232": "Isle of Man",
+    "233": "Gibraltar",
+    "234": "Saint Helena",
+    "235": "Pitcairn Islands",
+    "236": "Norfolk Island",
+    "237": "Tokelau"
   }
 }
