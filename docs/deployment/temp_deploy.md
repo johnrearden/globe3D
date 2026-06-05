@@ -166,7 +166,7 @@ rsync -avz --delete \
   --exclude='script1.js' \
   --exclude='docs/' \
   --exclude='.claude/' \
-  ./ "$USER@rojosample.net:/var/www/globe3d/"
+  ./ "rojo@rojosample.net:/var/www/globe3d/"
 ```
 
 `--delete` keeps the remote in sync — removed local files vanish
