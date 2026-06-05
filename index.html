@@ -497,7 +497,7 @@
         let autoRotateEnabled = false;
         let lastInteractionTime = Date.now();
         let idleTimeout = null;
-        const IDLE_DELAY = 60000; // 1 minute
+        const IDLE_DELAY = 120000; // 2 minutes of inactivity before auto-rotation resumes
 
         // ===== CORE MANAGERS (initialized in init()) =====
         let sceneManager = null;
@@ -876,8 +876,10 @@
             controls = cameraController.getControls();
 
             // Gently spin the globe behind the intro screen while assets load.
-            // Existing interaction handlers stop auto-rotation on first user input.
-            cameraController.enableAutoRotation();
+            // Drives the local idle system: any mouse/touch interaction stops it
+            // (resetIdleTimer), and it resumes after IDLE_DELAY of inactivity.
+            autoRotateEnabled = true;
+            controls.autoRotate = true;
 
             // 4. Load world data and create labels
             globeManager.loadGlobe(
@@ -1227,23 +1229,6 @@
             // }, IDLE_DELAY);
         }
 
-        // Stop auto-rotation and start idle timer
-        function stopAutoRotation() {
-            autoRotateEnabled = false;
-            controls.autoRotate = false;
-
-            // Clear any existing idle timeout
-            if (idleTimeout) {
-                clearTimeout(idleTimeout);
-            }
-
-            // Start idle timer - resume rotation after idle period
-            // TEMPORARILY DISABLED
-            // idleTimeout = setTimeout(() => {
-            //     resumeAutoRotation();
-            // }, IDLE_DELAY);
-        }
-
         // Resume auto-rotation (only if not in quiz mode)
         function resumeAutoRotation() {
             if (!state.get('quiz.active')) {
@@ -1268,14 +1253,19 @@
             }
         }
 
-        // Reset idle timer on user interaction
+        // Called on every mouse/touch/wheel interaction. Stops auto-rotation
+        // immediately and restarts the 2-minute idle countdown — so rotation
+        // only resumes after IDLE_DELAY with no interaction at all.
         function resetIdleTimer() {
             lastInteractionTime = Date.now();
 
-            // Only stop rotation if it's currently enabled
             if (autoRotateEnabled) {
-                stopAutoRotation();
+                autoRotateEnabled = false;
+                controls.autoRotate = false;
             }
+
+            if (idleTimeout) clearTimeout(idleTimeout);
+            idleTimeout = setTimeout(resumeAutoRotation, IDLE_DELAY);
         }
 
         function setupLights() {
@@ -2277,6 +2267,9 @@
         }
 
         function onPointerDown(event) {
+            // Any press counts as interaction (covers touch taps with no move)
+            resetIdleTimer();
+
             // Update mouse coordinates for raycasting
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
