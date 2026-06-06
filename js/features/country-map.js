@@ -33,6 +33,16 @@ const PM_ATTRIB = '<a href="https://www.openstreetmap.org/copyright" target="_bl
 
 const SAMPLE_STYLE = 'https://demotiles.maplibre.org/style.json';
 
+// Feature-toggle groups, keyed by Protomaps `source-layer`. Each checkbox flips
+// every style layer in the group. Only groups with layers present are shown.
+const TOGGLE_GROUPS = [
+    { key: 'labels', label: 'Place labels', sourceLayers: ['places', 'pois'] },
+    { key: 'roads', label: 'Roads', sourceLayers: ['roads'] },
+    { key: 'water', label: 'Water', sourceLayers: ['water'] },
+    { key: 'land', label: 'Land use', sourceLayers: ['landuse', 'landcover'] },
+    { key: 'boundaries', label: 'Boundaries', sourceLayers: ['boundaries'] }
+];
+
 // Per-country outline polygons (built by build-textures.js). Relative path so it
 // resolves under any deploy sub-path (e.g. /globe/). Used for the exact mask.
 const COUNTRIES_GEOJSON_URL = './assets/countries.geojson';
@@ -196,6 +206,39 @@ export class CountryMap {
             source: 'cm-outline',
             paint: { 'line-color': '#4da3ff', 'line-width': 1.5, 'line-opacity': 0.9 }
         });
+        this._buildToggles();
+    }
+
+    /**
+     * Build the feature-toggle checkboxes from the live style — one per group
+     * that actually has layers (skips the sample style, which has none). Each
+     * checkbox flips visibility on every Protomaps layer in its group.
+     */
+    _buildToggles() {
+        if (!this.togglesEl || !this.map.getStyle) return;
+        this.togglesEl.innerHTML = '';
+        const styleLayers = this.map.getStyle().layers || [];
+        for (const group of TOGGLE_GROUPS) {
+            const ids = styleLayers
+                .filter(l => l.source === 'protomaps' && group.sourceLayers.includes(l['source-layer']))
+                .map(l => l.id);
+            if (!ids.length) continue;
+
+            const label = document.createElement('label');
+            label.className = 'cm-toggle';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = true;
+            cb.addEventListener('change', () => {
+                const vis = cb.checked ? 'visible' : 'none';
+                for (const id of ids) {
+                    if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', vis);
+                }
+            });
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(' ' + group.label));
+            this.togglesEl.appendChild(label);
+        }
     }
 
     /** Fetch + index the per-country outlines once (name → geometry). */
@@ -286,6 +329,8 @@ export class CountryMap {
         // protomaps-themes-base v4: layers(source, themeObject) — the theme is an
         // object from namedTheme(name), not the bare name string.
         const theme = this._namedTheme ? this._namedTheme(PM_THEME) : PM_THEME;
+        // { lang } is required to include the place/label (symbol) layers —
+        // without it the basemap renders no city/country/water names.
         return {
             version: 8,
             glyphs: PM_GLYPHS,
@@ -293,7 +338,7 @@ export class CountryMap {
             sources: {
                 protomaps: { type: 'vector', url: PMTILES_URL, attribution: PM_ATTRIB }
             },
-            layers: this._themeLayers('protomaps', theme)
+            layers: this._themeLayers('protomaps', theme, { lang: 'en' })
         };
     }
 

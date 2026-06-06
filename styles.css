@@ -2256,6 +2256,15 @@ body.map-mode #dev-edit-toggle {
     box-sizing: border-box;
 }
 #country-map-toggles:empty { display: none; }
+.cm-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.cm-toggle input { cursor: pointer; margin: 0; }
 
 /* "View 2D Map" button appended into the country info panel. The panel itself
    is pointer-events:none (passive display), so the button must opt back in. */
