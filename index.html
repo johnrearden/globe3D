@@ -234,6 +234,7 @@
         import { ClickQuiz } from './js/features/quiz/click-quiz.js';
         import { CapitalCitiesQuiz } from './js/features/quiz/capital-cities-quiz.js';
         import { FlagRenderer } from './js/features/flag-renderer.js';
+        import { CountryMap } from './js/features/country-map.js';
         import { SearchManager } from './js/features/search.js';
         import { BounceAnimation } from './js/features/bounce-animation.js';
         import { ShatterAnimation } from './js/features/shatter-animation.js';
@@ -510,6 +511,7 @@
         let clickQuiz = null;
         let capitalCitiesQuiz = null;
         let flagRenderer = null;
+        let countryMap = null;
         let searchManager = null;
 
         // ===== STATE SYNCHRONIZATION =====
@@ -874,6 +876,14 @@
 
             // Get controls reference
             controls = cameraController.getControls();
+
+            // Full-screen 2D country map (self-contained; see js/features/country-map.js).
+            countryMap = new CountryMap({
+                globeManager, sceneManager, flagRenderer,
+                onEnter: () => { if (idleTimeout) clearTimeout(idleTimeout); autoRotateEnabled = false; controls.autoRotate = false; },
+                onExit:  () => { onWindowResize(); resetIdleTimer(); }
+            });
+            countryMap.init();
 
             // Gently spin the globe behind the intro screen while assets load.
             // Drives the local idle system: any mouse/touch interaction stops it

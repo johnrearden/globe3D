@@ -10,6 +10,10 @@ const OUTPUT_PALETTE = './assets/country-palette.bin';
 const OUTPUT_MESH = './assets/world-mesh.bin';
 const OUTPUT_ID = './assets/world-id.bin';
 const OUTPUT_META = './assets/country-meta.json';
+// Per-country outline polygons in raw lng/lat — consumed at runtime by the 2D
+// country map (js/features/country-map.js) to mask out everything except the
+// selected country. Names match nameToId keys (same displayName source).
+const OUTPUT_COUNTRIES = './assets/countries.geojson';
 
 const ID_W = 4096;
 const ID_H = 2048;
@@ -22,6 +26,9 @@ const MIN_FRAGMENT_PX = 4;
 const FRAGDEBUG = process.env.FRAGDEBUG === '1';
 
 const SIMPLIFICATION_TOLERANCE = 0.006;
+// Coarser simplification for the runtime mask outlines (smaller asset; the
+// dim/bright boundary doesn't need mesh-grade precision).
+const MASK_TOLERANCE = 0.012;
 const OCEAN_COLOR = [0x08, 0x1E, 0x39]; // lightened ocean; original was [0x06, 0x1A, 0x33]
 
 // Maximum chord-vs-arc sag (depth that a flat triangle's interior dips below
@@ -487,6 +494,9 @@ function build() {
     const countriesMeta = [];
     const nameToId = {};
     const idToName = {};
+    // Accumulator for assets/countries.geojson (raw lng/lat outlines for the
+    // runtime mask). One Feature per file, keyed by displayName.
+    const maskFeatures = [];
 
     let nextId = 1;
 
@@ -524,6 +534,36 @@ function build() {
         } catch (e) {
             console.error(`Failed to read ${file}: ${e.message}`);
             continue;
+        }
+
+        // Collect simplified raw lng/lat outlines (all rings, no antimeridian
+        // unfolding — MapLibre wants plain coordinates) for the runtime mask.
+        const maskPolys = [];
+        for (const feat of geo.features) {
+            const polys = feat.geometry.type === 'Polygon'
+                ? [feat.geometry.coordinates]
+                : feat.geometry.type === 'MultiPolygon'
+                    ? feat.geometry.coordinates
+                    : [];
+            for (const poly of polys) {
+                const rings = [];
+                for (const ring of poly) {
+                    const s = simplifyCoordinates(ring, MASK_TOLERANCE);
+                    if (s.length < 4) continue;
+                    // Ensure the ring is explicitly closed.
+                    const a = s[0], z = s[s.length - 1];
+                    if (a[0] !== z[0] || a[1] !== z[1]) s.push([a[0], a[1]]);
+                    rings.push(s);
+                }
+                if (rings.length) maskPolys.push(rings);
+            }
+        }
+        if (maskPolys.length) {
+            maskFeatures.push({
+                type: 'Feature',
+                properties: { name: displayName },
+                geometry: { type: 'MultiPolygon', coordinates: maskPolys }
+            });
         }
 
         const colorOverride = lookupColorOverride(displayName, fileName, colorConfig);
@@ -722,15 +762,20 @@ function build() {
     };
     fs.writeFileSync(OUTPUT_META, JSON.stringify(meta, null, 2));
 
+    console.log(`Writing ${OUTPUT_COUNTRIES}...`);
+    fs.writeFileSync(OUTPUT_COUNTRIES, JSON.stringify({ type: 'FeatureCollection', features: maskFeatures }));
+
     const paletteSize = fs.statSync(OUTPUT_PALETTE).size;
     const meshSize = fs.statSync(OUTPUT_MESH).size;
     const idSize = fs.statSync(OUTPUT_ID).size;
     const metaSize = fs.statSync(OUTPUT_META).size;
+    const countriesSize = fs.statSync(OUTPUT_COUNTRIES).size;
     console.log(`\nDone.`);
     console.log(`  ${OUTPUT_PALETTE}: ${paletteSize} bytes`);
     console.log(`  ${OUTPUT_MESH}: ${(meshSize / 1024 / 1024).toFixed(2)} MB (${vertCount} vertices, ${meshTriangles} triangles)`);
     console.log(`  ${OUTPUT_ID}: ${(idSize / 1024 / 1024).toFixed(2)} MB (gzip recommended)`);
     console.log(`  ${OUTPUT_META}: ${(metaSize / 1024).toFixed(1)} KB`);
+    console.log(`  ${OUTPUT_COUNTRIES}: ${(countriesSize / 1024).toFixed(1)} KB (${maskFeatures.length} outlines)`);
     console.log(`  ${countriesMeta.length} countries`);
 }
 

@@ -2165,3 +2165,138 @@
                 font-size: 16px;
             }
         }
+
+/* ===========================================================================
+   Country map view — full-screen 2D MapLibre map of a single country.
+   Driven entirely by `body.map-mode`: adding the class shows the map view and
+   hides the globe canvas + chrome; removing it returns to the globe. DOM is
+   created at runtime by js/features/country-map.js.
+   =========================================================================== */
+#country-map-view {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: none;
+    background: #0a0a12;
+}
+body.map-mode #country-map-view { display: block; }
+
+/* Hide the globe and its chrome while the 2D map is open. */
+body.map-mode #globe-canvas,
+body.map-mode #zoom-widget,
+body.map-mode #search-container,
+body.map-mode #flag-container,
+body.map-mode #controls,
+body.map-mode #take-quiz-btn,
+body.map-mode #light-dev-panel,
+body.map-mode #light-dev-toggle,
+body.map-mode #bounce-btn,
+body.map-mode #shatter-btn,
+body.map-mode #pinball-btn,
+body.map-mode #dev-edit-toggle {
+    display: none !important;
+}
+
+#country-map-canvas { position: absolute; inset: 0; }
+
+#country-map-back {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 510;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(20, 24, 32, 0.92);
+    color: #dfe6f0;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+#country-map-back:hover { background: rgba(40, 48, 64, 0.95); }
+
+#country-map-title {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 510;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(20, 24, 32, 0.85);
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    pointer-events: none;
+    max-width: calc(100vw - 320px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#country-map-toggles {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 510;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(20, 24, 32, 0.9);
+    color: #dfe6f0;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    max-width: calc(100vw - 24px);
+    box-sizing: border-box;
+}
+#country-map-toggles:empty { display: none; }
+
+/* "View 2D Map" button appended into the country info panel. The panel itself
+   is pointer-events:none (passive display), so the button must opt back in. */
+#view-map-btn {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #2563eb;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto;
+}
+#view-map-btn:hover { background: #1d4ed8; }
+
+/* Capital city marker (DOM marker, style-independent). */
+.cm-capital {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.cm-capital-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #e23b3b;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+}
+.cm-capital-label {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
