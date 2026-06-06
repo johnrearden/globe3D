@@ -6,6 +6,7 @@
   },
   "devDependencies": {
     "pngjs": "^7.0.0",
+    "protomaps-themes-base": "^4.5.0",
     "simplify-js": "^1.2.4"
   },
   "scripts": {

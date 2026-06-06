@@ -25,8 +25,8 @@
 // Cloudflare:   the R2/Worker endpoint.
 const PMTILES_URL = 'pmtiles://./assets/planet-z9.pmtiles';
 
-// Protomaps basemap theme + shared font/sprite assets.
-const PM_THEME = 'light';
+// Protomaps basemap shared font/sprite assets (matched to the pre-generated
+// 'light' theme layers in assets/pmtiles-layers.json).
 const PM_GLYPHS = 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf';
 const PM_SPRITE = 'https://protomaps.github.io/basemaps-assets/sprites/v4/light';
 const PM_ATTRIB = '<a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap</a> &middot; Protomaps';
@@ -47,11 +47,14 @@ const TOGGLE_GROUPS = [
 // resolves under any deploy sub-path (e.g. /globe/). Used for the exact mask.
 const COUNTRIES_GEOJSON_URL = './assets/countries.geojson';
 
-// ESM builds of the mapping libs, loaded on first use (keeps app startup light).
-const MAPLIBRE_ESM = 'https://esm.sh/maplibre-gl@4';
-const PMTILES_ESM = 'https://esm.sh/pmtiles@4';
-const THEME_ESM = 'https://esm.sh/protomaps-themes-base@4.5.0';
-const MAPLIBRE_CSS = 'https://cdn.jsdelivr.net/npm/maplibre-gl@4/dist/maplibre-gl.css';
+// Mapping libs are vendored and served same-origin (page-relative paths, no
+// leading slash, so they resolve under any deploy sub-path). Avoids depending on
+// a third-party ESM CDN at runtime. Loaded on first use (UMD → window globals).
+const MAPLIBRE_JS = './js/vendor/maplibre-gl.js';
+const MAPLIBRE_CSS = './js/vendor/maplibre-gl.css';
+const PMTILES_JS = './js/vendor/pmtiles.js';
+// Pre-generated Protomaps theme layers (protomaps-themes-base, light, lang en).
+const PM_LAYERS_URL = './assets/pmtiles-layers.json';
 
 export class CountryMap {
     /**
@@ -357,11 +360,8 @@ export class CountryMap {
     /** Resolve the MapLibre style: real Protomaps PMTiles source, or the sample fallback. */
     _buildStyle() {
         if (!PMTILES_URL || !this._themeLayers) return SAMPLE_STYLE;
-        // protomaps-themes-base v4: layers(source, themeObject) — the theme is an
-        // object from namedTheme(name), not the bare name string.
-        const theme = this._namedTheme ? this._namedTheme(PM_THEME) : PM_THEME;
-        // { lang } is required to include the place/label (symbol) layers —
-        // without it the basemap renders no city/country/water names.
+        // _themeLayers is the pre-generated layer array (protomaps-themes-base,
+        // light, lang en), loaded from a static JSON in _loadLibs.
         return {
             version: 8,
             glyphs: PM_GLYPHS,
@@ -369,28 +369,48 @@ export class CountryMap {
             sources: {
                 protomaps: { type: 'vector', url: PMTILES_URL, attribution: PM_ATTRIB }
             },
-            layers: this._themeLayers('protomaps', theme, { lang: 'en' })
+            layers: this._themeLayers
         };
     }
 
-    /** Dynamically import MapLibre + PMTiles + theme; register pmtiles:// protocol. */
+    /**
+     * Load the vendored MapLibre + PMTiles (same-origin UMD → window globals) and
+     * the pre-generated theme layers JSON. Vendored to avoid depending on a
+     * third-party ESM CDN at runtime (esm.sh was failing on the deploy).
+     */
     async _loadLibs() {
         if (this._libs) return this._libs;
         this._injectCss();
-        const [mlMod, pmMod, themeMod] = await Promise.all([
-            import(MAPLIBRE_ESM),
-            import(PMTILES_ESM),
-            PMTILES_URL ? import(THEME_ESM) : Promise.resolve(null)
-        ]);
-        const maplibregl = mlMod.default || mlMod;
-        maplibregl.addProtocol('pmtiles', new pmMod.Protocol().tile);
+        await this._loadScript(MAPLIBRE_JS);
+        await this._loadScript(PMTILES_JS);
+        const maplibregl = window.maplibregl;
+        const pmtiles = window.pmtiles;
+        maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile);
         this.maplibregl = maplibregl;
-        if (themeMod) {
-            this._themeLayers = themeMod.layers || themeMod.default;
-            this._namedTheme = themeMod.namedTheme;
+        if (PMTILES_URL) {
+            try {
+                const r = await fetch(PM_LAYERS_URL);
+                if (r.ok) this._themeLayers = await r.json();
+            } catch (e) {
+                console.warn('[CountryMap] theme layers load failed, using sample style:', e.message);
+            }
         }
-        this._libs = { maplibregl, pmtiles: pmMod };
+        this._libs = { maplibregl, pmtiles };
         return this._libs;
+    }
+
+    /** Inject a same-origin <script> (UMD), resolving once loaded. Deduped. */
+    _loadScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[data-cm-src="${src}"]`)) return resolve();
+            const s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.dataset.cmSrc = src;
+            s.onload = () => resolve();
+            s.onerror = () => reject(new Error('failed to load ' + src));
+            document.head.appendChild(s);
+        });
     }
 
     _injectCss() {
