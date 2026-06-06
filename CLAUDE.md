@@ -12,6 +12,10 @@ Globe3D is an interactive 3D web application that displays a rotating globe with
 - **Vanilla JavaScript** - No frameworks
 - **HTML5/CSS3** - UI and styling
 
+## Forbidden Actions
+
+- You are forbidden from running any ssh or scp commands, and from accessing remote servers in any way
+
 ## Project Structure
 
 ```
@@ -204,6 +208,21 @@ Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
 - **Firefox:** Full support
 - **Safari:** Full support
 - **Mobile browsers:** Touch gestures supported
+
+## Code Organization (IMPORTANT for new work)
+
+`index.html` is gigantic and is slated for a refactor before final deployment. **New features must
+minimize what they add to `index.html`:**
+
+- **No new CSS in `index.html`** — put all new rules in the external `styles.css`.
+- **No new inline `<script>` logic** — all new JS goes in separate ES modules under `js/`
+  (e.g. `js/features/<feature>.js`), imported from the main module block.
+- **Prefer self-contained feature modules** that create their own DOM and attach their own
+  listeners at runtime (as `js/features/flag-renderer.js` does with its canvas), rather than adding
+  static markup to `index.html`. Pull third-party libs via ESM `import` from a CDN where practical
+  instead of new `<script>`/`<link>` tags.
+- Net effect: a new feature should touch `index.html` by roughly an `import` + one instantiation
+  call, and nothing more.
 
 ## Known Limitations
 
