@@ -201,6 +201,9 @@ export class CountryMap {
     _frameCountry() {
         if (!this.map || !this._bounds) return;
         const m = this.map;
+        // Ensure MapLibre's transform matches the live container before fitting,
+        // so the fit never runs against a stale size (subsequent opens / resize).
+        m.resize();
         const cv = m.getCanvas();
         const padX = cv.clientWidth * 0.025;
         const padY = cv.clientHeight * 0.025;
