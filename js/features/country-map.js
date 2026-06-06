@@ -106,6 +106,7 @@ export class CountryMap {
         }
         this.currentCountry = countryName;
         this._bbox = rec.bbox;
+        this._bounds = this._toBounds(rec); // {west,south,east,north,wraps}
         this._capital = this.globeManager.getCapital(countryName); // {name,lat,lng}|null
         if (this.titleEl) this.titleEl.textContent = countryName;
 
@@ -159,18 +160,7 @@ export class CountryMap {
         const name = this.currentCountry;
         const b = this._bbox;
 
-        // Release any previous clamp before re-framing, then fit the new country.
-        this.map.setMaxBounds(null);
-        this.map.fitBounds([[b.minLng, b.minLat], [b.maxLng, b.maxLat]], { padding: 40, animate: false });
-
-        // Clamp panning to a padded box so the user can't wander to neighbours.
-        const padLng = Math.max((b.maxLng - b.minLng) * 0.35, 0.5);
-        const padLat = Math.max((b.maxLat - b.minLat) * 0.35, 0.5);
-        this.map.setMaxBounds([
-            [b.minLng - padLng, Math.max(b.minLat - padLat, -85)],
-            [b.maxLng + padLng, Math.min(b.maxLat + padLat, 85)]
-        ]);
-
+        this._frameCountry();
         this._updateCapitalMarker();
 
         // Prefer the exact polygon; fall back to the bbox rectangle if the
@@ -186,6 +176,47 @@ export class CountryMap {
             if (maskSrc) maskSrc.setData(this._maskFromBbox(b));
             if (outlineSrc) outlineSrc.setData(this._bboxOutline(b));
         }
+    }
+
+    /** Framing bounds for a country: precomputed fullBounds, or bbox fallback. */
+    _toBounds(rec) {
+        const fb = rec.fullBounds;
+        if (fb && isFinite(fb.west)) {
+            return { west: fb.west, south: fb.south, east: fb.east, north: fb.north, wraps: !!fb.wraps };
+        }
+        const b = rec.bbox;
+        return { west: b.minLng, south: b.minLat, east: b.maxLng, north: b.maxLat, wraps: false };
+    }
+
+    /**
+     * Fit the whole country with the tighter axis ~95% covered (per-side padding
+     * = 2.5% of each viewport dimension, so coverage is consistent across aspect
+     * ratios). Then set a zoom-out floor at this whole-country view, and — for
+     * non-wrapping countries — clamp panning to the fitted viewport so it can
+     * never crop. Re-runnable on resize/orientation change.
+     */
+    _frameCountry() {
+        if (!this.map || !this._bounds) return;
+        const m = this.map;
+        const cv = m.getCanvas();
+        const padX = cv.clientWidth * 0.025;
+        const padY = cv.clientHeight * 0.025;
+        const b = this._bounds;
+        // For antimeridian-wrapping bounds, push east past +180 so west < east and
+        // the framing goes the short way across the dateline.
+        const east = b.wraps ? b.east + 360 : b.east;
+
+        m.setMaxBounds(null);
+        m.setMinZoom(0);
+        m.fitBounds([[b.west, b.south], [east, b.north]], {
+            padding: { top: padY, bottom: padY, left: padX, right: padX },
+            animate: false
+        });
+        // Whole-country view is the most zoomed-out the user can go.
+        m.setMinZoom(m.getZoom());
+        // Pan clamp from the fitted viewport (⊇ country → never crops). Skip for
+        // wrapping bounds: antimeridian maxBounds is unreliable in MapLibre.
+        if (!b.wraps) m.setMaxBounds(m.getBounds());
     }
 
     /** Add the mask + outline sources/layers once (called on first style load). */
@@ -428,8 +459,16 @@ export class CountryMap {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this._active) this.hide();
         });
+        // Re-measure and re-frame on resize / orientation change (the tighter
+        // axis flips, so the fit must be recomputed). Debounced.
+        let resizeTimer = null;
         window.addEventListener('resize', () => {
-            if (this._active && this.map) this.map.resize();
+            if (!this._active || !this.map) return;
+            this.map.resize();
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (this._active && this.map) this._frameCountry();
+            }, 150);
         });
     }
 }

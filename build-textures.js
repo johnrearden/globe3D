@@ -29,6 +29,11 @@ const SIMPLIFICATION_TOLERANCE = 0.006;
 // Coarser simplification for the runtime mask outlines (smaller asset; the
 // dim/bright boundary doesn't need mesh-grade precision).
 const MASK_TOLERANCE = 0.012;
+// Country-map framing: region-grow from the main landmass, absorbing any ring
+// within this gap (degrees) of the growing cluster. Chains spread archipelagos
+// (Indonesia) together while leaving isolated overseas territories (Réunion,
+// Easter Island, Hawaii) out, so the main country fills the screen.
+const CLUSTER_GAP_DEG = 6;
 const OCEAN_COLOR = [0x08, 0x1E, 0x39]; // lightened ocean; original was [0x06, 0x1A, 0x33]
 
 // Maximum chord-vs-arc sag (depth that a flat triangle's interior dips below
@@ -135,7 +140,54 @@ function buildMetaRow(id, name, accum, extra) {
         minLat: Math.max(-90, Math.min(90, bbox.minLat)),
         maxLat: Math.max(-90, Math.min(90, bbox.maxLat))
     };
-    return Object.assign({ id, name, centroid, bbox }, extra || {});
+
+    // Framing bounds for the 2D country map (the largest-ring `bbox` above is
+    // kept unchanged for the globe focus/labels). Antimeridian-aware:
+    //  - Wrapping countries (Russia/Fiji/NZ): use the full shifted extent — their
+    //    territories cluster near the antimeridian, so this frames them tightly.
+    //  - Non-wrapping countries: cluster around the main landmass and drop distant
+    //    overseas territories (France→Réunion, Chile→Easter Island), so the main
+    //    country fills the screen. Nearby islands (Corsica, Sicily) are kept.
+    const clampLng = l => Math.max(-180, Math.min(180, l));
+    const clampLat = l => Math.max(-90, Math.min(90, l));
+    let fullBounds = null;
+    if (accum && accum.fb && isFinite(accum.fb.nMinLng)) {
+        const fb = accum.fb;
+        const wrap = l => ((l + 180) % 360 + 360) % 360 - 180;
+        if (fb.sMaxLng - fb.sMinLng < fb.nMaxLng - fb.nMinLng) {
+            fullBounds = { west: clampLng(wrap(fb.sMinLng)), south: clampLat(fb.minLat), east: clampLng(wrap(fb.sMaxLng)), north: clampLat(fb.maxLat), wraps: true };
+        } else {
+            // Region-grow from the largest ring, absorbing rings within
+            // CLUSTER_GAP_DEG of the growing cluster bbox. Isolated far territories
+            // never get reached and are dropped.
+            const rings = accum.rings || [];
+            let mainIdx = 0;
+            for (let i = 1; i < rings.length; i++) if (rings[i].area > rings[mainIdx].area) mainIdx = i;
+            const m0 = rings[mainIdx];
+            const cl = { minLng: m0.minLng, maxLng: m0.maxLng, minLat: m0.minLat, maxLat: m0.maxLat };
+            const used = new Array(rings.length).fill(false);
+            used[mainIdx] = true;
+            const G = CLUSTER_GAP_DEG;
+            let added = true;
+            while (added) {
+                added = false;
+                for (let i = 0; i < rings.length; i++) {
+                    if (used[i]) continue;
+                    const r = rings[i];
+                    if (r.minLng <= cl.maxLng + G && r.maxLng >= cl.minLng - G &&
+                        r.minLat <= cl.maxLat + G && r.maxLat >= cl.minLat - G) {
+                        used[i] = true;
+                        cl.minLng = Math.min(cl.minLng, r.minLng); cl.maxLng = Math.max(cl.maxLng, r.maxLng);
+                        cl.minLat = Math.min(cl.minLat, r.minLat); cl.maxLat = Math.max(cl.maxLat, r.maxLat);
+                        added = true;
+                    }
+                }
+            }
+            fullBounds = { west: clampLng(cl.minLng), south: clampLat(cl.minLat), east: clampLng(cl.maxLng), north: clampLat(cl.maxLat), wraps: false };
+        }
+    }
+
+    return Object.assign({ id, name, centroid, bbox, fullBounds }, extra || {});
 }
 
 const COLOR_PALETTES = [
@@ -638,6 +690,29 @@ function build() {
                     acc.centroidLngLat = ringC;
                     acc.bbox = ringBbox(unfolded);
                 }
+
+                // Framing data, per target ID. Track overall extent in both the
+                // normal [-180,180] frame and a shifted (lng<0 → +360) frame (to
+                // detect antimeridian wrap), plus each ring's own raw bbox + area so
+                // buildMetaRow can cluster around the main landmass and drop far
+                // overseas territories. Uses raw simplified lng/lat.
+                if (!acc.fb) acc.fb = { nMinLng: Infinity, nMaxLng: -Infinity, sMinLng: Infinity, sMaxLng: -Infinity, minLat: Infinity, maxLat: -Infinity };
+                const fb = acc.fb;
+                let rMinLng = Infinity, rMaxLng = -Infinity, rMinLat = Infinity, rMaxLat = -Infinity;
+                for (const [lng, lat] of simplified) {
+                    if (lng < fb.nMinLng) fb.nMinLng = lng;
+                    if (lng > fb.nMaxLng) fb.nMaxLng = lng;
+                    const sl = lng < 0 ? lng + 360 : lng;
+                    if (sl < fb.sMinLng) fb.sMinLng = sl;
+                    if (sl > fb.sMaxLng) fb.sMaxLng = sl;
+                    if (lat < fb.minLat) fb.minLat = lat;
+                    if (lat > fb.maxLat) fb.maxLat = lat;
+                    if (lng < rMinLng) rMinLng = lng;
+                    if (lng > rMaxLng) rMaxLng = lng;
+                    if (lat < rMinLat) rMinLat = lat;
+                    if (lat > rMaxLat) rMaxLat = lat;
+                }
+                (acc.rings || (acc.rings = [])).push({ minLng: rMinLng, maxLng: rMaxLng, minLat: rMinLat, maxLat: rMaxLat, area });
 
                 // Triangulate (earcut, 2D lng/lat space) then project each
                 // vertex onto the unit sphere using the runtime's convention.
