@@ -33,6 +33,10 @@ const PM_ATTRIB = '<a href="https://www.openstreetmap.org/copyright" target="_bl
 
 const SAMPLE_STYLE = 'https://demotiles.maplibre.org/style.json';
 
+// Horizontal room (px) the capital label needs; if the dot is within this of the
+// right edge, the label flips to the dot's left side to stay on-screen.
+const CAPITAL_LABEL_SPACE = 170;
+
 // Feature-toggle groups, keyed by Protomaps `source-layer`. Each checkbox flips
 // every style layer in the group. Only groups with layers present are shown.
 const TOGGLE_GROUPS = [
@@ -244,6 +248,8 @@ export class CountryMap {
             paint: { 'line-color': '#4da3ff', 'line-width': 1.5, 'line-opacity': 0.9 }
         });
         this._buildToggles();
+        // Re-evaluate which side the capital label sits on as the user pans/zooms.
+        this.map.on('move', () => this._updateCapitalSide());
     }
 
     /**
@@ -353,11 +359,27 @@ export class CountryMap {
         if (!this._capitalMarker) {
             const el = document.createElement('div');
             el.className = 'cm-capital';
+            // Dot is anchored on the point; the label is absolutely positioned
+            // beside it (CSS), so it can flip sides without moving the dot.
             el.innerHTML = '<span class="cm-capital-dot"></span><span class="cm-capital-label"></span>';
-            this._capitalMarker = new this.maplibregl.Marker({ element: el, anchor: 'left' });
+            this._capitalMarker = new this.maplibregl.Marker({ element: el, anchor: 'center' });
         }
         this._capitalMarker.getElement().querySelector('.cm-capital-label').textContent = name;
+        this._capitalLngLat = [lng, lat];
         this._capitalMarker.setLngLat([lng, lat]).addTo(this.map);
+        this._updateCapitalSide();
+    }
+
+    /**
+     * Keep the capital label on-screen: if the dot sits near the right edge,
+     * render the label to the LEFT of the dot (else to the right). Recomputed on
+     * pan/zoom too.
+     */
+    _updateCapitalSide() {
+        if (!this.map || !this._capitalMarker || !this._capitalLngLat) return;
+        const x = this.map.project(this._capitalLngLat).x;
+        const flip = x > this.map.getCanvas().clientWidth - CAPITAL_LABEL_SPACE;
+        this._capitalMarker.getElement().classList.toggle('flip', flip);
     }
 
     /** Resolve the MapLibre style: real Protomaps PMTiles source, or the sample fallback. */

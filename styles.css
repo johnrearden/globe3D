@@ -2285,27 +2285,38 @@ body.map-mode #dev-edit-toggle {
 }
 #view-map-btn:hover { background: #1d4ed8; }
 
-/* Capital city marker (DOM marker, style-independent). */
+/* Capital city marker (DOM marker, style-independent). The dot is anchored on
+   the point; the label is absolutely positioned beside it so it can flip to the
+   left side near the right screen edge without moving the dot. */
 .cm-capital {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    pointer-events: none;
-    white-space: nowrap;
-}
-.cm-capital-dot {
+    position: relative;
     width: 11px;
     height: 11px;
+    pointer-events: none;
+}
+.cm-capital-dot {
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
     background: #e23b3b;
     border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    flex-shrink: 0;
 }
 .cm-capital-label {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
     font-family: Arial, sans-serif;
     font-size: 13px;
     font-weight: bold;
     color: #fff;
     text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+/* Near the right edge: label sits to the LEFT of the dot. */
+.cm-capital.flip .cm-capital-label {
+    left: auto;
+    right: 15px;
+    text-align: right;
 }

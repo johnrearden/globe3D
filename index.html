@@ -878,10 +878,25 @@
             controls = cameraController.getControls();
 
             // Full-screen 2D country map (self-contained; see js/features/country-map.js).
+            // Save/restore the globe camera around the map so returning keeps the
+            // exact view (latitude included) — onWindowResize() flattens to the
+            // equator (camera.position.y = 0), which loses the country's latitude.
+            let savedGlobeView = null;
             countryMap = new CountryMap({
                 globeManager, sceneManager, flagRenderer,
-                onEnter: () => { if (idleTimeout) clearTimeout(idleTimeout); autoRotateEnabled = false; controls.autoRotate = false; },
-                onExit:  () => { onWindowResize(); resetIdleTimer(); }
+                onEnter: () => {
+                    if (idleTimeout) clearTimeout(idleTimeout);
+                    autoRotateEnabled = false; controls.autoRotate = false;
+                    savedGlobeView = { pos: camera.position.clone(), target: controls.target.clone() };
+                },
+                onExit: () => {
+                    if (savedGlobeView) {
+                        camera.position.copy(savedGlobeView.pos);
+                        controls.target.copy(savedGlobeView.target);
+                        controls.update();
+                    }
+                    resetIdleTimer();
+                }
             });
             countryMap.init();
 
