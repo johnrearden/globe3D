@@ -18,6 +18,10 @@ export class LabelManager {
         this.labelDefaults = {};
         this.currentHighlight = null;
 
+        // Reusable scratch vector for updateVisibility() — pooled so the per-frame
+        // visibility pass doesn't allocate a Vector3 every call.
+        this._cameraDirection = new THREE.Vector3();
+
         // Constants
         this.ZOOM_FAR = 6.0;      // Show only large country labels
         this.ZOOM_MEDIUM = 3.5;   // Show large + medium labels
@@ -242,7 +246,7 @@ export class LabelManager {
         const quizActive = state.get('quiz.active');
         const cameraDistance = this.camera.position.length();
 
-        const cameraDirection = new THREE.Vector3();
+        const cameraDirection = this._cameraDirection;
         this.camera.getWorldDirection(cameraDirection);
 
         // labelPosition (outward) and cameraDirection (into globe) are antiparallel at center,
