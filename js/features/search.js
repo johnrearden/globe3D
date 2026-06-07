@@ -31,6 +31,19 @@ export class SearchManager {
             searchInput.addEventListener('keydown', (e) => this.onSearchKeyDown(e));
         }
 
+        // Single delegated click listener on the results container, attached once.
+        // Result rows are re-rendered on every keystroke, so per-row listeners would
+        // accumulate; delegation reads the clicked row's data-country instead.
+        const resultsContainer = this.elements.get('search-results');
+        if (resultsContainer) {
+            resultsContainer.addEventListener('click', (e) => {
+                const item = e.target.closest('.search-result-item');
+                if (item) {
+                    this.selectCountryFromSearch(item.dataset.country);
+                }
+            });
+        }
+
         console.log('SearchManager initialized');
     }
 
@@ -64,17 +77,10 @@ export class SearchManager {
         if (matchingCountries.length === 0) {
             resultsContainer.innerHTML = '<div style="color: #e0e0e0; padding: 8px;">No countries found</div>';
         } else {
+            // Rows are click-handled via the delegated listener set up in init().
             resultsContainer.innerHTML = matchingCountries
                 .map(name => `<div class="search-result-item" data-country="${name}">${name}</div>`)
                 .join('');
-
-            // Add click handlers to results
-            resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const countryName = item.getAttribute('data-country');
-                    this.selectCountryFromSearch(countryName);
-                });
-            });
         }
     }
 
