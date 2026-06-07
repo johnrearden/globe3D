@@ -1054,6 +1054,7 @@
                         globeManager: globeManager,
                         cameraController: cameraController,
                         elements: elements,
+                        countryMap: countryMap,
                         rotateGlobeToCountry: rotateGlobeToCountry,
                         showQuizCelebration: showQuizCelebration,
                         clearQuizTimers: clearQuizTimers,
@@ -2733,7 +2734,8 @@
                 elements.get('quiz-options').innerHTML = '';
                 hide(elements.get('quiz-container'));
 
-                // Reset globe highlighting + capital marker
+                // Close the 2D map and reset globe highlighting + capital marker
+                if (countryMap) countryMap.hide();
                 globeManager.clearSelection();
                 globeManager.clearCapitalMarker();
                 if (labelManager) labelManager.setHighlight(null);

@@ -2320,3 +2320,21 @@ body.map-mode #dev-edit-toggle {
     right: 15px;
     text-align: right;
 }
+/* Quiz "capital of X?" — large "?" in place of the city name. */
+.cm-capital-label.cm-capital-q {
+    font-size: 30px;
+    left: 18px;
+}
+.cm-capital.flip .cm-capital-label.cm-capital-q { left: auto; right: 18px; }
+
+/* Hide the map title pill when empty (quiz hides the country name). */
+#country-map-title:empty { display: none; }
+
+/* Capital-quiz over the 2D map: hide the map's own chrome (the quiz has its own
+   cancel/next), and raise the quiz panel above the full-screen map, clear of the
+   bottom-right attribution. */
+body.map-quiz #country-map-back,
+body.map-quiz #country-map-toggles,
+body.map-quiz .maplibregl-ctrl-top-right { display: none !important; }
+body.map-quiz #quiz-container { z-index: 600; left: 20px; right: auto; }
+body.map-quiz #quiz-cancel-btn { z-index: 601; }

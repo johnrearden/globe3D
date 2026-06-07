@@ -103,8 +103,13 @@ export class CountryMap {
     /**
      * Open the full-screen 2D map for a country.
      * @param {string} countryName
+     * @param {Object} [opts]
+     * @param {('capital'|'shape')} [opts.quiz] - quiz display: 'capital' shows the
+     *   country with a red dot + "?" for the capital (place labels suppressed);
+     *   'shape' shows ONLY the country outline (no basemap/mask/markings). When
+     *   set, the map is non-interactive. See showForQuiz / revealQuizAnswer.
      */
-    async show(countryName) {
+    async show(countryName, opts = {}) {
         if (!countryName) return;
         const rec = this.globeManager.getCountryByName(countryName);
         if (!rec || !rec.bbox) {
@@ -112,10 +117,13 @@ export class CountryMap {
             return;
         }
         this.currentCountry = countryName;
+        this._quizMode = opts.quiz || null;
         this._bbox = rec.bbox;
         this._bounds = this._toBounds(rec); // {west,south,east,north,wraps}
         this._capital = this.globeManager.getCapital(countryName); // {name,lat,lng}|null
-        if (this.titleEl) this.titleEl.textContent = countryName;
+        // Hide the title in quiz mode (the question carries the prompt; for the
+        // "which country" direction it would reveal the answer). :empty hides it.
+        if (this.titleEl) this.titleEl.textContent = this._quizMode ? '' : countryName;
 
         // Enter map mode: CSS (body.map-mode) shows our view and hides the globe
         // canvas + chrome; we stop the globe loop and suspend idle bookkeeping.
@@ -141,8 +149,28 @@ export class CountryMap {
             this._applyCountry();
         }
 
+        // Quiz views are non-interactive clue images; normal views are explorable.
+        this._setInteractive(!this._quizMode);
+
         // The container just became visible — MapLibre must re-measure it.
         this.map.resize();
+    }
+
+    /** Open the map as a quiz clue: 'capital' (dot + "?") or 'shape' (outline only). */
+    showForQuiz(countryName, mode) {
+        document.body.classList.add('map-quiz');
+        return this.show(countryName, { quiz: mode });
+    }
+
+    /** Reveal the full map after a quiz answer (basemap, named capital, title). */
+    revealQuizAnswer() {
+        if (!this.map) return;
+        this._quizMode = null;
+        this._showBasemap(true);
+        if (this.map.getLayer('cm-outline-line')) this.map.setLayoutProperty('cm-outline-line', 'visibility', 'visible');
+        this._updateCapitalMarker(); // label is now the real capital name
+        this._refreshLabelMode();
+        if (this.titleEl) this.titleEl.textContent = this.currentCountry || '';
     }
 
     /** Return to the globe. */
@@ -150,9 +178,31 @@ export class CountryMap {
         if (!this._active) return;
         this._active = false;
         this.currentCountry = null;
-        document.body.classList.remove('map-mode');
+        this._quizMode = null;
+        document.body.classList.remove('map-mode', 'map-quiz');
         this.sceneManager.start();
         this.onExit();
+    }
+
+    /** Enable/disable user map interactions (off during quiz clue views). */
+    _setInteractive(on) {
+        if (!this.map) return;
+        for (const h of ['scrollZoom', 'boxZoom', 'dragPan', 'keyboard', 'doubleClickZoom', 'touchZoomRotate']) {
+            const handler = this.map[h];
+            if (handler) on ? handler.enable() : handler.disable();
+        }
+    }
+
+    /** Toggle the basemap (all Protomaps layers + background + the dim mask). */
+    _showBasemap(visible) {
+        if (!this.map || !this.map.getStyle) return;
+        const v = visible ? 'visible' : 'none';
+        for (const l of (this.map.getStyle().layers || [])) {
+            if (l.id === 'cm-outline-line') continue; // outline shown in every mode
+            if (l.source === 'protomaps' || l.id === 'background' || l.id === 'cm-mask-fill') {
+                if (this.map.getLayer(l.id)) this.map.setLayoutProperty(l.id, 'visibility', v);
+            }
+        }
     }
 
     // ── internals ──────────────────────────────────────────────────────────
@@ -169,6 +219,8 @@ export class CountryMap {
 
         this._frameCountry();
         this._updateCapitalMarker();
+        // 'shape' quiz mode shows ONLY the outline; everything else shows the basemap.
+        this._showBasemap(this._quizMode !== 'shape');
         this._refreshLabelMode(); // marker at default zoom; place labels when zoomed in
 
         // Prefer the exact polygon; fall back to the bbox rectangle if the
@@ -264,6 +316,19 @@ export class CountryMap {
      */
     _refreshLabelMode() {
         if (!this.map) return;
+        // Quiz: never reveal basemap place labels (they'd give away the answer).
+        // Our marker shows only in 'capital' mode (the "?" dot), never in 'shape'.
+        if (this._quizMode) {
+            if (this._placeLabelLayers) {
+                for (const id of this._placeLabelLayers) {
+                    if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', 'none');
+                }
+            }
+            if (this._capitalMarker) {
+                this._capitalMarker.getElement().style.display = (this._quizMode === 'capital' && this._capital) ? '' : 'none';
+            }
+            return;
+        }
         const atDefault = this._fitZoom == null || this.map.getZoom() <= this._fitZoom + 0.1;
         if (this._capitalMarker) {
             this._capitalMarker.getElement().style.display = (atDefault && this._capital) ? '' : 'none';
@@ -400,7 +465,11 @@ export class CountryMap {
             el.innerHTML = '<span class="cm-capital-dot"></span><span class="cm-capital-label"></span>';
             this._capitalMarker = new this.maplibregl.Marker({ element: el, anchor: 'center' });
         }
-        this._capitalMarker.getElement().querySelector('.cm-capital-label').textContent = name;
+        // In 'capital' quiz mode the label is a big "?" instead of the name.
+        const quizCapital = this._quizMode === 'capital';
+        const labelEl = this._capitalMarker.getElement().querySelector('.cm-capital-label');
+        labelEl.textContent = quizCapital ? '?' : name;
+        labelEl.classList.toggle('cm-capital-q', quizCapital);
         this._capitalLngLat = [lng, lat];
         this._capitalMarker.setLngLat([lng, lat]).addTo(this.map);
         this._updateCapitalSide();
