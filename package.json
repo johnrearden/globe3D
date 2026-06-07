@@ -7,9 +7,12 @@
   "devDependencies": {
     "pngjs": "^7.0.0",
     "protomaps-themes-base": "^4.5.0",
-    "simplify-js": "^1.2.4"
+    "simplify-js": "^1.2.4",
+    "vitest": "^4.1.8"
   },
   "scripts": {
-    "build:globe": "node build-textures.js"
+    "build:globe": "node build-textures.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   }
 }

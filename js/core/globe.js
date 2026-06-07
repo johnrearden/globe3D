@@ -8,6 +8,7 @@
  */
 
 import { state } from '../data/state.js';
+import { latLngToXYZ } from '../utils/coordinates.js';
 
 const THREE = window.THREE;
 
@@ -227,12 +228,7 @@ export class GlobeManager {
      * convention — the same one used by the build script and label-config.json).
      */
     latLngToVector3(lat, lng, radius = 1, height = 0) {
-        const phi = (90 - lat) * Math.PI / 180;
-        const theta = -(lng + 180) * Math.PI / 180;
-        const r = radius + height;
-        const x = r * Math.sin(phi) * Math.cos(theta);
-        const y = r * Math.cos(phi);
-        const z = r * Math.sin(phi) * Math.sin(theta);
+        const { x, y, z } = latLngToXYZ(lat, lng, radius, height);
         return new THREE.Vector3(x, y, z);
     }
 
