@@ -23,6 +23,9 @@ export class SceneManager {
         // Loading progress tracking
         this.currentProgress = 0;
         this.progressAnimationFrame = null;
+
+        // Stable bound handler so addEventListener/removeEventListener match.
+        this._onResize = () => this.onWindowResize();
     }
 
     /**
@@ -84,7 +87,7 @@ export class SceneManager {
         state.set('scene.initialCameraDistance', this.initialCameraDistance, false);
 
         // Setup window resize listener
-        window.addEventListener('resize', () => this.onWindowResize());
+        window.addEventListener('resize', this._onResize);
 
         console.log('SceneManager initialized');
     }
@@ -304,7 +307,7 @@ export class SceneManager {
             }
         }
 
-        window.removeEventListener('resize', () => this.onWindowResize());
+        window.removeEventListener('resize', this._onResize);
 
         this.scene = null;
         this.camera = null;
