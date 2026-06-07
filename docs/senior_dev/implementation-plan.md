@@ -187,7 +187,7 @@ and mutate shared state through one channel instead of closing over globals.
 **Goal:** Stop the docs from lying, and collapse the three overlapping plans into this one.
 
 1. **`CLAUDE.md` edits:**
-   - Correct `world-mesh.bin` size: "31 MB raw / ~2.2 MB gzipped" (not "~3.8 MB").
+   - Correct `world-mesh.bin` size: "~30 MB raw / ~16 MB gzipped" (not "~3.8 MB").
    - Correct `COUNTRY_MESH_SCALE` to `1.002` to match `globe.js:17`.
    - Rewrite the "Most code in single HTML file" line to reflect that core systems live under `js/` and `index.html` is now bootstrap + glue + (shrinking) inline UI logic.
    - Add a one-line pointer to this doc as the single source of truth.

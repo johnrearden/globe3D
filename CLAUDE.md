@@ -23,7 +23,7 @@ globe3d/
 ├── index.html               # Main application (all-in-one file)
 ├── build-textures.js        # Node.js script to bake GeoJSON → globe assets
 ├── assets/
-│   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~3.8 MB)
+│   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~30 MB)
 │   ├── world-id.bin         # Equirectangular country-ID texture for picking (4096×2048, raw RG bytes)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
 │   └── country-meta.json    # Country IDs, centroids, bboxes, name↔id maps
@@ -123,7 +123,7 @@ The globe assets are pre-built using `build-textures.js`:
    - 1-pixel ID dilation eliminates seam ambiguity at country borders
    - Per-country chosen RGB (from `country-colors.json` or random palette) is written into a 256×1 RGBA palette
 3. **Output:**
-   - `assets/world-mesh.bin` (~3.8 MB raw, ~2.2 MB gzipped — vertex positions, per-vertex IDs, uint32 indices)
+   - `assets/world-mesh.bin` (~30 MB raw, ~16 MB gzipped — vertex positions, per-vertex IDs, uint32 indices)
    - `assets/world-id.bin` (~16 MB raw, ~90 KB gzipped — picking only)
    - `assets/country-palette.bin` (1 KB)
    - `assets/country-meta.json` (~75 KB)
@@ -232,7 +232,7 @@ update that document accordingly in the same change.
 
 ## Known Limitations
 
-- Most code in single HTML file (modules under `js/` for the larger systems)
+- `index.html` is bootstrap + glue + (shrinking) inline UI logic; core systems live in modules under `js/` (scene, globe, labels, camera, quiz, flags, search, animations). See `docs/senior_dev/implementation-plan.md` for the modularization roadmap.
 - Country borders not currently drawn (could be re-added via shader neighbor sampling on the ID texture)
 - No search index (linear search through country names)
 - Label font is fixed (Arial, gray text)
