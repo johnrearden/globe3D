@@ -72,12 +72,15 @@ export class FlagRenderer {
         // Create plane geometry with subdivisions for wave effect
         const flagGeometry = new THREE.PlaneGeometry(10, 6.67, 20, 15);
 
-        // Create material
+        // Create material. flatShading lets the GPU derive normals from the
+        // deformed geometry each frame, so lighting tracks the wave without a
+        // per-frame computeVertexNormals() on the CPU.
         const flagMaterial = new THREE.MeshStandardMaterial({
             map: flagTexture,
             side: THREE.DoubleSide,
             roughness: 0.7,
-            metalness: 0.1
+            metalness: 0.1,
+            flatShading: true
         });
 
         // Create mesh
@@ -125,7 +128,6 @@ export class FlagRenderer {
         }
 
         positions.needsUpdate = true;
-        mesh.geometry.computeVertexNormals();
     }
 
     /**
