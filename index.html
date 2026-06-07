@@ -380,6 +380,9 @@
         let scene, camera, renderer, globe, countries = [];
         let mouse = new THREE.Vector2();
         let raycaster = new THREE.Raycaster();
+        // Cached invisible sphere (radius 1.005, where labels live) reused for label-drag
+        // raycasting — avoids allocating a fresh Geometry+Mesh on every pointermove.
+        const dragHitSphere = new THREE.Mesh(new THREE.SphereGeometry(1.005, 32, 32));
         let selectedCountry = null;
         let smallCountryIndicator = null; // White circle indicator for tiny countries
         let controls;
@@ -2457,10 +2460,8 @@
                 // Project mouse position onto sphere surface
                 raycaster.setFromCamera(mouse, camera);
 
-                // Create a sphere to intersect with (at radius 1.005 where labels are)
-                const sphereGeometry = new THREE.SphereGeometry(1.005, 32, 32);
-                const sphereMesh = new THREE.Mesh(sphereGeometry);
-                const sphereIntersects = raycaster.intersectObject(sphereMesh);
+                // Intersect the cached sphere (radius 1.005 where labels are)
+                const sphereIntersects = raycaster.intersectObject(dragHitSphere);
 
                 if (sphereIntersects.length > 0) {
                     const newPosition = sphereIntersects[0].point;
