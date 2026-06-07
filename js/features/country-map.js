@@ -169,6 +169,7 @@ export class CountryMap {
 
         this._frameCountry();
         this._updateCapitalMarker();
+        this._refreshLabelMode(); // marker at default zoom; place labels when zoomed in
 
         // Prefer the exact polygon; fall back to the bbox rectangle if the
         // outline asset is missing or the country isn't in it (e.g. a dependency).
@@ -222,8 +223,10 @@ export class CountryMap {
             padding: { top: padY, bottom: padY, left: padX, right: padX },
             animate: false
         });
-        // Whole-country view is the most zoomed-out the user can go.
-        m.setMinZoom(m.getZoom());
+        // Whole-country view is the most zoomed-out the user can go; remember it
+        // as the "default" zoom for the label-mode swap.
+        this._fitZoom = m.getZoom();
+        m.setMinZoom(this._fitZoom);
         // Pan clamp from the fitted viewport (⊇ country → never crops). Skip for
         // wrapping bounds: antimeridian maxBounds is unreliable in MapLibre.
         if (!b.wraps) m.setMaxBounds(m.getBounds());
@@ -248,8 +251,29 @@ export class CountryMap {
             paint: { 'line-color': '#4da3ff', 'line-width': 1.5, 'line-opacity': 0.9 }
         });
         this._buildToggles();
-        // Re-evaluate which side the capital label sits on as the user pans/zooms.
+        // Re-evaluate the capital label side on pan, and the label mode (our
+        // marker vs basemap place labels) on zoom.
         this.map.on('move', () => this._updateCapitalSide());
+        this.map.on('zoom', () => this._refreshLabelMode());
+    }
+
+    /**
+     * At the default (whole-country) zoom, show our own capital marker and hide
+     * the basemap place labels for clarity. Once the user zooms in, hide our
+     * marker and reveal the place labels (subject to the Place-labels toggle).
+     */
+    _refreshLabelMode() {
+        if (!this.map) return;
+        const atDefault = this._fitZoom == null || this.map.getZoom() <= this._fitZoom + 0.1;
+        if (this._capitalMarker) {
+            this._capitalMarker.getElement().style.display = (atDefault && this._capital) ? '' : 'none';
+        }
+        if (this._placeLabelLayers) {
+            const vis = (!atDefault && this._placeLabelsOn !== false) ? 'visible' : 'none';
+            for (const id of this._placeLabelLayers) {
+                if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', vis);
+            }
+        }
     }
 
     /**
@@ -272,12 +296,24 @@ export class CountryMap {
             const cb = document.createElement('input');
             cb.type = 'checkbox';
             cb.checked = true;
-            cb.addEventListener('change', () => {
-                const vis = cb.checked ? 'visible' : 'none';
-                for (const id of ids) {
-                    if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', vis);
-                }
-            });
+            if (group.key === 'labels') {
+                // Place labels are zoom-managed (hidden at the default zoom, shown
+                // when zoomed in) — see _refreshLabelMode. The toggle just enables
+                // or disables them; don't set visibility directly here.
+                this._placeLabelLayers = ids;
+                this._placeLabelsOn = true;
+                cb.addEventListener('change', () => {
+                    this._placeLabelsOn = cb.checked;
+                    this._refreshLabelMode();
+                });
+            } else {
+                cb.addEventListener('change', () => {
+                    const vis = cb.checked ? 'visible' : 'none';
+                    for (const id of ids) {
+                        if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', vis);
+                    }
+                });
+            }
             label.appendChild(cb);
             label.appendChild(document.createTextNode(' ' + group.label));
             this.togglesEl.appendChild(label);
