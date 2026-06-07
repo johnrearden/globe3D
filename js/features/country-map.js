@@ -33,10 +33,6 @@ const PM_ATTRIB = '<a href="https://www.openstreetmap.org/copyright" target="_bl
 
 const SAMPLE_STYLE = 'https://demotiles.maplibre.org/style.json';
 
-// Horizontal room (px) the capital label needs; if the dot is within this of the
-// right edge, the label flips to the dot's left side to stay on-screen.
-const CAPITAL_LABEL_SPACE = 170;
-
 // Feature-toggle groups, keyed by Protomaps `source-layer`. Each checkbox flips
 // every style layer in the group. Only groups with layers present are shown.
 const TOGGLE_GROUPS = [
@@ -377,9 +373,18 @@ export class CountryMap {
      */
     _updateCapitalSide() {
         if (!this.map || !this._capitalMarker || !this._capitalLngLat) return;
+        const el = this._capitalMarker.getElement();
+        const label = el.querySelector('.cm-capital-label');
+        if (!label) return;
         const x = this.map.project(this._capitalLngLat).x;
-        const flip = x > this.map.getCanvas().clientWidth - CAPITAL_LABEL_SPACE;
-        this._capitalMarker.getElement().classList.toggle('flip', flip);
+        const w = this.map.getCanvas().clientWidth;
+        const labelW = label.offsetWidth || 80;
+        const GAP = 15, MARGIN = 6;
+        // Default to the right of the dot; flip left only when the right side
+        // would overflow and the left side has room (measures the real label).
+        const fitsRight = x + GAP + labelW + MARGIN <= w;
+        const fitsLeft = x - GAP - labelW - MARGIN >= 0;
+        el.classList.toggle('flip', !fitsRight && fitsLeft);
     }
 
     /** Resolve the MapLibre style: real Protomaps PMTiles source, or the sample fallback. */
