@@ -17,6 +17,7 @@ export class CapitalCitiesQuiz {
         this.globeManager = options.globeManager;
         this.cameraController = options.cameraController;
         this.elements = options.elements;
+        this.countryMap = options.countryMap; // 2D country map used as the quiz visual
         this.rotateGlobeToCountry = options.rotateGlobeToCountry;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
@@ -99,6 +100,9 @@ export class CapitalCitiesQuiz {
 
         // Remove quiz-active class from body
         document.body.classList.remove('quiz-active');
+
+        // Close the 2D map and return to the globe.
+        if (this.countryMap) this.countryMap.hide();
 
         // Hide quiz elements
         this.elements.get('quiz-score').style.display = 'none';
@@ -208,25 +212,22 @@ export class CapitalCitiesQuiz {
             return;
         }
 
-        // Hide result, next button, and any previous marker
+        // Hide result, next button
         this.elements.get('quiz-result').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
-        this.globeManager.clearCapitalMarker();
 
         const { direction, countryName, capital } = this.currentQuestion;
 
-        // Set the question prompt text
+        // Set the question prompt text and the 2D-map visual for each direction.
         const questionEl = this.elements.get('quiz-question');
         if (direction === 'forward') {
+            // "What is the capital of X?" — show the country with a red dot + "?".
             questionEl.textContent = `What is the capital of ${countryName}?`;
-            // Forward: highlighting the country is fair — it's the prompt.
-            this.globeManager.setSelectedCountry(countryName);
-            const record = this.globeManager.getCountryByName(countryName);
-            if (record) this.rotateGlobeToCountry(record, true);
+            this.countryMap.showForQuiz(countryName, 'capital');
         } else {
+            // "Y is the capital of which country?" — show only the country outline.
             questionEl.textContent = `${capital.name} is the capital of which country?`;
-            // Reverse: hide the country until answered — highlighting would reveal it.
-            this.globeManager.clearSelection();
+            this.countryMap.showForQuiz(countryName, 'shape');
         }
 
         // Clear previous options completely
@@ -283,12 +284,8 @@ export class CapitalCitiesQuiz {
 
         this.elements.get('quiz-result').style.display = 'none';
 
-        // Reveal the country on the globe and mark the capital, regardless of direction.
-        const { countryName, capital } = this.currentQuestion;
-        this.globeManager.setSelectedCountry(countryName);
-        const record = this.globeManager.getCountryByName(countryName);
-        if (record) this.rotateGlobeToCountry(record, true);
-        if (capital) this.globeManager.showCapitalMarker(capital.lat, capital.lng);
+        // Reveal the full 2D map (basemap, outline, named capital) for both directions.
+        this.countryMap.revealQuizAnswer();
 
         if (this.questionsAnswered >= 10) {
             setTimeout(() => {
