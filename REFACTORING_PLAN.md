@@ -1,3 +1,5 @@
+> **Superseded.** Folded into `docs/senior_dev/implementation-plan.md` (2026-06-07), which is now the single source of truth for all code-quality, modularization, performance, and deployment improvements. This file describes a 5,489-line `index.html` that no longer exists (it is now ~3,089 lines). Kept for history only.
+
 # REFACTORING PLAN FOR GLOBE3D REPOSITORY
 
 ## Executive Summary

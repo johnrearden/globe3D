@@ -224,6 +224,12 @@ minimize what they add to `index.html`:**
 - Net effect: a new feature should touch `index.html` by roughly an `import` + one instantiation
   call, and nothing more.
 
+**`docs/senior_dev/implementation-plan.md` is the single source of truth** for the refactor and all
+prospective code-quality/modularization/deployment improvements (it includes an `index.html`
+anatomy review with per-chunk line ranges). Any change that renders it out of date — extracting a
+module, shifting line ranges, completing a stage, or altering the structure it describes — must
+update that document accordingly in the same change.
+
 ## Known Limitations
 
 - Most code in single HTML file (modules under `js/` for the larger systems)

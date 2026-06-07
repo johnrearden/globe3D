@@ -1,6 +1,116 @@
 # Globe3D — Staged Implementation Plan
 
-Derived from the senior-dev code review at `/home/john/.claude/plans/you-are-a-new-replicated-hickey.md`. Stages are ordered so each one is independently shippable and each leaves the repo healthier than it found it. Earlier stages reduce risk; later stages depend on the safety net the earlier ones lay down.
+**This is the single source of truth** for every prospective improvement to Globe3D — code
+quality, modularization, performance, correctness, and deployment/SEO. It supersedes
+`REFACTORING_PLAN.md` and `MODULARIZATION_PLAN.md` (both now carry a superseded banner and are
+kept only for history) and links out to `DEPLOYMENT_GUIDE.md` and
+`docs/deployment/temp_deploy.md` for the long-form deployment how-to.
+
+Derived originally from the senior-dev code review at
+`/home/john/.claude/plans/you-are-a-new-replicated-hickey.md`. Stages are ordered so each one is
+independently shippable and each leaves the repo healthier than it found it. Earlier stages
+reduce risk; later stages depend on the safety net the earlier ones lay down.
+
+**Working assumptions (decided 2026-06-07):**
+- **Aggressive modularization target** — `index.html` ends at **under ~500 lines**: HTML markup
+  + imports + a single `app.init()` call. Even data tables and the pointer-dispatch router get
+  extracted.
+- **One module per feature** — e.g. a single `js/features/label-editor.js`, not a
+  `label-editor/` sub-folder of micro-modules. Matches the existing `js/features/` style
+  (`country-map.js`, `search.js`).
+
+---
+
+## 1. `index.html` Anatomy Review
+
+A snapshot of `index.html` as it stands (**3,089 lines**) to anchor the modularization work. The
+file is one `<head>` + static UI markup followed by a single `<script type="module">`
+(lines 224–3089, ~2,865 lines of inline JS). Line numbers below are current as of this writing.
+
+### 1a. HTML / Markdown — *the part that stays*
+
+The markup is small and mostly stays (it's the entry-point shell). Major blocks:
+
+| Block | Lines (approx) | Notes |
+|-------|----------------|-------|
+| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), **eruda + `eruda.init()` (13–14)**, three.js (222), OrbitControls (223) |
+| SEO overlay, `#container`, top buttons | ~17–61 | zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
+| Zoom widget, flag panel, search, controls legend | ~63–106 | |
+| Quiz container + celebration + mode-selector + click-quiz UI + results modals | ~107–187 | |
+| Label-editor modal | ~189–219 | sliders + buttons |
+| `<script type="module">` | 224–3089 | the JS reviewed in 1c |
+
+**Action flagged:** several modals/panels are static markup that their owning feature module
+could create at runtime instead (CLAUDE.md's stated preference: a feature should add ~an import
++ one call to `index.html`, nothing more). Under the aggressive target, the label-editor modal
+moves into `label-editor.js`, the quiz modals into the quiz UI module, the color/zoom-editor
+panels into their feature modules — each builds its own DOM on instantiation.
+
+### 1b. CSS — *essentially complete*
+
+**CSS extraction is already done.** `index.html` has **zero `<style>` blocks**; all 2,340 lines
+of CSS live in `styles.css`. Two small residual items remain (checklist):
+
+- [ ] **JS-injected `<style>`** for the light-dev panel (`index.html:967`,
+  `document.createElement('style')` inside the `setupLightDevPanel()` IIFE). This violates
+  CLAUDE.md's "no CSS in `index.html`" rule. Either move its rules into `styles.css` (scoped to
+  `#light-dev-panel …`) and delete the injection, **or** remove the dev panel entirely as part of
+  Stage 6 hardening.
+- [ ] **23 inline `style="display:none"` / `visibility:hidden`** initial-state attributes. Replace
+  with a `.hidden` utility class in `styles.css` so JS toggles a class (via the `dom.js`
+  helpers) instead of writing inline style. Low priority, do opportunistically during Stage 4.
+
+### 1c. JavaScript — three extraction buckets
+
+**Already modularized.** The imports (lines 226–242) pull in `state`, `SceneManager`,
+`GlobeManager`, `LabelManager`, `CameraController`, `QuizManager` + the 4 quiz classes,
+`FlagRenderer`, `CountryMap`, `SearchManager`, the 3 animation classes, and `FocusZoomRegistry`.
+So scene / globe / labels / camera / quiz / flags / search / animation / focus-zoom are **done**.
+The ~2,865 remaining inline lines sort into three buckets.
+
+#### Bucket A — MUST STAY in `index.html` (bootstrap/glue; the aggressive end-state)
+
+| Chunk | Lines | Reason |
+|-------|-------|--------|
+| Imports | 226–242 | entry-point wiring |
+| `init()` — manager instantiation + wiring | 848+ | bootstrap; constructs and connects all managers |
+| Render-loop registration + `sceneManager.start()` | ~1157–1218 | core animation glue |
+| Thin **pointer-dispatch router** | (post-extract) | delegates to `pointer-controls.js`; only the dispatch call stays |
+| `init()` call | 3087 | application entry point |
+
+#### Bucket B — EASY to extract (self-contained, low/no shared-state coupling)
+
+| Chunk | Lines | Target module | Reason |
+|-------|-------|---------------|--------|
+| `animateFlagWave()` | 298–330 | `js/features/flag-animation.js` (or fold into `flag-renderer.js`) | pure vertex math |
+| `showQuizCelebration()`, `clearQuizTimers()`, `triggerConfetti()`, `calculateGreatCircleDistance()` | 331–364, 365+, 2619, 2605 | `js/features/quiz/quiz-utils.js` | stateless quiz helpers |
+| `latLngToVector3()` + coord helpers | 1387–1410 | `js/utils/coordinates.js` | pure geometry |
+| `addLatLongLines()` | 1411–1501 | `js/features/debug-grid.js` (or delete if unused) | isolated viz |
+| `setupLights()` | 1297–1323 | `js/core/scene.js` (verify not dead first) | scene setup |
+| `updateLoadingProgress()`, `hideLoading()`, `hideSeoContent()` | 1324–1386, 2574–2604, 833–847 | `js/features/loading.js` | loading/SEO screen |
+| `onWindowResize()` | 2541–2573 | `js/core/scene.js` | resize handler (see Stage 1 fix) |
+| `zoomOutToDefault()` | 1700–1743 | `js/core/camera-controls.js` | camera animation |
+| `updateZoomWidget`, `updateSearchVisibilityOnMobile`, `updateZoomOutButtonVisibility` | 3021+ | `js/features/ui-sync.js` | UI-sync helpers |
+| `countryData` + `countryToISO` data tables | ~592–830 | `js/data/country-data.js` | static data (extracted under aggressive target) |
+
+#### Bucket C — HARDER refactor (tangled, many shared globals — one module per feature)
+
+| Feature | Key functions / lines | Target module | Reason |
+|---------|----------------------|---------------|--------|
+| **Label editor** | `toggleEditMode` (1744), `selectLabel` (1778), modal + slider handlers, config load/save/apply, keyboard + wheel-resize | `js/features/label-editor.js` | selection state machine bound to many globals + static modal markup |
+| **Color editor** | `buildSwatchPanel` (2125), `toggleColorEditMode` (2144), change-color, config I/O | `js/features/color-editor.js` | UI + config state |
+| **Zoom/focus editor** | `buildLevelPanel` (2206), `toggleZoomEditMode` (2225), set-level, config I/O | `js/features/zoom-editor.js` | UI + config state |
+| **Pointer/interaction core** | `onPointerDown` (2295), `onPointerUp` (2336), `onPointerMove` (2448) | `js/features/pointer-controls.js` | branches on edit/color/zoom/quiz modes; leave a thin dispatch in `index.html` |
+| **Quiz UI glue** | mode selector / results / cancel | `js/features/quiz/quiz-ui.js` | modal UI + quiz instance refs |
+| **Small-country indicator** | arrow mesh build/update/dispose | `js/features/small-country-indicator.js` | Three.js mesh lifecycle, needs scene ref |
+| **Camera focus** | `focusOnCountry` (2513), `rotateGlobeToCountry` (2937), `animateRotation` | fold into `js/core/camera-controls.js` | camera animation already partly there |
+
+**The main coupling obstacle** is the **~63 top-level globals** in the module script — `editMode`,
+`selectedLabel`, `labelConfig`/`labelDefaults`, the quiz-state cluster, `colorEditMode`/`colorConfig`,
+`zoomEditMode`/`zoomConfig`, and the manager handles. Stage 4 threads these through the centralized
+`state` object (`js/data/state.js`, already imported and partially synced via
+`syncStateWithVariables()` at line 520) rather than module-level `let`s, so extracted modules read
+and mutate shared state through one channel instead of closing over globals.
 
 ---
 
@@ -20,11 +130,11 @@ Derived from the senior-dev code review at `/home/john/.claude/plans/you-are-a-n
 
 **Goal:** Land the small, high-confidence bug fixes from the review. No behavioral changes for the user; pure correctness.
 
-1. **`index.html:2042` — cache the drag-hit sphere.**
+1. **`index.html` (`onPointerMove`, ~2448) — cache the drag-hit sphere.**
    Hoist `new THREE.SphereGeometry(1.02, 32, 32)` and its `Mesh` to module scope (or onto LabelManager) and reuse them across every `pointermove`. Dispose on teardown. This stops a Geometry+Mesh leak that fires at refresh rate during a drag.
 
 2. **`scene.js:87` / `:280` — fix the resize listener teardown.**
-   Replace the inline arrow with a stored bound handler: `this._onResize = () => this.onWindowResize()` in the constructor, then `addEventListener('resize', this._onResize)` and `removeEventListener('resize', this._onResize)` in `destroy()`.
+   Replace the inline arrow with a stored bound handler: `this._onResize = () => this.onWindowResize()` in the constructor, then `addEventListener('resize', this._onResize)` and `removeEventListener('resize', this._onResize)` in `destroy()`. (The inline `onWindowResize()` at `index.html:2541` moves to `scene.js` in Stage 4 — keep them consistent.)
 
 3. **`flag-renderer.js:128` — drop per-frame normal recompute.**
    Either pre-compute normals once at flag creation, or switch the flag material to `flatShading: true` and remove the call. Manually inspect the flag visually after — if the shading looks identical, keep the cheaper path.
@@ -55,7 +165,7 @@ Derived from the senior-dev code review at `/home/john/.claude/plans/you-are-a-n
    Add `"test": "vitest run"` and `"test:watch": "vitest"` to `package.json`.
 
 2. **First test files** under `tests/`:
-   - `tests/lat-lng.test.js` — import the math out of `globe.js` (may require lifting `latLngToVector3` to a pure helper in `js/utils/`). Round-trip 500 random points: lat/lng → vec3 → back to lat/lng, assert within 1e-6.
+   - `tests/lat-lng.test.js` — import the math out of `globe.js` (may require lifting `latLngToVector3` to a pure helper in `js/utils/coordinates.js` — see Stage 4 Bucket B). Round-trip 500 random points: lat/lng → vec3 → back to lat/lng, assert within 1e-6.
    - `tests/country-meta.test.js` — load `assets/country-meta.json`; assert every `nameToId[name]` round-trips through `idToName[id] === name`, and that every country in `meta.countries` has matching name/id entries.
    - `tests/build-format.test.js` — synthesize a tiny GeoJSON (two triangles), invoke the relevant chunks of `build-textures.js` as pure functions (may need a small refactor), assert binary format invariants (header, vertex count, padded ID block, index alignment).
 
@@ -72,63 +182,109 @@ Derived from the senior-dev code review at `/home/john/.claude/plans/you-are-a-n
 
 ---
 
-## Stage 3 — Documentation sync (one small PR)
+## Stage 3 — Documentation sync & consolidation (one small PR)
 
-**Goal:** Stop the docs from lying. Cheap; high signal-to-noise for future readers.
+**Goal:** Stop the docs from lying, and collapse the three overlapping plans into this one.
 
 1. **`CLAUDE.md` edits:**
    - Correct `world-mesh.bin` size: "31 MB raw / ~2.2 MB gzipped" (not "~3.8 MB").
    - Correct `COUNTRY_MESH_SCALE` to `1.002` to match `globe.js:17`.
-   - Rewrite the "Most code in single HTML file" line to reflect that core systems live under `js/` and `index.html` is now bootstrap + glue + label editor.
-   - Add a one-line pointer to `docs/senior_dev/implementation-plan.md`.
+   - Rewrite the "Most code in single HTML file" line to reflect that core systems live under `js/` and `index.html` is now bootstrap + glue + (shrinking) inline UI logic.
+   - Add a one-line pointer to this doc as the single source of truth.
 
-2. **Delete or move stray files:**
+2. **Retire the two stale plans (don't delete — preserve history):**
+   - Prepend a banner to `REFACTORING_PLAN.md` and `MODULARIZATION_PLAN.md`:
+     `> **Superseded.** Folded into docs/senior_dev/implementation-plan.md (2026-06-07). Kept for history.`
+   - The unique, still-relevant content from both has been folded into Section 1c (the bucket
+     review) and the duplication findings below. Their concrete value worth re-checking:
+     - duplicate flag-animation logic (`updateFlagAnimation` vs `updateFlagQuizAnimation`) — should
+       now be unified via `animateFlagWave`; **verify**, and if a duplicate remains it's a Stage-1 fix.
+     - quiz celebration/scoring duplication across modes — verify against the current quiz modules
+       (`js/features/quiz/*`); the shared `showQuizCelebration()` already centralizes celebration.
+     - DOM-access / show-hide pattern proliferation — addressed by the `.hidden` class (Section 1b)
+       + the `js/utils/dom.js` helpers.
+
+3. **Delete or move stray files:**
    - `script1.js` — delete (imports paths that don't exist in this repo).
    - `test-load.html`, `wave_effect.html` — either delete or move under `scratch/` with a one-line README explaining what they were.
 
-3. **Resolve the two stale plan docs:** `REFACTORING_PLAN.md` and `MODULARIZATION_PLAN.md`. Either:
-   - Mark them as "executed Phases 1–4; superseded by `docs/senior_dev/implementation-plan.md`" at the top, or
-   - Move them into `docs/archive/` so the root stops carrying historical artifacts.
-
 4. **`.gitignore`:** Remove `package-lock.json` from `.gitignore` and commit the lockfile. Reproducible installs are worth the diff noise.
 
-**Done when:** root directory has no stale planning docs, `CLAUDE.md` matches reality, lockfile is tracked.
+**Done when:** root directory has no stale planning docs (only superseded banners remain), `CLAUDE.md` matches reality, lockfile is tracked, and this doc is the only living plan.
 
 ---
 
 ## Stage 4 — Finish the modularization (one PR per slice)
 
-**Goal:** Drain the remaining ~1,800 lines of inline JS out of `index.html` so it's bootstrap + DOM markup only. Each slice is its own small PR; the safety net from Stage 2 means we can refactor without fear.
+**Goal:** Drain the remaining ~2,400 lines of inline JS out of `index.html` so it's bootstrap +
+DOM markup only — **under ~500 lines**. Each slice is its own small PR; the Stage-2 safety net means
+we can refactor without fear. Drive the work off the Section 1c buckets. **One module per feature.**
 
-Recommended slice order (smallest blast radius first):
+**Slice order (smallest blast radius first):**
 
-1. **DOM utilities (`elements`, `show`, `hide`, `showFlex`, `setText`, `addClass`, `removeClass`, `toggleClass`).** Already partially in `js/utils/dom.js` — fold the inline duplicates in (`index.html:225–270`) and import.
-2. **Flag wave noise helper (`animateFlagWave`).** Confirm it lives in `flag-renderer.js`; remove the inline copy at `index.html:272`.
-3. **Label editor.** Pull the drag handlers, fine-tune modal logic, save/load config, and reset logic into `js/features/label-editor.js`. This is the largest single slice; do it last.
-4. **Render loop / main bootstrap.** What remains in `index.html` should be: imports, the `<script type="module">` IIFE that wires managers together, the `animate()` callback registration. Aim for `index.html` under ~500 lines.
+1. **Bucket B quick wins** — pure moves, low risk. Do these first to shrink the file and build
+   momentum: data tables → `js/data/country-data.js`; coord helpers → `js/utils/coordinates.js`;
+   `animateFlagWave` → flag module; quiz helpers → `quiz-utils.js`; loading/SEO → `loading.js`;
+   UI-sync helpers → `ui-sync.js`; `zoomOutToDefault`/`onWindowResize`/`setupLights` → core modules.
 
-For each slice:
-- Move code module-by-module, run tests, eyeball the page.
-- After each slice, delete dead inline code; do not leave commented-out blocks.
+2. **Bucket C feature modules — one PR each, in increasing risk order:**
+   `color-editor.js` → `zoom-editor.js` → `small-country-indicator.js` → `quiz-ui.js` →
+   `label-editor.js` → `pointer-controls.js` (the pointer dispatch is riskiest; do it last).
+   Each module creates its own DOM (moving the relevant static modal/panel markup out of
+   `index.html`) and reads/writes shared state through `js/data/state.js`.
+
+3. **State consolidation (threaded through the slices):** as each module is extracted, migrate the
+   globals it owns from module-level `let`s into the centralized `state` object. By the end,
+   `syncStateWithVariables()` (line 520) should be unnecessary and can be removed.
+
+4. **Final glue pass:** what remains in `index.html` is imports, a single `app.init()` (manager
+   construction + wiring + render-loop registration), and the markup shell. **Target: <500 lines.**
+
+For each slice: move code module-by-module, run tests, eyeball the page, delete dead inline code
+(no commented-out blocks). Opportunistically apply the `.hidden`-class cleanup from Section 1b.
 
 **Done when:** `index.html` is under ~500 lines and contains no JS implementation logic beyond bootstrap.
 
 ---
 
-## Stage 5 — Performance polish (one PR)
+## Stage 5 — Performance & correctness polish (one PR)
 
-**Goal:** Address the smaller efficiency items that aren't outright bugs but are worth fixing once the structural cleanup is done.
+**Goal:** Address the smaller efficiency/correctness items that aren't outright bugs but are worth fixing once the structural cleanup is done.
 
 1. **Tighten `_lookupIdLoose`** (`globe.js:487`). Replace the symmetric substring match with: exact match → normalized exact match → prefix match. Add a unit test that asserts "Niger" and "Nigeria" don't collide.
 2. **Decide override precedence.** Document (and enforce in code) which wins when both `country-colors.json` and `label-config.json` set conflicting values. Add a comment near the loader.
-3. **Confirm gzip in production.** If the project deploys via Cloudflare/static host, verify `Content-Encoding: gzip` (or `br`) on `.bin` files. The 16 MB raw `world-id.bin` shrinks to ~90 KB gzipped — without it, mobile users eat the full 16 MB.
+3. **Confirm gzip in production.** (Cross-ref Stage 6.) Verify `Content-Encoding: gzip`/`br` on `.bin` files. The 16 MB raw `world-id.bin` shrinks to ~90 KB gzipped — without it, mobile users eat the full 16 MB.
 4. **Optional: drop `getCountries()`.** It returns `[]` with a deprecation comment. Grep for callers; if none, delete it.
 
 **Done when:** the cosmetic items above are cleaned and a perf-sanity pass on a low-end mobile (or DevTools CPU throttle 4×) holds 60 FPS during idle rotation.
 
 ---
 
-## Stage 6 — Optional next bets
+## Stage 6 — Deployment & SEO hardening (one PR)
+
+**Goal:** Make the site production-ready. Pulls the concrete, code-touching items out of
+`DEPLOYMENT_GUIDE.md` and `docs/deployment/temp_deploy.md` — see those docs for the full
+Cloudflare/nginx how-to, cost analysis, and AdSense/Analytics setup.
+
+1. **Remove or gate the eruda debug console** (`index.html:13–14`). It loads unconditionally today
+   and must not ship to production — either delete it or gate it behind a `?debug` query param.
+2. **Hide dev-only UI for production** (per `temp_deploy.md` "Hardening before sharing"): the
+   `#bounce-btn`, `#shatter-btn`, `#pinball-btn` mobile dev buttons, `#dev-edit-toggle`, and the
+   light-dev panel (also resolves the Section 1b JS-injected-CSS item).
+3. **SEO `<head>`** (from `DEPLOYMENT_GUIDE.md` §5): real `<title>`/description/keywords, Open
+   Graph + Twitter card tags, `<link rel="canonical">`, favicons, and JSON-LD `WebApplication`
+   structured data.
+4. **Static SEO/infra files:** `robots.txt`, `sitemap.xml`, and a Cloudflare `_headers` file
+   (security headers + `Cache-Control` immutable for hashed assets + gzip/br for `.bin`/`.js`/`.css`).
+5. **Optional: service worker / PWA** caching of the heavy `.bin` assets for repeat visits.
+
+**Done when:** no dev tooling ships in the production bundle, the `<head>` carries full SEO/social
+metadata, and `_headers`/`robots.txt`/`sitemap.xml` exist. Validate with Lighthouse (SEO + best
+practices) and confirm `Content-Encoding` on `.bin` responses.
+
+---
+
+## Stage 7 — Optional next bets
 
 These aren't required by the review but are natural follow-ups now that the codebase is clean:
 
@@ -140,7 +296,8 @@ These aren't required by the review but are natural follow-ups now that the code
 
 ## Cross-cutting conventions
 
-- **One stage = one PR**, with a body that links back to this doc and notes which numbered items were completed.
+- **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.
 - **No mixing.** Don't slip a Stage-4 module move into a Stage-1 bug-fix PR; reviewer cognitive load is the whole reason for the staging.
 - **Tests stay green at every stage.** Stage 2 onward, no PR merges without `npm test` passing.
-- **Update this doc.** When a stage lands, edit this file to check it off and link the merged PR. The plan is supposed to be a living artifact, not a historical one.
+- **New code respects CLAUDE.md's `index.html` budget:** no new CSS in `index.html` (use `styles.css`), no new inline `<script>` logic (use `js/` modules), prefer self-contained feature modules that build their own DOM.
+- **Update this doc.** When a stage lands, edit this file to check it off and link the merged PR. The plan is a living artifact, not a historical one.

@@ -1,3 +1,5 @@
+> **Superseded.** Folded into `docs/senior_dev/implementation-plan.md` (2026-06-07), which is now the single source of truth for all code-quality, modularization, performance, and deployment improvements. This file describes a 3,805-line `index.html` and a different module layout than what now exists. Kept for history only.
+
 # Globe3D JavaScript Modularization Plan
 
 **Goal:** Extract remaining JavaScript from index.html into logical, maintainable modules.
