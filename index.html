@@ -282,6 +282,7 @@
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
         import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
         import { LabelEditor } from './js/features/label-editor.js';
+        import { PointerControls } from './js/features/pointer-controls.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -330,17 +331,9 @@
 
         // Global variables
         let scene, camera, renderer, globe, countries = [];
-        let mouse = new THREE.Vector2();
-        let raycaster = new THREE.Raycaster();
-        // Cached invisible sphere (radius 1.005, where labels live) reused for label-drag
-        // raycasting — avoids allocating a fresh Geometry+Mesh on every pointermove.
-        const dragHitSphere = new THREE.Mesh(new THREE.SphereGeometry(1.005, 32, 32));
-        let selectedCountry = null;
         let smallCountryIndicator = null; // SmallCountryIndicator instance (tiny-country marker)
         let controls;
         let baseSphere;
-        let mouseDownPos = new THREE.Vector2();
-        let isDragging = false;
         let initialCameraDistance; // Store initial camera distance for zoom out
 
         // Quiz variables
@@ -373,12 +366,8 @@
 
         // Label editor instance (owns editMode, selected label, config, helper).
         let labelEditor = null;
-        // Pointer-interaction state for label drag / long-press / double-tap
-        // (stays with the pointer handlers; to move to pointer-controls).
-        let isDraggingLabel = false;
-        let lastTapTime = 0;
-        let longPressTimer = null;
-        let longPressTriggered = false;
+        // Pointer controls instance (owns pointer state + the pointer dispatch).
+        let pointerControls = null;
 
         // Color editor instance (owns its own edit-mode flag + config).
         let colorEditor = null;
@@ -448,14 +437,9 @@
                 state.set('scene.initialCameraDistance', initialCameraDistance, false);
             }
 
-            // Sync countries and mouse objects
+            // Sync countries
             state.set('countries.list', countries, false);
             state.set('countries.centroids', countryCentroids, false);
-            state.set('countries.selected', selectedCountry, false);
-            if (mouse) state.set('mouse.position', mouse, false);
-            if (raycaster) state.set('mouse.raycaster', raycaster, false);
-            if (mouseDownPos) state.set('mouse.downPos', mouseDownPos, false);
-            state.set('mouse.isDragging', isDragging, false);
 
             // Sync flag renderer
             if (flagRenderer) {
@@ -1021,9 +1005,16 @@
 
         function setupEventListeners() {
             // Pointer events (works with mouse, touch, and pen)
-            renderer.domElement.addEventListener('pointerdown', onPointerDown);
-            renderer.domElement.addEventListener('pointerup', onPointerUp);
-            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            // Pointer dispatch (label drag/select, edit-mode picks, quiz answers,
+            // country selection) lives in js/features/pointer-controls.js.
+            pointerControls = new PointerControls({
+                camera, controls, renderer,
+                globeManager, labelManager, flagRenderer, smallCountryIndicator,
+                labelEditor, colorEditor, zoomEditor, clickQuiz,
+                rotateGlobeToCountry, resetIdleTimer,
+                countryData, countryToISO, state
+            });
+            pointerControls.attach();
 
             // Wheel/zoom event (to track user interaction)
             renderer.domElement.addEventListener('wheel', resetIdleTimer);
@@ -1229,212 +1220,6 @@
             }
         }
 
-        function onPointerDown(event) {
-            // Any press counts as interaction (covers touch taps with no move)
-            resetIdleTimer();
-
-            // Update mouse coordinates for raycasting
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            mouseDownPos.x = event.clientX;
-            mouseDownPos.y = event.clientY;
-            isDragging = false;
-            longPressTriggered = false;
-
-            // Edit mode: Start dragging selected label if clicked on it or its helper
-            if (labelEditor.isActive() && labelEditor.getSelected()) {
-                raycaster.setFromCamera(mouse, camera);
-                if (labelEditor.canStartDragAt(raycaster)) {
-                    isDraggingLabel = true;
-                    controls.enableRotate = false; // Disable rotation while dragging label
-
-                    // Start long-press timer for resize down
-                    longPressTimer = setTimeout(() => {
-                        if (!isDragging && labelEditor.getSelected()) {
-                            longPressTriggered = true;
-                            labelEditor.resizeSelected(0.9); // Decrease size by 10%
-                            if (navigator.vibrate) {
-                                navigator.vibrate(50);
-                            }
-                        }
-                    }, 500); // 500ms for long press
-                }
-            }
-        }
-
-        function onPointerUp(event) {
-            // Update mouse coordinates for raycasting (critical for mobile taps)
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // Clear long press timer
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-
-            // Handle label dragging end
-            if (isDraggingLabel) {
-                isDraggingLabel = false;
-                controls.enableRotate = true;
-
-                // If long press was triggered, don't process as tap
-                if (longPressTriggered) {
-                    longPressTriggered = false;
-                    return;
-                }
-
-                // Check if this was just a quick tap (not a drag)
-                const deltaX = Math.abs(event.clientX - mouseDownPos.x);
-                const deltaY = Math.abs(event.clientY - mouseDownPos.y);
-                if (deltaX < 5 && deltaY < 5 && labelEditor.getSelected()) {
-                    // Detect double-tap
-                    const currentTime = Date.now();
-                    const timeSinceLastTap = currentTime - lastTapTime;
-
-                    if (timeSinceLastTap < 300) { // Double tap within 300ms
-                        labelEditor.resizeSelected(1.1); // Increase size by 10%
-                        if (navigator.vibrate) {
-                            navigator.vibrate(50);
-                        }
-                        lastTapTime = 0; // Reset to prevent triple-tap
-                    } else {
-                        lastTapTime = currentTime;
-                    }
-                }
-                return;
-            }
-
-            // If this was a drag operation, ignore the pointer release
-            if (isDragging) {
-                isDragging = false; // Reset for next interaction
-                return;
-            }
-
-            // Edit mode: Check for label clicks first
-            if (labelEditor.isActive()) {
-                raycaster.setFromCamera(mouse, camera);
-                if (labelEditor.trySelectAt(raycaster)) {
-                    return; // Don't process country clicks in edit mode
-                }
-            }
-
-            // Color edit mode: Change country color on click
-            if (colorEditor.isActive()) {
-                raycaster.setFromCamera(mouse, camera);
-                const colorPick = globeManager.pick(raycaster.ray);
-                if (colorPick) {
-                    colorEditor.changeCountryColor(colorPick.name);
-                    return;
-                }
-            }
-
-            // Zoom edit mode: Assign focus level on click
-            if (zoomEditor.isActive()) {
-                raycaster.setFromCamera(mouse, camera);
-                const zoomPick = globeManager.pick(raycaster.ray);
-                if (zoomPick) {
-                    zoomEditor.setCountryFocusLevel(zoomPick.name);
-                    return;
-                }
-            }
-
-            // Not a drag - treat as a click
-            raycaster.setFromCamera(mouse, camera);
-            const pickResult = globeManager.pick(raycaster.ray);
-
-            if (pickResult) {
-                const pickedName = pickResult.name;
-                selectedCountry = pickedName;
-                console.log('Selected country:', pickedName);
-
-                // Handle click quiz answer
-                if (clickQuiz && clickQuiz.isActive()) {
-                    clickQuiz.handleAnswer(pickedName);
-                    return;
-                }
-
-                // Center on clicked country (if not in quiz mode)
-                if (!state.get('quiz.active')) {
-                    smallCountryIndicator.remove();
-
-                    globeManager.clearSelection();
-                    globeManager.setSelectedCountry(pickedName);
-                    if (labelManager) labelManager.setHighlight(pickedName);
-
-                    rotateGlobeToCountry(pickedName, false, pickResult.point);
-                    if (flagRenderer) {
-                        flagRenderer.show(pickedName, countryData, countryToISO);
-                    }
-                }
-            }
-        }
-
-        function onPointerMove(event) {
-            // Track user interaction and reset idle timer
-            resetIdleTimer();
-
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // Handle label dragging in edit mode
-            if (isDraggingLabel && labelEditor.getSelected()) {
-                // Project mouse position onto the label sphere and move the label there.
-                raycaster.setFromCamera(mouse, camera);
-                const sphereIntersects = raycaster.intersectObject(dragHitSphere);
-                if (sphereIntersects.length > 0) {
-                    labelEditor.dragSelectedTo(sphereIntersects[0].point);
-                }
-                return; // Don't process other mouse events while dragging
-            }
-
-            // Detect dragging in real-time (pointer is down and has moved)
-            if (event.buttons === 1) { // Primary button is pressed
-                const deltaX = Math.abs(event.clientX - mouseDownPos.x);
-                const deltaY = Math.abs(event.clientY - mouseDownPos.y);
-                if (deltaX > 5 || deltaY > 5) {
-                    isDragging = true;
-                }
-            }
-
-            // Skip hover effects during quiz or while dragging
-            if (state.get('quiz.active') || isDragging) {
-                return;
-            }
-
-            // Raycast for hover effects (cursor change only)
-            raycaster.setFromCamera(mouse, camera);
-            const hoverPick = globeManager.pick(raycaster.ray);
-            document.body.style.cursor = hoverPick ? 'pointer' : 'default';
-        }
-
-        function focusOnCountry(country) {
-            // Smooth camera movement to focus on country
-            const targetPosition = country.position.clone().multiplyScalar(2);
-            
-            // Simple camera animation (you could use a tween library for smoother animation)
-            const startPosition = camera.position.clone();
-            const duration = 1000; // ms
-            const startTime = Date.now();
-            
-            function animateCamera() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                // Ease out cubic
-                const easeProgress = 1 - Math.pow(1 - progress, 3);
-                
-                camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
-                camera.lookAt(0, 0, 0);
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateCamera);
-                }
-            }
-            
-            animateCamera();
-        }
 
 
         function onWindowResize() {
