@@ -280,6 +280,7 @@
         import { ColorEditor } from './js/features/color-editor.js';
         import { ZoomEditor } from './js/features/zoom-editor.js';
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
+        import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -319,55 +320,8 @@
         }
 
         // ===== QUIZ UTILITIES (unified to reduce duplication) =====
-        /**
-         * Show quiz celebration overlay with score
-         * @param {number} score - Number of correct answers
-         * @param {number} total - Total number of questions
-         * @param {string} extraInfo - Optional extra info to display (e.g., time)
-         */
-        function showQuizCelebration(score, total, extraInfo = '') {
-            const percentage = Math.round((score / total) * 100);
-            const extraHTML = extraInfo ? `<div style="font-size: 1.2rem; margin-top: 15px; color: #E0E0E0;">${extraInfo}</div>` : '';
-
-            elements.get('celebration-score').innerHTML = `
-                <div style="font-size: 1rem; margin-bottom: 4px;">Your Score</div>
-                <div>${score} / ${total} (${percentage}%)</div>
-                ${extraHTML}
-            `;
-
-            const overlay = elements.get('quiz-celebration-overlay');
-            showFlex(overlay);
-            // Hide background UI chrome (buttons, widgets, search, etc.)
-            // so the celebration message + animations are the only focus.
-            document.body.classList.add('celebration-active');
-
-            const fraction = total > 0 ? score / total : 0;
-            if (fraction <= SHATTER_THRESHOLD) {
-                if (shatterAnimation) shatterAnimation.start();
-            } else if (fraction >= PINBALL_THRESHOLD) {
-                triggerConfetti();
-                if (pinballAnimation) pinballAnimation.start(PINBALL_DURATION_MS);
-            } else {
-                triggerConfetti();
-                if (bounceAnimation) bounceAnimation.start();
-            }
-        }
-
-        /**
-         * Clear quiz timers (auto-advance, click quiz, etc.)
-         * @param {number|null} autoAdvanceTimer - Auto-advance timer ID
-         * @param {number|null} clickQuizTimer - Click quiz interval ID
-         * @returns {Object} - Object with cleared timer values
-         */
-        function clearQuizTimers(autoAdvanceTimer = null, clickQuizTimer = null) {
-            if (autoAdvanceTimer) {
-                clearTimeout(autoAdvanceTimer);
-            }
-            if (clickQuizTimer) {
-                clearInterval(clickQuizTimer);
-            }
-            return { autoAdvanceTimer: null, clickQuizTimer: null };
-        }
+        // Quiz celebration + mode-selector glue + the clearQuizTimers /
+        // calculateGreatCircleDistance helpers live in js/features/quiz/quiz-ui.js.
 
         // Perlin noise library (inline for self-containment)
         // NOTE: Changed (this) to (window) for ES6 module compatibility
@@ -414,15 +368,7 @@
         let bounceAnimation = null;
         let shatterAnimation = null;
         let pinballAnimation = null;
-
-        // Score fraction at or below which the celebration shatters the globe
-        // instead of bouncing it.
-        const SHATTER_THRESHOLD = 0.3;
-        // Score fraction at which the celebration triggers the pinball
-        // (cube-bounce) animation instead of the simple drop bounce.
-        const PINBALL_THRESHOLD = 1.0;
-        // How long the pinball plays before auto-restoring to rest pose.
-        const PINBALL_DURATION_MS = 3000;
+        let quizUI = null; // QuizUI instance (celebration + mode-selector glue)
 
         // Edit mode variables
         let editMode = false;
@@ -603,6 +549,10 @@
                 globeManager,
                 smallCountries: SMALL_COUNTRIES
             });
+
+            // Quiz UI (celebration + mode-selector glue). Animation refs are
+            // assigned once the animations are built (see globe-load completion).
+            quizUI = new QuizUI();
             globeManager.init();
 
             // Get globe reference
@@ -773,7 +723,7 @@
                         cameraController: cameraController,
                         elements: elements,
                         rotateGlobeToCountry: rotateGlobeToCountry,
-                        showQuizCelebration: showQuizCelebration,
+                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance
                     });
@@ -781,7 +731,7 @@
                     identifyFlagQuiz = new IdentifyFlagQuiz({
                         globeManager: globeManager,
                         elements: elements,
-                        showQuizCelebration: showQuizCelebration,
+                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         countryToISO: countryToISO,
                         animateFlagWave: animateFlagWave
@@ -791,7 +741,7 @@
                         globeManager: globeManager,
                         cameraController: cameraController,
                         elements: elements,
-                        showQuizCelebration: showQuizCelebration,
+                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers
                     });
 
@@ -801,7 +751,7 @@
                         elements: elements,
                         countryMap: countryMap,
                         rotateGlobeToCountry: rotateGlobeToCountry,
-                        showQuizCelebration: showQuizCelebration,
+                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance
                     });
@@ -863,6 +813,13 @@
                         renderer: renderer,
                         initialCameraDistance: initialCameraDistance
                     });
+
+                    // Hand the built animations to the quiz celebration.
+                    quizUI.animations = {
+                        bounce: bounceAnimation,
+                        shatter: shatterAnimation,
+                        pinball: pinballAnimation
+                    };
 
                     // Closing the celebration panel restores the globe from
                     // any in-progress shatter or pinball. addEventListener
@@ -1078,7 +1035,7 @@
             // Search input handled by SearchManager.init()
 
             // Quiz buttons
-            elements.get('quiz-start-btn').addEventListener('click', showQuizModeSelector);
+            elements.get('quiz-start-btn').addEventListener('click', () => quizUI.showModeSelector());
             elements.get('quiz-next-btn').addEventListener('click', () => {
                 // Cancel auto-advance timer if user clicks manually
                 if (nameFlagQuiz && nameFlagQuiz.isActive() && nameFlagQuiz.autoAdvanceTimer) {
@@ -1103,38 +1060,38 @@
                     capitalCitiesQuiz.nextQuestion();
                 }
             });
-            elements.get('take-quiz-btn').addEventListener('click', showQuizModeSelector);
+            elements.get('take-quiz-btn').addEventListener('click', () => quizUI.showModeSelector());
 
             // Zoom out button
             elements.get('zoom-out-btn').addEventListener('click', zoomOutToDefault);
 
             // Quiz mode selector buttons
             elements.get('name-flag-quiz-btn').addEventListener('click', () => {
-                hideQuizModeSelector();
+                quizUI.hideModeSelector();
                 nameFlagQuiz.start();
             });
             elements.get('identify-flag-quiz-btn').addEventListener('click', () => {
-                hideQuizModeSelector();
+                quizUI.hideModeSelector();
                 identifyFlagQuiz.start();
             });
             elements.get('find-country-quiz-btn').addEventListener('click', () => {
-                hideQuizModeSelector();
+                quizUI.hideModeSelector();
                 clickQuiz.start();
             });
             elements.get('capital-quiz-btn').addEventListener('click', () => {
-                hideQuizModeSelector();
+                quizUI.hideModeSelector();
                 capitalCitiesQuiz.start();
             });
-            elements.get('quiz-mode-close').addEventListener('click', hideQuizModeSelector);
-            elements.get('quiz-mode-overlay').addEventListener('click', hideQuizModeSelector);
+            elements.get('quiz-mode-close').addEventListener('click', () => quizUI.hideModeSelector());
+            elements.get('quiz-mode-overlay').addEventListener('click', () => quizUI.hideModeSelector());
 
             // Quiz cancel buttons
             elements.get('quiz-cancel-btn').addEventListener('click', cancelQuiz);
             elements.get('click-quiz-cancel-btn').addEventListener('click', cancelQuiz);
 
             // Click quiz buttons
-            elements.get('click-quiz-close-btn').addEventListener('click', closeClickQuizResults);
-            elements.get('click-quiz-results-overlay').addEventListener('click', closeClickQuizResults);
+            elements.get('click-quiz-close-btn').addEventListener('click', () => quizUI.closeClickQuizResults());
+            elements.get('click-quiz-results-overlay').addEventListener('click', () => quizUI.closeClickQuizResults());
 
             // Show-countries toggle
             elements.get('sphere-toggle').addEventListener('change', toggleSphere);
@@ -1926,77 +1883,8 @@
         // QUIZ FUNCTIONALITY
         // ============================================
 
-        // Calculate great circle distance between two countries (returns radians)
-        // On a unit sphere, the great circle distance is the angle between two vectors
-        function calculateGreatCircleDistance(country1, country2) {
-            // Use dot product to get cosine of angle
-            const dotProduct = country1.centroid.dot(country2.centroid);
-            // Clamp to [-1, 1] to handle floating point errors
-            const clampedDot = Math.max(-1, Math.min(1, dotProduct));
-            // Arc cosine gives us the angle in radians (which is the distance on unit sphere)
-            return Math.acos(clampedDot);
-        }
-
-        // ===== QUIZ FUNCTIONS MOVED TO js/features/quiz/*.js =====
-        // (Removed: NameFlagQuiz, IdentifyFlagQuiz, ClickQuiz implementation functions)
-        // All quiz logic now in: name-flag-quiz.js, identify-flag-quiz.js, click-quiz.js
-
-        // Trigger confetti celebration
-        function triggerConfetti() {
-            // Fire confetti from multiple angles
-            const duration = 3000;
-            const animationEnd = Date.now() + duration;
-            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10001 };
-
-            function randomInRange(min, max) {
-                return Math.random() * (max - min) + min;
-            }
-
-            const interval = setInterval(function() {
-                const timeLeft = animationEnd - Date.now();
-
-                if (timeLeft <= 0) {
-                    return clearInterval(interval);
-                }
-
-                const particleCount = 50 * (timeLeft / duration);
-
-                // Fire confetti from left
-                confetti({
-                    ...defaults,
-                    particleCount,
-                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-                });
-
-                // Fire confetti from right
-                confetti({
-                    ...defaults,
-                    particleCount,
-                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-                });
-            }, 250);
-        }
-
-        // Quiz Mode Selector Functions
-        function showQuizModeSelector() {
-            show(elements.get('quiz-mode-selector'));
-        }
-
-        function hideQuizModeSelector() {
-            hide(elements.get('quiz-mode-selector'));
-        }
-
-        function closeClickQuizResults() {
-            hide(elements.get('click-quiz-results'));
-
-            // Show search and quiz button again
-            show(elements.get('search-container'));
-            show(elements.get('take-quiz-btn'));
-
-            // Resume auto-rotation
-            // TEMPORARILY DISABLED
-            // resumeAutoRotation();
-        }
+        // calculateGreatCircleDistance, triggerConfetti, and the quiz mode-selector
+        // glue (show/hide/closeClickQuizResults) moved to js/features/quiz/quiz-ui.js.
 
         function cancelQuiz() {
             // Determine which quiz is active and end it without celebration
