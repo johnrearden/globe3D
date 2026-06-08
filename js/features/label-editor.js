@@ -277,7 +277,9 @@ export class LabelEditor {
 
     /** Fetch label-config.json (if present) and apply it. */
     loadConfig() {
-        fetch('label-config.json')
+        // Cache-buster: the preview host caches .json aggressively, so a fresh
+        // query string guarantees each load fetches the latest config.
+        fetch('label-config.json?v=' + Date.now())
             .then(response => {
                 if (!response.ok) throw new Error('No saved config found');
                 return response.json();

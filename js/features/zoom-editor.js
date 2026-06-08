@@ -29,7 +29,8 @@ export class ZoomEditor {
 
     /** Fetch country-zoom.json (if present) and apply the overrides. */
     loadConfig() {
-        fetch('country-zoom.json')
+        // Cache-buster (see label-editor.js): always fetch the latest config.
+        fetch('country-zoom.json?v=' + Date.now())
             .then(response => {
                 if (!response.ok) throw new Error('No saved zoom config found');
                 return response.json();

@@ -46,7 +46,8 @@ export class ColorEditor {
 
     /** Fetch country-colors.json (if present) and apply it. */
     loadConfig() {
-        fetch('country-colors.json')
+        // Cache-buster (see label-editor.js): always fetch the latest config.
+        fetch('country-colors.json?v=' + Date.now())
             .then(response => {
                 if (!response.ok) throw new Error('No saved color config found');
                 return response.json();
