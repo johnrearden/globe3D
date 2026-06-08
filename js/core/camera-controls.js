@@ -18,6 +18,15 @@ export class CameraController {
         this.idleTimeout = null;
         this.lastInteractionTime = Date.now();
         this.IDLE_DELAY = 120000; // 2 minutes of inactivity before auto-rotation resumes
+
+        // Release-momentum ("flick") state. OrbitControls' own damping barely
+        // coasts on a mouse release; this adds a decaying spin from the pointer
+        // velocity at release so desktop matches the touch flick feel.
+        this._flickActive = false;
+        this._thetaVel = 0;   // rad/ms (azimuthal)
+        this._phiVel = 0;     // rad/ms (polar)
+        this._flickLast = 0;  // timestamp of last applied flick frame
+        this.FLICK_HALF_LIFE_MS = 120; // smaller = shorter glide
     }
 
     /**
@@ -80,6 +89,7 @@ export class CameraController {
      * @param {THREE.Vector3|null} aimPoint - exact point to aim at (else centroid)
      */
     rotateToCountry(arg, isQuizMode = false, aimPoint = null) {
+        this.cancelFlick(); // a programmatic move overrides any coasting spin
         let record = null;
         if (typeof arg === 'string') {
             record = this.globeManager.getCountryByName(arg);
@@ -139,6 +149,7 @@ export class CameraController {
 
     /** Animate the camera back to the initial full-globe distance. */
     zoomOut() {
+        this.cancelFlick();
         this.smallCountryIndicator.remove();
 
         const targetDistance = this.initialCameraDistance;
@@ -194,6 +205,61 @@ export class CameraController {
         this.controls.autoRotate = false;
     }
 
+    /**
+     * Start release momentum from the pointer velocity at release.
+     * @param {number} velX - horizontal pointer velocity in px/ms
+     * @param {number} velY - vertical pointer velocity in px/ms
+     */
+    flick(velX, velY) {
+        if (!this.controls) return;
+
+        // Match OrbitControls' rotate mapping: angle ≈ 2π · rotateSpeed / clientHeight
+        // per pixel. Continue at the release velocity, then decay.
+        const h = this.renderer.domElement.clientHeight || window.innerHeight;
+        const k = 2 * Math.PI * this.controls.rotateSpeed / h; // rad per px
+        this._thetaVel = -k * velX; // rad/ms
+        this._phiVel = -k * velY;
+
+        // Ignore negligible releases (a slow let-go shouldn't drift).
+        if (Math.hypot(this._thetaVel, this._phiVel) < 0.0002) {
+            this._flickActive = false;
+            return;
+        }
+        this._flickActive = true;
+        this._flickLast = 0; // first update() frame seeds the clock
+    }
+
+    /** Cancel any in-progress release momentum (e.g. on a new pointer grab). */
+    cancelFlick() {
+        this._flickActive = false;
+    }
+
+    /** Apply one frame of flick momentum, advancing the camera around the globe. */
+    _stepFlick(now) {
+        if (!this._flickLast) { this._flickLast = now; return; }
+        const dt = Math.min(now - this._flickLast, 50); // clamp to avoid jumps after a stall
+        this._flickLast = now;
+
+        // Advance the camera in spherical coords (THREE/OrbitControls convention).
+        const offset = this.camera.position;
+        const radius = offset.length();
+        if (radius === 0) { this._flickActive = false; return; }
+        let theta = Math.atan2(offset.x, offset.z) + this._thetaVel * dt;
+        let phi = Math.acos(Math.max(-1, Math.min(1, offset.y / radius))) + this._phiVel * dt;
+        phi = Math.max(0.000001, Math.min(Math.PI - 0.000001, phi));
+        const sinPhiR = Math.sin(phi) * radius;
+        offset.set(sinPhiR * Math.sin(theta), Math.cos(phi) * radius, sinPhiR * Math.cos(theta));
+        this.camera.lookAt(0, 0, 0);
+
+        // Exponential decay by half-life.
+        const decay = Math.pow(0.5, dt / this.FLICK_HALF_LIFE_MS);
+        this._thetaVel *= decay;
+        this._phiVel *= decay;
+        if (Math.hypot(this._thetaVel, this._phiVel) < 0.000005) {
+            this._flickActive = false;
+        }
+    }
+
     /** Resume auto-rotation after the idle delay (unless a quiz is active). */
     resumeAutoRotation() {
         if (state.get('quiz.active')) return;
@@ -234,6 +300,10 @@ export class CameraController {
         const t = Math.max(0, Math.min(1, (dist - minDist) / (maxDist - minDist)));
         this.controls.zoomSpeed = 0.25 + t * 1.25;
         this.controls.rotateSpeed = 0.25 + t * 1.65;
+
+        if (this._flickActive) {
+            this._stepFlick(performance.now());
+        }
 
         this.controls.update();
     }

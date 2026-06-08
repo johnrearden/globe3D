@@ -25,6 +25,8 @@ export class PointerControls {
         this.clickQuiz = deps.clickQuiz;
         this.rotateGlobeToCountry = deps.rotateGlobeToCountry || (() => {});
         this.resetIdleTimer = deps.resetIdleTimer || (() => {});
+        this.onFlick = deps.onFlick || (() => {});       // (velX, velY) px/ms at release
+        this.cancelFlick = deps.cancelFlick || (() => {});
         this.countryData = deps.countryData;
         this.countryToISO = deps.countryToISO;
         this.state = deps.state;
@@ -41,6 +43,13 @@ export class PointerControls {
         this.selectedCountry = null;
         // Cached invisible sphere at label radius (1.005) for label-drag raycasting.
         this.dragHitSphere = new THREE.Mesh(new THREE.SphereGeometry(1.005, 32, 32));
+
+        // Orbit-drag velocity sampling for release momentum (flick).
+        this._velX = 0;        // smoothed px/ms
+        this._velY = 0;
+        this._lastMoveX = 0;
+        this._lastMoveY = 0;
+        this._lastMoveTime = 0;
     }
 
     attach() {
@@ -58,12 +67,18 @@ export class PointerControls {
     onPointerDown(event) {
         // Any press counts as interaction (covers touch taps with no move).
         this.resetIdleTimer();
+        this.cancelFlick(); // grabbing the globe stops any coasting spin
         this._updateMouse(event);
 
         this.mouseDownPos.x = event.clientX;
         this.mouseDownPos.y = event.clientY;
         this.isDragging = false;
         this.longPressTriggered = false;
+
+        // Reset velocity sampling for this drag.
+        this._velX = 0;
+        this._velY = 0;
+        this._lastMoveTime = 0;
 
         // Edit mode: start dragging the selected label if clicked on it or its helper.
         if (this.labelEditor.isActive() && this.labelEditor.getSelected()) {
@@ -117,9 +132,16 @@ export class PointerControls {
             return;
         }
 
-        // Orbit drag release — not a click.
+        // Orbit drag release — not a click. Carry the release velocity into a
+        // decaying spin. Touch already gets good inertia from OrbitControls
+        // damping, so only boost mouse/pen (where a release barely coasts), and
+        // skip it if the pointer had effectively stopped before lift-off.
         if (this.isDragging) {
             this.isDragging = false;
+            const fresh = this._lastMoveTime && (event.timeStamp - this._lastMoveTime) < 60;
+            if (fresh && event.pointerType !== 'touch') {
+                this.onFlick(this._velX, this._velY);
+            }
             return;
         }
 
@@ -193,13 +215,29 @@ export class PointerControls {
             return; // don't process other moves while dragging
         }
 
-        // Promote to an orbit drag once the pointer moves past the threshold.
+        // Promote to an orbit drag once the pointer moves past the threshold,
+        // and sample the pointer velocity (px/ms) for release momentum.
         if (event.buttons === 1) {
             const deltaX = Math.abs(event.clientX - this.mouseDownPos.x);
             const deltaY = Math.abs(event.clientY - this.mouseDownPos.y);
             if (deltaX > 5 || deltaY > 5) {
                 this.isDragging = true;
             }
+
+            const t = event.timeStamp;
+            if (this._lastMoveTime) {
+                const dt = t - this._lastMoveTime;
+                if (dt > 0) {
+                    // Exponential smoothing so the release reflects the last moments.
+                    const vx = (event.clientX - this._lastMoveX) / dt;
+                    const vy = (event.clientY - this._lastMoveY) / dt;
+                    this._velX = this._velX * 0.5 + vx * 0.5;
+                    this._velY = this._velY * 0.5 + vy * 0.5;
+                }
+            }
+            this._lastMoveX = event.clientX;
+            this._lastMoveY = event.clientY;
+            this._lastMoveTime = t;
         }
 
         // No hover effects during quiz or while dragging.

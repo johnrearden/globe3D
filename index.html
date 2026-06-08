@@ -728,6 +728,8 @@
                         labelEditor, colorEditor, zoomEditor, clickQuiz,
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         resetIdleTimer: () => cameraController.resetIdleTimer(),
+                        onFlick: (vx, vy) => cameraController.flick(vx, vy),
+                        cancelFlick: () => cameraController.cancelFlick(),
                         countryData, countryToISO, state
                     });
                     pointerControls.attach();
