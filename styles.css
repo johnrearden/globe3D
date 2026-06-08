@@ -225,6 +225,16 @@
             overflow-y: auto;
         }
 
+        /* Hide the globe UI during the fullscreen flag quiz (desktop) — the mobile
+           layout already does this. Without it, #zoom-out-btn (top:20/right:20) and
+           the other controls sit over the quiz, covering the cancel × at top-right. */
+        body.flag-quiz-active #search-container,
+        body.flag-quiz-active #zoom-widget,
+        body.flag-quiz-active #zoom-out-btn,
+        body.flag-quiz-active #take-quiz-btn {
+            display: none !important;
+        }
+
         body.flag-quiz-active #quiz-header {
             font-size: 24px;
             margin-bottom: 15px;
