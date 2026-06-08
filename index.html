@@ -278,6 +278,7 @@
         import { updateZoomWidget, updateSearchVisibilityOnMobile, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
         import { hideLoading } from './js/features/loading.js';
         import { ColorEditor } from './js/features/color-editor.js';
+        import { ZoomEditor } from './js/features/zoom-editor.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -437,10 +438,8 @@
         let colorEditor = null;
 
         // Focus-zoom level variables (per-country focus distance + label visibility)
-        let focusRegistry = null;     // FocusZoomRegistry, built once globe data loads
-        let zoomEditMode = false;
-        let zoomConfig = {};          // Stores manual level overrides ({name: 'E'})
-        let activeLevel = 'C';        // Selected level in the Edit Zoom panel
+        let focusRegistry = null;     // FocusZoomRegistry, built once globe data loads (shared)
+        let zoomEditor = null;        // ZoomEditor instance (owns its own edit-mode flag + config)
 
         // Curated palette: 16 dark hues chosen for ~5:1+ contrast against white label text
         // while keeping enough chroma to read as distinct, vivid country colors.
@@ -587,6 +586,16 @@
                 globeManager,
                 onEnter: () => { if (editMode) toggleEditMode(); }
             });
+
+            // Zoom editor — focusRegistry + labelManager are injected once built
+            // (see globe-load completion). onEnter disables label + color edit.
+            zoomEditor = new ZoomEditor({
+                rotateGlobeToCountry: (name) => rotateGlobeToCountry(name),
+                onEnter: () => {
+                    if (editMode) toggleEditMode();
+                    if (colorEditor.isActive()) colorEditor.toggle();
+                }
+            });
             globeManager.init();
 
             // Get globe reference
@@ -660,6 +669,10 @@
                         .filter(Boolean);
                     focusRegistry.buildFromCountries(countryRecords);
                     labelManager.applyFocusZoom(focusRegistry);
+
+                    // Hand the zoom editor the now-built shared registry + label manager.
+                    zoomEditor.focusRegistry = focusRegistry;
+                    zoomEditor.labelManager = labelManager;
 
                     // Merge baked-in dependencies (Greenland, Puerto Rico, …) into
                     // the runtime country data so the flag panel shows each one's
@@ -857,7 +870,7 @@
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     loadLabelConfig();
                     colorEditor.loadConfig();
-                    loadZoomConfig();
+                    zoomEditor.loadConfig();
 
                     // Texture fully loaded — reveal the globe by smoothly bringing
                     // the scene up from black to full lighting. The scene lights and
@@ -1164,9 +1177,9 @@
             colorEditor.buildSwatchPanel();
 
             // Focus-zoom edit mode UI buttons
-            elements.get('edit-zoom-btn').addEventListener('click', toggleZoomEditMode);
-            elements.get('save-zoom-btn').addEventListener('click', saveZoomConfig);
-            buildLevelPanel();
+            elements.get('edit-zoom-btn').addEventListener('click', () => zoomEditor.toggle());
+            elements.get('save-zoom-btn').addEventListener('click', () => zoomEditor.saveConfig());
+            zoomEditor.buildLevelPanel();
 
             // Label editor modal buttons
             elements.get('label-editor-close-btn').addEventListener('click', closeLabelEditorModal);
@@ -1461,27 +1474,6 @@
         }
 
         // Load manual focus-zoom level overrides (country-zoom.json).
-        function loadZoomConfig() {
-            fetch('country-zoom.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('No saved zoom config found');
-                    }
-                    return response.json();
-                })
-                .then(config => {
-                    zoomConfig = config;
-                    console.log('Loaded zoom configuration for', Object.keys(zoomConfig).length, 'countries');
-                    if (focusRegistry) {
-                        focusRegistry.applyOverrides(zoomConfig);
-                        if (labelManager) labelManager.applyFocusZoom(focusRegistry);
-                    }
-                })
-                .catch(err => {
-                    console.log('No zoom config file found, using default levels');
-                });
-        }
-
         // Open label editor modal for selected label
         function openLabelEditorModal() {
             if (!selectedLabel) return;
@@ -1638,88 +1630,6 @@
             }
         }
 
-        // Build the A–H level panel. Each button sets activeLevel on click.
-        function buildLevelPanel() {
-            const panel = elements.get('level-panel');
-            if (!panel) return;
-            panel.innerHTML = '';
-            LEVELS.forEach(lvl => {
-                const btn = document.createElement('button');
-                btn.className = 'level-btn' + (lvl === activeLevel ? ' active' : '');
-                btn.textContent = `${lvl} · ${LEVEL_DISTANCES[lvl].toFixed(2)}`;
-                btn.dataset.level = lvl;
-                btn.addEventListener('click', () => {
-                    activeLevel = lvl;
-                    panel.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                });
-                panel.appendChild(btn);
-            });
-        }
-
-        // Toggle focus-zoom edit mode
-        function toggleZoomEditMode() {
-            zoomEditMode = !zoomEditMode;
-
-            const editBtn = elements.get('edit-zoom-btn');
-            const saveBtn = elements.get('save-zoom-btn');
-            const levelPanel = elements.get('level-panel');
-
-            if (zoomEditMode) {
-                console.log('Zoom edit mode ENABLED - Pick a level, then click countries');
-
-                addClass(editBtn, 'active');
-                setText(editBtn, 'Exit Zoom Edit');
-                show(saveBtn);
-                if (levelPanel) levelPanel.style.display = 'grid';
-
-                // Disable other edit modes if active
-                if (editMode) toggleEditMode();
-                if (colorEditor.isActive()) colorEditor.toggle();
-            } else {
-                console.log('Zoom edit mode DISABLED');
-
-                removeClass(editBtn, 'active');
-                setText(editBtn, 'Edit Zoom');
-                hide(saveBtn);
-                if (levelPanel) levelPanel.style.display = 'none';
-            }
-        }
-
-        // Assign the currently-selected level to a country, then preview the framing.
-        function setCountryFocusLevel(countryName) {
-            if (!countryName || !zoomEditMode || !focusRegistry) return;
-
-            focusRegistry.setLevel(countryName, activeLevel);
-            zoomConfig[countryName] = activeLevel;
-            if (labelManager) labelManager.applyFocusZoom(focusRegistry);
-
-            console.log(`${countryName} focus level set to ${activeLevel} (${LEVEL_DISTANCES[activeLevel]})`);
-
-            // Preview the new framing immediately.
-            rotateGlobeToCountry(countryName);
-
-            if (navigator.vibrate) {
-                navigator.vibrate(30);
-            }
-        }
-
-        // Save focus-zoom overrides to JSON file
-        function saveZoomConfig() {
-            const overrides = focusRegistry ? focusRegistry.getOverrides() : zoomConfig;
-            const dataStr = JSON.stringify(overrides, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'country-zoom.json';
-            link.click();
-
-            URL.revokeObjectURL(url);
-            console.log('Zoom configuration saved! Countries configured:', Object.keys(overrides).length);
-        }
-
         // Repurposed: the textured sphere is the only globe surface now, so
         // the toggle controls whether countries are drawn (vs. ocean only).
         function toggleSphere(event) {
@@ -1841,11 +1751,11 @@
             }
 
             // Zoom edit mode: Assign focus level on click
-            if (zoomEditMode) {
+            if (zoomEditor.isActive()) {
                 raycaster.setFromCamera(mouse, camera);
                 const zoomPick = globeManager.pick(raycaster.ray);
                 if (zoomPick) {
-                    setCountryFocusLevel(zoomPick.name);
+                    zoomEditor.setCountryFocusLevel(zoomPick.name);
                     return;
                 }
             }
