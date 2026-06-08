@@ -275,6 +275,7 @@
         import { FocusZoomRegistry, LEVELS, LEVEL_DISTANCES } from './js/core/focus-zoom.js';
         import { countryData, countryToISO } from './js/data/country-data.js';
         import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
+        import { updateZoomWidget, updateSearchVisibilityOnMobile, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -955,9 +956,9 @@
                 }
 
                 // Update UI widgets
-                updateZoomWidget();
-                updateSearchVisibilityOnMobile();
-                updateZoomOutButtonVisibility();
+                updateZoomWidget(camera);
+                updateSearchVisibilityOnMobile(camera);
+                updateZoomOutButtonVisibility(camera);
             });
 
             // Sync state with initial variable values
@@ -2594,67 +2595,8 @@
         }
 
         // Update zoom widget display
-        function updateZoomWidget() {
-            const MIN_ZOOM = 1.13;
-            const MAX_ZOOM = 10;
-
-            // Get current camera distance
-            const currentZoom = camera.position.length();
-
-            // Clamp value
-            const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentZoom));
-
-            // Calculate percentage (inverted - closer = higher bar)
-            const percentage = ((MAX_ZOOM - clampedZoom) / (MAX_ZOOM - MIN_ZOOM)) * 100;
-
-            // Update bar fill height
-            const zoomBarFill = elements.get('zoom-bar-fill');
-            if (zoomBarFill) {
-                zoomBarFill.style.height = percentage + '%';
-            }
-
-            // Update text value
-            const zoomValue = elements.get('zoom-value');
-            if (zoomValue) {
-                setText(zoomValue, clampedZoom.toFixed(2));
-            }
-        }
-
-        // Update search container visibility on mobile based on zoom level
-        function updateSearchVisibilityOnMobile() {
-            // Only apply on mobile devices
-            const isMobile = window.innerWidth <= 768;
-            if (!isMobile) return;
-
-            const searchContainer = elements.get('search-container');
-            if (!searchContainer) return;
-
-            // Get current camera distance
-            const currentZoom = camera.position.length();
-
-            // Hide search when zoomed in (closer than 3.5), show when zoomed out
-            if (currentZoom < 3.5) {
-                hide(searchContainer);
-            } else {
-                show(searchContainer);
-            }
-        }
-
-        // Update zoom out button visibility based on zoom level
-        function updateZoomOutButtonVisibility() {
-            const zoomOutBtn = elements.get('zoom-out-btn');
-            if (!zoomOutBtn) return;
-
-            // Get current camera distance
-            const currentZoom = camera.position.length();
-
-            // Show button when zoomed in (closer than 4), hide when zoomed out
-            if (currentZoom < 4) {
-                show(zoomOutBtn);
-            } else {
-                hide(zoomOutBtn);
-            }
-        }
+        // Zoom-driven UI widgets (updateZoomWidget / updateSearchVisibilityOnMobile /
+        // updateZoomOutButtonVisibility) live in js/features/ui-sync.js.
 
         // Old animate() function removed - now handled by SceneManager.onRender() callbacks
         // See init() function for render loop registration
