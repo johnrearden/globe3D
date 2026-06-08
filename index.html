@@ -330,30 +330,15 @@
         (function(global){var module=global.noise={};function Grad(x,y,z){this.x=x;this.y=y;this.z=z}Grad.prototype.dot2=function(x,y){return this.x*x+this.y*y};Grad.prototype.dot3=function(x,y,z){return this.x*x+this.y*y+this.z*z};var grad3=[new Grad(1,1,0),new Grad(-1,1,0),new Grad(1,-1,0),new Grad(-1,-1,0),new Grad(1,0,1),new Grad(-1,0,1),new Grad(1,0,-1),new Grad(-1,0,-1),new Grad(0,1,1),new Grad(0,-1,1),new Grad(0,1,-1),new Grad(0,-1,-1)];var p=[151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];var perm=new Array(512);var gradP=new Array(512);module.seed=function(seed){if(seed>0&&seed<1){seed*=65536}seed=Math.floor(seed);if(seed<256){seed|=seed<<8}for(var i=0;i<256;i++){var v;if(i&1){v=p[i]^(seed&255)}else{v=p[i]^((seed>>8)&255)}perm[i]=perm[i+256]=v;gradP[i]=gradP[i+256]=grad3[v%12]}};module.seed(0);function fade(t){return t*t*t*(t*(t*6-15)+10)}function lerp(a,b,t){return(1-t)*a+t*b}module.perlin2=function(x,y){var X=Math.floor(x),Y=Math.floor(y);x=x-X;y=y-Y;X=X&255;Y=Y&255;var n00=gradP[X+perm[Y]].dot2(x,y);var n01=gradP[X+perm[Y+1]].dot2(x,y-1);var n10=gradP[X+1+perm[Y]].dot2(x-1,y);var n11=gradP[X+1+perm[Y+1]].dot2(x-1,y-1);var u=fade(x);return lerp(lerp(n00,n10,u),lerp(n01,n11,u),fade(y))}})(window);
 
         // Global variables
-        let scene, camera, renderer, globe, countries = [];
+        let scene, camera, renderer, globe;
         let smallCountryIndicator = null; // SmallCountryIndicator instance (tiny-country marker)
         let controls;
         let baseSphere;
         let initialCameraDistance; // Store initial camera distance for zoom out
 
-        // Quiz variables
+        // Country centroids (built from metadata; used for quiz distance calcs).
+        // Quiz/click-quiz state itself lives in the quiz modules + js/data/state.js.
         let countryCentroids = []; // Array of { name, centroid: Vector3, meshRef }
-        let quizActive = false;
-        let currentQuizMode = null; // 'name-flag', 'identify-flag', or 'find-country'
-        let currentQuizQuestion = null; // { correctCountry, options: [country names] }
-        let quizScore = 0;
-        let quizQuestionsAnswered = 0;
-        let usedQuizCountries = []; // Track countries already used in current quiz
-        let quizAutoAdvanceTimer = null; // Timer for auto-advancing to next question
-
-        // Click quiz variables
-        let clickQuizActive = false;
-        let clickQuizCountries = []; // Array of 10 country names for this quiz
-        let clickQuizCurrentIndex = 0; // Current question (0-9)
-        let clickQuizScore = 0; // Number of correct answers
-        let clickQuizStartTime = 0; // Timestamp when quiz started
-        let clickQuizTimeRemaining = 45000; // Milliseconds remaining (45 seconds)
-        let clickQuizTimerInterval = null; // Interval ID for timer updates
 
         // Country labels
         let countryLabels = []; // Array of label meshes
@@ -421,62 +406,6 @@
         let flagRenderer = null;
         let countryMap = null;
         let searchManager = null;
-
-        // ===== STATE SYNCHRONIZATION =====
-        // Initialize state manager with current variable values
-        // This allows gradual migration to centralized state
-        function syncStateWithVariables() {
-            // Sync scene objects (if they exist)
-            if (scene) state.set('scene.scene', scene, false);
-            if (camera) state.set('scene.camera', camera, false);
-            if (renderer) state.set('scene.renderer', renderer, false);
-            if (globe) state.set('scene.globe', globe, false);
-            if (controls) state.set('scene.controls', controls, false);
-            if (baseSphere) state.set('scene.baseSphere', baseSphere, false);
-            if (initialCameraDistance !== undefined) {
-                state.set('scene.initialCameraDistance', initialCameraDistance, false);
-            }
-
-            // Sync countries
-            state.set('countries.list', countries, false);
-            state.set('countries.centroids', countryCentroids, false);
-
-            // Sync flag renderer
-            if (flagRenderer) {
-                state.set('flags.renderer', flagRenderer, false);
-            }
-
-            // Sync search manager
-            if (searchManager) {
-                state.set('search.manager', searchManager, false);
-            }
-
-            // Sync quiz state
-            state.set('quiz.active', quizActive, false);
-            state.set('quiz.mode', currentQuizMode, false);
-            state.set('quiz.currentQuestion', currentQuizQuestion, false);
-            state.set('quiz.score', quizScore, false);
-            state.set('quiz.questionsAnswered', quizQuestionsAnswered, false);
-            state.set('quiz.usedCountries', usedQuizCountries, false);
-            state.set('quiz.autoAdvanceTimer', quizAutoAdvanceTimer, false);
-
-            // Sync click quiz state
-            state.set('quiz.clickQuiz.active', clickQuizActive, false);
-            state.set('quiz.clickQuiz.countries', clickQuizCountries, false);
-            state.set('quiz.clickQuiz.currentIndex', clickQuizCurrentIndex, false);
-            state.set('quiz.clickQuiz.score', clickQuizScore, false);
-            state.set('quiz.clickQuiz.startTime', clickQuizStartTime, false);
-            state.set('quiz.clickQuiz.timeRemaining', clickQuizTimeRemaining, false);
-            state.set('quiz.clickQuiz.timerInterval', clickQuizTimerInterval, false);
-
-
-            // Sync color editor state
-
-            // Sync auto-rotation state
-            state.set('autoRotation.enabled', autoRotateEnabled, false);
-            state.set('autoRotation.lastInteractionTime', lastInteractionTime, false);
-            state.set('autoRotation.idleTimer', idleTimeout, false);
-        }
 
 
         // Intro-overlay dismissal (hideLoading / hideSeoContent) lives in
@@ -896,19 +825,6 @@
                 updateZoomWidget(camera);
                 updateSearchVisibilityOnMobile(camera);
                 updateZoomOutButtonVisibility(camera);
-            });
-
-            // Sync state with initial variable values
-            syncStateWithVariables();
-
-            // Debug: Verify state is working
-            console.log('State manager initialized');
-            console.log('Quiz state:', state.get('quiz'));
-            console.log('Scene camera:', state.get('scene.camera'));
-
-            // Test reactive subscription
-            state.subscribe('quiz.score', (newValue, oldValue) => {
-                console.log(`Quiz score changed: ${oldValue} -> ${newValue}`);
             });
 
             // Start animation loop
@@ -1481,18 +1397,9 @@
 
         // Update label visibility based on camera distance and orientation
         function updateLabelVisibility() {
-            // Delegate to LabelManager if available
-            if (labelManager) {
-                // Hide all labels during quiz mode
-                if (quizActive) {
-                    countryLabels.forEach(label => {
-                        label.visible = false;
-                    });
-                    return;
-                }
-
-                labelManager.updateVisibility();
-            }
+            // LabelManager.updateVisibility() already hides labels during quiz
+            // (it reads state.get('quiz.active')), so just delegate.
+            if (labelManager) labelManager.updateVisibility();
         }
 
         // Update zoom widget display
