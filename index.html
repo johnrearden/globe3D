@@ -277,6 +277,7 @@
         import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
         import { updateZoomWidget, updateSearchVisibilityOnMobile, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
         import { hideLoading } from './js/features/loading.js';
+        import { ColorEditor } from './js/features/color-editor.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -432,10 +433,8 @@
         let longPressTimer = null;
         let longPressTriggered = false;
 
-        // Color edit mode variables
-        let colorEditMode = false;
-        let colorConfig = {}; // Stores custom country colors
-        let activeColorIndex = 0; // Index into COLOR_PALETTE for the swatch UI
+        // Color editor instance (owns its own edit-mode flag + config).
+        let colorEditor = null;
 
         // Focus-zoom level variables (per-country focus distance + label visibility)
         let focusRegistry = null;     // FocusZoomRegistry, built once globe data loads
@@ -445,25 +444,6 @@
 
         // Curated palette: 16 dark hues chosen for ~5:1+ contrast against white label text
         // while keeping enough chroma to read as distinct, vivid country colors.
-        const COLOR_PALETTE = [
-            [0.50, 0.10, 0.15], // Crimson
-            [0.55, 0.25, 0.10], // Rust
-            [0.50, 0.35, 0.08], // Bronze
-            [0.45, 0.42, 0.10], // Olive Gold
-            [0.28, 0.42, 0.12], // Moss
-            [0.10, 0.42, 0.20], // Forest
-            [0.08, 0.40, 0.32], // Pine
-            [0.10, 0.35, 0.48], // Lagoon
-            [0.12, 0.22, 0.50], // Sapphire
-            [0.25, 0.15, 0.50], // Indigo
-            [0.40, 0.15, 0.50], // Violet
-            [0.48, 0.12, 0.42], // Plum
-            [0.52, 0.10, 0.28], // Berry
-            [0.42, 0.18, 0.15], // Mahogany
-            [0.32, 0.22, 0.15], // Coffee
-            [0.22, 0.30, 0.38]  // Slate
-        ];
-
         // Country size categories for label sizing and visibility
         const LARGE_COUNTRIES = new Set([
             'Russia', 'Canada', 'United States', 'China', 'Brazil', 'Australia',
@@ -570,8 +550,6 @@
             state.set('labels.selectionHelper', selectionHelper, false);
 
             // Sync color editor state
-            state.set('colorEditor.editMode', colorEditMode, false);
-            state.set('colorEditor.config', colorConfig, false);
 
             // Sync auto-rotation state
             state.set('autoRotation.enabled', autoRotateEnabled, false);
@@ -603,6 +581,12 @@
 
             // 2. Initialize GlobeManager
             globeManager = new GlobeManager(scene);
+
+            // Color editor — onEnter disables label edit mode (mutually exclusive).
+            colorEditor = new ColorEditor({
+                globeManager,
+                onEnter: () => { if (editMode) toggleEditMode(); }
+            });
             globeManager.init();
 
             // Get globe reference
@@ -872,7 +856,7 @@
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     loadLabelConfig();
-                    loadColorConfig();
+                    colorEditor.loadConfig();
                     loadZoomConfig();
 
                     // Texture fully loaded — reveal the globe by smoothly bringing
@@ -1175,9 +1159,9 @@
             elements.get('fine-tune-btn').addEventListener('click', openLabelEditorModal);
 
             // Color edit mode UI buttons
-            elements.get('edit-colors-btn').addEventListener('click', toggleColorEditMode);
-            elements.get('save-colors-btn').addEventListener('click', saveColorConfig);
-            buildSwatchPanel();
+            elements.get('edit-colors-btn').addEventListener('click', () => colorEditor.toggle());
+            elements.get('save-colors-btn').addEventListener('click', () => colorEditor.saveConfig());
+            colorEditor.buildSwatchPanel();
 
             // Focus-zoom edit mode UI buttons
             elements.get('edit-zoom-btn').addEventListener('click', toggleZoomEditMode);
@@ -1476,33 +1460,6 @@
             });
         }
 
-        function loadColorConfig() {
-            // Try to fetch country-colors.json
-            fetch('country-colors.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('No saved color config found');
-                    }
-                    return response.json();
-                })
-                .then(config => {
-                    colorConfig = config;
-                    console.log('Loaded color configuration for', Object.keys(colorConfig).length, 'countries');
-                    // Apply loaded config to existing country meshes
-                    applyColorConfig();
-                })
-                .catch(err => {
-                    console.log('No color config file found, using default colors');
-                });
-        }
-
-        // Apply saved color configuration via the override texture.
-        function applyColorConfig() {
-            if (globeManager) {
-                globeManager.applyColorOverrides(colorConfig);
-            }
-        }
-
         // Load manual focus-zoom level overrides (country-zoom.json).
         function loadZoomConfig() {
             fetch('country-zoom.json')
@@ -1681,87 +1638,6 @@
             }
         }
 
-        // Build the swatch panel from COLOR_PALETTE. Each swatch sets activeColorIndex on click.
-        function buildSwatchPanel() {
-            const panel = elements.get('swatch-panel');
-            if (!panel) return;
-            panel.innerHTML = '';
-            COLOR_PALETTE.forEach((rgb, i) => {
-                const btn = document.createElement('button');
-                btn.className = 'swatch' + (i === activeColorIndex ? ' active' : '');
-                btn.style.backgroundColor = `rgb(${Math.round(rgb[0] * 255)}, ${Math.round(rgb[1] * 255)}, ${Math.round(rgb[2] * 255)})`;
-                btn.dataset.colorIndex = i;
-                btn.addEventListener('click', () => {
-                    activeColorIndex = i;
-                    panel.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-                    btn.classList.add('active');
-                });
-                panel.appendChild(btn);
-            });
-        }
-
-        // Toggle color edit mode
-        function toggleColorEditMode() {
-            colorEditMode = !colorEditMode;
-
-            const editBtn = elements.get('edit-colors-btn');
-            const saveBtn = elements.get('save-colors-btn');
-            const swatchPanel = elements.get('swatch-panel');
-
-            if (colorEditMode) {
-                console.log('Color edit mode ENABLED - Pick a swatch, then click countries');
-
-                // Update UI
-                addClass(editBtn, 'active');
-                setText(editBtn, 'Exit Color Edit');
-                show(saveBtn);
-                if (swatchPanel) swatchPanel.style.display = 'grid';
-
-                // Disable label edit mode if active
-                if (editMode) {
-                    toggleEditMode();
-                }
-            } else {
-                console.log('Color edit mode DISABLED');
-
-                // Update UI
-                removeClass(editBtn, 'active');
-                setText(editBtn, 'Edit Colors');
-                hide(saveBtn);
-                if (swatchPanel) swatchPanel.style.display = 'none';
-            }
-        }
-
-        // Change country color to the currently-selected swatch.
-        function changeCountryColor(countryName) {
-            if (!countryName || !colorEditMode) return;
-
-            const color = COLOR_PALETTE[activeColorIndex];
-            globeManager.setCountryColor(countryName, color);
-            colorConfig[countryName] = color;
-
-            console.log(`${countryName} color changed to [${color.join(', ')}]`);
-
-            if (navigator.vibrate) {
-                navigator.vibrate(30);
-            }
-        }
-
-        // Save color configuration to JSON file
-        function saveColorConfig() {
-            const dataStr = JSON.stringify(colorConfig, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'country-colors.json';
-            link.click();
-
-            URL.revokeObjectURL(url);
-            console.log('Color configuration saved! Countries configured:', Object.keys(colorConfig).length);
-        }
-
         // Build the A–H level panel. Each button sets activeLevel on click.
         function buildLevelPanel() {
             const panel = elements.get('level-panel');
@@ -1799,7 +1675,7 @@
 
                 // Disable other edit modes if active
                 if (editMode) toggleEditMode();
-                if (colorEditMode) toggleColorEditMode();
+                if (colorEditor.isActive()) colorEditor.toggle();
             } else {
                 console.log('Zoom edit mode DISABLED');
 
@@ -1955,11 +1831,11 @@
             }
 
             // Color edit mode: Change country color on click
-            if (colorEditMode) {
+            if (colorEditor.isActive()) {
                 raycaster.setFromCamera(mouse, camera);
                 const colorPick = globeManager.pick(raycaster.ray);
                 if (colorPick) {
-                    changeCountryColor(colorPick.name);
+                    colorEditor.changeCountryColor(colorPick.name);
                     return;
                 }
             }
