@@ -283,6 +283,7 @@
         import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
         import { LabelEditor } from './js/features/label-editor.js';
         import { PointerControls } from './js/features/pointer-controls.js';
+        import { animateFlagWave } from './js/features/flag-wave.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -295,32 +296,6 @@
          * @param {Float32Array} originalPositions - Original vertex positions
          * @param {number} time - Current animation time
          */
-        function animateFlagWave(mesh, originalPositions, time) {
-            if (!mesh || !originalPositions) return;
-
-            const positions = mesh.geometry.attributes.position;
-            const coeff = 72;
-            const coeff2 = 65;
-            const gap = 10;
-            const spacing = 30;
-
-            for (let i = 0; i < positions.count; i++) {
-                const x = originalPositions[i * 3];
-                const y = originalPositions[i * 3 + 1];
-
-                // Apply Perlin noise to Z position for wave effect
-                positions.array[i * 3 + 2] = 1 +
-                    (spacing / 25) *
-                    noise.perlin2(
-                        x * (gap / coeff) + time,
-                        y * (gap / coeff2)
-                    );
-            }
-
-            positions.needsUpdate = true;
-            mesh.geometry.computeVertexNormals();
-        }
-
         // ===== QUIZ UTILITIES (unified to reduce duplication) =====
         // Quiz celebration + mode-selector glue + the clearQuizTimers /
         // calculateGreatCircleDistance helpers live in js/features/quiz/quiz-ui.js.
@@ -831,43 +806,6 @@
             sceneManager.start();
         }
 
-        function setupControls() {
-            // Create OrbitControls
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-
-            // Enable damping for smooth movement
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-
-            // Keep earth centered - no panning
-            controls.enablePan = false;
-
-            // Set zoom limits (distance from center)
-            controls.minDistance = 1.14;  // Closest zoom (optimal close view)
-            controls.maxDistance = 10;   // Farthest zoom
-
-            // No restrictions on vertical rotation - user can tilt freely
-            // (Polar angle limits removed to allow full sphere rotation)
-
-            // Enable rotation
-            controls.enableRotate = true;
-            controls.rotateSpeed = 0.5;
-
-            // Auto-rotate disabled initially, will enable after 1 minute of inactivity
-            controls.autoRotate = false;
-            controls.autoRotateSpeed = 1.0; // 2x rotation speed
-
-            // Set target to center of scene (earth's center)
-            controls.target.set(0, 0, 0);
-            controls.update();
-
-            // Start idle timer to enable auto-rotation after initial delay
-            // TEMPORARILY DISABLED
-            // idleTimeout = setTimeout(() => {
-            //     resumeAutoRotation();
-            // }, IDLE_DELAY);
-        }
-
         // Resume auto-rotation (only if not in quiz mode)
         function resumeAutoRotation() {
             if (!state.get('quiz.active')) {
@@ -905,29 +843,6 @@
 
             if (idleTimeout) clearTimeout(idleTimeout);
             idleTimeout = setTimeout(resumeAutoRotation, IDLE_DELAY);
-        }
-
-        function setupLights() {
-            // Ambient light - provides overall base illumination
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-
-            // Directional light behind camera (will be updated in animate loop)
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 0, 10); // Behind camera
-            scene.add(directionalLight);
-
-            // Additional point lights for better coverage
-            const pointLight1 = new THREE.PointLight(0xffffff, 0.5);
-            pointLight1.position.set(5, 5, 5);
-            scene.add(pointLight1);
-
-            const pointLight2 = new THREE.PointLight(0xffffff, 0.5);
-            pointLight2.position.set(-5, -5, 5);
-            scene.add(pointLight2);
-
-            // Store reference for updating position with camera
-            scene.userData.cameraLight = directionalLight;
         }
 
 
