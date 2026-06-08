@@ -274,53 +274,11 @@
         import { PinballAnimation } from './js/features/pinball-animation.js';
         import { FocusZoomRegistry, LEVELS, LEVEL_DISTANCES } from './js/core/focus-zoom.js';
         import { countryData, countryToISO } from './js/data/country-data.js';
+        import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
-        class ElementCache {
-            constructor() {
-                this.cache = new Map();
-            }
-            get(id) {
-                if (!this.cache.has(id)) {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        this.cache.set(id, element);
-                    }
-                    return element;
-                }
-                return this.cache.get(id);
-            }
-        }
-
-        const elements = new ElementCache();
-
-        function show(element) {
-            if (element) element.style.display = 'block';
-        }
-
-        function hide(element) {
-            if (element) element.style.display = 'none';
-        }
-
-        function showFlex(element) {
-            if (element) element.style.display = 'flex';
-        }
-
-        function setText(element, text) {
-            if (element) element.textContent = text;
-        }
-
-        function addClass(element, className) {
-            if (element && className) element.classList.add(className);
-        }
-
-        function removeClass(element, className) {
-            if (element && className) element.classList.remove(className);
-        }
-
-        function toggleClass(element, className) {
-            if (element && className) element.classList.toggle(className);
-        }
+        // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
+        // addClass/removeClass/toggleClass) are imported from js/utils/dom.js.
 
         // ===== FLAG ANIMATION UTILITY (unified to avoid duplication) =====
         /**
