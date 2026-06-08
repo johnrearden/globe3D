@@ -363,10 +363,7 @@
         ]);
 
         // Auto-rotation state
-        let autoRotateEnabled = false;
-        let lastInteractionTime = Date.now();
-        let idleTimeout = null;
-        const IDLE_DELAY = 120000; // 2 minutes of inactivity before auto-rotation resumes
+        // Auto-rotation / idle state is owned by CameraController.
 
         // ===== CORE MANAGERS (initialized in init()) =====
         let sceneManager = null;
@@ -416,7 +413,7 @@
             // Zoom editor — focusRegistry + labelManager are injected once built
             // (see globe-load completion). onEnter disables label + color edit.
             zoomEditor = new ZoomEditor({
-                rotateGlobeToCountry: (name) => rotateGlobeToCountry(name),
+                rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                 onEnter: () => {
                     if (labelEditor.isActive()) labelEditor.toggle();
                     if (colorEditor.isActive()) colorEditor.toggle();
@@ -453,8 +450,7 @@
             countryMap = new CountryMap({
                 globeManager, sceneManager, flagRenderer,
                 onEnter: () => {
-                    if (idleTimeout) clearTimeout(idleTimeout);
-                    autoRotateEnabled = false; controls.autoRotate = false;
+                    cameraController.disableAutoRotation();
                     savedGlobeView = { pos: camera.position.clone(), target: controls.target.clone() };
                 },
                 onExit: () => {
@@ -463,16 +459,15 @@
                         controls.target.copy(savedGlobeView.target);
                         controls.update();
                     }
-                    resetIdleTimer();
+                    cameraController.resetIdleTimer();
                 }
             });
             countryMap.init();
 
             // Gently spin the globe behind the intro screen while assets load.
-            // Drives the local idle system: any mouse/touch interaction stops it
+            // Drives the idle system (CameraController): any interaction stops it
             // (resetIdleTimer), and it resumes after IDLE_DELAY of inactivity.
-            autoRotateEnabled = true;
-            controls.autoRotate = true;
+            cameraController.enableAutoRotation();
 
             // 4. Load world data and create labels
             globeManager.loadGlobe(
@@ -608,7 +603,7 @@
                         globeManager: globeManager,
                         cameraController: cameraController,
                         elements: elements,
-                        rotateGlobeToCountry: rotateGlobeToCountry,
+                        rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance,
@@ -637,7 +632,7 @@
                         cameraController: cameraController,
                         elements: elements,
                         countryMap: countryMap,
-                        rotateGlobeToCountry: rotateGlobeToCountry,
+                        rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance,
@@ -657,8 +652,8 @@
                         flagRenderer: flagRenderer,
                         countryData: countryData,
                         countryToISO: countryToISO,
-                        rotateGlobeToCountry: rotateGlobeToCountry,
-                        resetIdleTimer: resetIdleTimer
+                        rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
+                        resetIdleTimer: () => cameraController.resetIdleTimer()
                     });
                     searchManager.init();
 
@@ -731,10 +726,18 @@
                         camera, controls, renderer,
                         globeManager, labelManager, flagRenderer, smallCountryIndicator,
                         labelEditor, colorEditor, zoomEditor, clickQuiz,
-                        rotateGlobeToCountry, resetIdleTimer,
+                        rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
+                        resetIdleTimer: () => cameraController.resetIdleTimer(),
                         countryData, countryToISO, state
                     });
                     pointerControls.attach();
+
+                    // Hand the camera controller its late-created collaborators so its
+                    // rotateToCountry / zoomOut / idle-rotation logic can use them.
+                    cameraController.configure({
+                        globeManager, labelManager, smallCountryIndicator, flagRenderer,
+                        searchManager, focusRegistry, initialCameraDistance
+                    });
 
                     // Texture fully loaded — reveal the globe by smoothly bringing
                     // the scene up from black to full lighting. The scene lights and
@@ -807,45 +810,8 @@
             sceneManager.start();
         }
 
-        // Resume auto-rotation (only if not in quiz mode)
-        function resumeAutoRotation() {
-            if (!state.get('quiz.active')) {
-                autoRotateEnabled = true;
-                controls.autoRotate = true;
-                // No tilt animation - maintain current camera angle
-
-                // Clear the search selection if searchManager exists
-                if (searchManager) {
-                    searchManager.clear();
-                }
-
-                // Reset country highlight on the textured globe
-                globeManager.clearSelection();
-                if (labelManager) labelManager.setHighlight(null);
-
-                // Remove small country indicator
-                smallCountryIndicator.remove();
-
-                // Hide the flag container
-                if (flagRenderer) flagRenderer.hide();
-            }
-        }
-
-        // Called on every mouse/touch/wheel interaction. Stops auto-rotation
-        // immediately and restarts the 2-minute idle countdown — so rotation
-        // only resumes after IDLE_DELAY with no interaction at all.
-        function resetIdleTimer() {
-            lastInteractionTime = Date.now();
-
-            if (autoRotateEnabled) {
-                autoRotateEnabled = false;
-                controls.autoRotate = false;
-            }
-
-            if (idleTimeout) clearTimeout(idleTimeout);
-            idleTimeout = setTimeout(resumeAutoRotation, IDLE_DELAY);
-        }
-
+        // Auto-rotation / idle-timer logic lives in CameraController
+        // (resetIdleTimer / resumeAutoRotation).
 
         function setupEventListeners() {
             // Pointer events (works with mouse, touch, and pen)
@@ -853,7 +819,7 @@
             // globe-load callback, once all injected managers exist.
 
             // Wheel/zoom event (to track user interaction)
-            renderer.domElement.addEventListener('wheel', resetIdleTimer);
+            renderer.domElement.addEventListener('wheel', () => cameraController.resetIdleTimer());
 
             // Window resize
             window.addEventListener('resize', onWindowResize);
@@ -889,7 +855,7 @@
             elements.get('take-quiz-btn').addEventListener('click', () => quizUI.showModeSelector());
 
             // Zoom out button
-            elements.get('zoom-out-btn').addEventListener('click', zoomOutToDefault);
+            elements.get('zoom-out-btn').addEventListener('click', () => cameraController.zoomOut());
 
             // Quiz mode selector buttons
             elements.get('name-flag-quiz-btn').addEventListener('click', () => {
@@ -1003,49 +969,6 @@
         }
 
 
-        // Zoom out to default view
-        function zoomOutToDefault() {
-            // Remove small country indicator when zooming out
-            smallCountryIndicator.remove();
-
-            const targetDistance = initialCameraDistance; // Return to initial camera distance
-            const currentPos = camera.position.clone();
-            const currentDistance = currentPos.length();
-
-            // Normalize direction
-            const direction = currentPos.normalize();
-
-            // Calculate target position
-            const targetPos = direction.multiplyScalar(targetDistance);
-
-            // Animate zoom out
-            const duration = 1000; // ms
-            const startTime = Date.now();
-            const startDist = currentDistance;
-
-            function animateZoom() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-
-                // Ease out cubic
-                const easeProgress = 1 - Math.pow(1 - progress, 3);
-
-                // Interpolate distance
-                const newDistance = startDist + (targetDistance - startDist) * easeProgress;
-
-                // Update camera position
-                const newPos = currentPos.clone().normalize().multiplyScalar(newDistance);
-                camera.position.copy(newPos);
-                camera.lookAt(0, 0, 0);
-                controls.update();
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateZoom);
-                }
-            }
-
-            animateZoom();
-        }
 
 
         // Repurposed: the textured sphere is the only globe surface now, so
@@ -1113,73 +1036,6 @@
 
 
         // Rotate globe to center a country. Accepts either a country name
-        // (string) or a country record { name, centroid, bbox }.
-        function rotateGlobeToCountry(arg, isQuizMode = false, aimPoint = null) {
-            let record = null;
-            if (typeof arg === 'string') {
-                record = globeManager.getCountryByName(arg);
-            } else if (arg && arg.centroid) {
-                record = arg;
-            }
-            if (!record || !record.centroid) return;
-
-            const countryName = record.name;
-
-            // When the caller passes the exact clicked point (same local frame as
-            // centroids), aim there instead of the country centroid — so clicking
-            // a far-flung landmass keeps focus on it, not the country's main mass.
-            const worldPos = (aimPoint || record.centroid).clone().normalize();
-
-            const phi = Math.acos(worldPos.y);
-            const theta = Math.atan2(worldPos.z, worldPos.x);
-
-            // Universal focus distance: the country's A–H level (by bbox width),
-            // identical for click, search, and quiz. This distance also doubles
-            // as the country label's appearance threshold (js/core/labels.js).
-            const targetDistance = focusRegistry
-                ? focusRegistry.distanceOf(countryName)
-                : 1.55;
-
-            const targetCameraPos = new THREE.Vector3(
-                targetDistance * Math.sin(phi) * Math.cos(theta),
-                targetDistance * Math.cos(phi),
-                targetDistance * Math.sin(phi) * Math.sin(theta)
-            );
-
-            const startPos = camera.position.clone();
-            const startDist = startPos.length();
-            const duration = 1000;
-            const startTime = Date.now();
-
-            function animateRotation() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-
-                const easeProgress = progress < 0.5
-                    ? 4 * progress * progress * progress
-                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-                const newPos = new THREE.Vector3().lerpVectors(startPos, targetCameraPos, easeProgress);
-
-                const newDist = startDist + (targetDistance - startDist) * easeProgress;
-                newPos.setLength(newDist);
-
-                camera.position.copy(newPos);
-                camera.lookAt(0, 0, 0);
-                controls.update();
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateRotation);
-                } else {
-                    // Show the disc + arrow for tiny countries on plain
-                    // navigation and in the Name the Country quiz alike — both
-                    // reveal the target country on the globe.
-                    smallCountryIndicator.update(countryName);
-                }
-            }
-
-            animateRotation();
-        }
 
         // Update label visibility based on camera distance and orientation
         function updateLabelVisibility() {
