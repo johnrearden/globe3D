@@ -21,6 +21,45 @@ reduce risk; later stages depend on the safety net the earlier ones lay down.
 
 ---
 
+## Status & Outcomes (as of 2026-06-08)
+
+The bulk of this plan has shipped on branch `refactor_indexdothtml` (32 commits since the plan was
+centralized). **`index.html` went from 3,089 → ~1,059 lines (~66% reduction)** — one inline-JS
+monolith became a thin bootstrap shell plus focused ES modules, all under a green test/CI net.
+
+| Stage | Status | Highlights |
+|-------|--------|-----------|
+| 0 — Baseline & branch hygiene | ◑ Partial | Worked on the long-lived `refactor_indexdothtml` branch; formal `baseline.md` not captured |
+| 1 — Verified bug fixes | ✅ Done | drag-hit-sphere leak, resize-listener teardown, per-frame flag normals → `flatShading`, search event delegation, pooled `cameraDirection` |
+| 2 — Test infrastructure | ✅ Done | vitest + 3 specs / **9 tests** (`lat-lng`, `country-meta`, `world-mesh-format`); CI `.github/workflows/test.yml` |
+| 3 — Docs & cleanup | ✅ Done | retired the 2 stale plans (superseded banners), fixed CLAUDE.md asset sizes, removed stray prototypes, committed the lockfile |
+| 4 — Modularization | ✅ Done | 4a quick wins, 4b Bucket-C feature modules, 4c dead state-sync removal, 4d camera/idle + dead-code |
+| 5 — Perf/correctness polish | ⬜ Pending | `_lookupIdLoose` tighten, override precedence, `getCountries()` removal still open |
+| 6 — Deployment & SEO hardening | ✅ Done | eruda gated behind `?debug`/localhost, full SEO/OG/Twitter/JSON-LD `<head>`, `_headers`, `robots.txt` (dev buttons were already CSS-gated) |
+| 7 — Optional next bets | ⬜ Pending | country borders, search index, multi-language labels |
+
+**Modules created (~11 new files):** `js/data/country-data.js`, `js/utils/coordinates.js`,
+`js/features/{loading,ui-sync,flag-wave,color-editor,zoom-editor,small-country-indicator,label-editor,pointer-controls}.js`,
+and `js/features/quiz/quiz-ui.js`. `js/core/camera-controls.js` absorbed the camera-animation +
+idle logic and shed its dead duplicate API; the inline DOM helpers now import from the pre-existing
+`js/utils/dom.js`. Each Bucket-C feature is a class owning its own state, wired in via constructor
+injection (with an `onEnter` seam for the mutually-exclusive edit modes).
+
+**Beyond the staged plan** (polish + fixes surfaced during smoke testing): a runtime config
+cache-buster (`?v=` on the label/color/zoom JSON fetches), a per-quiz-module `cancel()` (restoring
+the desktop Start-Quiz panel), two fullscreen flag-quiz cancel-`×` fixes (`box-sizing:border-box`
+so it stops rendering off-screen, plus hiding the overlapping globe controls), the PointerControls
+async-deps construction fix, the orphaned-`countries` reference fix, and **mouse release momentum
+(flick)** so desktop drag-and-release coasts and decelerates like the touch flick.
+
+**On the `<500`-line target:** not reached, deliberately — `index.html` lands at ~1,059 lines. What
+remains is genuine bootstrap glue (`init()` + the globe-load callback, `setupEventListeners()`, the
+`cancelQuiz` dispatcher, `onWindowResize`, `toggleSphere`, `updateLabelVisibility`, `onKeyDown`)
+plus the HTML markup shell. Pushing lower would mean fragmenting `init()` and the markup for
+diminishing readability returns, so the modularization was stopped at the natural boundary.
+
+---
+
 ## 1. `index.html` Anatomy Review
 
 A snapshot of `index.html` as it stands (**3,089 lines**) to anchor the modularization work. The
@@ -114,7 +153,7 @@ and mutate shared state through one channel instead of closing over globals.
 
 ---
 
-## Stage 0 — Baseline & branch hygiene
+## Stage 0 — Baseline & branch hygiene — ◑ Partial
 
 **Goal:** Snapshot the current state so we can measure improvement and so each later stage lands as a reviewable PR.
 
@@ -126,7 +165,7 @@ and mutate shared state through one channel instead of closing over globals.
 
 ---
 
-## Stage 1 — Verified-bug fixes (one PR)
+## Stage 1 — Verified-bug fixes (one PR) — ✅ Completed
 
 **Goal:** Land the small, high-confidence bug fixes from the review. No behavioral changes for the user; pure correctness.
 
@@ -154,7 +193,7 @@ and mutate shared state through one channel instead of closing over globals.
 
 ---
 
-## Stage 2 — Test infrastructure (one PR)
+## Stage 2 — Test infrastructure (one PR) — ✅ Completed
 
 **Goal:** Break the zero-tests ceiling. The repo gains a runner, a CI hook, and the first round-trip tests for the math that's easiest to silently break. Every later stage runs under this safety net.
 
@@ -182,7 +221,7 @@ and mutate shared state through one channel instead of closing over globals.
 
 ---
 
-## Stage 3 — Documentation sync & consolidation (one small PR)
+## Stage 3 — Documentation sync & consolidation (one small PR) — ✅ Completed
 
 **Goal:** Stop the docs from lying, and collapse the three overlapping plans into this one.
 
@@ -214,7 +253,7 @@ and mutate shared state through one channel instead of closing over globals.
 
 ---
 
-## Stage 4 — Finish the modularization (one PR per slice)
+## Stage 4 — Finish the modularization (one PR per slice) — ✅ Completed
 
 **Goal:** Drain the remaining ~2,400 lines of inline JS out of `index.html` so it's bootstrap +
 DOM markup only — **under ~500 lines**. Each slice is its own small PR; the Stage-2 safety net means
@@ -247,7 +286,7 @@ For each slice: move code module-by-module, run tests, eyeball the page, delete 
 
 ---
 
-## Stage 5 — Performance & correctness polish (one PR)
+## Stage 5 — Performance & correctness polish (one PR) — ⬜ Pending
 
 **Goal:** Address the smaller efficiency/correctness items that aren't outright bugs but are worth fixing once the structural cleanup is done.
 
@@ -260,7 +299,7 @@ For each slice: move code module-by-module, run tests, eyeball the page, delete 
 
 ---
 
-## Stage 6 — Deployment & SEO hardening (one PR)
+## Stage 6 — Deployment & SEO hardening (one PR) — ✅ Completed
 
 **Goal:** Make the site production-ready. Pulls the concrete, code-touching items out of
 `DEPLOYMENT_GUIDE.md` and `docs/deployment/temp_deploy.md` — see those docs for the full
@@ -284,7 +323,7 @@ practices) and confirm `Content-Encoding` on `.bin` responses.
 
 ---
 
-## Stage 7 — Optional next bets
+## Stage 7 — Optional next bets — ⬜ Pending
 
 These aren't required by the review but are natural follow-ups now that the codebase is clean:
 
