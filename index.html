@@ -819,6 +819,18 @@
                     colorEditor.loadConfig();
                     zoomEditor.loadConfig();
 
+                    // Pointer dispatch — constructed here (not in setupEventListeners,
+                    // which runs before this async callback) so every injected manager
+                    // (labelEditor, labelManager, clickQuiz, …) already exists.
+                    pointerControls = new PointerControls({
+                        camera, controls, renderer,
+                        globeManager, labelManager, flagRenderer, smallCountryIndicator,
+                        labelEditor, colorEditor, zoomEditor, clickQuiz,
+                        rotateGlobeToCountry, resetIdleTimer,
+                        countryData, countryToISO, state
+                    });
+                    pointerControls.attach();
+
                     // Texture fully loaded — reveal the globe by smoothly bringing
                     // the scene up from black to full lighting. The scene lights and
                     // the country shader's own lighting uniforms ramp in together.
@@ -1005,16 +1017,8 @@
 
         function setupEventListeners() {
             // Pointer events (works with mouse, touch, and pen)
-            // Pointer dispatch (label drag/select, edit-mode picks, quiz answers,
-            // country selection) lives in js/features/pointer-controls.js.
-            pointerControls = new PointerControls({
-                camera, controls, renderer,
-                globeManager, labelManager, flagRenderer, smallCountryIndicator,
-                labelEditor, colorEditor, zoomEditor, clickQuiz,
-                rotateGlobeToCountry, resetIdleTimer,
-                countryData, countryToISO, state
-            });
-            pointerControls.attach();
+            // Pointer dispatch (PointerControls) is constructed + attached in the
+            // globe-load callback, once all injected managers exist.
 
             // Wheel/zoom event (to track user interaction)
             renderer.domElement.addEventListener('wheel', resetIdleTimer);
