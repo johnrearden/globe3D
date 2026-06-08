@@ -612,7 +612,8 @@
                         rotateGlobeToCountry: rotateGlobeToCountry,
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
-                        calculateGreatCircleDistance: calculateGreatCircleDistance
+                        calculateGreatCircleDistance: calculateGreatCircleDistance,
+                        labelManager: labelManager
                     });
 
                     identifyFlagQuiz = new IdentifyFlagQuiz({
@@ -640,7 +641,8 @@
                         rotateGlobeToCountry: rotateGlobeToCountry,
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
-                        calculateGreatCircleDistance: calculateGreatCircleDistance
+                        calculateGreatCircleDistance: calculateGreatCircleDistance,
+                        labelManager: labelManager
                     });
 
                     // Register quiz modes with QuizManager
@@ -1098,140 +1100,10 @@
         // glue (show/hide/closeClickQuizResults) moved to js/features/quiz/quiz-ui.js.
 
         function cancelQuiz() {
-            // Determine which quiz is active and end it without celebration
-            if (nameFlagQuiz && nameFlagQuiz.isActive()) {
-                // Clear any timers
-                if (nameFlagQuiz.autoAdvanceTimer) {
-                    clearTimeout(nameFlagQuiz.autoAdvanceTimer);
-                    nameFlagQuiz.autoAdvanceTimer = null;
-                }
-
-                // Set active to false without showing celebration
-                nameFlagQuiz.active = false;
-
-                // Update state
-                state.set('quiz.active', false);
-                state.set('quiz.mode', null);
-
-                // Remove quiz-active class
-                document.body.classList.remove('quiz-active');
-
-                // Hide quiz elements
-                hide(elements.get('quiz-score'));
-                hide(elements.get('quiz-question'));
-                elements.get('quiz-options').innerHTML = '';
-                hide(elements.get('quiz-container'));
-
-                // Reset globe highlighting
-                globeManager.clearSelection();
-                if (labelManager) labelManager.setHighlight(null);
-
-                // Show search and quiz button
-                show(elements.get('search-container'));
-                show(elements.get('take-quiz-btn'));
-
-                // Reset quiz UI
-                hide(elements.get('quiz-cancel-btn'));
-                elements.get('quiz-next-btn').style.visibility = 'hidden';
-                show(elements.get('quiz-start-btn'));
-                elements.get('quiz-start-btn').textContent = 'Start Quiz';
-
-            } else if (capitalCitiesQuiz && capitalCitiesQuiz.isActive()) {
-                // Clear any timers
-                if (capitalCitiesQuiz.autoAdvanceTimer) {
-                    clearTimeout(capitalCitiesQuiz.autoAdvanceTimer);
-                    capitalCitiesQuiz.autoAdvanceTimer = null;
-                }
-
-                // Set active to false without showing celebration
-                capitalCitiesQuiz.active = false;
-
-                // Update state
-                state.set('quiz.active', false);
-                state.set('quiz.mode', null);
-
-                // Remove quiz-active class
-                document.body.classList.remove('quiz-active');
-
-                // Hide quiz elements
-                hide(elements.get('quiz-score'));
-                hide(elements.get('quiz-question'));
-                elements.get('quiz-options').innerHTML = '';
-                hide(elements.get('quiz-container'));
-
-                // Close the 2D map and reset globe highlighting + capital marker
-                if (countryMap) countryMap.hide();
-                globeManager.clearSelection();
-                globeManager.clearCapitalMarker();
-                if (labelManager) labelManager.setHighlight(null);
-
-                // Show search and quiz button
-                show(elements.get('search-container'));
-                show(elements.get('take-quiz-btn'));
-
-                // Reset quiz UI
-                hide(elements.get('quiz-cancel-btn'));
-                elements.get('quiz-next-btn').style.visibility = 'hidden';
-                show(elements.get('quiz-start-btn'));
-                elements.get('quiz-start-btn').textContent = 'Start Quiz';
-
-            } else if (identifyFlagQuiz && identifyFlagQuiz.isActive()) {
-                // Clear any timers
-                if (identifyFlagQuiz.autoAdvanceTimer) {
-                    clearTimeout(identifyFlagQuiz.autoAdvanceTimer);
-                    identifyFlagQuiz.autoAdvanceTimer = null;
-                }
-
-                // Set active to false without showing celebration
-                identifyFlagQuiz.active = false;
-
-                // Update state
-                state.set('quiz.active', false);
-                state.set('quiz.mode', null);
-
-                // Remove quiz-active class
-                document.body.classList.remove('quiz-active');
-                document.body.classList.remove('flag-quiz-active');
-
-                // Hide quiz elements
-                hide(elements.get('quiz-score'));
-                hide(elements.get('quiz-question'));
-                hide(elements.get('quiz-flag-display'));
-                elements.get('quiz-options').innerHTML = '';
-                hide(elements.get('quiz-container'));
-
-                // Show search and quiz button
-                show(elements.get('search-container'));
-                show(elements.get('take-quiz-btn'));
-
-                // Reset quiz UI
-                hide(elements.get('quiz-cancel-btn'));
-                elements.get('quiz-next-btn').style.visibility = 'hidden';
-                show(elements.get('quiz-start-btn'));
-                elements.get('quiz-start-btn').textContent = 'Start Quiz';
-
-            } else if (clickQuiz && clickQuiz.isActive()) {
-                // Clear timer
-                if (clickQuiz.timerInterval) {
-                    clearInterval(clickQuiz.timerInterval);
-                    clickQuiz.timerInterval = null;
-                }
-
-                // Set active to false
-                clickQuiz.active = false;
-
-                // Update state
-                state.set('quiz.active', false);
-                state.set('quiz.mode', null);
-
-                // Hide click quiz UI
-                hide(elements.get('click-quiz-container'));
-                hide(elements.get('click-quiz-timer-bar-container'));
-
-                // Show search and quiz button
-                show(elements.get('search-container'));
-                show(elements.get('take-quiz-btn'));
-            }
+            // End whichever quiz is active without showing its celebration.
+            const quiz = [nameFlagQuiz, capitalCitiesQuiz, identifyFlagQuiz, clickQuiz]
+                .find(q => q && q.isActive());
+            if (quiz) quiz.cancel();
         }
 
         // ===== FLAG RENDERER FUNCTIONS MOVED TO js/features/flag-renderer.js =====

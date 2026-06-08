@@ -201,4 +201,21 @@ export class ClickQuiz {
     isActive() {
         return this.active;
     }
+
+    /** End the quiz immediately without showing the celebration. */
+    cancel() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        this.active = false;
+        state.set('quiz.active', false);
+        state.set('quiz.mode', null);
+
+        this.elements.get('click-quiz-container').style.display = 'none';
+        this.elements.get('click-quiz-timer-bar-container').style.display = 'none';
+
+        this.elements.get('search-container').style.display = 'block';
+        this.elements.get('take-quiz-btn').style.display = 'block';
+    }
 }

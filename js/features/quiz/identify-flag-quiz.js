@@ -428,6 +428,34 @@ export class IdentifyFlagQuiz {
         return this.active;
     }
 
+    /** End the quiz immediately without showing the celebration. */
+    cancel() {
+        if (this.autoAdvanceTimer) {
+            clearTimeout(this.autoAdvanceTimer);
+            this.autoAdvanceTimer = null;
+        }
+        this.active = false;
+        state.set('quiz.active', false);
+        state.set('quiz.mode', null);
+
+        document.body.classList.remove('quiz-active');
+        document.body.classList.remove('flag-quiz-active');
+
+        this.elements.get('quiz-score').style.display = 'none';
+        this.elements.get('quiz-question').style.display = 'none';
+        this.elements.get('quiz-flag-display').style.display = 'none';
+        this.elements.get('quiz-options').innerHTML = '';
+        this.elements.get('quiz-container').style.display = 'none';
+
+        this.elements.get('search-container').style.display = 'block';
+        this.elements.get('take-quiz-btn').style.display = 'block';
+
+        this.elements.get('quiz-cancel-btn').style.display = 'none';
+        this.elements.get('quiz-next-btn').style.visibility = 'hidden';
+        this.elements.get('quiz-start-btn').style.display = 'block';
+        this.elements.get('quiz-start-btn').textContent = 'Start Quiz';
+    }
+
     /**
      * Get the flag renderer (for animation updates in main loop)
      * @returns {THREE.WebGLRenderer}
