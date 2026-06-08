@@ -2003,9 +2003,9 @@
 
            - Hide Zoom Out + Zoom Widget always (kept in DOM in place).
            - Show Take Quiz on desktop too, top-left under search.
-           - Gate Edit Labels + Edit Colors behind the small ✎ toggle
-             button (body.dev-edit-open). Their save/fine-tune/swatch
-             siblings keep their own internal show/hide logic.
+           - The edit/animation dev buttons are relocated into the settings
+             gear (#settings-panel) at runtime; their layout is normalized
+             there. Save/fine-tune siblings keep their internal show/hide.
            ============================================================ */
 
         #zoom-out-btn,
@@ -2013,50 +2013,37 @@
             display: none !important;
         }
 
-        /* Small dev-edit toggle in the top-right corner (where Zoom Out
-           used to live). Toggles body.dev-edit-open. */
-        #dev-edit-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 36px;
-            height: 36px;
-            z-index: 150;
-            background-color: rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 6px;
-            color: #ffffff;
-            font-size: 18px;
-            line-height: 1;
-            padding: 0;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            transition: background-color 0.2s, transform 0.2s;
+        /* The edit / animation dev buttons are relocated into the settings panel
+           (#settings-panel) at runtime. Normalize their layout there: drop the
+           fixed left-column / top-right positioning the per-breakpoint rules give
+           them so they stack neatly inside the panel. */
+        #settings-panel #edit-mode-btn,
+        #settings-panel #save-config-btn,
+        #settings-panel #fine-tune-btn,
+        #settings-panel #edit-colors-btn,
+        #settings-panel #save-colors-btn,
+        #settings-panel #edit-zoom-btn,
+        #settings-panel #save-zoom-btn,
+        #settings-panel #bounce-btn,
+        #settings-panel #shatter-btn,
+        #settings-panel #pinball-btn {
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            margin: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
-        #dev-edit-toggle:hover {
-            background-color: rgba(0, 0, 0, 0.85);
-            transform: scale(1.05);
-        }
-        body.dev-edit-open #dev-edit-toggle {
-            background-color: rgba(76, 175, 80, 0.85);
-            border-color: #4CAF50;
-        }
-
-        /* Hide developer edit buttons unless the toggle is open. Beats
-           the desktop+mobile media-query rules that set display: block. */
-        #edit-mode-btn,
-        #edit-colors-btn,
-        #edit-zoom-btn {
-            display: none !important;
-        }
-        body.dev-edit-open #edit-mode-btn,
-        body.dev-edit-open #edit-colors-btn,
-        body.dev-edit-open #edit-zoom-btn {
-            display: block !important;
-        }
-
-        /* Surface the zoom-level indicator alongside the dev edit buttons. */
-        body.dev-edit-open #zoom-widget {
+        /* Mode-toggle + animation buttons are always visible in the panel; their
+           save/fine-tune siblings keep their own module-driven inline show/hide. */
+        #settings-panel #edit-mode-btn,
+        #settings-panel #edit-colors-btn,
+        #settings-panel #edit-zoom-btn,
+        #settings-panel #bounce-btn,
+        #settings-panel #shatter-btn,
+        #settings-panel #pinball-btn {
             display: block !important;
         }
 
@@ -2101,7 +2088,8 @@
         body.celebration-active #bounce-btn,
         body.celebration-active #shatter-btn,
         body.celebration-active #pinball-btn,
-        body.celebration-active #dev-edit-toggle,
+        body.celebration-active #settings-toggle,
+        body.celebration-active #settings-panel,
         body.celebration-active #edit-mode-btn,
         body.celebration-active #save-config-btn,
         body.celebration-active #fine-tune-btn,
@@ -2120,14 +2108,12 @@
             display: none !important;
         }
 
-        /* Bounce + Shatter + Pinball — experimental animation triggers. Gated
-           behind the ✎ dev-edit toggle and stacked directly under it (top-right),
-           so they never overlap the left-column edit buttons. Hidden until the
-           toggle opens body.dev-edit-open. */
+        /* Bounce + Shatter + Pinball — experimental animation triggers. These
+           base rules are the fallback; once relocated into the settings panel
+           their layout is normalized by the #settings-panel rules above. */
         #bounce-btn,
         #shatter-btn,
         #pinball-btn {
-            display: none;
             position: fixed;
             right: 20px;
             z-index: 150;
@@ -2148,11 +2134,6 @@
         #shatter-btn:hover { background-color: #D84315; transform: scale(1.05); }
         #pinball-btn:hover { background-color: #388E3C; transform: scale(1.05); }
 
-        body.dev-edit-open #bounce-btn,
-        body.dev-edit-open #shatter-btn,
-        body.dev-edit-open #pinball-btn {
-            display: block;
-        }
         body.quiz-active #bounce-btn,
         body.quiz-active #shatter-btn,
         body.quiz-active #pinball-btn,
@@ -2167,17 +2148,10 @@
                 top: 10px !important;
                 left: 10px !important;
             }
-            /* Mobile: tuck the trio under the smaller top-right ✎ toggle. */
+            /* Mobile fallbacks (overridden when stacked inside the settings panel). */
             #bounce-btn  { top: 48px;  right: 10px; }
             #shatter-btn { top: 90px;  right: 10px; }
             #pinball-btn { top: 132px; right: 10px; }
-            #dev-edit-toggle {
-                top: 10px;
-                right: 10px;
-                width: 32px;
-                height: 32px;
-                font-size: 16px;
-            }
         }
 
 /* ===========================================================================
@@ -2202,12 +2176,11 @@ body.map-mode #search-container,
 body.map-mode #flag-container,
 body.map-mode #controls,
 body.map-mode #take-quiz-btn,
-body.map-mode #light-dev-panel,
-body.map-mode #light-dev-toggle,
+body.map-mode #settings-toggle,
+body.map-mode #settings-panel,
 body.map-mode #bounce-btn,
 body.map-mode #shatter-btn,
-body.map-mode #pinball-btn,
-body.map-mode #dev-edit-toggle {
+body.map-mode #pinball-btn {
     display: none !important;
 }
 
@@ -2352,3 +2325,143 @@ body.map-quiz #country-map-toggles,
 body.map-quiz .maplibregl-ctrl-top-right { display: none !important; }
 body.map-quiz #quiz-container { z-index: 600; left: 20px; right: auto; }
 body.map-quiz #quiz-cancel-btn { z-index: 601; }
+
+/* ===========================================================================
+   Settings panel — the ⚙ gear (top-right) and its slide-in panel. Built at
+   runtime by js/features/settings-panel.js. Hosts the color-scheme picker,
+   border toggle, lighting, auto-rotate, 2D-map defaults, and the relocated
+   developer/editing buttons. Replaces the old ✎ dev-edit toggle + light panel.
+   =========================================================================== */
+#settings-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    z-index: 350;
+    background-color: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 20px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    transition: background-color 0.2s, transform 0.2s;
+}
+#settings-toggle:hover { background-color: rgba(0, 0, 0, 0.85); transform: scale(1.06); }
+#settings-toggle.active { background-color: rgba(76, 175, 80, 0.85); border-color: #4CAF50; }
+
+#settings-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+    z-index: 349;
+    box-sizing: border-box;
+    padding: 14px 16px 18px;
+    background: rgba(18, 22, 30, 0.96);
+    border: 1px solid rgba(120, 150, 190, 0.35);
+    border-radius: 12px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
+    color: #dfe6f0;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+}
+#settings-panel.hidden { display: none; }
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #ffffff;
+}
+.settings-close {
+    background: transparent;
+    border: none;
+    color: #9fb6d4;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.settings-close:hover { color: #ffffff; }
+
+.settings-section {
+    border-top: 1px solid rgba(120, 150, 190, 0.2);
+    padding-top: 10px;
+    margin-top: 10px;
+}
+.settings-section h3 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9fb6d4;
+}
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.settings-label { flex: 0 0 84px; color: #c3cfe0; }
+.settings-row input[type="range"] { flex: 1 1 90px; min-width: 80px; }
+.settings-value { flex: 0 0 38px; text-align: right; color: #9fb6d4; font-variant-numeric: tabular-nums; }
+.settings-note { margin: 0 0 8px; font-size: 11px; color: #8a98ac; }
+
+.settings-check { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c3cfe0; }
+.settings-check input { cursor: pointer; }
+
+.settings-segmented { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 100%; }
+.settings-seg-btn {
+    flex: 1 1 auto;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(120, 150, 190, 0.3);
+    border-radius: 6px;
+    color: #dfe6f0;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.settings-seg-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.settings-seg-btn.active { background: rgba(76, 175, 80, 0.35); border-color: #4CAF50; color: #fff; }
+
+.settings-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    padding: 0;
+    cursor: pointer;
+}
+.settings-swatch:hover { border-color: #fff; transform: scale(1.1); }
+
+.settings-btn {
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(120, 150, 190, 0.3);
+    border-radius: 6px;
+    color: #dfe6f0;
+    font-size: 12px;
+    cursor: pointer;
+}
+.settings-btn:hover { background: rgba(255, 255, 255, 0.16); }
+
+.settings-dev-tools { display: flex; flex-direction: column; gap: 6px; }
+
+/* Keep the gear + panel clear of the (sometimes fullscreen) quiz UI. */
+body.quiz-active #settings-toggle,
+body.quiz-active #settings-panel,
+body.flag-quiz-active #settings-toggle,
+body.flag-quiz-active #settings-panel {
+    display: none !important;
+}

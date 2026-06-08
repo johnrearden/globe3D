@@ -15,6 +15,9 @@ export class CameraController {
         this.scene = scene;
         this.controls = null;
         this.autoRotateEnabled = false;
+        // User preference (settings panel): when false, the globe never auto-rotates
+        // — the idle timer won't schedule a resume and resumeAutoRotation() bails.
+        this.autoRotateAllowed = true;
         this.idleTimeout = null;
         this.lastInteractionTime = Date.now();
         this.IDLE_DELAY = 120000; // 2 minutes of inactivity before auto-rotation resumes
@@ -189,7 +192,23 @@ export class CameraController {
         }
 
         if (this.idleTimeout) clearTimeout(this.idleTimeout);
-        this.idleTimeout = setTimeout(() => this.resumeAutoRotation(), this.IDLE_DELAY);
+        if (this.autoRotateAllowed) {
+            this.idleTimeout = setTimeout(() => this.resumeAutoRotation(), this.IDLE_DELAY);
+        }
+    }
+
+    /**
+     * Master on/off for idle auto-rotation (settings panel). When disabled, stops
+     * any current spin and prevents the idle timer from resuming it; when enabled,
+     * restarts the idle countdown so it resumes after IDLE_DELAY of inactivity.
+     */
+    setAutoRotateAllowed(allowed) {
+        this.autoRotateAllowed = !!allowed;
+        if (!allowed) {
+            this.disableAutoRotation();
+        } else {
+            this.resetIdleTimer();
+        }
     }
 
     /** Start idle auto-rotation (just the flags — e.g. the intro spin). */
@@ -262,6 +281,7 @@ export class CameraController {
 
     /** Resume auto-rotation after the idle delay (unless a quiz is active). */
     resumeAutoRotation() {
+        if (!this.autoRotateAllowed) return;
         if (state.get('quiz.active')) return;
 
         this.autoRotateEnabled = true;

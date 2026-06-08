@@ -58,6 +58,7 @@ precision highp float;
 uniform sampler2D uPaletteTex;
 uniform float uPaletteW;
 uniform float uSelectedId;
+uniform vec3 uSelectedColor;   // tint applied to the selected country
 uniform float uFlashId;
 uniform vec3 uFlashColor;
 uniform float uFlashAlpha;
@@ -90,9 +91,9 @@ void main() {
         color = uOceanColor;
     }
 
-    // Selection tints to white (matches old material.color.setHex(0xFFFFFF)).
+    // Selection tints to uSelectedColor (white by default; settable per scheme).
     if (id > 0.5 && uSelectedId > 0.5 && abs(id - uSelectedId) < 0.5) {
-        color = vec3(1.0);
+        color = uSelectedColor;
     }
 
     // Quiz flash overlay.
@@ -355,7 +356,8 @@ export class GlobeManager {
             if (paletteBytes.length !== PALETTE_W * 4) {
                 throw new Error(`country-palette.bin size mismatch: got ${paletteBytes.length}, expected ${PALETTE_W * 4}`);
             }
-            this.paletteDefaults = new Uint8Array(paletteBytes); // copy for resets
+            this.paletteDefaults = new Uint8Array(paletteBytes); // mutable reset baseline (tracks the active scheme)
+            this.paletteOriginal = new Uint8Array(paletteBytes); // immutable build palette (Vibrant restore + shade derivation)
             const paletteTex = new THREE.DataTexture(paletteBytes, PALETTE_W, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
             paletteTex.minFilter = THREE.NearestFilter;
             paletteTex.magFilter = THREE.NearestFilter;
@@ -370,6 +372,7 @@ export class GlobeManager {
                     uPaletteTex: { value: paletteTex },
                     uPaletteW: { value: PALETTE_W },
                     uSelectedId: { value: 0 },
+                    uSelectedColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
                     uFlashId: { value: 0 },
                     uFlashColor: { value: new THREE.Color(0, 1, 0) },
                     uFlashAlpha: { value: 0 },
@@ -578,6 +581,44 @@ export class GlobeManager {
     /** Back-compat alias for callers still referencing the override-era API. */
     clearCountryColor(name) {
         this.resetCountryColor(name);
+    }
+
+    /**
+     * Set the color the selected country is tinted with. The selection process
+     * itself is unchanged (still driven by uSelectedId) — this only changes the
+     * tint. Accepts a hex (0xRRGGBB / '#rrggbb') or an [r,g,b] 0–1 triple.
+     */
+    setHighlightColor(color) {
+        if (!this.material) return;
+        const u = this.material.uniforms.uSelectedColor.value;
+        if (Array.isArray(color)) u.setRGB(color[0], color[1], color[2]);
+        else u.set(color);
+    }
+
+    /**
+     * Recolor every country at once (the engine behind color schemes). `rgbById`
+     * maps a country id (1…255) to an [r,g,b] 0–255 triple. Writes RGB into the
+     * live palette texture AND into paletteDefaults (preserving each entry's
+     * alpha/visibility byte) so resetCountryColor returns to the active scheme,
+     * not the build-time palette. Pass `globeManager.paletteOriginal` slices for
+     * an exact Vibrant restore.
+     */
+    applyBaseColors(rgbById) {
+        if (!this.paletteTexture || !this.paletteDefaults) return;
+        const data = this.paletteTexture.image.data;
+        for (let id = 1; id < PALETTE_W; id++) {
+            const rgb = rgbById[id];
+            if (!rgb) continue;
+            const off = id * 4;
+            const r = Math.max(0, Math.min(255, Math.round(rgb[0])));
+            const g = Math.max(0, Math.min(255, Math.round(rgb[1])));
+            const b = Math.max(0, Math.min(255, Math.round(rgb[2])));
+            data[off] = r; data[off + 1] = g; data[off + 2] = b; // alpha (off+3) untouched
+            this.paletteDefaults[off] = r;
+            this.paletteDefaults[off + 1] = g;
+            this.paletteDefaults[off + 2] = b;
+        }
+        this.paletteTexture.needsUpdate = true;
     }
 
     applyColorOverrides(config) {

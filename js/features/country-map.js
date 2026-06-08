@@ -18,6 +18,8 @@
  * end-to-end flow can be exercised before any tileset exists (Phase 1).
  */
 
+import { settingsStore } from '../data/settings-store.js';
+
 // ── Tile configuration ────────────────────────────────────────────────────
 // null → public MapLibre demo style (no tiles of our own).
 // Temp deploy:  'pmtiles://./assets/planet-z9.pmtiles'  (relative → resolves
@@ -345,6 +347,8 @@ export class CountryMap {
     _buildToggles() {
         if (!this.togglesEl || !this.map.getStyle) return;
         this.togglesEl.innerHTML = '';
+        // Initial checked-state comes from the settings panel's saved defaults.
+        const defaults = settingsStore.getMapToggleDefaults();
         const styleLayers = this.map.getStyle().layers || [];
         for (const group of TOGGLE_GROUPS) {
             const ids = styleLayers
@@ -352,28 +356,31 @@ export class CountryMap {
                 .map(l => l.id);
             if (!ids.length) continue;
 
+            const on = defaults[group.key] !== false;
             const label = document.createElement('label');
             label.className = 'cm-toggle';
             const cb = document.createElement('input');
             cb.type = 'checkbox';
-            cb.checked = true;
+            cb.checked = on;
             if (group.key === 'labels') {
                 // Place labels are zoom-managed (hidden at the default zoom, shown
                 // when zoomed in) — see _refreshLabelMode. The toggle just enables
                 // or disables them; don't set visibility directly here.
                 this._placeLabelLayers = ids;
-                this._placeLabelsOn = true;
+                this._placeLabelsOn = on;
                 cb.addEventListener('change', () => {
                     this._placeLabelsOn = cb.checked;
                     this._refreshLabelMode();
                 });
             } else {
-                cb.addEventListener('change', () => {
-                    const vis = cb.checked ? 'visible' : 'none';
+                const applyVis = (visible) => {
+                    const vis = visible ? 'visible' : 'none';
                     for (const id of ids) {
                         if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', vis);
                     }
-                });
+                };
+                if (!on) applyVis(false); // honor a saved "off" default on first build
+                cb.addEventListener('change', () => applyVis(cb.checked));
             }
             label.appendChild(cb);
             label.appendChild(document.createTextNode(' ' + group.label));
