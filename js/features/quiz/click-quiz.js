@@ -215,7 +215,9 @@ export class ClickQuiz {
         this.elements.get('click-quiz-container').style.display = 'none';
         this.elements.get('click-quiz-timer-bar-container').style.display = 'none';
 
+        // Clear the take-quiz override so CSS restores it (hidden on desktop,
+        // shown on mobile); the desktop Start Quiz panel comes back on its own.
         this.elements.get('search-container').style.display = 'block';
-        this.elements.get('take-quiz-btn').style.display = 'block';
+        this.elements.get('take-quiz-btn').style.display = '';
     }
 }

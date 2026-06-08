@@ -339,7 +339,9 @@ export class CapitalCitiesQuiz {
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-options').innerHTML = '';
-        this.elements.get('quiz-container').style.display = 'none';
+        // Clear the inline overrides (don't set 'none'/'block') so CSS restores
+        // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.
+        this.elements.get('quiz-container').style.display = '';
 
         // Close the 2D map and reset globe highlighting + capital marker.
         if (this.countryMap) this.countryMap.hide();
@@ -348,7 +350,7 @@ export class CapitalCitiesQuiz {
         if (this.labelManager) this.labelManager.setHighlight(null);
 
         this.elements.get('search-container').style.display = 'block';
-        this.elements.get('take-quiz-btn').style.display = 'block';
+        this.elements.get('take-quiz-btn').style.display = '';
 
         this.elements.get('quiz-cancel-btn').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
