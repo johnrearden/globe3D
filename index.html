@@ -481,9 +481,8 @@
                     sceneManager.updateLoadingProgress(percent, message, animated, (id) => elements.get(id));
                 },
                 // Complete callback
-                (loadedCountries) => {
-                    // Globe loaded successfully
-                    countries = loadedCountries;
+                () => {
+                    // Globe loaded successfully.
 
                     // Get centroids for backwards compatibility with existing quiz/search code
                     countryCentroids = globeManager.getCentroids();
