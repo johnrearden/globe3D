@@ -15,6 +15,9 @@ const THREE = window.THREE;
 const SPHERE_RADIUS = 1.0;
 const SPHERE_SEGMENTS = 96;
 const PALETTE_W = 256;
+// Max distance (texels) baked into world-border.bin; must match BORDER_CLAMP in
+// build-textures.js. Used to convert the sampled 0..1 field back to texels.
+const BORDER_CLAMP = 8;
 // Default ocean color (matches the `meta.oceanColor` fallback used in loadGlobe).
 // Used to tint the pre-load placeholder sphere so it matches the real ocean.
 const DEFAULT_OCEAN_COLOR = [6, 26, 51];
@@ -35,6 +38,7 @@ attribute float aCountryId;
 varying float vCountryId;
 varying vec3 vViewPos;
 varying vec3 vViewNormal;
+varying vec3 vObjDir;
 
 void main() {
     vCountryId = aCountryId;
@@ -42,6 +46,10 @@ void main() {
     // normalized local position. This avoids relying on SphereGeometry's
     // baked normal attribute and works for the merged country mesh too.
     vec3 nrmLocal = normalize(position);
+    // Object-space unit-sphere direction → equirectangular UV in the fragment
+    // shader (for the border field). Object space rotates with the globe and is
+    // unaffected by COUNTRY_MESH_SCALE (uniform scale).
+    vObjDir = nrmLocal;
     // View-space lighting (camera-relative). normalMatrix is the inverse-
     // transpose of the modelView matrix, giving a correct view-space normal —
     // and correctly handling the non-uniform squash of the bounce animation.
@@ -71,10 +79,17 @@ uniform float uSpecStrength;   // glossy highlight strength
 uniform float uShininess;      // highlight tightness (higher = smaller, sharper)
 uniform vec3 uSpecColor;       // highlight tint
 uniform float uOceanSpecBoost; // extra gloss on the ocean (water glint)
+uniform sampler2D uBorderTex;  // equirectangular border distance field (.r = dist/clamp)
+uniform float uHasBorder;      // 1 if the field loaded, else 0
+uniform vec3 uBorderColor;     // border ink color
+uniform float uBorderStrength; // border opacity (0 = off)
+uniform float uBorderWidth;    // line half-width in texels
+uniform float uBorderClamp;    // texels represented by field value 1.0
 
 varying float vCountryId;
 varying vec3 vViewPos;
 varying vec3 vViewNormal;
+varying vec3 vObjDir;
 
 void main() {
     float id = vCountryId;
@@ -99,6 +114,22 @@ void main() {
     // Quiz flash overlay.
     if (id > 0.5 && uFlashId > 0.5 && abs(id - uFlashId) < 0.5) {
         color = mix(color, uFlashColor, uFlashAlpha);
+    }
+
+    // Country borders — sampled from the baked distance field via an
+    // equirectangular UV computed from the object-space direction. The UV MUST
+    // match the CPU picking formula / build rasterizer so it indexes the same
+    // pixel grid: u = atan2(-z, x)/2PI (wrapped), v = acos(y)/PI.
+    if (uHasBorder > 0.5 && uBorderStrength > 0.0) {
+        vec3 d = normalize(vObjDir);
+        float u = fract(atan(-d.z, d.x) * 0.1591549430918954 + 1.0); // /(2*PI)
+        float v = acos(clamp(d.y, -1.0, 1.0)) * 0.3183098861837907;  // /PI
+        float distTexels = texture2D(uBorderTex, vec2(u, v)).r * uBorderClamp;
+        // fwidth widens the smoothstep band with on-screen magnification, so the
+        // line holds a ~constant pixel width and stays anti-aliased at any zoom.
+        float aa = max(fwidth(distTexels), 0.75);
+        float edge = uBorderStrength * (1.0 - smoothstep(uBorderWidth - aa, uBorderWidth + aa, distTexels));
+        color = mix(color, uBorderColor, edge); // pre-lighting → shaded like the surface
     }
 
     // Camera-relative (view-space) lighting: the light is fixed relative to the
@@ -134,6 +165,10 @@ export class GlobeManager {
         this.material = null;
         this.paletteTexture = null;
         this.paletteDefaults = null; // build-time palette snapshot for resets
+
+        this.borderTexture = null;   // equirectangular border distance field (fail-soft)
+        this._borderOpacity = 0.85;  // configured strength; applied when borders are visible
+        this._borderVisible = false;
 
         this.idBytes = null;        // Uint8Array, packed [idHi, idLo, ...]
         this.idW = 0;
@@ -333,8 +368,14 @@ export class GlobeManager {
                 .then(r => r.ok ? r.json() : {})
                 .catch(() => ({}));
 
-            const [idBuffer, paletteBuffer, meshBuffer, meta, capitals] =
-                await Promise.all([idPromise, palettePromise, meshPromise, metaPromise, capitalsPromise]);
+            // Border distance field is optional too: fail soft to null so a missing
+            // asset just means "no borders available", never a failed load.
+            const borderPromise = fetch('assets/world-border.bin')
+                .then(r => r.ok ? r.arrayBuffer() : null)
+                .catch(() => null);
+
+            const [idBuffer, paletteBuffer, meshBuffer, meta, capitals, borderBuffer] =
+                await Promise.all([idPromise, palettePromise, meshPromise, metaPromise, capitalsPromise, borderPromise]);
 
             this.capitals = capitals || {};
 
@@ -365,6 +406,29 @@ export class GlobeManager {
             paletteTex.needsUpdate = true;
             this.paletteTexture = paletteTex;
 
+            // Border distance field (single channel). LinearFilter gives a smooth
+            // sub-texel distance ramp so the shader smoothstep is anti-aliased;
+            // RepeatWrapping on S makes the antimeridian seam continuous (the field
+            // is baked with matching X-wrap). Fail-soft: null if absent or wrong size.
+            let borderTex = null;
+            if (borderBuffer) {
+                const borderBytes = new Uint8Array(borderBuffer);
+                if (borderBytes.length === this.idW * this.idH) {
+                    borderTex = new THREE.DataTexture(
+                        borderBytes, this.idW, this.idH, THREE.LuminanceFormat, THREE.UnsignedByteType
+                    );
+                    borderTex.minFilter = THREE.LinearFilter;
+                    borderTex.magFilter = THREE.LinearFilter;
+                    borderTex.wrapS = THREE.RepeatWrapping;
+                    borderTex.wrapT = THREE.ClampToEdgeWrapping;
+                    borderTex.generateMipmaps = false;
+                    borderTex.needsUpdate = true;
+                } else {
+                    console.warn(`[GlobeManager] world-border.bin size mismatch: got ${borderBytes.length}, expected ${this.idW * this.idH}`);
+                }
+            }
+            this.borderTexture = borderTex;
+
             const oceanColor = meta.oceanColor || [6, 26, 51];
 
             this.material = new THREE.ShaderMaterial({
@@ -389,11 +453,23 @@ export class GlobeManager {
                     uSpecStrength: { value: 0.0 }, // target 0.18
                     uShininess: { value: 12.0 }, // 24
                     uSpecColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
-                    uOceanSpecBoost: { value: 1.7 }
+                    uOceanSpecBoost: { value: 1.7 },
+                    // Country borders: an edge effect sampled from the baked border
+                    // distance field. uBorderStrength = 0 disables it (the default);
+                    // setBorderVisible()/setBorderOpacity() drive it.
+                    uBorderTex: { value: borderTex },
+                    uHasBorder: { value: borderTex ? 1 : 0 },
+                    uBorderColor: { value: new THREE.Color(0x222831) },
+                    uBorderStrength: { value: 0.0 },
+                    uBorderWidth: { value: 1.5 },   // line half-width in texels
+                    uBorderClamp: { value: BORDER_CLAMP }
                 },
                 vertexShader: VERTEX_SHADER,
                 fragmentShader: FRAGMENT_SHADER,
                 side: THREE.FrontSide,
+                // fwidth() (used for border anti-aliasing) needs the derivatives
+                // extension on WebGL1, which three.js r128 uses by default.
+                extensions: { derivatives: true },
                 // Polygon offset prevents flicker where neighboring countries share
                 // borders and produce coincident triangle edges from the source GeoJSON.
                 polygonOffset: true,
@@ -593,6 +669,34 @@ export class GlobeManager {
         const u = this.material.uniforms.uSelectedColor.value;
         if (Array.isArray(color)) u.setRGB(color[0], color[1], color[2]);
         else u.set(color);
+    }
+
+    /**
+     * Country borders — drawn as a shader edge effect from the baked distance
+     * field. Visibility is `uBorderStrength = configured opacity vs 0`; a missing
+     * field (uHasBorder = 0) makes these no-ops at draw time, so they're safe to
+     * call regardless.
+     */
+    setBorderVisible(visible) {
+        this._borderVisible = !!visible;
+        if (this.material) {
+            this.material.uniforms.uBorderStrength.value = this._borderVisible ? this._borderOpacity : 0;
+        }
+    }
+
+    setBorderOpacity(opacity) {
+        this._borderOpacity = Math.max(0, Math.min(1, opacity));
+        if (this.material && this._borderVisible) {
+            this.material.uniforms.uBorderStrength.value = this._borderOpacity;
+        }
+    }
+
+    setBorderColor(hex) {
+        if (this.material) this.material.uniforms.uBorderColor.value.set(hex);
+    }
+
+    setBorderWidth(texels) {
+        if (this.material) this.material.uniforms.uBorderWidth.value = texels;
     }
 
     /**

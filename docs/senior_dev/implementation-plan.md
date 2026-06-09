@@ -36,7 +36,7 @@ monolith became a thin bootstrap shell plus focused ES modules, all under a gree
 | 4 — Modularization | ✅ Done | 4a quick wins, 4b Bucket-C feature modules, 4c dead state-sync removal, 4d camera/idle + dead-code |
 | 5 — Perf/correctness polish | ⬜ Pending | `_lookupIdLoose` tighten, override precedence, `getCountries()` removal still open |
 | 6 — Deployment & SEO hardening | ✅ Done | eruda gated behind `?debug`/localhost, full SEO/OG/Twitter/JSON-LD `<head>`, `_headers`, `robots.txt` (dev buttons were already CSS-gated) |
-| 7 — Optional next bets | ⬜ Pending | country borders, search index, multi-language labels |
+| 7 — Optional next bets | 🟡 In progress | ✅ country borders (baked distance field + shader edge); search index, multi-language labels still open |
 
 **Modules created (~11 new files):** `js/data/country-data.js`, `js/utils/coordinates.js`,
 `js/features/{loading,ui-sync,flag-wave,color-editor,zoom-editor,small-country-indicator,label-editor,pointer-controls}.js`,
@@ -323,11 +323,11 @@ practices) and confirm `Content-Encoding` on `.bin` responses.
 
 ---
 
-## Stage 7 — Optional next bets — ⬜ Pending
+## Stage 7 — Optional next bets — 🟡 In progress
 
 These aren't required by the review but are natural follow-ups now that the codebase is clean:
 
-- **Country borders.** Re-introduce them via shader neighbor sampling on the ID texture or via a dedicated thin-line overlay — `CLAUDE.md` flags this as a missing feature.
+- **Country borders.** ✅ **Done.** Baked at build time as a distance field: `buildBorderField()` in `build-textures.js` derives, from the dilated ID buffer, a per-pixel distance-to-nearest-border (a pixel is a border where any 4-neighbour ID differs → covers country↔country seams + coastlines), via a two-pass chamfer EDT clamped to 8 texels and X-wrapped for the antimeridian, written 1 byte/pixel to `assets/world-border.bin`. The shared `ShaderMaterial` (`js/core/globe.js`) samples it through a shader-computed equirectangular UV (matching the picking convention) and draws an anti-aliased `smoothstep` edge (`fwidth`-based AA, derivatives extension enabled). Runtime control via `globeManager.setBorderVisible/Opacity/Color/Width`; the settings gear's borders checkbox + opacity slider drive these (persisted keys `borders`/`borderOpacity`). This **replaced** the earlier vector `LineSegments` overlay — `js/features/borders.js` and `tests/borders.test.js` were deleted (the geojson-derived lines misaligned with the fills and were capped at 1px); `tests/border-field.test.js` covers the new derivation. Trade-off: resolution-limited (≈0.088°/texel), so borders soften slightly at the closest zoom but stay perfectly aligned, gap-free, and adjustable.
 - **Search index.** Replace the linear `Array.filter` in `search.js` with a small trigram index or a sorted prefix array for O(log n) lookups. Not urgent at ~250 countries.
 - **Multi-language labels.** Listed in `CLAUDE.md`'s future ideas; the label pipeline is now isolated enough to support this cleanly.
 

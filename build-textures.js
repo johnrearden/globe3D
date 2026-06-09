@@ -14,10 +14,19 @@ const OUTPUT_META = './assets/country-meta.json';
 // country map (js/features/country-map.js) to mask out everything except the
 // selected country. Names match nameToId keys (same displayName source).
 const OUTPUT_COUNTRIES = './assets/countries.geojson';
+// Equirectangular border distance field (1 byte/px): distance-to-nearest-border
+// in texels, clamped to BORDER_CLAMP and encoded 0..255. Sampled at runtime by
+// the globe shader to draw anti-aliased country borders + coastlines.
+const OUTPUT_BORDER = './assets/world-border.bin';
 
 const ID_W = 4096;
 const ID_H = 2048;
 const MAX_COUNTRIES = 256;
+
+// Max distance (texels) stored in the border field; the field saturates here.
+// 8 gives a ~0.7° smoothstep ramp at 4096-wide while keeping the field mostly
+// at the clamped max (so it gzips well, like world-id.bin).
+const BORDER_CLAMP = 8;
 
 // Connected-components cleanup: drop fragments smaller than this, except
 // always preserve each country's largest fragment so tiny countries
@@ -512,6 +521,85 @@ function dilateIds(idBuf, idW, idH) {
     }
 }
 
+// Build an unsigned distance-to-nearest-border field from the (dilated) ID
+// buffer. A "border" pixel is one whose 4-neighbour has a different country id
+// — this covers both country↔country seams and country↔ocean coastlines.
+// Returns a Uint8Array(idW*idH): 0 = on a border, 255 = >= clamp texels away.
+//
+// X wraps (column 0 neighbours column W-1) so the antimeridian seam doesn't
+// render a spurious meridian line; Y does not wrap (poles). Distance is a
+// two-pass (1, √2) chamfer approximation — exactness past `clamp` is irrelevant
+// since we clamp. Pure + deterministic so it's unit-testable.
+function buildBorderField(idBuf, idW, idH, clamp = BORDER_CLAMP) {
+    const n = idW * idH;
+    const SQRT2 = Math.SQRT2;
+    const dist = new Float32Array(n);
+    const idAt = (x, y) => {
+        const i = (y * idW + x) * 2;
+        return idBuf[i] * 256 + idBuf[i + 1];
+    };
+
+    // 1) Seed: border pixels = 0, everything else = +inf.
+    for (let y = 0; y < idH; y++) {
+        for (let x = 0; x < idW; x++) {
+            const id = idAt(x, y);
+            const xl = x === 0 ? idW - 1 : x - 1;   // wrap X
+            const xr = x === idW - 1 ? 0 : x + 1;
+            let border = idAt(xl, y) !== id || idAt(xr, y) !== id;
+            if (!border && y > 0) border = idAt(x, y - 1) !== id;
+            if (!border && y < idH - 1) border = idAt(x, y + 1) !== id;
+            dist[y * idW + x] = border ? 0 : Infinity;
+        }
+    }
+
+    const relax = (i, j, w) => {
+        const d = dist[j] + w;
+        if (d < dist[i]) dist[i] = d;
+    };
+
+    // 2) Forward pass (top-left → bottom-right): up, left, both upper diagonals.
+    for (let y = 0; y < idH; y++) {
+        for (let x = 0; x < idW; x++) {
+            const i = y * idW + x;
+            if (dist[i] === 0) continue;
+            const xl = x === 0 ? idW - 1 : x - 1;
+            const xr = x === idW - 1 ? 0 : x + 1;
+            relax(i, y * idW + xl, 1);
+            if (y > 0) {
+                const up = (y - 1) * idW;
+                relax(i, up + x, 1);
+                relax(i, up + xl, SQRT2);
+                relax(i, up + xr, SQRT2);
+            }
+        }
+    }
+
+    // 3) Backward pass (bottom-right → top-left): down, right, both lower diagonals.
+    for (let y = idH - 1; y >= 0; y--) {
+        for (let x = idW - 1; x >= 0; x--) {
+            const i = y * idW + x;
+            if (dist[i] === 0) continue;
+            const xl = x === 0 ? idW - 1 : x - 1;
+            const xr = x === idW - 1 ? 0 : x + 1;
+            relax(i, y * idW + xr, 1);
+            if (y < idH - 1) {
+                const dn = (y + 1) * idW;
+                relax(i, dn + x, 1);
+                relax(i, dn + xl, SQRT2);
+                relax(i, dn + xr, SQRT2);
+            }
+        }
+    }
+
+    // 4) Encode: clamp to `clamp` texels and map to 0..255.
+    const out = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+        const d = dist[i] < clamp ? dist[i] : clamp;
+        out[i] = Math.round((d / clamp) * 255);
+    }
+    return out;
+}
+
 function build() {
     console.log('Starting texture build...');
 
@@ -796,6 +884,9 @@ function build() {
     console.log('Dilating ID buffer (1px)...');
     dilateIds(idBuf, ID_W, ID_H);
 
+    console.log('Building border distance field...');
+    const borderField = buildBorderField(idBuf, ID_W, ID_H, BORDER_CLAMP);
+
     console.log(`Writing ${OUTPUT_PALETTE}...`);
     fs.writeFileSync(OUTPUT_PALETTE, Buffer.from(palette.buffer));
 
@@ -824,6 +915,9 @@ function build() {
     console.log(`Writing ${OUTPUT_ID}...`);
     fs.writeFileSync(OUTPUT_ID, Buffer.from(idBuf.buffer));
 
+    console.log(`Writing ${OUTPUT_BORDER}...`);
+    fs.writeFileSync(OUTPUT_BORDER, Buffer.from(borderField.buffer));
+
     console.log(`Writing ${OUTPUT_META}...`);
     const meta = {
         idWidth: ID_W,
@@ -843,15 +937,19 @@ function build() {
     const paletteSize = fs.statSync(OUTPUT_PALETTE).size;
     const meshSize = fs.statSync(OUTPUT_MESH).size;
     const idSize = fs.statSync(OUTPUT_ID).size;
+    const borderSize = fs.statSync(OUTPUT_BORDER).size;
     const metaSize = fs.statSync(OUTPUT_META).size;
     const countriesSize = fs.statSync(OUTPUT_COUNTRIES).size;
     console.log(`\nDone.`);
     console.log(`  ${OUTPUT_PALETTE}: ${paletteSize} bytes`);
     console.log(`  ${OUTPUT_MESH}: ${(meshSize / 1024 / 1024).toFixed(2)} MB (${vertCount} vertices, ${meshTriangles} triangles)`);
     console.log(`  ${OUTPUT_ID}: ${(idSize / 1024 / 1024).toFixed(2)} MB (gzip recommended)`);
+    console.log(`  ${OUTPUT_BORDER}: ${(borderSize / 1024 / 1024).toFixed(2)} MB (gzip recommended)`);
     console.log(`  ${OUTPUT_META}: ${(metaSize / 1024).toFixed(1)} KB`);
     console.log(`  ${OUTPUT_COUNTRIES}: ${(countriesSize / 1024).toFixed(1)} KB (${maskFeatures.length} outlines)`);
     console.log(`  ${countriesMeta.length} countries`);
 }
 
-build();
+if (require.main === module) build();
+
+module.exports = { buildBorderField, dilateIds };

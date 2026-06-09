@@ -283,7 +283,6 @@
         import { LabelEditor } from './js/features/label-editor.js';
         import { PointerControls } from './js/features/pointer-controls.js';
         import { animateFlagWave } from './js/features/flag-wave.js';
-        import { BorderLayer } from './js/features/borders.js';
         import { SettingsPanel } from './js/features/settings-panel.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
@@ -379,7 +378,6 @@
         let flagRenderer = null;
         let countryMap = null;
         let searchManager = null;
-        let borderLayer = null;       // BorderLayer instance (country-border overlay)
         let settingsPanel = null;     // SettingsPanel instance (the ⚙ gear + panel)
 
 
@@ -524,14 +522,12 @@
                         countryData[name] = Object.assign({}, depData[name], countryData[name]);
                     }
 
-                    // Country-border overlay (lazy vector lines from countries.geojson).
-                    borderLayer = new BorderLayer({ globeManager });
-
                     // Settings gear (⚙) — color scheme, borders, lighting, auto-rotate,
                     // 2D-map defaults, and the absorbed edit/animation dev tools. Built
                     // here (after load) so the lighting uniforms + palette already exist.
                     // Replaces the old dev-edit toggle and the debug lighting panel.
-                    settingsPanel = new SettingsPanel({ globeManager, cameraController, borderLayer });
+                    // Borders are now a baked shader edge effect owned by globeManager.
+                    settingsPanel = new SettingsPanel({ globeManager, cameraController });
                     settingsPanel.init();
 
                     // ===== PHASE 6: Initialize Quiz System =====

@@ -40,10 +40,9 @@ const DEV_BUTTON_IDS = [
 ];
 
 export class SettingsPanel {
-    constructor({ globeManager, cameraController, borderLayer } = {}) {
+    constructor({ globeManager, cameraController } = {}) {
         this.globeManager = globeManager;
         this.cameraController = cameraController;
-        this.borderLayer = borderLayer;
         this.panel = null;
         this.gear = null;
         this._schemeButtons = new Map();
@@ -164,17 +163,17 @@ export class SettingsPanel {
         }
         schemeRow.appendChild(group);
 
-        // Borders toggle (independent of scheme).
+        // Borders toggle (independent of scheme). Drawn as a shader edge effect
+        // from the baked border distance field (globeManager.setBorder*).
         this._checkbox(sec, 'Country borders', !!saved.borders, (checked) => {
-            if (this.borderLayer) this.borderLayer.setVisible(checked);
+            if (this.globeManager) this.globeManager.setBorderVisible(checked);
             settingsStore.save({ borders: checked });
         });
 
-        // Border opacity — WebGL caps line width at 1px, so opacity is the lever
-        // for making the borders read as finer/lighter.
+        // Border opacity — blends the border ink over the fill (0.1–1.0).
         this._slider(sec, 'Border opacity', { min: 0.1, max: 1.0, step: 0.05, value: saved.borderOpacity },
             v => {
-                if (this.borderLayer) this.borderLayer.setOpacity(v);
+                if (this.globeManager) this.globeManager.setBorderOpacity(v);
                 settingsStore.save({ borderOpacity: v });
             });
 
@@ -308,10 +307,10 @@ export class SettingsPanel {
         // Color scheme + highlight (paletteOriginal exists by now).
         this._selectScheme(saved.scheme || 'vibrant');
 
-        // Borders (opacity set first so the lazy build picks it up).
-        if (this.borderLayer) {
-            this.borderLayer.setOpacity(saved.borderOpacity);
-            if (saved.borders) this.borderLayer.setVisible(true);
+        // Borders (opacity set first so enabling uses the saved strength).
+        if (this.globeManager) {
+            this.globeManager.setBorderOpacity(saved.borderOpacity);
+            this.globeManager.setBorderVisible(!!saved.borders);
         }
 
         // Auto-rotate prefs. Set the delay/speed directly and, when enabled, just
