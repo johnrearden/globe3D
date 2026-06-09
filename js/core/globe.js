@@ -125,10 +125,14 @@ void main() {
         float u = fract(atan(-d.z, d.x) * 0.1591549430918954 + 1.0); // /(2*PI)
         float v = acos(clamp(d.y, -1.0, 1.0)) * 0.3183098861837907;  // /PI
         float distTexels = texture2D(uBorderTex, vec2(u, v)).r * uBorderClamp;
-        // fwidth widens the smoothstep band with on-screen magnification, so the
-        // line holds a ~constant pixel width and stays anti-aliased at any zoom.
-        float aa = max(fwidth(distTexels), 0.75);
-        float edge = uBorderStrength * (1.0 - smoothstep(uBorderWidth - aa, uBorderWidth + aa, distTexels));
+        // fwidth(distTexels) = texels of field crossed per screen pixel; dividing
+        // gives the distance to the border in SCREEN PIXELS, so the line is a
+        // constant on-screen width at every zoom (standard SDF-line technique) —
+        // thin at closest zoom instead of fattening with the magnified texture.
+        // uBorderWidth is a half-width in pixels; +1.0 adds a 1px AA feather.
+        float texelsPerPx = max(fwidth(distTexels), 1e-4);
+        float screenPx = distTexels / texelsPerPx;
+        float edge = uBorderStrength * (1.0 - smoothstep(uBorderWidth, uBorderWidth + 1.0, screenPx));
         color = mix(color, uBorderColor, edge); // pre-lighting → shaded like the surface
     }
 
@@ -461,7 +465,7 @@ export class GlobeManager {
                     uHasBorder: { value: borderTex ? 1 : 0 },
                     uBorderColor: { value: new THREE.Color(0x222831) },
                     uBorderStrength: { value: 0.0 },
-                    uBorderWidth: { value: 1.5 },   // line half-width in texels
+                    uBorderWidth: { value: 0.6 },   // line half-width in screen pixels
                     uBorderClamp: { value: BORDER_CLAMP }
                 },
                 vertexShader: VERTEX_SHADER,
@@ -695,8 +699,8 @@ export class GlobeManager {
         if (this.material) this.material.uniforms.uBorderColor.value.set(hex);
     }
 
-    setBorderWidth(texels) {
-        if (this.material) this.material.uniforms.uBorderWidth.value = texels;
+    setBorderWidth(pixels) {
+        if (this.material) this.material.uniforms.uBorderWidth.value = pixels;
     }
 
     /**
