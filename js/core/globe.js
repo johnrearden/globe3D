@@ -15,9 +15,34 @@ const THREE = window.THREE;
 const SPHERE_RADIUS = 1.0;
 const SPHERE_SEGMENTS = 96;
 const PALETTE_W = 256;
-// Max distance (texels) baked into world-border.bin; must match BORDER_CLAMP in
-// build-textures.js. Used to convert the sampled 0..1 field back to texels.
-const BORDER_CLAMP = 8;
+// Country borders are drawn as a line that shares the fill mesh's exact vertices
+// (assets/world-border-lines.bin = boundary-edge index pairs). It sits at the
+// same radius as the fills, so to avoid z-fighting we nudge it toward the camera
+// in clip space by a tiny depth bias — NOT a radial lift, which would reintroduce
+// the parallax that made the previous raised line drift off its boundary near the
+// globe's limb. The XY position is identical to the fill edge → zero parallax.
+const BORDER_DEPTH_BIAS = 0.00015;
+
+// Flat, depth-biased line shader (constant 1px width in WebGL, i.e. the same
+// width at every zoom). Color/opacity are settable; depthTest keeps the far
+// hemisphere's borders hidden behind the globe.
+const BORDER_VERTEX_SHADER = /* glsl */`
+uniform float uDepthBias;
+void main() {
+    vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    clip.z -= uDepthBias * clip.w; // toward camera in NDC; no XY change → no parallax
+    gl_Position = clip;
+}
+`;
+const BORDER_FRAGMENT_SHADER = /* glsl */`
+precision highp float;
+uniform vec3 uColor;
+uniform float uOpacity;
+void main() {
+    gl_FragColor = vec4(uColor, uOpacity);
+}
+`;
+
 // Default ocean color (matches the `meta.oceanColor` fallback used in loadGlobe).
 // Used to tint the pre-load placeholder sphere so it matches the real ocean.
 const DEFAULT_OCEAN_COLOR = [6, 26, 51];
@@ -38,7 +63,6 @@ attribute float aCountryId;
 varying float vCountryId;
 varying vec3 vViewPos;
 varying vec3 vViewNormal;
-varying vec3 vObjDir;
 
 void main() {
     vCountryId = aCountryId;
@@ -46,10 +70,6 @@ void main() {
     // normalized local position. This avoids relying on SphereGeometry's
     // baked normal attribute and works for the merged country mesh too.
     vec3 nrmLocal = normalize(position);
-    // Object-space unit-sphere direction → equirectangular UV in the fragment
-    // shader (for the border field). Object space rotates with the globe and is
-    // unaffected by COUNTRY_MESH_SCALE (uniform scale).
-    vObjDir = nrmLocal;
     // View-space lighting (camera-relative). normalMatrix is the inverse-
     // transpose of the modelView matrix, giving a correct view-space normal —
     // and correctly handling the non-uniform squash of the bounce animation.
@@ -79,17 +99,10 @@ uniform float uSpecStrength;   // glossy highlight strength
 uniform float uShininess;      // highlight tightness (higher = smaller, sharper)
 uniform vec3 uSpecColor;       // highlight tint
 uniform float uOceanSpecBoost; // extra gloss on the ocean (water glint)
-uniform sampler2D uBorderTex;  // equirectangular border distance field (.r = dist/clamp)
-uniform float uHasBorder;      // 1 if the field loaded, else 0
-uniform vec3 uBorderColor;     // border ink color
-uniform float uBorderStrength; // border opacity (0 = off)
-uniform float uBorderWidth;    // line half-width in texels
-uniform float uBorderClamp;    // texels represented by field value 1.0
 
 varying float vCountryId;
 varying vec3 vViewPos;
 varying vec3 vViewNormal;
-varying vec3 vObjDir;
 
 void main() {
     float id = vCountryId;
@@ -114,26 +127,6 @@ void main() {
     // Quiz flash overlay.
     if (id > 0.5 && uFlashId > 0.5 && abs(id - uFlashId) < 0.5) {
         color = mix(color, uFlashColor, uFlashAlpha);
-    }
-
-    // Country borders — sampled from the baked distance field via an
-    // equirectangular UV computed from the object-space direction. The UV MUST
-    // match the CPU picking formula / build rasterizer so it indexes the same
-    // pixel grid: u = atan2(-z, x)/2PI (wrapped), v = acos(y)/PI.
-    if (uHasBorder > 0.5 && uBorderStrength > 0.0) {
-        vec3 d = normalize(vObjDir);
-        float u = fract(atan(-d.z, d.x) * 0.1591549430918954 + 1.0); // /(2*PI)
-        float v = acos(clamp(d.y, -1.0, 1.0)) * 0.3183098861837907;  // /PI
-        float distTexels = texture2D(uBorderTex, vec2(u, v)).r * uBorderClamp;
-        // fwidth(distTexels) = texels of field crossed per screen pixel; dividing
-        // gives the distance to the border in SCREEN PIXELS, so the line is a
-        // constant on-screen width at every zoom (standard SDF-line technique) —
-        // thin at closest zoom instead of fattening with the magnified texture.
-        // uBorderWidth is a half-width in pixels; +1.0 adds a 1px AA feather.
-        float texelsPerPx = max(fwidth(distTexels), 1e-4);
-        float screenPx = distTexels / texelsPerPx;
-        float edge = uBorderStrength * (1.0 - smoothstep(uBorderWidth, uBorderWidth + 1.0, screenPx));
-        color = mix(color, uBorderColor, edge); // pre-lighting → shaded like the surface
     }
 
     // Camera-relative (view-space) lighting: the light is fixed relative to the
@@ -170,8 +163,10 @@ export class GlobeManager {
         this.paletteTexture = null;
         this.paletteDefaults = null; // build-time palette snapshot for resets
 
-        this.borderTexture = null;   // equirectangular border distance field (fail-soft)
-        this._borderOpacity = 0.85;  // configured strength; applied when borders are visible
+        this.borderLines = null;     // LineSegments sharing the fill mesh's vertices (fail-soft)
+        this.borderMaterial = null;
+        this._borderColor = 0x222831; // border ink color
+        this._borderOpacity = 0.85;   // line opacity; applied when borders are visible
         this._borderVisible = false;
 
         this.idBytes = null;        // Uint8Array, packed [idHi, idLo, ...]
@@ -309,6 +304,48 @@ export class GlobeManager {
         return mesh;
     }
 
+    /**
+     * Build the country-border line from world-border-lines.bin — a Uint32 list
+     * of vertex-index pairs naming the fill mesh's boundary edges. The line
+     * geometry shares the country mesh's exact position attribute and is added as
+     * a child of the country mesh, so every border vertex coincides with a fill
+     * boundary vertex (no gap, no parallax). A flat depth-biased shader nudges it
+     * a hair toward the camera in clip space to avoid z-fighting without moving it
+     * radially. Fail-soft: a missing/invalid asset just means no borders.
+     */
+    _buildBorderLines(buffer) {
+        if (!buffer || !this.countryMesh) return;
+        const edgeIndices = new Uint32Array(buffer);
+        if (edgeIndices.length === 0 || edgeIndices.length % 2 !== 0) return;
+
+        const geo = new THREE.BufferGeometry();
+        // Share the fill mesh's position BufferAttribute verbatim — identical
+        // vertices guarantee the line traces the fill outlines exactly.
+        geo.setAttribute('position', this.countryMesh.geometry.attributes.position);
+        geo.setIndex(new THREE.BufferAttribute(edgeIndices, 1));
+        geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1.01);
+
+        this.borderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uColor: { value: new THREE.Color(this._borderColor) },
+                uOpacity: { value: this._borderOpacity },
+                uDepthBias: { value: BORDER_DEPTH_BIAS }
+            },
+            vertexShader: BORDER_VERTEX_SHADER,
+            fragmentShader: BORDER_FRAGMENT_SHADER,
+            transparent: true,
+            depthTest: true,
+            depthWrite: false
+        });
+
+        this.borderLines = new THREE.LineSegments(geo, this.borderMaterial);
+        this.borderLines.renderOrder = 1; // after the fills
+        this.borderLines.visible = this._borderVisible;
+        // Child of the country mesh → inherits COUNTRY_MESH_SCALE and any
+        // bounce/shatter transform, staying glued to the fills.
+        this.countryMesh.add(this.borderLines);
+    }
+
     addLatLongLines() {
         const radius = 1.001;
         const lineMaterial = new THREE.LineBasicMaterial({
@@ -372,9 +409,9 @@ export class GlobeManager {
                 .then(r => r.ok ? r.json() : {})
                 .catch(() => ({}));
 
-            // Border distance field is optional too: fail soft to null so a missing
-            // asset just means "no borders available", never a failed load.
-            const borderPromise = fetch('assets/world-border.bin')
+            // Border edges are optional too: fail soft to null so a missing asset
+            // just means "no borders available", never a failed load.
+            const borderPromise = fetch('assets/world-border-lines.bin')
                 .then(r => r.ok ? r.arrayBuffer() : null)
                 .catch(() => null);
 
@@ -410,29 +447,6 @@ export class GlobeManager {
             paletteTex.needsUpdate = true;
             this.paletteTexture = paletteTex;
 
-            // Border distance field (single channel). LinearFilter gives a smooth
-            // sub-texel distance ramp so the shader smoothstep is anti-aliased;
-            // RepeatWrapping on S makes the antimeridian seam continuous (the field
-            // is baked with matching X-wrap). Fail-soft: null if absent or wrong size.
-            let borderTex = null;
-            if (borderBuffer) {
-                const borderBytes = new Uint8Array(borderBuffer);
-                if (borderBytes.length === this.idW * this.idH) {
-                    borderTex = new THREE.DataTexture(
-                        borderBytes, this.idW, this.idH, THREE.LuminanceFormat, THREE.UnsignedByteType
-                    );
-                    borderTex.minFilter = THREE.LinearFilter;
-                    borderTex.magFilter = THREE.LinearFilter;
-                    borderTex.wrapS = THREE.RepeatWrapping;
-                    borderTex.wrapT = THREE.ClampToEdgeWrapping;
-                    borderTex.generateMipmaps = false;
-                    borderTex.needsUpdate = true;
-                } else {
-                    console.warn(`[GlobeManager] world-border.bin size mismatch: got ${borderBytes.length}, expected ${this.idW * this.idH}`);
-                }
-            }
-            this.borderTexture = borderTex;
-
             const oceanColor = meta.oceanColor || [6, 26, 51];
 
             this.material = new THREE.ShaderMaterial({
@@ -457,23 +471,11 @@ export class GlobeManager {
                     uSpecStrength: { value: 0.0 }, // target 0.18
                     uShininess: { value: 12.0 }, // 24
                     uSpecColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
-                    uOceanSpecBoost: { value: 1.7 },
-                    // Country borders: an edge effect sampled from the baked border
-                    // distance field. uBorderStrength = 0 disables it (the default);
-                    // setBorderVisible()/setBorderOpacity() drive it.
-                    uBorderTex: { value: borderTex },
-                    uHasBorder: { value: borderTex ? 1 : 0 },
-                    uBorderColor: { value: new THREE.Color(0x222831) },
-                    uBorderStrength: { value: 0.0 },
-                    uBorderWidth: { value: 0.6 },   // line half-width in screen pixels
-                    uBorderClamp: { value: BORDER_CLAMP }
+                    uOceanSpecBoost: { value: 1.7 }
                 },
                 vertexShader: VERTEX_SHADER,
                 fragmentShader: FRAGMENT_SHADER,
                 side: THREE.FrontSide,
-                // fwidth() (used for border anti-aliasing) needs the derivatives
-                // extension on WebGL1, which three.js r128 uses by default.
-                extensions: { derivatives: true },
                 // Polygon offset prevents flicker where neighboring countries share
                 // borders and produce coincident triangle edges from the source GeoJSON.
                 polygonOffset: true,
@@ -496,6 +498,12 @@ export class GlobeManager {
             this.countryMesh = this._buildCountryMesh(meshBuffer);
             this.countryMesh.scale.setScalar(COUNTRY_MESH_SCALE);
             this.globe.add(this.countryMesh);
+
+            // Country borders — a line sharing the fill mesh's exact vertices, so
+            // it sits on the fills with no gap or parallax (a depth bias, not a
+            // radial lift, keeps it from z-fighting). Added as a child of the
+            // country mesh so it inherits the same scale + any animation transform.
+            this._buildBorderLines(borderBuffer);
 
             if (onProgress) onProgress(85, 'Indexing countries...');
 
@@ -676,32 +684,28 @@ export class GlobeManager {
     }
 
     /**
-     * Country borders — drawn as a shader edge effect from the baked distance
-     * field. Visibility is `uBorderStrength = configured opacity vs 0`; a missing
-     * field (uHasBorder = 0) makes these no-ops at draw time, so they're safe to
-     * call regardless.
+     * Country borders — a line that shares the fill mesh's vertices (built in
+     * _buildBorderLines). These drive its visibility/opacity/color; all are
+     * safe no-ops before the line is built or if the asset is missing.
      */
     setBorderVisible(visible) {
         this._borderVisible = !!visible;
-        if (this.material) {
-            this.material.uniforms.uBorderStrength.value = this._borderVisible ? this._borderOpacity : 0;
-        }
+        if (this.borderLines) this.borderLines.visible = this._borderVisible;
     }
 
     setBorderOpacity(opacity) {
         this._borderOpacity = Math.max(0, Math.min(1, opacity));
-        if (this.material && this._borderVisible) {
-            this.material.uniforms.uBorderStrength.value = this._borderOpacity;
-        }
+        if (this.borderMaterial) this.borderMaterial.uniforms.uOpacity.value = this._borderOpacity;
     }
 
     setBorderColor(hex) {
-        if (this.material) this.material.uniforms.uBorderColor.value.set(hex);
+        this._borderColor = hex;
+        if (this.borderMaterial) this.borderMaterial.uniforms.uColor.value.set(hex);
     }
 
-    setBorderWidth(pixels) {
-        if (this.material) this.material.uniforms.uBorderWidth.value = pixels;
-    }
+    // WebGL caps line width at 1px, so the border is a constant 1px at every
+    // zoom regardless of this value; kept for API compatibility.
+    setBorderWidth(_pixels) { /* no-op: GL line width is fixed at 1px */ }
 
     /**
      * Recolor every country at once (the engine behind color schemes). `rgbById`

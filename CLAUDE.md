@@ -25,7 +25,7 @@ globe3d/
 ├── assets/
 │   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~30 MB)
 │   ├── world-id.bin         # Equirectangular country-ID texture for picking (4096×2048, raw RG bytes)
-│   ├── world-border.bin     # Equirectangular border distance field (4096×2048, 1 byte/px, ~8 MB raw / gzips small)
+│   ├── world-border-lines.bin # Country-outline edges as u32 vertex-index pairs into world-mesh.bin (~2.7 MB raw / ~840 KB gzipped)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
 │   └── country-meta.json    # Country IDs, centroids, bboxes, name↔id maps
 ├── package.json             # Build dependencies
@@ -39,7 +39,7 @@ globe3d/
 - **Zoom range:** 1.13 (closest) to 10.00 (farthest)
 - **Controls:** Drag to rotate, scroll/pinch to zoom
 - **Surface:** Two meshes sharing one ShaderMaterial: an ocean SphereGeometry at radius 1.0 (uniform aCountryId=0 → ocean color) plus a merged country mesh at radius 1.0008 (each vertex tagged with its country ID, fragment shader looks up the color in a 256-pixel palette texture). Vector polygon edges — mathematically crisp at any zoom, no rasterization staircase.
-- **Country borders:** An optional anti-aliased edge effect in the same fragment shader, sampled from a baked equirectangular distance field (`world-border.bin`) via a shader-computed equirectangular UV (matching the picking convention). Toggle/opacity/color/width via `globeManager.setBorderVisible/setBorderOpacity/setBorderColor/setBorderWidth` and the settings gear. Covers country↔country seams and coastlines; aligns perfectly with the fills (same ID raster) and folds into the existing draw calls (no separate overlay mesh).
+- **Country borders:** An optional line that **shares the fill mesh's exact vertices** — `world-border-lines.bin` lists the mesh's boundary edges (edges used by one triangle = every country's outline + coastlines), drawn as a `THREE.LineSegments` child of the country mesh from the same `position` attribute. Because the line is co-radial with the fills, there's no parallax; a small clip-space **depth bias** (not a radial lift) keeps it from z-fighting. Constant 1px (WebGL line-width cap) so it's the same width at every zoom. Toggle/opacity/color via `globeManager.setBorderVisible/setBorderOpacity/setBorderColor` and the settings gear.
 - **Country identification:** Per-vertex `aCountryId` attribute; the same ID is also rasterized into a CPU-side ID buffer (`world-id.bin`) for fast picking.
 - **Picking:** Ray-sphere intersection + lookup into the CPU-side ID buffer (O(1) per pick)
 - **Subgroup display:** `globeManager.showOnly([names])`, `showAll()`, `hideCountry(name)`, `fadeOthers([names], dimAlpha)` — each is a few-byte mutation of the palette texture.
@@ -123,12 +123,12 @@ The globe assets are pre-built using `build-textures.js`:
    - Edge-function scanline rasterizer also fills the 4096×2048 ID buffer (used at runtime only for picking)
    - Connected-components cleanup drops tiny isolated fragments from the ID buffer (preserves each country's largest)
    - 1-pixel ID dilation eliminates seam ambiguity at country borders
-   - A border distance field (`buildBorderField`) is derived from the dilated ID buffer: a pixel is a border where any 4-neighbour has a different ID (country↔country + coastlines), then a two-pass chamfer EDT (clamped to 8 texels, X-wrapped for the antimeridian) is encoded 1 byte/pixel into `world-border.bin`
+   - Country-outline edges (`extractBorderEdges`) are extracted from the merged mesh: edges used by exactly one triangle are each country's boundary (outline + coastlines), since countries don't share vertices. Written as u32 vertex-index pairs into `world-border-lines.bin` for the runtime border line
    - Per-country chosen RGB (from `country-colors.json` or random palette) is written into a 256×1 RGBA palette
 3. **Output:**
    - `assets/world-mesh.bin` (~30 MB raw, ~16 MB gzipped — vertex positions, per-vertex IDs, uint32 indices)
    - `assets/world-id.bin` (~16 MB raw, ~90 KB gzipped — picking only)
-   - `assets/world-border.bin` (~8 MB raw, gzips small — border distance field for the shader edge effect)
+   - `assets/world-border-lines.bin` (~2.7 MB raw, ~840 KB gzipped — boundary-edge index pairs for the border line)
    - `assets/country-palette.bin` (1 KB)
    - `assets/country-meta.json` (~75 KB)
 
@@ -237,7 +237,7 @@ update that document accordingly in the same change.
 ## Known Limitations
 
 - `index.html` is bootstrap + glue + (shrinking) inline UI logic; core systems live in modules under `js/` (scene, globe, labels, camera, quiz, flags, search, animations). See `docs/senior_dev/implementation-plan.md` for the modularization roadmap.
-- Country borders are baked at build time as a distance field (`world-border.bin`) and drawn as a smoothstep edge effect in the shared shader; toggle/opacity/color/width via `globeManager.setBorder*` and the settings gear. Resolution-limited (4096-wide ≈ 0.088°/texel) so they soften at the very closest zoom; `fwidth`-based AA keeps the line a near-constant pixel width otherwise.
+- Country borders are a 1px line sharing the fill mesh's exact vertices (`world-border-lines.bin` = boundary-edge index pairs), co-radial with the fills with a clip-space depth bias to avoid z-fighting (no radial lift → no parallax). Toggle/opacity/color via `globeManager.setBorder*` and the settings gear. WebGL caps line width at 1px, so thickness isn't adjustable without a fat-line implementation.
 - No search index (linear search through country names)
 - Label font is fixed (Arial, gray text)
 - Per-country mesh manipulation (e.g., scale or move a single country) is no longer supported — the globe is one mesh.
