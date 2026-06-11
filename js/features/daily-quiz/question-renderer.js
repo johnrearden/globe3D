@@ -1,0 +1,149 @@
+/**
+ * QuestionPresenter — turns a sanitized question payload into a presentation
+ * (globe framing / highlight, optional flag, optional options grid) and captures
+ * the player's answer + the time they took.
+ *
+ * It deliberately does NOT use flagRenderer.show() for identify-flag questions:
+ * that panel also prints the country name, which is the answer. A static flag
+ * image is shown instead.
+ */
+
+import { OptionsGrid } from './options-grid.js';
+
+export class QuestionPresenter {
+    constructor({ cameraController, globeManager, focusRegistry, els }) {
+        this.camera = cameraController;
+        this.globe = globeManager;
+        this.focusRegistry = focusRegistry;
+        this.els = els;                       // {prompt, flag, gridHost, feedback}
+        this.grid = new OptionsGrid(this.els.gridHost);
+        this._awaitingMapClick = false;
+    }
+
+    /**
+     * Present `question` and resolve with {answer, elapsedMs} once the player
+     * answers (grid submit or map click).
+     */
+    render(question) {
+        this._resetView();
+        this.els.prompt.textContent = question.prompt || '';
+        this.els.feedback.textContent = '';
+        this.els.feedback.className = 'dq-feedback';
+
+        this._setupFlag(question);
+        this._setupMap(question);
+
+        const startedAt = performance.now();
+        return new Promise((resolve) => {
+            const done = (answer) => {
+                const elapsedMs = Math.round(performance.now() - startedAt);
+                this._awaitingMapClick = false;
+                resolve({ answer, elapsedMs });
+            };
+
+            const method = question.answer && question.answer.method;
+            if (method === 'map-click-single' || method === 'map-click-multi') {
+                this._awaitingMapClick = true;
+                this._mapResolve = (name) => done(name);
+            } else {
+                // grid-single / grid-multi
+                this.grid.render({
+                    options: question.grid.options,
+                    cols: question.grid.cols,
+                    multiSelect: question.grid.multiSelect,
+                    display: question.grid.display,
+                    onSubmit: (values) => done(question.grid.multiSelect ? values : values[0]),
+                });
+            }
+        });
+    }
+
+    /** Called by the orchestrator when a country is clicked during a map question. */
+    isAwaitingMapClick() {
+        return this._awaitingMapClick;
+    }
+
+    submitMapClick(name) {
+        if (this._awaitingMapClick && this._mapResolve) {
+            this.globe.setSelectedCountry(name);
+            this._mapResolve(name);
+        }
+    }
+
+    /** Apply the post-answer reveal (colour the grid, highlight correct on map). */
+    showReveal(reveal, question) {
+        const method = question.answer && question.answer.method;
+        if (method === 'grid-single' || method === 'grid-multi') {
+            this.grid.applyReveal(reveal);
+        } else if (reveal.correctOptions && reveal.correctOptions.length) {
+            // Map question: flash the correct country green.
+            const correct = reveal.correctOptions[0];
+            this.globe.flashCountry(correct, 0x33dd66, 1600);
+            this.globe.setSelectedCountry(correct);
+        }
+        const ok = reveal.correct;
+        this.els.feedback.textContent = ok ? 'Correct!' : this._missText(reveal);
+        this.els.feedback.className = 'dq-feedback ' + (ok ? 'correct' : 'wrong');
+    }
+
+    _missText(reveal) {
+        const correct = (reveal.correctOptions || []).join(', ');
+        return correct ? `Answer: ${correct}` : 'Not quite.';
+    }
+
+    _setupFlag(question) {
+        if (question.flag) {
+            this.els.flag.src = `https://flagcdn.com/w320/${question.flag}.png`;
+            this.els.flag.style.display = 'block';
+        } else {
+            this.els.flag.removeAttribute('src');
+            this.els.flag.style.display = 'none';
+        }
+    }
+
+    _setupMap(question) {
+        const map = question.map;
+        if (!map) {
+            // Text/flag-only question — neutral full globe behind the panel.
+            this.camera.clearViewOffset();
+            this.globe.showAll();
+            this.globe.clearSelection();
+            this.camera.zoomOut();
+            return;
+        }
+
+        let distance = map.zoom;
+        if (!distance && map.focusCountry) {
+            distance = this.focusRegistry ? this.focusRegistry.distanceOf(map.focusCountry) : null;
+        }
+
+        this.camera.frameView({
+            lat: map.center.lat,
+            lng: map.center.lng,
+            distance,
+            focalAnchor: map.focalAnchor,
+            lockRotation: !!map.lockRotation,
+        });
+
+        this.globe.showAll();
+        this.globe.clearSelection();
+        if (map.highlight && map.highlight.length) {
+            this.globe.setSelectedCountry(map.highlight[0]);
+        }
+    }
+
+    _resetView() {
+        this.grid.clear();
+        this.els.flag.style.display = 'none';
+    }
+
+    /** Full cleanup when the quiz ends. */
+    teardown() {
+        this.camera.clearViewOffset();
+        this.camera.getControls().enableRotate = true;
+        this.globe.showAll();
+        this.globe.clearSelection();
+        this.grid.clear();
+        this.els.flag.style.display = 'none';
+    }
+}

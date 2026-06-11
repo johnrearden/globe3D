@@ -23,6 +23,7 @@ export class PointerControls {
         this.colorEditor = deps.colorEditor;
         this.zoomEditor = deps.zoomEditor;
         this.clickQuiz = deps.clickQuiz;
+        this.dailyQuiz = deps.dailyQuiz;
         this.rotateGlobeToCountry = deps.rotateGlobeToCountry || (() => {});
         this.resetIdleTimer = deps.resetIdleTimer || (() => {});
         this.onFlick = deps.onFlick || (() => {});       // (velX, velY) px/ms at release
@@ -184,6 +185,12 @@ export class PointerControls {
 
         if (this.clickQuiz && this.clickQuiz.isActive()) {
             this.clickQuiz.handleAnswer(pickedName);
+            return;
+        }
+
+        // Daily Challenge map-click questions (e.g. "Click Zambia").
+        if (this.dailyQuiz && this.dailyQuiz.isAwaitingMapClick()) {
+            this.dailyQuiz.handleMapClick(pickedName);
             return;
         }
 

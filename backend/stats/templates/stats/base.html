@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Globe3D Stats{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0e1726; color: #e6edf6; }
+    header { background: #14223a; padding: 14px 22px; display: flex; gap: 22px; align-items: baseline; }
+    header h1 { font-size: 17px; margin: 0; }
+    header a { color: #8fb6ff; text-decoration: none; font-size: 14px; }
+    header a:hover { text-decoration: underline; }
+    main { padding: 22px; max-width: 980px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #25324a; font-size: 14px; }
+    th { color: #9fb0c8; font-weight: 600; }
+    .cards { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+    .card { background: #14223a; border: 1px solid #25324a; border-radius: 10px; padding: 16px 20px; min-width: 150px; }
+    .card .n { font-size: 28px; font-weight: 700; }
+    .card .l { color: #9fb0c8; font-size: 13px; }
+    .muted { color: #7e8ca5; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Globe3D</h1>
+    <a href="{% url 'stats-dashboard' %}">Dashboard</a>
+    <a href="{% url 'stats-leaderboard' %}">Leaderboard</a>
+    <a href="{% url 'stats-participation' %}">Participation</a>
+    <a href="/admin/">Admin</a>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

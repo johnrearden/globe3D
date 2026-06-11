@@ -1,0 +1,12 @@
+{% extends 'stats/base.html' %}
+{% block title %}Dashboard — Globe3D Stats{% endblock %}
+{% block content %}
+  <h2>Today — {{ quiz.date }}</h2>
+  <div class="cards">
+    <div class="card"><div class="n">{{ attempts_today }}</div><div class="l">attempts today</div></div>
+    <div class="card"><div class="n">{{ completed_today }}</div><div class="l">completed today</div></div>
+    <div class="card"><div class="n">{{ players_total }}</div><div class="l">players total</div></div>
+    <div class="card"><div class="n">{{ quizzes_total }}</div><div class="l">daily quizzes</div></div>
+  </div>
+  <p class="muted">Today's quiz has {{ quiz.questions.count }} questions.</p>
+{% endblock %}

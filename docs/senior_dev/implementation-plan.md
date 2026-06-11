@@ -37,6 +37,8 @@ monolith became a thin bootstrap shell plus focused ES modules, all under a gree
 | 5 — Perf/correctness polish | ⬜ Pending | `_lookupIdLoose` tighten, override precedence, `getCountries()` removal still open |
 | 6 — Deployment & SEO hardening | ✅ Done | eruda gated behind `?debug`/localhost, full SEO/OG/Twitter/JSON-LD `<head>`, `_headers`, `robots.txt` (dev buttons were already CSS-gated) |
 | 7 — Optional next bets | 🟡 In progress | ✅ country borders (baked distance field + shader edge); search index, multi-language labels still open |
+| 8 — Daily Challenge + Django backend | 🟡 In progress | new `backend/` (geo/players/quiz/stats), `js/features/daily-quiz/`, `frameView` camera offset; tests green, browser verification pending |
+| 9 — Ads + Stripe remove-ads + account upgrade | ⬜ Pending | deferred; data model already forward-compatible |
 
 **Modules created (~11 new files):** `js/data/country-data.js`, `js/utils/coordinates.js`,
 `js/features/{loading,ui-sync,flag-wave,color-editor,zoom-editor,small-country-indicator,label-editor,pointer-controls}.js`,
@@ -332,6 +334,54 @@ These aren't required by the review but are natural follow-ups now that the code
   History: this replaced two rejected attempts — (1) a runtime vector `LineSegments` overlay from `countries.geojson` (raised radius → parallax; coarser simplification), and (2) a baked equirectangular distance field sampled in the shader (resolution-limited, soft/imprecise at closest zoom). The current line is exact because it *is* the fill outline. `tests/border-edges.test.js` covers the extraction.
 - **Search index.** Replace the linear `Array.filter` in `search.js` with a small trigram index or a sorted prefix array for O(log n) lookups. Not urgent at ~250 countries.
 - **Multi-language labels.** Listed in `CLAUDE.md`'s future ideas; the label pipeline is now isolated enough to support this cleanly.
+
+---
+
+## Stage 8 — Daily Challenge + Django backend — 🟡 In progress
+
+A new once-per-day, timed quiz with server-side grading and a global leaderboard. Unlike the four
+existing **practice** quizzes (`js/features/quiz/*`, client-generated, unchanged), the Daily
+Challenge is **backend-driven**: a self-hosted Django API owns question generation, grading,
+cumulative scoring, ranking, and the country dataset the bespoke question types need. The static
+frontend (Cloudflare) calls it cross-origin. Full design + decisions:
+`/home/john/.claude/plans/discussion-only-no-plan-prancy-moonbeam.md`.
+
+**Backend (new `backend/` Django project — self-hosted, not on Cloudflare):**
+- `geo` app — `Country` reference data (borders, landlocked, capital, region) seeded from a vendored
+  `world-countries` (restcountries mirror) snapshot via `manage.py seed_countries`, reconciled to
+  globe names **by ISO-2** (`geo/data/mesh_iso.json` + `geo/aliases.py`). Regenerate the vendored
+  data with `npm run build:geo-data`.
+- `players` app — anonymous `Player` (device token + nickname + country); `email`/`ads_removed`/
+  `stripe_customer_id` fields reserved for Stage 9.
+- `quiz` app — `DailyQuiz`/`Question`/`Attempt`/`AnswerRecord`, deterministic date-seeded lazy
+  generation (`quiz/generation/`: core 3 + bespoke bordering/landlocked/region-click), server
+  grading + cumulative score + client-time clamp, DRF endpoints under `/api/`.
+- `stats` app — staff-only templated dashboards (`/stats/`): leaderboard, per-question difficulty,
+  participation.
+- Tests: `backend/*/tests.py` (generation determinism, grading incl. multi-select exact-match,
+  one-attempt-per-day, leaderboard ordering, seed reconciliation guard). Run `manage.py test`.
+
+**Frontend (new modules — `index.html` touched only by an import + one instantiation):**
+- `js/data/api-client.js` — fetch wrappers + device-token identity (localStorage).
+- `js/features/daily-quiz/` — `daily-quiz.js` (orchestrator, builds its own launch button + panel),
+  `question-renderer.js`, `options-grid.js` (reusable variable-dim grid), `onboarding.js`,
+  `leaderboard.js`. This is a **feature sub-folder** — a deliberate exception to the "one module per
+  feature" rule, mirroring the existing `js/features/quiz/` precedent (a cohesive multi-file
+  feature, not micro-modules).
+- `js/core/camera-controls.js` — added `frameView()` / `clearViewOffset()` for map questions
+  (focal-anchor offset via `camera.setViewOffset`, math extracted to pure `js/utils/view-offset.js`,
+  unit-tested in `tests/view-offset.test.js`).
+- `js/features/pointer-controls.js` — added a `dailyQuiz` map-click hook alongside the `clickQuiz`
+  hook.
+
+**Remaining in this stage:** browser verification pass; wire `manage.py generate_daily` to cron if
+pre-warming is wanted (otherwise generation is lazy on first request).
+
+## Stage 9 — Ads + Stripe "remove ads" + account upgrade — ⬜ Pending
+
+Deferred. Ad integration gated by `Player.ads_removed`; Stripe Checkout + webhook to set the
+entitlement; optional email/account upgrade linking the device token to an email. Data model is
+already forward-compatible (fields exist, unused).
 
 ---
 

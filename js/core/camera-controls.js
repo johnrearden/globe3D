@@ -4,6 +4,8 @@
  */
 
 import { state } from '../data/state.js';
+import { latLngToXYZ } from '../utils/coordinates.js';
+import { viewOffsetFor } from '../utils/view-offset.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -177,6 +179,79 @@ export class CameraController {
             }
         };
         animateZoom();
+    }
+
+    /**
+     * Frame an arbitrary lat/lng at a given distance, optionally offsetting the
+     * focal point on screen (mobile-first: push the globe up so an options panel
+     * fits below). Presentation-only — used by the Daily Challenge to set up map
+     * questions. Orbit/lookAt math stays centered; `setViewOffset` shifts only
+     * the projection.
+     *
+     * @param {Object} opts
+     * @param {number} opts.lat
+     * @param {number} opts.lng
+     * @param {number} [opts.distance]      camera distance (clamped to zoom limits)
+     * @param {{x:number,y:number}} [opts.focalAnchor]  normalized screen pos for
+     *        the focus point (0.5,0.5 = center; y<0.5 = higher up). Default center.
+     * @param {boolean} [opts.lockRotation] disable user rotation while framed
+     * @param {number} [opts.duration]      animation ms (default 800)
+     */
+    frameView({ lat, lng, distance, focalAnchor = null, lockRotation = false, duration = 800 } = {}) {
+        this.cancelFlick();
+        this.disableAutoRotation();
+        this.smallCountryIndicator.remove();
+
+        const minD = this.controls.minDistance;
+        const maxD = this.controls.maxDistance;
+        const targetDistance = Math.max(minD, Math.min(maxD, distance || this.initialCameraDistance));
+
+        const dir = latLngToXYZ(lat, lng, 1, 0);
+        const target = new THREE.Vector3(dir.x, dir.y, dir.z).normalize().multiplyScalar(targetDistance);
+
+        this._applyViewOffset(focalAnchor);
+
+        const startPos = this.camera.position.clone();
+        const startTime = Date.now();
+        const animate = () => {
+            const progress = Math.min((Date.now() - startTime) / duration, 1);
+            const ease = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            const pos = new THREE.Vector3().lerpVectors(startPos, target, ease);
+            pos.setLength(startPos.length() + (targetDistance - startPos.length()) * ease);
+            this.camera.position.copy(pos);
+            this.camera.lookAt(0, 0, 0);
+            this.controls.update();
+            if (progress < 1) requestAnimationFrame(animate);
+        };
+        animate();
+
+        this.controls.enableRotate = !lockRotation;
+    }
+
+    /** Shift the projection so the globe center lands at `focalAnchor` on screen. */
+    _applyViewOffset(focalAnchor) {
+        const el = this.renderer.domElement;
+        const w = el.clientWidth || window.innerWidth;
+        const h = el.clientHeight || window.innerHeight;
+        if (!focalAnchor) {
+            this.clearViewOffset();
+            return;
+        }
+        const { x, y } = viewOffsetFor(w, h, focalAnchor);
+        this.camera.setViewOffset(w, h, x, y, w, h);
+        this.camera.updateProjectionMatrix();
+        this._viewOffsetActive = true;
+    }
+
+    /** Remove any view offset and re-enable user rotation. */
+    clearViewOffset() {
+        if (this._viewOffsetActive || this.camera.view) {
+            this.camera.clearViewOffset();
+            this.camera.updateProjectionMatrix();
+            this._viewOffsetActive = false;
+        }
     }
 
     /**

@@ -1,0 +1,21 @@
+{% extends 'stats/base.html' %}
+{% block title %}Leaderboard — Globe3D Stats{% endblock %}
+{% block content %}
+  <h2>Leaderboard — {{ quiz.date }}</h2>
+  <table>
+    <thead><tr><th>#</th><th>Player</th><th>Country</th><th>Score</th><th>Time (s)</th></tr></thead>
+    <tbody>
+      {% for rank, a in entries %}
+        <tr>
+          <td>{{ rank }}</td>
+          <td>{{ a.player.nickname }}</td>
+          <td>{{ a.player.country }}</td>
+          <td>{{ a.score }}</td>
+          <td>{% widthratio a.total_time_ms 1000 1 %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">No completed attempts yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

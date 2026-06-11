@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Globe3D Backend — Entity Relationship Diagram</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f1117;
+      color: #e6e6e6;
+    }
+    header {
+      padding: 1.5rem 2rem 0.5rem;
+      border-bottom: 1px solid #2a2d36;
+    }
+    header h1 { margin: 0 0 0.25rem; font-size: 1.4rem; }
+    header p { margin: 0.25rem 0; color: #9aa0aa; font-size: 0.9rem; }
+    .diagram-wrap {
+      padding: 1.5rem 2rem 3rem;
+      overflow: auto;
+    }
+    .mermaid { display: flex; justify-content: center; }
+    footer {
+      padding: 0.5rem 2rem 2rem;
+      color: #6b7280;
+      font-size: 0.8rem;
+    }
+    code { background: #1c1f27; padding: 0.1em 0.35em; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Globe3D Backend — Entity Relationship Diagram</h1>
+    <p>Django models across the <code>players</code>, <code>geo</code>, and <code>quiz</code> apps.
+       (<code>stats</code> defines no models.)</p>
+    <p>Open this file directly in a browser. The diagram renders client-side via Mermaid.</p>
+  </header>
+
+  <div class="diagram-wrap">
+    <pre class="mermaid">
+erDiagram
+    PLAYER ||--o{ ATTEMPT : "plays"
+    DAILYQUIZ ||--o{ QUESTION : "contains"
+    DAILYQUIZ ||--o{ ATTEMPT : "attempted in"
+    ATTEMPT ||--o{ ANSWERRECORD : "records"
+    QUESTION ||--o{ ANSWERRECORD : "answered by"
+
+    PLAYER {
+        int id PK
+        string device_token UK "unique, indexed"
+        string nickname
+        string country
+        string email UK "nullable, account upgrade"
+        bool ads_removed
+        string stripe_customer_id "billing milestone"
+        datetime created
+        datetime updated
+    }
+
+    COUNTRY {
+        int id PK
+        string cca2 UK "ISO-2"
+        string cca3 "ISO-3"
+        string name "restcountries common name"
+        string mesh_name "frontend display name, indexed"
+        float lat
+        float lng
+        string capital
+        float capital_lat
+        float capital_lng
+        bool landlocked
+        bool independent
+        string region
+        string subregion
+        json continents
+        json borders "list of cca3 neighbours"
+        string flag_iso
+    }
+
+    DAILYQUIZ {
+        int id PK
+        date date UK "one per day, indexed"
+        bigint seed "derives questions"
+        datetime created
+    }
+
+    QUESTION {
+        int id PK
+        int quiz_id FK
+        int index "unique per quiz"
+        string type "name-country, identify-flag, etc."
+        json payload "client-safe, no answer"
+        json answer "server-only grading key"
+        int points
+    }
+
+    ATTEMPT {
+        int id PK
+        int player_id FK
+        int quiz_id FK "unique with player"
+        int score
+        int total_time_ms
+        int current_index
+        bool completed
+        datetime started
+        datetime finished "nullable"
+    }
+
+    ANSWERRECORD {
+        int id PK
+        int attempt_id FK
+        int question_id FK "unique with attempt"
+        json given
+        bool correct
+        int elapsed_ms "clamped"
+        int elapsed_ms_raw "client-reported"
+        datetime created
+    }
+    </pre>
+  </div>
+
+  <footer>
+    <p><strong>Notes.</strong> <code>COUNTRY</code> is standalone reference data (no foreign keys); the quiz
+       generators read it and reference countries by name inside <code>QUESTION.payload</code>/<code>answer</code>
+       rather than via a DB relation. <code>UK</code> = unique constraint, <code>PK</code> = primary key,
+       <code>FK</code> = foreign key. Django's built-in <code>auth_*</code>, <code>django_*</code>, and admin
+       tables are omitted.</p>
+  </footer>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{% extends 'stats/base.html' %}
+{% block title %}Participation — Globe3D Stats{% endblock %}
+{% block content %}
+  <h2>Per-question difficulty {% if quiz %}— {{ quiz.date }}{% endif %}</h2>
+  <table>
+    <thead><tr><th>#</th><th>Type</th><th>Prompt</th><th>Answers</th><th>% correct</th><th>Avg ms</th></tr></thead>
+    <tbody>
+      {% for q in question_stats %}
+        <tr>
+          <td>{{ q.index }}</td>
+          <td>{{ q.type }}</td>
+          <td>{{ q.prompt }}</td>
+          <td>{{ q.total }}</td>
+          <td>{% if q.correct_pct is not None %}{{ q.correct_pct }}%{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td>{% if q.avg_ms %}{{ q.avg_ms }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">No data yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Participation by day</h2>
+  <p class="muted">{{ players_total }} players registered.</p>
+  <table>
+    <thead><tr><th>Date</th><th>Attempts</th><th>Completed</th></tr></thead>
+    <tbody>
+      {% for d in daily %}
+        <tr><td>{{ d.date }}</td><td>{{ d.attempts }}</td><td>{{ d.completed }}</td></tr>
+      {% empty %}
+        <tr><td colspan="3" class="muted">No quizzes yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

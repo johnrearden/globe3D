@@ -8,10 +8,12 @@
     "pngjs": "^7.0.0",
     "protomaps-themes-base": "^4.5.0",
     "simplify-js": "^1.2.4",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "world-countries": "^5.1.0"
   },
   "scripts": {
     "build:globe": "node build-textures.js",
+    "build:geo-data": "node backend/data_build/build_countries_json.mjs && node backend/data_build/build_mesh_iso.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   }

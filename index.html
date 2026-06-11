@@ -284,6 +284,8 @@
         import { PointerControls } from './js/features/pointer-controls.js';
         import { animateFlagWave } from './js/features/flag-wave.js';
         import { SettingsPanel } from './js/features/settings-panel.js';
+        import { ApiClient } from './js/data/api-client.js';
+        import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -375,6 +377,8 @@
         let identifyFlagQuiz = null;
         let clickQuiz = null;
         let capitalCitiesQuiz = null;
+        let apiClient = null;
+        let dailyQuiz = null;
         let flagRenderer = null;
         let countryMap = null;
         let searchManager = null;
@@ -586,6 +590,16 @@
                     quizManager.registerMode('click-country', clickQuiz);
                     quizManager.registerMode('capital', capitalCitiesQuiz);
 
+                    // ===== Daily Challenge (backend-driven once-a-day quiz) =====
+                    // Self-contained: builds its own launch button + panel DOM.
+                    apiClient = new ApiClient();
+                    dailyQuiz = new DailyQuiz({
+                        apiClient,
+                        cameraController,
+                        globeManager,
+                        focusRegistry
+                    });
+
                     // ===== PHASE 9: Initialize Search System =====
                     searchManager = new SearchManager({
                         elements: elements,
@@ -666,7 +680,7 @@
                     pointerControls = new PointerControls({
                         camera, controls, renderer,
                         globeManager, labelManager, flagRenderer, smallCountryIndicator,
-                        labelEditor, colorEditor, zoomEditor, clickQuiz,
+                        labelEditor, colorEditor, zoomEditor, clickQuiz, dailyQuiz,
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         resetIdleTimer: () => cameraController.resetIdleTimer(),
                         onFlick: (vx, vy) => cameraController.flick(vx, vy),
