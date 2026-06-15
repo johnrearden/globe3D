@@ -44,10 +44,15 @@ export class ColorEditor {
         return this.active;
     }
 
-    /** Fetch country-colors.json (if present) and apply it. */
+    /**
+     * Fetch country-colors.json (if present) and apply it. Returns a promise
+     * that resolves once the fetch settles (success or absent), so callers can
+     * sequence work that must run after the overrides land — e.g. re-applying
+     * the active color scheme so it isn't partially clobbered back to vibrant.
+     */
     loadConfig() {
         // Cache-buster (see label-editor.js): always fetch the latest config.
-        fetch('country-colors.json?v=' + Date.now())
+        return fetch('country-colors.json?v=' + Date.now())
             .then(response => {
                 if (!response.ok) throw new Error('No saved color config found');
                 return response.json();

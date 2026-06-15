@@ -671,7 +671,13 @@
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));
                     labelEditor.loadConfig();
-                    colorEditor.loadConfig();
+                    // country-colors.json overrides rewrite individual palette
+                    // entries with their build-time vibrant RGB. Re-apply the
+                    // persisted color scheme once they land so a non-vibrant
+                    // scheme isn't left half reverted to vibrant.
+                    colorEditor.loadConfig().then(() => {
+                        if (settingsPanel) settingsPanel.reapplyPersistedScheme();
+                    });
                     zoomEditor.loadConfig();
 
                     // Pointer dispatch — constructed here (not in setupEventListeners,

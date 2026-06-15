@@ -1931,6 +1931,9 @@
         }
 
         #loading-progress-bar {
+            /* Progress bar is intentionally not shown — the SEO intro stays up
+               until the globe is ready, then swaps to the #start-hint. */
+            display: none;
             position: relative;
             width: 100%;
             height: 40px;
@@ -2010,6 +2013,21 @@
 
         #zoom-out-btn,
         #zoom-widget {
+            display: none !important;
+        }
+
+        /* The edit / animation dev buttons live behind the settings gear. They
+           start life as direct children of #container (so their IDs/listeners
+           are wired up front) and are reparented into #settings-panel once the
+           globe finishes loading. Hide them until then so they don't flash in
+           the corners during load — the more-specific `#settings-panel #…`
+           rules below (display: block !important) reveal them inside the panel. */
+        #edit-mode-btn,
+        #edit-colors-btn,
+        #edit-zoom-btn,
+        #bounce-btn,
+        #shatter-btn,
+        #pinball-btn {
             display: none !important;
         }
 

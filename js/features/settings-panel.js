@@ -199,6 +199,16 @@ export class SettingsPanel {
         }
     }
 
+    /**
+     * Re-apply the persisted color scheme over the current palette. Used after
+     * country-colors.json overrides load: those rewrite individual entries with
+     * their build-time vibrant RGB, which would leave a non-vibrant scheme half
+     * reverted. Re-deriving from paletteOriginal restores a consistent scheme.
+     */
+    reapplyPersistedScheme() {
+        this._selectScheme(settingsStore.get().scheme || 'vibrant');
+    }
+
     _buildLighting() {
         const sec = this._section('Lighting');
         const U = this.globeManager && this.globeManager.material && this.globeManager.material.uniforms;
