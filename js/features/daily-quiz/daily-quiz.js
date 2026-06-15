@@ -23,6 +23,7 @@ export class DailyQuiz {
         this.globe = globeManager;
         this.focusRegistry = focusRegistry;
         this._active = false;
+        this._doneForToday = false;   // finished/already-completed this session
         this._buildDom();
     }
 
@@ -37,12 +38,21 @@ export class DailyQuiz {
 
     // ---------------------------- DOM ---------------------------------------
     _buildDom() {
+        // Invite: a message + the launch button, shown under the globe once the
+        // intro overlay has faded (see _wireIntroInvite), if today isn't done.
+        this.invite = document.createElement('div');
+        this.invite.id = 'dq-invite';
+        this.invite.innerHTML = `
+            <div class="dq-invite-msg">Up for today's Daily Challenge? Test your geography against the world.</div>
+        `;
         this.launchBtn = document.createElement('button');
         this.launchBtn.id = 'dq-launch';
         this.launchBtn.type = 'button';
         this.launchBtn.textContent = '★ Daily Challenge';
         this.launchBtn.addEventListener('click', () => this.launch());
-        document.body.appendChild(this.launchBtn);
+        this.invite.appendChild(this.launchBtn);
+        document.body.appendChild(this.invite);
+        this._wireIntroInvite();
 
         this.panel = document.createElement('div');
         this.panel.id = 'dq-panel';
@@ -91,8 +101,36 @@ export class DailyQuiz {
         });
     }
 
+    // --------------------------- invite ------------------------------------
+    /** Show the under-globe invite once the intro overlay has faded out. */
+    _wireIntroInvite() {
+        document.addEventListener(
+            'globe3d:intro-dismissed',
+            () => this._maybeShowInvite(),
+            { once: true },
+        );
+    }
+
+    async _maybeShowInvite() {
+        if (this._active) return;                 // already playing
+        let played = false;
+        try {
+            if (this.api.isRegistered) {
+                const today = await this.api.getToday();
+                played = !!(today.attempt && today.attempt.status === 'completed');
+            }
+        } catch (_) {
+            played = false;                        // can't tell (server down) — still invite
+        }
+        if (!played && !this._active) this._showInvite();
+    }
+
+    _showInvite() { this.invite.classList.add('dq-invite-show'); }
+    _hideInvite() { this.invite.classList.remove('dq-invite-show'); }
+
     // --------------------------- flow ---------------------------------------
     async launch() {
+        this._hideInvite();
         this.launchBtn.disabled = true;
         try {
             if (!this.api.isRegistered) {
@@ -112,6 +150,7 @@ export class DailyQuiz {
     async _begin() {
         const today = await this.api.getToday();
         if (today.attempt && today.attempt.status === 'completed') {
+            this._doneForToday = true;
             this._openPanel();
             this._enterQuizMode();
             await this._showLeaderboard('You\'ve already played today. Come back tomorrow!');
@@ -148,6 +187,7 @@ export class DailyQuiz {
 
             await this._waitNext(res.done);
             if (res.done) {
+                this._doneForToday = true;
                 await this._showLeaderboard('Done! Here\'s how you stack up.');
                 return;
             }
@@ -240,6 +280,10 @@ export class DailyQuiz {
         document.body.classList.remove('dq-active');
         this.camera.setAutoRotateAllowed(true);
         this.camera.zoomOut();
+        // If they bailed before finishing, re-offer the invite so they can resume
+        // (start/today resumes from the current question). Once done for the day,
+        // it stays hidden until tomorrow.
+        if (!this._doneForToday) this._showInvite();
     }
 
     _errText(e) {

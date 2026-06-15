@@ -2472,24 +2472,51 @@ body.flag-quiz-active #settings-panel {
    above it (map questions push the focus up via setViewOffset).
    ============================================================ */
 
-#dq-launch {
+/* Invite: message + launch button, centered under the globe. Fades in after the
+   intro overlay is dismissed (.dq-invite-show). The container is click-through
+   so dragging the globe over the message still rotates it; only the button is
+   interactive (and only while shown). */
+#dq-invite {
     position: fixed;
-    top: 10px;
-    left: 10px;
+    left: 50%;
+    bottom: 13%;
+    transform: translateX(-50%);
     z-index: 160;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    max-width: 90vw;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+#dq-invite.dq-invite-show { opacity: 1; }
+#dq-invite.dq-invite-show #dq-launch { pointer-events: auto; }
+.dq-invite-msg {
+    color: #eaf2ff;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+    max-width: 22em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+#dq-launch {
     background: linear-gradient(135deg, #6a5cff, #9b4dff);
     color: #fff;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 9px;
+    font-size: 16px;
     font-weight: 700;
-    padding: 10px 14px;
+    padding: 12px 22px;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
 }
 #dq-launch:hover { filter: brightness(1.08); }
 #dq-launch:disabled { opacity: 0.6; cursor: default; }
-body.dq-active #dq-launch { display: none; }
+body.dq-active #dq-invite { display: none; }
 
 #dq-panel {
     position: fixed;
@@ -2682,5 +2709,5 @@ body.dq-active #dq-launch { display: none; }
 }
 
 /* Hide the launch button while any legacy quiz is fullscreen. */
-body.flag-quiz-active #dq-launch,
-body.quiz-active #dq-launch { display: none; }
+body.flag-quiz-active #dq-invite,
+body.quiz-active #dq-invite { display: none; }

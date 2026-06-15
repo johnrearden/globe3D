@@ -19,6 +19,12 @@ export function hideSeoContent() {
         // Remove after the fade-out animation completes.
         setTimeout(() => hide(seoContent), 500);
     }
+    // Once the intro has faded, let features react (e.g. the Daily Challenge
+    // invite appears under the globe). Fires whether or not the overlay existed.
+    setTimeout(
+        () => document.dispatchEvent(new CustomEvent('globe3d:intro-dismissed')),
+        500,
+    );
 }
 
 export function hideLoading() {
