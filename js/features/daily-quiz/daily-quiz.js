@@ -204,6 +204,9 @@ export class DailyQuiz {
         this.el.prompt.style.display = '';
         this.el.gridHost.style.display = '';
         this.el.feedback.style.display = '';
+        // Reserve the Next-button row from the start so revealing it doesn't
+        // shift the panel (the CSS min-height holds the space while it's empty).
+        this.el.nextWrap.style.display = '';
         this.el.leaderboard.innerHTML = '';
     }
 
@@ -212,6 +215,7 @@ export class DailyQuiz {
         this.el.gridHost.style.display = 'none';
         this.el.feedback.style.display = 'none';
         this.el.flag.style.display = 'none';
+        this.el.nextWrap.style.display = 'none';
         this.el.nextWrap.innerHTML = '';
     }
 

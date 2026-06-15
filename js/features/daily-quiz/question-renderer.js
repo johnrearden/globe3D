@@ -73,7 +73,8 @@ export class QuestionPresenter {
     /** Apply the post-answer reveal (colour the grid, highlight correct on map). */
     showReveal(reveal, question) {
         const method = question.answer && question.answer.method;
-        if (method === 'grid-single' || method === 'grid-multi') {
+        const isGrid = method === 'grid-single' || method === 'grid-multi';
+        if (isGrid) {
             this.grid.applyReveal(reveal);
         } else if (reveal.correctOptions && reveal.correctOptions.length) {
             // Map question: flash the correct country green.
@@ -82,13 +83,15 @@ export class QuestionPresenter {
             this.globe.setSelectedCountry(correct);
         }
         const ok = reveal.correct;
-        this.els.feedback.textContent = ok ? 'Correct!' : this._missText(reveal);
+        // Keep the readout to ~2 lines so the reserved feedback space holds: for
+        // grid questions the cells already colour right/wrong/missed, so the text
+        // stays generic; map questions name the (single) correct country.
+        let text;
+        if (ok) text = 'Correct!';
+        else if (isGrid) text = 'Not quite — the answer is highlighted.';
+        else text = `Answer: ${(reveal.correctOptions || []).join(', ')}`;
+        this.els.feedback.textContent = text;
         this.els.feedback.className = 'dq-feedback ' + (ok ? 'correct' : 'wrong');
-    }
-
-    _missText(reveal) {
-        const correct = (reveal.correctOptions || []).join(', ');
-        return correct ? `Answer: ${correct}` : 'Not quite.';
     }
 
     _setupFlag(question) {

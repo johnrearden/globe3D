@@ -2586,10 +2586,26 @@ body.dq-active #dq-launch { display: none; }
 .dq-submit:disabled { opacity: 0.5; cursor: default; }
 .dq-next:hover, .dq-submit:hover:not(:disabled) { filter: brightness(1.1); }
 
-.dq-feedback { text-align: center; font-size: 14px; min-height: 18px; margin: 8px 0; }
+/* Feedback + Next reserve their space up front (height is held whether or not
+   they're populated) so revealing the result doesn't shift the panel. */
+.dq-feedback {
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.35;
+    min-height: 2.7em;      /* ~2 lines — fits "Correct!" and the answer readout */
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .dq-feedback.correct { color: #45e07a; }
 .dq-feedback.wrong { color: #ff8a8a; }
-.dq-next-wrap { display: flex; justify-content: center; }
+.dq-next-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 44px;       /* reserve the Next/See-results button row */
+}
 .dq-message { text-align: center; color: #9fb0c8; padding: 8px 0; }
 
 /* Leaderboard */
