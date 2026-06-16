@@ -112,6 +112,12 @@
         }
 
         #search-container {
+            /* The country search lives inside the settings gear (#settings-panel).
+               It starts as markup in #container and is reparented into the panel
+               once the globe loads; hidden until then so it doesn't flash in the
+               corner during load. The #settings-panel rules below reveal + reframe
+               it for the panel flow. */
+            display: none;
             position: fixed;
             top: 20px;
             left: 20px;
@@ -2475,6 +2481,27 @@ body.map-quiz #quiz-cancel-btn { z-index: 601; }
 .settings-btn:hover { background: rgba(255, 255, 255, 0.16); }
 
 .settings-dev-tools { display: flex; flex-direction: column; gap: 6px; }
+
+/* Country search, relocated to the top of the panel (under the header). Strip
+   the standalone fixed-overlay framing so it sits in the panel flow. */
+#settings-panel #search-container {
+    display: block;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: auto;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    margin: 0 0 4px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+#settings-panel #search-box { margin-bottom: 8px; }
+#settings-panel #country-search { font-size: 14px; }
+#settings-panel #search-results { max-height: 240px; }
 
 /* Keep the gear + panel clear of the (sometimes fullscreen) quiz UI. */
 body.quiz-active #settings-toggle,

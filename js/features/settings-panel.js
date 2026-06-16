@@ -65,6 +65,7 @@ export class SettingsPanel {
         host.appendChild(this.panel);
 
         this._buildHeader();
+        this._relocateSearch();
         this._buildAppearance();
         this._buildLighting();
         this._buildRotation();
@@ -129,6 +130,17 @@ export class SettingsPanel {
     }
 
     // ---- sections -----------------------------------------------------------
+
+    /**
+     * Move the existing #search-container (markup in index.html, with its
+     * SearchManager listeners already attached by element ID) to the top of the
+     * panel, just under the header. Reparenting preserves the IDs + listeners;
+     * its standalone fixed-overlay framing is normalized by the panel CSS.
+     */
+    _relocateSearch() {
+        const search = document.getElementById('search-container');
+        if (search) this.panel.appendChild(search);
+    }
 
     _buildHeader() {
         const header = document.createElement('div');

@@ -26,21 +26,6 @@ export function updateZoomWidget(camera) {
     }
 }
 
-/** On mobile, hide the search box when zoomed in (< 3.5), show when zoomed out. */
-export function updateSearchVisibilityOnMobile(camera) {
-    const isMobile = window.innerWidth <= 768;
-    if (!isMobile) return;
-
-    const searchContainer = elements.get('search-container');
-    if (!searchContainer) return;
-
-    if (camera.position.length() < 3.5) {
-        hide(searchContainer);
-    } else {
-        show(searchContainer);
-    }
-}
-
 /** Show the zoom-out button when zoomed in (< 4), hide when zoomed out. */
 export function updateZoomOutButtonVisibility(camera) {
     const zoomOutBtn = elements.get('zoom-out-btn');

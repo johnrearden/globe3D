@@ -274,7 +274,7 @@
         import { FocusZoomRegistry, LEVELS, LEVEL_DISTANCES } from './js/core/focus-zoom.js';
         import { countryData, countryToISO } from './js/data/country-data.js';
         import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
-        import { updateZoomWidget, updateSearchVisibilityOnMobile, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
+        import { updateZoomWidget, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
         import { hideLoading } from './js/features/loading.js';
         import { ColorEditor } from './js/features/color-editor.js';
         import { ZoomEditor } from './js/features/zoom-editor.js';
@@ -765,7 +765,6 @@
 
                 // Update UI widgets
                 updateZoomWidget(camera);
-                updateSearchVisibilityOnMobile(camera);
                 updateZoomOutButtonVisibility(camera);
             });
 
@@ -1005,8 +1004,8 @@
         }
 
         // Update zoom widget display
-        // Zoom-driven UI widgets (updateZoomWidget / updateSearchVisibilityOnMobile /
-        // updateZoomOutButtonVisibility) live in js/features/ui-sync.js.
+        // Zoom-driven UI widgets (updateZoomWidget / updateZoomOutButtonVisibility)
+        // live in js/features/ui-sync.js.
 
         // Old animate() function removed - now handled by SceneManager.onRender() callbacks
         // See init() function for render loop registration
