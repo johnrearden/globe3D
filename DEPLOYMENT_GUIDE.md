@@ -15,7 +15,8 @@
 > (PostgreSQL + Redis + gunicorn behind nginx + certbot). Its complete, version-controlled
 > runbook — Ubuntu 24.04 provisioning, Postgres setup, systemd units, TLS, and the
 > nightly backup strategy — lives at [`backend/deploy/README.md`](backend/deploy/README.md).
-> The frontend talks to it via `window.GLOBE3D_API_BASE` (e.g. `https://globe-api.example.com`).
+> The frontend talks to it via `window.GLOBE3D_API_BASE` (production: `https://api.terragotcha.com/api`,
+> set in `index.html` for `*.terragotcha.com` hosts; proxied through Cloudflare).
 
 ---
 

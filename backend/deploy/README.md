@@ -1,24 +1,37 @@
 # Globe3D backend — production deployment runbook (Ubuntu 24.04 LTS)
 
-Self-hosted **PostgreSQL + Redis + gunicorn** behind **nginx + certbot** on one VPS
-(host-agnostic — Linode, Hetzner, etc.). The same box also hosts a second Django app
-(sudoku/crossword) following the identical pattern; only Globe3D is spelled out here.
+Self-hosted **PostgreSQL + Redis + gunicorn** behind **nginx**, fronted by **Cloudflare
+(proxied)** on one VPS (host-agnostic — Linode, Hetzner, etc.). The same box also hosts a
+second Django app (sudoku/crossword) following the identical pattern; only Globe3D is
+spelled out here.
 
 The static frontend stays on Cloudflare Pages (see the repo-root `DEPLOYMENT_GUIDE.md`) —
-**this server is the API only.**
+**this server is the API only**, served at **`api.terragotcha.com`**.
+
+TLS: the API is **proxied through Cloudflare (orange cloud)** in **Full (strict)** mode, so
+the origin presents a **Cloudflare Origin Certificate** (15-yr, no renewals — no certbot/
+Let's Encrypt). Cloudflare's edge does http→https and shields the origin; the firewall admits
+only Cloudflare ranges (see `cf-allowlist.sh`).
 
 > The app is configured entirely through environment variables (`backend/config/settings.py`).
 > With **no** `DATABASE_URL`/`REDIS_URL` set it runs on SQLite + an in-process cache, so
 > local dev needs none of this. Setting those vars engages Postgres + Redis.
 
-Conventions below: replace `example.com`, usernames, and passwords with real values.
-`# ` lines run as root/sudo.
+Conventions below: replace usernames and passwords with real values. `# ` lines run as
+root/sudo.
 
 ---
 
-## 0. DNS (do this first — certbot needs it resolving)
-Point A/AAAA records at the VPS public IP:
-`globe-api.example.com` and `sudoku.example.com`.
+## 0. Cloudflare DNS + TLS (dashboard — do this first)
+With `terragotcha.com` on Cloudflare:
+1. **DNS** → add `A  api  <SERVER_PUBLIC_IP>`, **Proxied** (orange cloud). Add an `AAAA` if
+   the box has IPv6. Leave apex/`www` for Cloudflare Pages (the frontend).
+2. **SSL/TLS → Overview** → encryption mode **Full (strict)**.
+3. **SSL/TLS → Origin Server → Create Certificate** → hostname `api.terragotcha.com` (or
+   `*.terragotcha.com`). Keep the **certificate** and **private key** — installed in step 9.
+4. **SSL/TLS → Edge Certificates** → enable **Always Use HTTPS**.
+5. *(Optional, strongest)* **Authenticated Origin Pulls** — enable here and uncomment the
+   `ssl_client_certificate`/`ssl_verify_client` block in `nginx-globe3d.conf`.
 
 ## 1. OS prep & hardening
 ```bash
@@ -32,9 +45,9 @@ sudo apt update && sudo apt -y full-upgrade
 sudo apt -y install ufw fail2ban unattended-upgrades
 sudo dpkg-reconfigure -plow unattended-upgrades         # enable automatic security updates
 sudo ufw default deny incoming && sudo ufw default allow outgoing
-sudo ufw allow OpenSSH && sudo ufw allow 80 && sudo ufw allow 443
-sudo ufw enable
-sudo systemctl enable --now fail2ban
+sudo ufw allow OpenSSH                 # do NOT world-open 80/443 — the origin is
+sudo ufw enable                        # Cloudflare-only; cf-allowlist.sh (step 9)
+sudo systemctl enable --now fail2ban   # opens 443 to Cloudflare ranges alone
 sudo timedatectl set-timezone UTC
 ```
 
@@ -44,10 +57,10 @@ sudo apt -y install \
   postgresql postgresql-contrib \
   redis-server \
   nginx \
-  certbot python3-certbot-nginx \
   python3-venv python3-pip \
   git curl
 ```
+(No certbot — TLS is a Cloudflare Origin Certificate, installed in step 9.)
 Sanity-check the stock 24.04 versions: `postgres --version` → 16, `redis-server --version`
 → 7.x, `python3 --version` → 3.12.
 
@@ -105,11 +118,11 @@ sudoedit -u globe3d /srv/globe3d/app/backend/.env    # or: sudo -u globe3d nano 
 ```ini
 DJANGO_SECRET_KEY=PASTE_A_LONG_RANDOM_STRING   # python3 -c 'import secrets;print(secrets.token_urlsafe(64))'
 DJANGO_DEBUG=false
-DJANGO_ALLOWED_HOSTS=globe-api.example.com
+DJANGO_ALLOWED_HOSTS=api.terragotcha.com
 DATABASE_URL=postgres://globe3d:REPLACE_GLOBE_PW@127.0.0.1:5432/globe3d
 REDIS_URL=redis://127.0.0.1:6379/0
-CORS_ALLOWED_ORIGINS=https://globe.example.com
-CSRF_TRUSTED_ORIGINS=https://globe-api.example.com
+CORS_ALLOWED_ORIGINS=https://terragotcha.com,https://www.terragotcha.com
+CSRF_TRUSTED_ORIGINS=https://api.terragotcha.com
 # WEB_CONCURRENCY=3   # gunicorn workers; bump to 2*vCPU+1 after a resize
 ```
 
@@ -135,21 +148,38 @@ sudo systemctl enable --now globe3d
 sudo systemctl status globe3d        # active (running)
 ```
 
-## 9. nginx + TLS (certbot)
+## 9. nginx + TLS (Cloudflare Origin Certificate)
+Install the Origin Cert + key from step 0.3, then the server block, then lock the origin to
+Cloudflare (real-IP recovery + ufw allow-list) via `cf-allowlist.sh`:
 ```bash
+# Origin Cert from the Cloudflare dashboard:
+sudo install -d -m 0750 /etc/ssl/cloudflare
+sudoedit /etc/ssl/cloudflare/api.terragotcha.com.pem   # paste the certificate
+sudoedit /etc/ssl/cloudflare/api.terragotcha.com.key   # paste the private key
+sudo chmod 0644 /etc/ssl/cloudflare/api.terragotcha.com.pem
+sudo chmod 0640 /etc/ssl/cloudflare/api.terragotcha.com.key
+
 sudo cp /srv/globe3d/app/backend/deploy/nginx-globe3d.conf /etc/nginx/sites-available/globe3d.conf
 sudo ln -s /etc/nginx/sites-available/globe3d.conf /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d globe-api.example.com    # obtains cert + rewrites block to :443
-sudo systemctl list-timers | grep certbot        # confirm auto-renew timer
-curl -I https://globe-api.example.com/api/daily/today   # expect HTTP/2 200
+
+# Writes /etc/nginx/conf.d/cloudflare-realip.conf, sets ufw to allow 443 from
+# Cloudflare ranges only, then `nginx -t && systemctl reload nginx`:
+sudo /srv/globe3d/app/backend/deploy/cf-allowlist.sh
+
+# Verify through the edge (NOT direct — the origin only answers Cloudflare):
+curl -I https://api.terragotcha.com/api/daily/today    # expect 200, `server: cloudflare`
 ```
+No renewal cron — the Origin Cert is valid ~15 years. Re-run `cf-allowlist.sh` if Cloudflare
+ever changes its IP ranges (rare); optionally wire a monthly systemd timer like
+`pg-backup.timer`.
 
 ## 10. Second app (sudoku) — same pattern
-Repeat 5–9 with: `sudoku` user, `/srv/sudoku/app`, `/etc/sudoku/env`
+Repeat 5–9 with: `sudoku` user, `/srv/sudoku/app`, its own `backend/.env`
 (`REDIS_URL=redis://127.0.0.1:6379/1`, its own `DATABASE_URL`), a `sudoku.service`
-binding `unix:/run/sudoku.sock`, `usermod -aG sudoku www-data`, and an
-`nginx-sudoku.conf` for `sudoku.example.com`.
+binding `unix:/run/sudoku.sock`, `usermod -aG sudoku www-data`, its own Cloudflare proxied
+DNS record + Origin Cert, and an `nginx-sudoku.conf` for `sudoku.terragotcha.com`. The
+`cloudflare-realip.conf` from `cf-allowlist.sh` is shared (global `conf.d`), so it covers
+both vhosts.
 
 ---
 
