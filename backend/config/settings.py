@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -40,6 +42,12 @@ DEBUG = _env_bool('DJANGO_DEBUG', True)
 
 ALLOWED_HOSTS = _env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
 
+# In DEBUG, accept any Host so the dev server (bound to 0.0.0.0) is reachable
+# over the LAN by IP or hostname — e.g. testing the globe on a phone. Production
+# runs with DEBUG off and the explicit DJANGO_ALLOWED_HOSTS allow-list above.
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+
 
 # Application definition
 
@@ -62,6 +70,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serves collected static (admin + stats/ dashboards) straight from gunicorn
+    # so DEBUG=False deployments don't need a separate static host. Immediately
+    # after SecurityMiddleware per WhiteNoise's documented placement.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -95,11 +107,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# Driven by DATABASE_URL when set (e.g. postgres://user:pass@host:5432/db in
+# production); falls back to the local SQLite file so dev needs no env at all.
+# conn_max_age keeps connections open across requests (cheap reuse under load);
+# conn_health_checks revalidates a pooled connection before use.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', '60')),
+        conn_health_checks=True,
+    )
 }
 
 
@@ -138,6 +155,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# `collectstatic` gathers admin + DRF + stats assets here; WhiteNoise serves them
+# with hashed, far-future-cacheable filenames in production.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -161,12 +187,19 @@ REST_FRAMEWORK = {
 # The static frontend is served from a different origin (Cloudflare in prod, a
 # local static server in dev) and calls this API cross-origin. In production,
 # allow-list the exact frontend origin(s) via CORS_ALLOWED_ORIGINS. In DEBUG we
-# additionally allow any localhost/127.0.0.1 port, so the frontend's dev port
-# (8001, 5500, …) doesn't have to be hardcoded here.
+# additionally allow loopback, 0.0.0.0, mDNS `*.local`, and private-LAN IPv4
+# origins on any port, so the frontend's dev port (8001, 5500, …) and LAN access
+# (e.g. from a phone) just work without hardcoding the origin here.
 CORS_ALLOWED_ORIGINS = _env_list('CORS_ALLOWED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000')
 CORS_ALLOW_HEADERS = ('accept', 'content-type', 'x-device-token')
 if DEBUG:
-    CORS_ALLOWED_ORIGIN_REGEXES = [r'^http://(localhost|127\.0\.0\.1)(:\d+)?$']
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r'^http://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?$',
+        r'^http://[a-zA-Z0-9-]+\.local(:\d+)?$',
+        r'^http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$',
+        r'^http://192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$',
+        r'^http://172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}(:\d+)?$',
+    ]
 
 
 # --- CSRF ------------------------------------------------------------------
@@ -182,6 +215,47 @@ ANSWER_MAX_MS = int(os.environ.get('ANSWER_MAX_MS', '120000'))
 # A finished run's reported total time is floored at this fraction of the real
 # server-observed wall-clock (start->finish), to blunt obvious timing spoofs.
 ANSWER_WALLCLOCK_MIN_RATIO = float(os.environ.get('ANSWER_WALLCLOCK_MIN_RATIO', '0.5'))
+# Minimum land area (km²) for a country to be a target/clickable in map-click
+# (region-click) questions — smaller countries are too tiny to tap on the globe.
+QUIZ_MIN_CLICK_AREA_KM2 = float(os.environ.get('QUIZ_MIN_CLICK_AREA_KM2', '5000'))
+
+
+# --- Caching ---------------------------------------------------------------
+# Redis in production (REDIS_URL, e.g. redis://127.0.0.1:6379/0); in-process
+# locmem otherwise so dev and tests need no Redis. The daily leaderboard is the
+# main beneficiary — see quiz/services.leaderboard().
+REDIS_URL = os.environ.get('REDIS_URL', '')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+            'KEY_PREFIX': 'globe3d',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'globe3d-locmem',
+        }
+    }
+
+
+# --- Production security ----------------------------------------------------
+# Engaged only with DEBUG off. nginx terminates TLS and forwards the original
+# scheme via X-Forwarded-Proto, so Django must trust that header to know a
+# request arrived over HTTPS. nginx (not Django) does the HTTP->HTTPS redirect.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
 
 
 # --- Stripe (later milestone; unused in v1) --------------------------------

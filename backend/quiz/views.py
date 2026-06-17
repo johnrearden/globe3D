@@ -114,6 +114,10 @@ def daily_answer(request):
         next_question = attempt.quiz.questions.get(index=attempt.current_index)
     attempt.save()
 
+    if done:
+        # A new finisher changes the standings — drop the cached board.
+        services.invalidate_leaderboard(attempt.quiz)
+
     body = {
         'reveal': reveal,
         'runningScore': attempt.score,

@@ -1,11 +1,16 @@
 """Daily-quiz domain logic: lazy generation, grading, scoring, ranking."""
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
 from .generation import generate_for_quiz
 from .models import Attempt, DailyQuiz
+
+# The daily leaderboard is identical for every viewer, so a short cache absorbs
+# the daily-challenge read spike. Invalidated the moment an attempt completes.
+LEADERBOARD_TTL = 15
 
 
 def seed_for_date(d):
@@ -75,14 +80,34 @@ def finalize_timing(attempt):
     return max(attempt.total_time_ms, floor)
 
 
+def _leaderboard_key(quiz, limit):
+    return f'lb:{quiz.date.isoformat()}:{limit}'
+
+
 def leaderboard(quiz, limit=50):
-    """Completed attempts ranked by score desc, then total time asc."""
+    """Completed attempts ranked by score desc, then total time asc.
+
+    Cached for LEADERBOARD_TTL seconds per (quiz date, limit); the board is the
+    same for everyone, so this collapses repeated reads onto one query. An empty
+    board is a valid cached value, hence the explicit `is not None` check.
+    """
+    key = _leaderboard_key(quiz, limit)
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
     qs = (
         Attempt.objects.filter(quiz=quiz, completed=True)
         .select_related('player')
         .order_by('-score', 'total_time_ms', 'finished')
     )
-    return list(qs[:limit])
+    result = list(qs[:limit])
+    cache.set(key, result, LEADERBOARD_TTL)
+    return result
+
+
+def invalidate_leaderboard(quiz, limit=50):
+    """Drop the cached board so a freshly completed attempt shows immediately."""
+    cache.delete(_leaderboard_key(quiz, limit))
 
 
 def rank_of(attempt):

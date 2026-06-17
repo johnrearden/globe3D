@@ -10,6 +10,13 @@
 4. [Google Analytics Integration](#google-analytics-integration)
 5. [SEO Optimization Strategy](#seo-optimization-strategy)
 
+> **Backend API server.** This guide covers the **static frontend** (Cloudflare Pages).
+> The Daily Challenge **API** is a Django app deployed separately to a self-hosted VPS
+> (PostgreSQL + Redis + gunicorn behind nginx + certbot). Its complete, version-controlled
+> runbook — Ubuntu 24.04 provisioning, Postgres setup, systemd units, TLS, and the
+> nightly backup strategy — lives at [`backend/deploy/README.md`](backend/deploy/README.md).
+> The frontend talks to it via `window.GLOBE3D_API_BASE` (e.g. `https://globe-api.example.com`).
+
 ---
 
 ## 1. Cloudflare Pages Deployment

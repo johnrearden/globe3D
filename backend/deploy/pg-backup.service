@@ -1,0 +1,15 @@
+# Oneshot Postgres backup job, triggered by pg-backup.timer.
+# Install: sudo cp pg-backup.service /etc/systemd/system/
+
+[Unit]
+Description=Postgres backup (local dumps + off-box scp)
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pg-backup.sh
+# The script uses `sudo -u postgres pg_dump` and scp, so it runs as root.
+User=root
+# Don't let a slow/stuck off-box copy run forever.
+TimeoutStartSec=1800

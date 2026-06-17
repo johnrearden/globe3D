@@ -1,0 +1,16 @@
+# Nightly trigger for pg-backup.service.
+# Install: sudo cp pg-backup.timer /etc/systemd/system/
+#          sudo systemctl enable --now pg-backup.timer
+
+[Unit]
+Description=Run the Postgres backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+# If the box was off at 03:30, run as soon as it's back up.
+Persistent=true
+# Spread the I/O so two boxes don't hammer the backup host at the same instant.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

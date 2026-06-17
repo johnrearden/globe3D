@@ -2,6 +2,14 @@ Django==5.1.15
 djangorestframework==3.17.1
 django-cors-headers==4.9.0
 
+# Production serving / infra (engaged via env in settings.py; dev still runs on
+# SQLite + locmem with none of these configured).
+gunicorn==23.0.0
+psycopg[binary]==3.2.3        # PostgreSQL driver (Django 5.1)
+dj-database-url==2.3.0        # parse DATABASE_URL -> DATABASES['default']
+django-redis==5.4.0           # Redis cache backend
+whitenoise==6.8.2             # serve admin/stats static from gunicorn
+
 # Transitive (pinned for reproducibility)
 asgiref==3.11.1
 sqlparse==0.5.5
