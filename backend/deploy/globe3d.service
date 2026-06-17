@@ -4,7 +4,9 @@
 #
 # Assumes the layout from deploy/README.md:
 #   repo at /srv/globe3d/app, venv at /srv/globe3d/app/.venv,
-#   secrets at /etc/globe3d/env, run as the `globe3d` system user.
+#   run as the `globe3d` system user. Configuration (DATABASE_URL, REDIS_URL,
+#   secret key, hosts, …) is read from /srv/globe3d/app/backend/.env, which the
+#   app auto-loads via python-dotenv — no systemd EnvironmentFile needed.
 
 [Unit]
 Description=Globe3D API (gunicorn)
@@ -20,7 +22,6 @@ Group=globe3d
 # ready if you move the socket under a subdir).
 RuntimeDirectory=globe3d
 WorkingDirectory=/srv/globe3d/app/backend
-EnvironmentFile=/etc/globe3d/env
 ExecStart=/srv/globe3d/app/.venv/bin/gunicorn config.wsgi -c deploy/gunicorn.conf.py
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always

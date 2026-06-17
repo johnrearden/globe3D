@@ -96,10 +96,11 @@ sudo -u globe3d .venv/bin/pip install -r backend/requirements.txt
 ```
 
 ## 6. Environment file (secrets — never committed)
+The app auto-loads `backend/.env` via python-dotenv, so the secrets live right beside the
+code at `/srv/globe3d/app/backend/.env` (gitignored). Owned by `globe3d`, mode `0600`.
 ```bash
-sudo install -d -o root -g globe3d -m 0750 /etc/globe3d
-sudo install -o root -g globe3d -m 0640 /dev/null /etc/globe3d/env
-sudoedit /etc/globe3d/env
+sudo -u globe3d install -m 0600 /dev/null /srv/globe3d/app/backend/.env
+sudoedit -u globe3d /srv/globe3d/app/backend/.env    # or: sudo -u globe3d nano <path>
 ```
 ```ini
 DJANGO_SECRET_KEY=PASTE_A_LONG_RANDOM_STRING   # python3 -c 'import secrets;print(secrets.token_urlsafe(64))'
@@ -113,14 +114,15 @@ CSRF_TRUSTED_ORIGINS=https://globe-api.example.com
 ```
 
 ## 7. Initialize the database & static
+Management commands run as the `globe3d` user from `backend/` pick up `backend/.env`
+automatically (python-dotenv), so no manual sourcing is needed.
 ```bash
 cd /srv/globe3d/app/backend
-run() { sudo -u globe3d bash -c 'set -a; . /etc/globe3d/env; set +a; exec "$@"' _ "$@"; }
-run ../.venv/bin/python manage.py migrate
-run ../.venv/bin/python manage.py collectstatic --noinput
-run ../.venv/bin/python manage.py seed_countries          # geo reference data
-run ../.venv/bin/python manage.py generate_daily          # warm today's quiz (optional)
-run ../.venv/bin/python manage.py createsuperuser         # admin + /stats/ login
+sudo -u globe3d ../.venv/bin/python manage.py migrate
+sudo -u globe3d ../.venv/bin/python manage.py collectstatic --noinput
+sudo -u globe3d ../.venv/bin/python manage.py seed_countries     # geo reference data
+sudo -u globe3d ../.venv/bin/python manage.py generate_daily     # warm today's quiz (optional)
+sudo -u globe3d ../.venv/bin/python manage.py createsuperuser    # admin + /stats/ login
 ```
 
 ## 8. gunicorn under systemd
@@ -186,8 +188,8 @@ latest dump into a scratch database and run `manage.py check` against it.
 cd /srv/globe3d/app && sudo -u globe3d git pull
 sudo -u globe3d .venv/bin/pip install -r backend/requirements.txt
 cd backend
-run ../.venv/bin/python manage.py migrate
-run ../.venv/bin/python manage.py collectstatic --noinput
+sudo -u globe3d ../.venv/bin/python manage.py migrate
+sudo -u globe3d ../.venv/bin/python manage.py collectstatic --noinput
 sudo systemctl restart globe3d
 ```
 

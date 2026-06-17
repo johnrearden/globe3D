@@ -5,11 +5,20 @@
 # Run from the `backend/` directory (WorkingDirectory in the unit) so the
 # `config.wsgi` import path resolves.
 #
-# Tunables can be overridden via environment (set in /etc/globe3d/env):
+# Tunables can be overridden via environment (set in backend/.env):
 #   WEB_CONCURRENCY  number of worker processes (default 3, good for 2 vCPU)
 #   GUNICORN_THREADS threads per worker (default 2)
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# gunicorn evaluates this config before importing the Django app, so settings'
+# own load_dotenv() hasn't run yet. Load backend/.env here too (this file lives
+# in backend/deploy/) so the gunicorn-level tunables below resolve from the same
+# single source. Real env vars still win (override defaults to False).
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 # Listen on a Unix socket that nginx proxies to. Group-writable so the
 # www-data-grouped nginx worker can connect.

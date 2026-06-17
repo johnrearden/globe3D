@@ -14,9 +14,15 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load backend/.env into the environment if present, before anything below reads
+# os.environ. Real environment variables still win (override defaults to False),
+# and a missing file is a no-op — so dev with no .env and tests are unaffected.
+load_dotenv(BASE_DIR / '.env')
 
 
 def _env_bool(name, default=False):

@@ -9,6 +9,7 @@ psycopg[binary]==3.2.3        # PostgreSQL driver (Django 5.1)
 dj-database-url==2.3.0        # parse DATABASE_URL -> DATABASES['default']
 django-redis==5.4.0           # Redis cache backend
 whitenoise==6.8.2             # serve admin/stats static from gunicorn
+python-dotenv==1.2.2          # autoload backend/.env into the environment
 
 # Transitive (pinned for reproducibility)
 asgiref==3.11.1
