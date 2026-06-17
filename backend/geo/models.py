@@ -23,6 +23,10 @@ class Country(models.Model):
     lat = models.FloatField(null=True, blank=True)
     lng = models.FloatField(null=True, blank=True)
 
+    # Land area in km² (restcountries `area`); used to keep tiny countries out of
+    # map-click questions where they'd be near-impossible to tap.
+    area = models.FloatField(null=True, blank=True)
+
     capital = models.CharField(max_length=128, blank=True)
     capital_lat = models.FloatField(null=True, blank=True)
     capital_lng = models.FloatField(null=True, blank=True)

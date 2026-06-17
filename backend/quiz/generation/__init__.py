@@ -24,12 +24,12 @@ REGISTRY = {
 # Relative weights for how often each type appears in a daily quiz. Unregistered
 # keys are ignored, so listing bespoke types here is safe before they exist.
 COMPOSITION_WEIGHTS = {
-    'name-country': 3,
-    'identify-flag': 3,
-    'capital': 3,
+    'name-country': 4,    # boosted — most-liked type
+    'region-click': 4,    # boosted — "find the country" on the map
+    'identify-flag': 2,
     'bordering': 2,
     'landlocked': 2,
-    'region-click': 2,
+    'capital': 1,         # forced to exactly one per quiz in _type_sequence
 }
 
 
@@ -44,14 +44,21 @@ from . import bespoke  # noqa: E402,F401
 
 
 def _type_sequence(rng, count):
-    """A deterministic, weighted, shuffled sequence of `count` registered types."""
+    """A deterministic, weighted, shuffled sequence of `count` registered types.
+
+    Capital questions are capped at exactly one per quiz (reserved up front); the
+    remaining slots are drawn from the weighted bag with `capital` excluded.
+    """
+    capital_slots = 1 if ('capital' in REGISTRY and count > 0) else 0
     bag = []
     for key, weight in COMPOSITION_WEIGHTS.items():
-        if key in REGISTRY:
-            bag.extend([key] * weight)
-    if not bag:
+        if key == 'capital' or key not in REGISTRY:
+            continue
+        bag.extend([key] * weight)
+    if not bag and not capital_slots:
         raise RuntimeError('No question generators registered.')
-    seq = [rng.choice(bag) for _ in range(count)]
+    rest = [rng.choice(bag) for _ in range(count - capital_slots)] if bag else []
+    seq = (['capital'] * capital_slots) + rest
     rng.shuffle(seq)
     return seq
 

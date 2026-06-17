@@ -70,6 +70,7 @@ class Command(BaseCommand):
                 'mesh_name': iso_to_mesh.get(cca2, ''),
                 'lat': latlng[0] if len(latlng) >= 2 else None,
                 'lng': latlng[1] if len(latlng) >= 2 else None,
+                'area': r.get('area'),
                 'capital': r.get('capital', ''),
                 'landlocked': bool(r.get('landlocked')),
                 'independent': bool(r.get('independent')),

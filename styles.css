@@ -2561,6 +2561,34 @@ body.flag-quiz-active #settings-panel {
 }
 #dq-launch:hover { filter: brightness(1.08); }
 #dq-launch:disabled { opacity: 0.6; cursor: default; }
+
+/* "Maybe Later": a subtle, secondary text button under the launch button. */
+#dq-maybe-later {
+    background: none;
+    border: none;
+    color: #aeb9cc;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 6px;
+    cursor: pointer;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+#dq-maybe-later:hover { color: #eaf2ff; }
+
+/* Docked: pinned top-left, directly under the Take Quiz button (top:20px, ~38px
+   tall). Message + Maybe Later hide; the launch button shrinks to match Take Quiz. */
+#dq-invite.dq-docked {
+    left: 20px;
+    top: 68px;
+    bottom: auto;
+    transform: none;
+    align-items: flex-start;
+    max-width: none;
+}
+#dq-invite.dq-docked .dq-invite-msg,
+#dq-invite.dq-docked #dq-maybe-later { display: none; }
+#dq-invite.dq-docked #dq-launch { font-size: 14px; padding: 10px 15px; }
+
 body.dq-active #dq-invite { display: none; }
 
 #dq-panel {

@@ -59,7 +59,8 @@ def gen_identify_flag(rng, pool):
     same_region = [c for c in flaggable if c.region == target.region and c.pk != target.pk]
     others = same_region if len(same_region) >= OPTION_COUNT - 1 else [c for c in flaggable if c.pk != target.pk]
     distractors = rng.sample(others, OPTION_COUNT - 1)
-    options = [country_option(c) for c in [target, *distractors]]
+    # No flags on the answer buttons — the question already shows the flag.
+    options = [country_option(c, with_flag=False) for c in [target, *distractors]]
     rng.shuffle(options)
     payload = _single_choice_payload(
         'identify-flag',

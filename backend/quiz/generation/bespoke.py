@@ -5,6 +5,8 @@ region membership) — all sourced from geo.Country. They register themselves in
 the generation REGISTRY on import (see __init__).
 """
 
+from django.conf import settings
+
 from . import register
 from .base import (
     DEFAULT_FOCAL_ANCHOR,
@@ -153,10 +155,12 @@ def gen_region_click(rng, pool):
     local bboxes; we just supply the region centroid as the center.
     """
     globe = on_globe()
-    # Group on-globe countries by subregion.
+    # Group on-globe countries by subregion, excluding tiny ones — they're
+    # near-impossible to tap on the globe, so they're neither asked nor clickable.
+    min_area = settings.QUIZ_MIN_CLICK_AREA_KM2
     by_sub = {}
     for c in globe:
-        if c.subregion and c.lat is not None:
+        if c.subregion and c.lat is not None and (c.area or 0) >= min_area:
             by_sub.setdefault(c.subregion, []).append(c)
     regions = [(sub, members) for sub, members in by_sub.items() if len(members) >= 4]
     if not regions:

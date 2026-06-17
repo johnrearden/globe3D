@@ -4,6 +4,49 @@
  * cancelled. Country options are the globe's own country names.
  */
 
+import { countryData } from '../../data/country-data.js';
+
+/** ISO-2 region codes from the browser locale(s), most-preferred first. */
+function localeRegionCodes() {
+    const tags = (navigator.languages && navigator.languages.length)
+        ? navigator.languages
+        : [navigator.language];
+    const codes = [];
+    for (const tag of tags) {
+        if (!tag) continue;
+        try {
+            const region = new Intl.Locale(tag).region;
+            if (region) codes.push(region.toLowerCase());
+        } catch (_) { /* malformed tag — skip */ }
+    }
+    return codes;
+}
+
+/** Best guess at the player's country (a name present in `countryNames`), or ''. */
+function guessCountryName(countryNames) {
+    const codes = localeRegionCodes();
+    if (!codes.length) return '';
+    // ISO-2 -> dropdown option name, using the globe's own country reference data.
+    const isoToName = new Map();
+    for (const name of countryNames) {
+        const iso = countryData[name] && countryData[name].iso;
+        if (iso && !isoToName.has(iso)) isoToName.set(iso, name);
+    }
+    for (const code of codes) {
+        if (isoToName.has(code)) return isoToName.get(code);
+    }
+    // Fallback: match the locale's English region name against the option names.
+    try {
+        const dn = new Intl.DisplayNames(['en'], { type: 'region' });
+        const byLower = new Map(countryNames.map((n) => [n.toLowerCase(), n]));
+        for (const code of codes) {
+            const en = dn.of(code.toUpperCase());
+            if (en && byLower.has(en.toLowerCase())) return byLower.get(en.toLowerCase());
+        }
+    } catch (_) { /* Intl.DisplayNames unsupported — skip */ }
+    return '';
+}
+
 export function showOnboarding(countryNames, existing = null) {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -49,6 +92,11 @@ export function showOnboarding(countryNames, existing = null) {
         if (existing) {
             nick.value = existing.nickname || '';
             if (existing.country) country.value = existing.country;
+        }
+        // Pre-fill from the browser locale when nothing is already selected.
+        if (!country.value) {
+            const guess = guessCountryName(countryNames);
+            if (guess) country.value = guess;
         }
         setTimeout(() => nick.focus(), 50);
 

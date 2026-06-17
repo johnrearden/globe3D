@@ -76,9 +76,16 @@ def nearest_countries(target, pool, count):
     return others[:count]
 
 
-def country_option(country):
-    """A grid option object the client renders (value is the mesh name it speaks)."""
-    return {'value': country.display_name, 'label': country.display_name, 'flag': country.flag_iso}
+def country_option(country, with_flag=True):
+    """A grid option object the client renders (value is the mesh name it speaks).
+
+    `with_flag=False` omits the flag — used by the flag question so the answer
+    buttons don't give the flag away.
+    """
+    opt = {'value': country.display_name, 'label': country.display_name}
+    if with_flag:
+        opt['flag'] = country.flag_iso
+    return opt
 
 
 def map_block(center_country, highlight=None, lock=True, anchor=None,

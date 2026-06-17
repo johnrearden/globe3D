@@ -24,6 +24,7 @@ export class DailyQuiz {
         this.focusRegistry = focusRegistry;
         this._active = false;
         this._doneForToday = false;   // finished/already-completed this session
+        this._dismissed = false;      // "Maybe Later" — dock the button top-left
         this._buildDom();
     }
 
@@ -48,9 +49,17 @@ export class DailyQuiz {
         this.launchBtn = document.createElement('button');
         this.launchBtn.id = 'dq-launch';
         this.launchBtn.type = 'button';
-        this.launchBtn.textContent = '★ Daily Challenge';
+        this.launchBtn.textContent = 'Daily Challenge';
         this.launchBtn.addEventListener('click', () => this.launch());
         this.invite.appendChild(this.launchBtn);
+        // "Maybe Later": dismiss the message and dock the button top-left under
+        // the Take Quiz button (still a way back in this session).
+        this.maybeLaterBtn = document.createElement('button');
+        this.maybeLaterBtn.id = 'dq-maybe-later';
+        this.maybeLaterBtn.type = 'button';
+        this.maybeLaterBtn.textContent = 'Maybe Later';
+        this.maybeLaterBtn.addEventListener('click', () => this._dock());
+        this.invite.appendChild(this.maybeLaterBtn);
         document.body.appendChild(this.invite);
         this._wireIntroInvite();
 
@@ -125,8 +134,12 @@ export class DailyQuiz {
         if (!played && !this._active) this._showInvite();
     }
 
-    _showInvite() { this.invite.classList.add('dq-invite-show'); }
+    _showInvite() {
+        this.invite.classList.add('dq-invite-show');
+        if (this._dismissed) this.invite.classList.add('dq-docked');
+    }
     _hideInvite() { this.invite.classList.remove('dq-invite-show'); }
+    _dock() { this._dismissed = true; this.invite.classList.add('dq-docked'); }
 
     // --------------------------- flow ---------------------------------------
     async launch() {
