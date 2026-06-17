@@ -5,23 +5,45 @@
  * Base URL is resolved three ways (see resolveApiBase):
  *   1. `window.GLOBE3D_API_BASE` if set — explicit override (how the deployed
  *      Cloudflare frontend points at the self-hosted API). Always wins.
- *   2. On localhost / 127.0.0.1 — defaults to Django's default dev port,
- *      `:8000/api`, so a two-server local setup just works: run the API with
- *      `manage.py runserver` (→ :8000) and serve the static frontend on any
- *      other port (e.g. `python3 -m http.server 8001`). In DEBUG the backend
- *      allows any localhost origin, so the frontend's port doesn't matter.
+ *   2. On a local-dev host (loopback, `0.0.0.0`, an mDNS `*.local` name, or a
+ *      private-LAN IP) — defaults to Django's default dev port, `:8000/api`, so
+ *      a two-server local setup just works: run the API with `manage.py
+ *      runserver 0.0.0.0:8000` (→ :8000) and serve the static frontend on any
+ *      other port (e.g. `python3 -m http.server 8001`). This covers reaching the
+ *      pair over the LAN (e.g. from a phone) as well as via localhost. In DEBUG
+ *      the backend allows these origins, so the frontend's port doesn't matter.
  *   3. Otherwise — same-origin `/api` (production behind one host).
  *
  * Identity is an opaque device token generated and stored client-side (mirrors
  * the settings-store localStorage pattern) and sent as `X-Device-Token`.
  */
 
+/**
+ * True for hosts that mean "local two-server dev setup", where the API runs on
+ * Django's :8000 and the static frontend is served on some other port. Covers
+ * loopback, 0.0.0.0, mDNS `*.local`, and the private-LAN IPv4 ranges so a
+ * backend bound to 0.0.0.0 and reached over the LAN still finds the API.
+ */
+function isLocalDevHost(hostname) {
+    return (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '0.0.0.0' ||
+        hostname === '::1' ||
+        hostname.endsWith('.local') ||
+        /^10\./.test(hostname) ||
+        /^192\.168\./.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)
+    );
+}
+
 function resolveApiBase() {
     if (typeof window === 'undefined') return '/api';
     if (window.GLOBE3D_API_BASE) return window.GLOBE3D_API_BASE;
     const { hostname, protocol } = window.location;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        // Django's default dev port. The static frontend may be on any port.
+    if (isLocalDevHost(hostname)) {
+        // Django's default dev port, same host as the frontend (so LAN access
+        // works). The static frontend may be served on any port.
         return `${protocol}//${hostname}:8000/api`;
     }
     return '/api';
