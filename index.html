@@ -36,16 +36,23 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <!-- Debug tooling (eruda) — loaded only with ?debug or on localhost, never in production. -->
     <script>
-        // Deployed frontend (Cloudflare Pages on terragotcha.com) talks to the API
-        // on its own subdomain and loads the baked assets from R2 (the 1.5 GB
-        // tileset + 31 MB mesh exceed Pages' 25 MiB/file limit). Guarded so
-        // local/LAN dev still auto-detects the Django dev server and relative
-        // ./assets (see js/data/api-client.js and js/data/asset-base.js). The /api
+        // Any DEPLOYED host — the custom domain AND *.pages.dev preview builds —
+        // loads the baked assets from R2 and talks to the API on its subdomain
+        // (the 1.5 GB tileset + 31 MB mesh live on R2, not Pages). Only genuine
+        // local/LAN dev keeps relative ./assets + the auto-detected Django dev
+        // server; this mirrors isLocalDevHost in js/data/api-client.js. The /api
         // suffix matters — API endpoints are appended to that base.
-        if (location.hostname.endsWith('terragotcha.com')) {
-            window.GLOBE3D_API_BASE = 'https://api.terragotcha.com/api';
-            window.GLOBE3D_ASSET_BASE = 'https://assets.terragotcha.com';
-        }
+        (function () {
+            const h = location.hostname;
+            const isLocalDev = h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0'
+                || h === '::1' || h.endsWith('.local')
+                || /^10\./.test(h) || /^192\.168\./.test(h)
+                || /^172\.(1[6-9]|2\d|3[01])\./.test(h);
+            if (!isLocalDev) {
+                window.GLOBE3D_API_BASE = 'https://api.terragotcha.com/api';
+                window.GLOBE3D_ASSET_BASE = 'https://assets.terragotcha.com';
+            }
+        })();
         window.__GLOBE_DEBUG__ = new URLSearchParams(location.search).has('debug')
             || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         if (window.__GLOBE_DEBUG__) {
