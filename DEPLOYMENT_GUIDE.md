@@ -885,6 +885,10 @@ domains** → add `terragotcha.com` + `www.terragotcha.com`.
 the site now requires an emailed PIN. **To launch: delete this application.** Do **not** add
 `api.` or `assets.` to Access — gating them breaks the app's cross-origin fetches.
 
+> ⚠️ **The site is publicly reachable until this application exists.** Pages serves the app
+> the moment DNS is live, with no gate by default. Confirm the gate by loading the domain in a
+> private window — you should get the one-time-PIN login, **not** the globe.
+
 ### 6.8 DNS cleanup
 Delete the Porkbun parking leftovers (apex `A` records, the `*` and `www` CNAMEs). **Keep**
 `api` A (VPS), both `MX`, and the SPF `TXT`.
@@ -898,6 +902,37 @@ curl -H "Origin: https://terragotcha.com" -I https://assets.terragotcha.com/coun
 Then in a browser: `terragotcha.com` → Access login → globe loads (mesh from R2), 2D map
 renders (pmtiles range requests), a daily-quiz round works against `api.terragotcha.com`,
 console clean of CORS/4xx.
+
+### 6.10 Troubleshooting & lessons learned
+Failure modes actually hit during the first deploy — symptom → cause → fix.
+
+**Globe fails with `JSON.parse: unexpected character at line 1 column 1`; assets `302`-redirect
+to `…l.ink` / a parking page.** A leftover **`*.terragotcha.com` wildcard CNAME → Porkbun
+parking** (`uixie.porkbun.com`) shadows any subdomain without its own record, so `assets.`
+(and `api.`) resolve to parking and return HTML, which the asset loader can't parse. *Fix:*
+delete the wildcard and every Porkbun parking record (apex `A`s, `www`/`*` CNAMEs); keep `api`,
+`MX`, SPF. Confirm: `dig +short assets.terragotcha.com` → Cloudflare IPs, **not**
+`uixie.porkbun.com`.
+
+**CORS works from a hash preview but not the bare project alias.**
+`https://*.globe3d-3s7.pages.dev` matches `<hash>.globe3d-3s7.pages.dev` but **not** the bare
+`globe3d-3s7.pages.dev` — the `*` needs a label to match. *Fix:* put **both** in the R2 CORS
+`AllowedOrigins`. (Production `terragotcha.com`/`www` are unaffected.)
+
+**Only the JSON assets 404 (binaries load fine).** A `--include "*.bin"` upload skips all JSON,
+and even `--include "*.json"` misses **`countries.geojson`** (different extension). *Fix:*
+upload with **no filter** — `rclone copy ./assets r2:terragotcha-assets` — so every key lands.
+Verify each expected key returns `200`.
+
+**"Still broken / still parked" after the DNS is already correct.** Your OS and browser DNS
+caches still hold the old answer. *Fix:* `sudo resolvectl flush-caches` and **fully restart the
+browser**. Check the real state, not your cache: `dig @1.1.1.1 +short <host>` (authoritative),
+and bypass DNS entirely by forcing the Cloudflare edge IP —
+`curl -I --resolve <host>:443:104.21.55.211 https://<host>/<key>` — to test the actual R2/Pages
+config regardless of local caching.
+
+**Asset keys live at the bucket root** (e.g. `world-mesh.bin`), never under an `assets/` prefix
+— `ASSET_BASE` is already `https://assets.terragotcha.com` (see §6.3).
 
 ---
 
