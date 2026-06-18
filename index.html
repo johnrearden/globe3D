@@ -37,11 +37,14 @@
     <!-- Debug tooling (eruda) — loaded only with ?debug or on localhost, never in production. -->
     <script>
         // Deployed frontend (Cloudflare Pages on terragotcha.com) talks to the API
-        // on its own subdomain. Guarded so local/LAN dev still auto-detects the
-        // Django dev server (see resolveApiBase in js/data/api-client.js); the /api
-        // suffix matters — endpoints are appended to this base.
+        // on its own subdomain and loads the baked assets from R2 (the 1.5 GB
+        // tileset + 31 MB mesh exceed Pages' 25 MiB/file limit). Guarded so
+        // local/LAN dev still auto-detects the Django dev server and relative
+        // ./assets (see js/data/api-client.js and js/data/asset-base.js). The /api
+        // suffix matters — API endpoints are appended to that base.
         if (location.hostname.endsWith('terragotcha.com')) {
             window.GLOBE3D_API_BASE = 'https://api.terragotcha.com/api';
+            window.GLOBE3D_ASSET_BASE = 'https://assets.terragotcha.com';
         }
         window.__GLOBE_DEBUG__ = new URLSearchParams(location.search).has('debug')
             || location.hostname === 'localhost' || location.hostname === '127.0.0.1';

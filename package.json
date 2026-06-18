@@ -14,6 +14,7 @@
   "scripts": {
     "build:globe": "node build-textures.js",
     "build:geo-data": "node backend/data_build/build_countries_json.mjs && node backend/data_build/build_mesh_iso.mjs",
+    "build:pages": "node build-pages.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   }

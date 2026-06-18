@@ -19,13 +19,14 @@
  */
 
 import { settingsStore } from '../data/settings-store.js';
+import { assetUrl } from '../data/asset-base.js';
 
 // ── Tile configuration ────────────────────────────────────────────────────
-// null → public MapLibre demo style (no tiles of our own).
-// Temp deploy:  'pmtiles://./assets/planet-z9.pmtiles'  (relative → resolves
-//               under /globe/, and against localhost:8000 for local testing).
-// Cloudflare:   the R2/Worker endpoint.
-const PMTILES_URL = 'pmtiles://./assets/planet-z9.pmtiles';
+// pmtiles:// + the resolved asset base. Local dev → 'pmtiles://./assets/...'
+// (resolves under /globe/ and against localhost:8000). Production → the
+// Cloudflare R2 endpoint via window.GLOBE3D_ASSET_BASE (see js/data/asset-base.js),
+// because the 1.5 GB tileset can't live on Cloudflare Pages.
+const PMTILES_URL = `pmtiles://${assetUrl('planet-z9.pmtiles')}`;
 
 // Protomaps basemap shared font/sprite assets (matched to the pre-generated
 // 'light' theme layers in assets/pmtiles-layers.json).
@@ -45,9 +46,9 @@ const TOGGLE_GROUPS = [
     { key: 'boundaries', label: 'Boundaries', sourceLayers: ['boundaries'] }
 ];
 
-// Per-country outline polygons (built by build-textures.js). Relative path so it
-// resolves under any deploy sub-path (e.g. /globe/). Used for the exact mask.
-const COUNTRIES_GEOJSON_URL = './assets/countries.geojson';
+// Per-country outline polygons (built by build-textures.js). Resolved against the
+// asset base (relative in dev, R2 in production). Used for the exact mask.
+const COUNTRIES_GEOJSON_URL = assetUrl('countries.geojson');
 
 // Mapping libs are vendored and served same-origin (page-relative paths, no
 // leading slash, so they resolve under any deploy sub-path). Avoids depending on
@@ -56,7 +57,7 @@ const MAPLIBRE_JS = './js/vendor/maplibre-gl.js';
 const MAPLIBRE_CSS = './js/vendor/maplibre-gl.css';
 const PMTILES_JS = './js/vendor/pmtiles.js';
 // Pre-generated Protomaps theme layers (protomaps-themes-base, light, lang en).
-const PM_LAYERS_URL = './assets/pmtiles-layers.json';
+const PM_LAYERS_URL = assetUrl('pmtiles-layers.json');
 
 export class CountryMap {
     /**

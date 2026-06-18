@@ -8,6 +8,7 @@
  */
 
 import { state } from '../data/state.js';
+import { assetUrl } from '../data/asset-base.js';
 import { latLngToXYZ } from '../utils/coordinates.js';
 
 const THREE = window.THREE;
@@ -386,32 +387,32 @@ export class GlobeManager {
             console.log('Loading textured globe...');
             if (onProgress) onProgress(5, 'Fetching globe data...');
 
-            const idPromise = fetch('assets/world-id.bin').then(r => {
+            const idPromise = fetch(assetUrl('world-id.bin')).then(r => {
                 if (!r.ok) throw new Error(`Failed to fetch world-id.bin: ${r.status}`);
                 return r.arrayBuffer();
             });
-            const palettePromise = fetch('assets/country-palette.bin').then(r => {
+            const palettePromise = fetch(assetUrl('country-palette.bin')).then(r => {
                 if (!r.ok) throw new Error(`Failed to fetch country-palette.bin: ${r.status}`);
                 return r.arrayBuffer();
             });
-            const meshPromise = fetch('assets/world-mesh.bin').then(r => {
+            const meshPromise = fetch(assetUrl('world-mesh.bin')).then(r => {
                 if (!r.ok) throw new Error(`Failed to fetch world-mesh.bin: ${r.status}`);
                 return r.arrayBuffer();
             });
-            const metaPromise = fetch('assets/country-meta.json').then(r => {
+            const metaPromise = fetch(assetUrl('country-meta.json')).then(r => {
                 if (!r.ok) throw new Error(`Failed to fetch country-meta.json: ${r.status}`);
                 return r.json();
             });
 
             // Capital cities are an optional sidecar (like label-config/country-colors):
             // fail soft to {} so a missing file never blocks the globe from loading.
-            const capitalsPromise = fetch('assets/capitals.json')
+            const capitalsPromise = fetch(assetUrl('capitals.json'))
                 .then(r => r.ok ? r.json() : {})
                 .catch(() => ({}));
 
             // Border edges are optional too: fail soft to null so a missing asset
             // just means "no borders available", never a failed load.
-            const borderPromise = fetch('assets/world-border-lines.bin')
+            const borderPromise = fetch(assetUrl('world-border-lines.bin'))
                 .then(r => r.ok ? r.arrayBuffer() : null)
                 .catch(() => null);
 
