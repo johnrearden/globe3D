@@ -9,12 +9,13 @@
 3. [Google AdSense Integration](#google-adsense-integration)
 4. [Google Analytics Integration](#google-analytics-integration)
 5. [SEO Optimization Strategy](#seo-optimization-strategy)
+6. [Frontend Hosting: Cloudflare Pages + R2 + Access](#6-frontend-hosting-cloudflare-pages--r2--access)
 
-> **Backend API server.** This guide covers the **static frontend** (Cloudflare Pages).
+> **Backend API server.** This guide covers the **static frontend** (Cloudflare Pages + R2).
 > The Daily Challenge **API** is a Django app deployed separately to a self-hosted VPS
-> (PostgreSQL + Redis + gunicorn behind nginx + certbot). Its complete, version-controlled
-> runbook — Ubuntu 24.04 provisioning, Postgres setup, systemd units, TLS, and the
-> nightly backup strategy — lives at [`backend/deploy/README.md`](backend/deploy/README.md).
+> (PostgreSQL + Redis + gunicorn behind nginx, Cloudflare Origin Cert). Its complete,
+> version-controlled runbook — Ubuntu 24.04 provisioning, Postgres setup, systemd units,
+> TLS, and the nightly backup strategy — lives at [`backend/deploy/README.md`](backend/deploy/README.md).
 > The frontend talks to it via `window.GLOBE3D_API_BASE` (production: `https://api.terragotcha.com/api`,
 > set in `index.html` for `*.terragotcha.com` hosts; proxied through Cloudflare).
 
@@ -793,6 +794,110 @@ Implement additional schema types:
 - [GTmetrix](https://gtmetrix.com/)
 - [Ahrefs Free Tools](https://ahrefs.com/free-seo-tools)
 - [SEMrush Site Audit](https://www.semrush.com/)
+
+---
+
+## 6. Frontend Hosting: Cloudflare Pages + R2 + Access
+
+The current production frontend split. **Pages** serves the app shell (`index.html`, `js/`,
+`styles.css`, the small root JSON); **R2** serves the baked binary/geo assets at
+`assets.terragotcha.com` (because `planet-z9.pmtiles` ~1.5 GB and `world-mesh.bin` ~31 MB
+exceed Pages' **25 MiB/file** limit); **Cloudflare Access** gates the site during development;
+the **API** stays at `api.terragotcha.com` on the VPS. The frontend points at R2 and the API
+via `window.GLOBE3D_ASSET_BASE` / `window.GLOBE3D_API_BASE`, set in `index.html` and guarded
+to `*.terragotcha.com` (local/LAN dev keeps relative `./assets` + the dev API server).
+
+> Asset keys live at the **bucket root** (e.g. `world-mesh.bin`), not under an `assets/`
+> prefix — `ASSET_BASE` is already `https://assets.terragotcha.com`.
+
+**Prerequs:** local `assets/` populated (incl. the gitignored 1.5 GB pmtiles); `rclone`
+installed; an R2-enabled Cloudflare account (free tier: 10 GB, zero egress).
+
+### 6.1 Create the R2 bucket
+Dashboard → **R2** → *Create bucket* → name **`terragotcha-assets`**, location Automatic.
+
+### 6.2 Create an R2 API token (for upload)
+R2 → **Manage R2 API Tokens** → *Create* → **Object Read & Write**, scoped to the bucket.
+Save the **Access Key ID**, **Secret**, and **Endpoint**
+`https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
+
+### 6.3 Upload `assets/` to the bucket root
+`~/.config/rclone/rclone.conf`:
+```ini
+[r2]
+type = s3
+provider = Cloudflare
+access_key_id = <R2_ACCESS_KEY_ID>
+secret_access_key = <R2_SECRET_ACCESS_KEY>
+endpoint = https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+acl = private
+```
+```bash
+# From the repo root. Uploads the CONTENTS of assets/ to the bucket root.
+rclone copy ./assets r2:terragotcha-assets --progress \
+  --header-upload "Cache-Control: public, max-age=86400"
+rclone ls r2:terragotcha-assets   # verify keys are at the root (no assets/ prefix)
+```
+
+**Caching — why `max-age=86400` and not `immutable`:** these assets are **not** regenerated
+by a deploy — `npm run build:pages` only stages the shell and excludes `assets/`. They change
+only when you deliberately re-run `npm run build:globe` / `build:geo-data` or re-extract the
+pmtiles (rare), and 8 of the 9 files are git-tracked artifacts. But the filenames are **fixed**
+(no content hash) and the app doesn't cache-bust the binaries, so `immutable` would pin stale
+bytes the day you do rebuild. A 1-day max-age + R2's **ETag revalidation** gives near-immutable
+performance (unchanged files cost a cheap `304`, never re-downloading the 1.5 GB) while letting
+a rebuild propagate. **Operational rule:** when you re-upload rebuilt assets, **purge the
+Cloudflare cache** for `assets.terragotcha.com` (Caching → Purge, or scoped to changed files).
+
+### 6.4 Public custom domain
+R2 → bucket → **Settings → Public access → Custom Domains** → *Connect* → `assets.terragotcha.com`
+(Cloudflare auto-creates the proxied record). Leave the `r2.dev` URL disabled.
+
+### 6.5 CORS policy
+R2 → bucket → **Settings → CORS Policy**:
+```json
+[
+  {
+    "AllowedOrigins": ["https://terragotcha.com", "https://www.terragotcha.com"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["Range", "If-Match", "If-None-Match"],
+    "ExposeHeaders": ["Content-Length", "Content-Range", "ETag", "Accept-Ranges"],
+    "MaxAgeSeconds": 86400
+  }
+]
+```
+
+### 6.6 Deploy the Pages shell
+**Git (recommended):** Workers & Pages → *Create* → **Pages** → connect the repo → preset
+**None**, build command `npm run build:pages`, output dir `dist` → deploy. Then **Custom
+domains** → add `terragotcha.com` + `www.terragotcha.com`.
+**Direct:** `npm run build:pages && npx wrangler pages deploy dist --project-name terragotcha`.
+
+> **If the build fails with “Asset too large … `node_modules/.../workerd` (119 MiB)”:** the
+> project is publishing the **repo root** (which contains `node_modules` after `npm install`),
+> not the staged shell. Fix in the project's **Build configuration**: build command
+> `npm run build:pages`, **Build output directory `dist`**, then redeploy. `dist/` contains only
+> the allow-listed shell — no `node_modules`, no `assets/`, nothing over 25 MiB.
+
+### 6.7 Cloudflare Access (development gate)
+**Zero Trust** → **Access → Applications → Add → Self-hosted**. Domain `terragotcha.com`
+(+ `www`); Identity **One-time PIN**; Policy **Allow → Emails →** your address(es). Visiting
+the site now requires an emailed PIN. **To launch: delete this application.** Do **not** add
+`api.` or `assets.` to Access — gating them breaks the app's cross-origin fetches.
+
+### 6.8 DNS cleanup
+Delete the Porkbun parking leftovers (apex `A` records, the `*` and `www` CNAMEs). **Keep**
+`api` A (VPS), both `MX`, and the SPF `TXT`.
+
+### 6.9 Verify
+```bash
+curl -I https://assets.terragotcha.com/world-mesh.bin                              # 200
+curl -r 0-1023 -s -o /dev/null -w "%{http_code}\n" https://assets.terragotcha.com/planet-z9.pmtiles   # 206
+curl -H "Origin: https://terragotcha.com" -I https://assets.terragotcha.com/country-meta.json | grep -i access-control-allow-origin
+```
+Then in a browser: `terragotcha.com` → Access login → globe loads (mesh from R2), 2D map
+renders (pmtiles range requests), a daily-quiz round works against `api.terragotcha.com`,
+console clean of CORS/4xx.
 
 ---
 
