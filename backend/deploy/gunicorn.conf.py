@@ -20,9 +20,11 @@ from dotenv import load_dotenv
 # single source. Real env vars still win (override defaults to False).
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
-# Listen on a Unix socket that nginx proxies to. Group-writable so the
-# www-data-grouped nginx worker can connect.
-bind = os.environ.get('GUNICORN_BIND', 'unix:/run/globe3d.sock')
+# Listen on a Unix socket that nginx proxies to. The socket lives inside
+# /run/globe3d (created by the unit's RuntimeDirectory=globe3d, owned john:john)
+# because /run itself is root-owned and not writable by `john`. Group-writable
+# (umask 0o007 -> mode 0660) so the `john`-grouped nginx worker can connect.
+bind = os.environ.get('GUNICORN_BIND', 'unix:/run/globe3d/globe3d.sock')
 umask = 0o007
 
 # 2*vCPU+1 is the usual starting point; WEB_CONCURRENCY lets you bump it when

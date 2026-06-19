@@ -36,8 +36,8 @@ With `terragotcha.com` on Cloudflare:
 ## 1. OS prep & hardening
 ```bash
 # As the provider's root: create a sudo user, then continue as that user over SSH keys.
-adduser deploy && usermod -aG sudo deploy
-# (install your SSH public key for `deploy`, confirm key login works, THEN lock SSH down)
+adduser john && usermod -aG sudo john
+# (install your SSH public key for `john`, confirm key login works, THEN lock SSH down)
 sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/;s/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 sudo systemctl restart ssh
 
@@ -98,27 +98,32 @@ maxmemory-policy allkeys-lru
 ```
 `sudo systemctl restart redis-server`.
 
-## 5. App user, code, venv
+## 5. Code & venv
+The app runs as your existing login/admin user (`john`) — fine for a single-tenant box.
+(For stronger isolation, create a dedicated `--system --shell /usr/sbin/nologin globe3d` user
+instead and run everything below as it; the unit's `User=`/`Group=` and the socket group in
+step 8 would just change to that name.)
 ```bash
-sudo useradd --system --create-home --home-dir /srv/globe3d --shell /usr/sbin/nologin globe3d
-sudo -u globe3d git clone <repo-url> /srv/globe3d/app
-cd /srv/globe3d/app
-sudo -u globe3d python3 -m venv .venv
-sudo -u globe3d .venv/bin/pip install -U pip
-sudo -u globe3d .venv/bin/pip install -r backend/requirements.txt
+sudo install -d -o john -g john /srv/globe3d
+git clone <repo-url> /srv/globe3d          # repo root; the Django app lives in backend/
+cd /srv/globe3d/backend
+python3 -m venv .venv
+.venv/bin/pip install -U pip
+.venv/bin/pip install -r requirements.txt
 ```
 
 ## 6. Environment file (secrets — never committed)
 The app auto-loads `backend/.env` via python-dotenv, so the secrets live right beside the
-code at `/srv/globe3d/app/backend/.env` (gitignored). Owned by `globe3d`, mode `0600`.
+code at `/srv/globe3d/backend/.env` (gitignored). Owned by `john`, mode `0600`.
 ```bash
-sudo -u globe3d install -m 0600 /dev/null /srv/globe3d/app/backend/.env
-sudoedit -u globe3d /srv/globe3d/app/backend/.env    # or: sudo -u globe3d nano <path>
+install -m 0600 /dev/null /srv/globe3d/backend/.env
+nano /srv/globe3d/backend/.env
 ```
 ```ini
 DJANGO_SECRET_KEY=PASTE_A_LONG_RANDOM_STRING   # python3 -c 'import secrets;print(secrets.token_urlsafe(64))'
 DJANGO_DEBUG=false
 DJANGO_ALLOWED_HOSTS=api.terragotcha.com
+# URL-encode any special chars in the password (@ -> %40, : -> %3A, / -> %2F, # -> %23, % -> %25):
 DATABASE_URL=postgres://globe3d:REPLACE_GLOBE_PW@127.0.0.1:5432/globe3d
 REDIS_URL=redis://127.0.0.1:6379/0
 CORS_ALLOWED_ORIGINS=https://terragotcha.com,https://www.terragotcha.com
@@ -127,22 +132,25 @@ CSRF_TRUSTED_ORIGINS=https://api.terragotcha.com
 ```
 
 ## 7. Initialize the database & static
-Management commands run as the `globe3d` user from `backend/` pick up `backend/.env`
-automatically (python-dotenv), so no manual sourcing is needed.
+Management commands run from `backend/` pick up `backend/.env` automatically (python-dotenv),
+so no manual sourcing is needed.
 ```bash
-cd /srv/globe3d/app/backend
-sudo -u globe3d ../.venv/bin/python manage.py migrate
-sudo -u globe3d ../.venv/bin/python manage.py collectstatic --noinput
-sudo -u globe3d ../.venv/bin/python manage.py seed_countries     # geo reference data
-sudo -u globe3d ../.venv/bin/python manage.py generate_daily     # warm today's quiz (optional)
-sudo -u globe3d ../.venv/bin/python manage.py createsuperuser    # admin + /stats/ login
+cd /srv/globe3d/backend
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py collectstatic --noinput
+.venv/bin/python manage.py seed_countries     # geo reference data
+.venv/bin/python manage.py generate_daily     # warm today's quiz (optional)
+.venv/bin/python manage.py createsuperuser    # admin + /stats/ login
 ```
 
 ## 8. gunicorn under systemd
+The unit runs as `john:john`, `WorkingDirectory=/srv/globe3d/backend`, and binds
+`unix:/run/globe3d/globe3d.sock` (inside the unit's `RuntimeDirectory=/run/globe3d`, since
+`/run` itself isn't writable by `john`).
 ```bash
-sudo cp /srv/globe3d/app/backend/deploy/globe3d.service /etc/systemd/system/
-# Let nginx (www-data) connect to the gunicorn socket (group-owned 0660 globe3d:globe3d):
-sudo usermod -aG globe3d www-data
+sudo cp /srv/globe3d/backend/deploy/globe3d.service /etc/systemd/system/
+# Let nginx (www-data) connect to the gunicorn socket (group-owned 0660 john:john):
+sudo usermod -aG john www-data
 sudo systemctl daemon-reload
 sudo systemctl enable --now globe3d
 sudo systemctl status globe3d        # active (running)
@@ -159,12 +167,12 @@ sudoedit /etc/ssl/cloudflare/api.terragotcha.com.key   # paste the private key
 sudo chmod 0644 /etc/ssl/cloudflare/api.terragotcha.com.pem
 sudo chmod 0640 /etc/ssl/cloudflare/api.terragotcha.com.key
 
-sudo cp /srv/globe3d/app/backend/deploy/nginx-globe3d.conf /etc/nginx/sites-available/globe3d.conf
+sudo cp /srv/globe3d/backend/deploy/nginx-globe3d.conf /etc/nginx/sites-available/globe3d.conf
 sudo ln -s /etc/nginx/sites-available/globe3d.conf /etc/nginx/sites-enabled/
 
 # Writes /etc/nginx/conf.d/cloudflare-realip.conf, sets ufw to allow 443 from
 # Cloudflare ranges only, then `nginx -t && systemctl reload nginx`:
-sudo /srv/globe3d/app/backend/deploy/cf-allowlist.sh
+sudo /srv/globe3d/backend/deploy/cf-allowlist.sh
 
 # Verify through the edge (NOT direct — the origin only answers Cloudflare):
 curl -I https://api.terragotcha.com/api/daily/today    # expect 200, `server: cloudflare`
@@ -174,19 +182,20 @@ ever changes its IP ranges (rare); optionally wire a monthly systemd timer like
 `pg-backup.timer`.
 
 ## 10. Second app (sudoku) — same pattern
-Repeat 5–9 with: `sudoku` user, `/srv/sudoku/app`, its own `backend/.env`
-(`REDIS_URL=redis://127.0.0.1:6379/1`, its own `DATABASE_URL`), a `sudoku.service`
-binding `unix:/run/sudoku.sock`, `usermod -aG sudoku www-data`, its own Cloudflare proxied
-DNS record + Origin Cert, and an `nginx-sudoku.conf` for `sudoku.terragotcha.com`. The
-`cloudflare-realip.conf` from `cf-allowlist.sh` is shared (global `conf.d`), so it covers
-both vhosts.
+Repeat 5–9 for the second app under `/srv/sudoku` (Django in `/srv/sudoku/backend`), its own
+`backend/.env` (`REDIS_URL=redis://127.0.0.1:6379/1`, its own `DATABASE_URL`), a
+`sudoku.service` with `RuntimeDirectory=sudoku` binding `unix:/run/sudoku/sudoku.sock`, its
+own Cloudflare proxied DNS record + Origin Cert, and an `nginx-sudoku.conf` for
+`sudoku.terragotcha.com`. Run it under the same `john` user (then `www-data` is already in the
+group) or a dedicated one (`usermod -aG <user> www-data`). The `cloudflare-realip.conf` from
+`cf-allowlist.sh` is shared (global `conf.d`), so it covers both vhosts.
 
 ---
 
 ## Backups — see deploy/pg-backup.sh + the systemd timer
 Nightly rotated local `pg_dump`s plus an off-box scp copy. Install:
 ```bash
-sudo install -o root -g root -m 0750 /srv/globe3d/app/backend/deploy/pg-backup.sh /usr/local/sbin/pg-backup.sh
+sudo install -o root -g root -m 0750 /srv/globe3d/backend/deploy/pg-backup.sh /usr/local/sbin/pg-backup.sh
 
 # Dedicated SSH key for the off-box copy:
 sudo install -d -m 0700 /etc/postgres-backup
@@ -195,8 +204,8 @@ sudo cat /etc/postgres-backup/id_ed25519.pub   # add to the REMOTE backup user's
 # Restrict it on the remote, e.g.:
 #   command="...",no-pty,no-agent-forwarding,no-port-forwarding ssh-ed25519 AAAA... pg-backup@globe-vps
 
-sudo cp /srv/globe3d/app/backend/deploy/pg-backup.service /etc/systemd/system/
-sudo cp /srv/globe3d/app/backend/deploy/pg-backup.timer   /etc/systemd/system/
+sudo cp /srv/globe3d/backend/deploy/pg-backup.service /etc/systemd/system/
+sudo cp /srv/globe3d/backend/deploy/pg-backup.timer   /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now pg-backup.timer
 sudo systemctl start pg-backup.service         # prove it end-to-end now
@@ -215,11 +224,11 @@ latest dump into a scratch database and run `manage.py check` against it.
 
 ## Updating a release
 ```bash
-cd /srv/globe3d/app && sudo -u globe3d git pull
-sudo -u globe3d .venv/bin/pip install -r backend/requirements.txt
+cd /srv/globe3d && git pull
 cd backend
-sudo -u globe3d ../.venv/bin/python manage.py migrate
-sudo -u globe3d ../.venv/bin/python manage.py collectstatic --noinput
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py collectstatic --noinput
 sudo systemctl restart globe3d
 ```
 

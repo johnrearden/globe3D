@@ -2,11 +2,12 @@
 # Install: sudo cp backend/deploy/globe3d.service /etc/systemd/system/
 #          sudo systemctl daemon-reload && sudo systemctl enable --now globe3d
 #
-# Assumes the layout from deploy/README.md:
-#   repo at /srv/globe3d/app, venv at /srv/globe3d/app/.venv,
-#   run as the `globe3d` system user. Configuration (DATABASE_URL, REDIS_URL,
-#   secret key, hosts, …) is read from /srv/globe3d/app/backend/.env, which the
-#   app auto-loads via python-dotenv — no systemd EnvironmentFile needed.
+# Current layout (see deploy/README.md):
+#   repo at /srv/globe3d (backend at /srv/globe3d/backend),
+#   venv at /srv/globe3d/backend/.venv, run as the `john` user.
+#   Configuration (DATABASE_URL, REDIS_URL, secret key, hosts, …) is read from
+#   /srv/globe3d/backend/.env, which the app auto-loads via python-dotenv — no
+#   systemd EnvironmentFile needed.
 
 [Unit]
 Description=Globe3D API (gunicorn)
@@ -15,21 +16,22 @@ Wants=postgresql.service redis-server.service
 
 [Service]
 Type=notify
-User=globe3d
-Group=globe3d
-# gunicorn binds a socket in /run; RuntimeDirectory creates /run/globe3d first
-# (not strictly needed when binding /run/globe3d.sock directly, but harmless and
-# ready if you move the socket under a subdir).
+User=john
+Group=john
+# gunicorn binds its socket inside /run/globe3d; RuntimeDirectory creates that
+# directory (owned john:john, cleaned up on stop). /run itself is root-owned and
+# not writable by `john`, so the socket must live under this subdir — see
+# GUNICORN_BIND in deploy/gunicorn.conf.py (unix:/run/globe3d/globe3d.sock).
 RuntimeDirectory=globe3d
-WorkingDirectory=/srv/globe3d/app/backend
-ExecStart=/srv/globe3d/app/.venv/bin/gunicorn config.wsgi -c deploy/gunicorn.conf.py
+WorkingDirectory=/srv/globe3d/backend
+ExecStart=/srv/globe3d/backend/.venv/bin/gunicorn config.wsgi -c deploy/gunicorn.conf.py
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=3
 
-# The socket is created globe3d:globe3d mode 0660 (see gunicorn umask). nginx
-# reaches it because www-data is added to the globe3d group in README step 8
-# (sudo usermod -aG globe3d www-data).
+# The socket is created john:john mode 0660 (see gunicorn umask 0o007). nginx
+# reaches it because www-data is added to the `john` group in README step 8
+# (sudo usermod -aG john www-data).
 
 # Hardening.
 NoNewPrivileges=true
