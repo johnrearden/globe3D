@@ -2757,7 +2757,7 @@ body.dq-active #dq-invite { display: none; }
 }
 .dq-lb-table th { color: #9fb0c8; font-weight: 600; }
 .dq-lb-you { background: rgba(106, 92, 255, 0.18); font-weight: 700; }
-.dq-lb-empty { text-align: center; color: #9fb0c8; }
+.dq-lb-pad td { color: #56657f; }   /* placeholder rows padding the board to a full top-10 */
 .dq-lb-yourrow { text-align: center; margin-top: 10px; color: #c7d2e6; font-weight: 600; }
 
 /* Onboarding modal */

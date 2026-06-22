@@ -222,7 +222,7 @@ export class DailyQuiz {
             await this._waitNext(res.done);
             if (res.done) {
                 this._doneForToday = true;
-                await this._showLeaderboard('Done! Here\'s how you stack up.');
+                await this._showLeaderboard();   // the table speaks for itself
                 return;
             }
             question = res.next;

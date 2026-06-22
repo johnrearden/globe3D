@@ -3,6 +3,10 @@
  * Highlights the current player's row (matched by the `you` entry's rank).
  */
 
+// Always show a full top-N board, padding with placeholder rows when there are
+// fewer real finishers.
+const LEADERBOARD_ROWS = 10;
+
 function fmtTime(ms) {
     const s = Math.round(ms / 1000);
     const m = Math.floor(s / 60);
@@ -38,8 +42,9 @@ export function renderLeaderboard(container, data) {
     `;
     const body = table.querySelector('tbody');
     const youRank = data.you ? data.you.rank : null;
+    const entries = data.entries || [];
 
-    (data.entries || []).forEach((e) => {
+    entries.forEach((e) => {
         const tr = document.createElement('tr');
         if (youRank && e.rank === youRank) tr.className = 'dq-lb-you';
         tr.innerHTML = `
@@ -51,9 +56,12 @@ export function renderLeaderboard(container, data) {
         body.appendChild(tr);
     });
 
-    if (!data.entries || !data.entries.length) {
+    // Pad out to a full board (e.g. 7th–10th when there are only 6 finishers) so
+    // it always reads as a ranked top-10 rather than a sparse list.
+    for (let rank = entries.length + 1; rank <= LEADERBOARD_ROWS; rank++) {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="4" class="dq-lb-empty">No finishers yet — be the first!</td>';
+        tr.className = 'dq-lb-pad';
+        tr.innerHTML = `<td>${rank}</td><td>----</td><td>--</td><td>--m --s</td>`;
         body.appendChild(tr);
     }
 
