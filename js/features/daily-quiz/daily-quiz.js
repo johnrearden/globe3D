@@ -15,6 +15,7 @@ import { ApiError } from '../../data/api-client.js';
 import { QuestionPresenter } from './question-renderer.js';
 import { showOnboarding } from './onboarding.js';
 import { renderLeaderboard } from './leaderboard.js';
+import { PanelSheet } from './panel-sheet.js';
 
 export class DailyQuiz {
     constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
@@ -67,6 +68,7 @@ export class DailyQuiz {
         this.panel.id = 'dq-panel';
         this.panel.hidden = true;
         this.panel.innerHTML = `
+            <div class="dq-grab" role="button" tabindex="0" aria-label="Drag to show or hide the panel"></div>
             <div class="dq-topbar">
                 <span class="dq-counter"></span>
                 <span class="dq-score">Score: 0</span>
@@ -96,6 +98,15 @@ export class DailyQuiz {
             message: this.panel.querySelector('.dq-message'),
         };
         this.panel.querySelector('.dq-close').addEventListener('click', () => this.close());
+
+        // Draggable "peek" behaviour: drag/tap the grab handle or top bar to slide
+        // the panel down until just its top bar shows (reveals the globe behind).
+        this.sheet = new PanelSheet(this.panel, {
+            handles: [
+                this.panel.querySelector('.dq-grab'),
+                this.panel.querySelector('.dq-topbar'),
+            ],
+        });
 
         this.presenter = new QuestionPresenter({
             cameraController: this.camera,
@@ -187,6 +198,10 @@ export class DailyQuiz {
 
             const { answer, elapsedMs } = await this.presenter.render(question);
 
+            // Snap fully open on submit so the reveal + Next button are visible
+            // even if the player had slid the panel down to peek at the globe.
+            if (this.sheet) this.sheet.expand();
+
             let res;
             try {
                 res = await this.api.submitAnswer(this.attemptId, question.index, answer, elapsedMs);
@@ -238,6 +253,7 @@ export class DailyQuiz {
         this.panel.hidden = false;
         this.el.message.textContent = '';
         this.el.leaderboard.innerHTML = '';
+        if (this.sheet) this.sheet.expand();
     }
 
     _enterQuizMode() {
@@ -253,12 +269,15 @@ export class DailyQuiz {
     }
 
     _showQuestionUi() {
+        // A new question always springs the panel back up so its prompt/cards are
+        // never hidden behind the peek bar; the user re-collapses to view the globe.
+        if (this.sheet) this.sheet.expand();
         this.el.flag.style.display = 'none';
         this.el.prompt.style.display = '';
         this.el.gridHost.style.display = '';
         this.el.feedback.style.display = '';
-        // Reserve the Next-button row from the start so revealing it doesn't
-        // shift the panel (the CSS min-height holds the space while it's empty).
+        // Empty feedback / Next rows collapse to 0 height, so the panel stays as
+        // short as the question needs; it grows when the reveal + Next appear.
         this.el.nextWrap.style.display = '';
         this.el.leaderboard.innerHTML = '';
     }
@@ -287,6 +306,7 @@ export class DailyQuiz {
 
     close() {
         this.panel.hidden = true;
+        if (this.sheet) this.sheet.expand();   // reset peek state for next open
         this.el.nextWrap.innerHTML = '';
         this.presenter.teardown();
         this._exitQuizMode();

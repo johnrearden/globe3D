@@ -367,7 +367,9 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
 - `js/data/api-client.js` — fetch wrappers + device-token identity (localStorage).
 - `js/features/daily-quiz/` — `daily-quiz.js` (orchestrator, builds its own launch button + panel),
   `question-renderer.js`, `options-grid.js` (reusable variable-dim grid), `onboarding.js`,
-  `leaderboard.js`. This is a **feature sub-folder** — a deliberate exception to the "one module per
+  `leaderboard.js`, `panel-sheet.js` (drag/tap the panel down to a "peek" top bar so the globe shows
+  through — pure `decideSnap()` is unit-tested in `tests/panel-sheet-snap.test.js`). This is a
+  **feature sub-folder** — a deliberate exception to the "one module per
   feature" rule, mirroring the existing `js/features/quiz/` precedent (a cohesive multi-file
   feature, not micro-modules).
 - `js/core/camera-controls.js` — added `frameView()` / `clearViewOffset()` for map questions

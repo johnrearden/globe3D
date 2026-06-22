@@ -2603,10 +2603,42 @@ body.dq-active #dq-invite { display: none; }
     border-radius: 14px 14px 0 0;
     box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
     padding: 10px 14px 18px;
-    max-height: 62vh;
-    overflow-y: auto;
+    /* No internal scroll: a scrollable body would be a second drag target,
+       competing with the slide-to-peek gesture. The panel sizes to its content
+       instead, and the user slides it down when it covers too much. */
+    overflow: hidden;
     font-family: system-ui, sans-serif;
+    /* Draggable "peek" sheet: the controller sets transform: translateY() to
+       slide it down to its top bar. The transition animates the snap; it's
+       dropped (via .dq-dragging) while the finger is down so it tracks 1:1. */
+    transition: transform 0.25s ease;
+    will-change: transform;
 }
+#dq-panel.dq-dragging { transition: none; }
+
+/* Grab tab at the top of the panel — the drag/pull surface, and the only part
+   left showing when the panel is slid down to the bottom of the screen. Tall
+   enough to be a comfortable touch target; the visible pill is the ::before. */
+.dq-grab {
+    height: 22px;
+    margin: 0 auto 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;          /* a touch-drag moves the sheet, not the body scroll */
+    flex: 0 0 auto;
+}
+.dq-grab::before {
+    content: "";
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: #3a4a66;
+}
+.dq-grab:active { cursor: grabbing; }
+/* The top bar is also a drag handle (forgiving target on mobile). */
+.dq-topbar { touch-action: none; }
 
 .dq-topbar {
     display: flex;
@@ -2688,25 +2720,24 @@ body.dq-active #dq-invite { display: none; }
 .dq-submit:disabled { opacity: 0.5; cursor: default; }
 .dq-next:hover, .dq-submit:hover:not(:disabled) { filter: brightness(1.1); }
 
-/* Feedback + Next reserve their space up front (height is held whether or not
-   they're populated) so revealing the result doesn't shift the panel. */
+/* Feedback + Next take no space until populated, so the panel is only as tall
+   as the current question needs (it may resize per question / on reveal — that's
+   fine now the panel can be slid out of the way). Empty rows collapse to 0. */
 .dq-feedback {
     text-align: center;
     font-size: 14px;
     line-height: 1.35;
-    min-height: 2.7em;      /* ~2 lines — fits "Correct!" and the answer readout */
-    margin: 8px 0;
     display: flex;
     align-items: center;
     justify-content: center;
 }
+.dq-feedback:not(:empty) { margin: 8px 0; }
 .dq-feedback.correct { color: #45e07a; }
 .dq-feedback.wrong { color: #ff8a8a; }
 .dq-next-wrap {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 44px;       /* reserve the Next/See-results button row */
 }
 .dq-message { text-align: center; color: #9fb0c8; padding: 8px 0; }
 
@@ -2777,7 +2808,6 @@ body.dq-active #dq-invite { display: none; }
         right: 16px;
         bottom: 16px;
         width: 380px;
-        max-height: 82vh;
         border-radius: 14px;
         border: 1px solid #25324a;
     }
