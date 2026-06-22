@@ -1,11 +1,12 @@
 /**
  * OptionsGrid — a reusable grid of country (or capital) choices.
  *
- * Handles both single-select (submit on tap) and multi-select (toggle + Submit),
- * variable column counts, and post-answer reveal colouring (right / wrong /
- * missed). Cells use minmax(0,1fr) tracks so the grid always fits the panel width
- * (never scrolls horizontally). Self-contained: it builds its own DOM inside the
- * host element passed to render().
+ * Single-select submits on tap; multi-select toggles and is submitted by an
+ * EXTERNAL button (the panel's persistent action row owns it) — the grid reports
+ * selection changes via onSelectionChange and exposes submitSelected(). Variable
+ * column counts; post-answer reveal colouring (right / wrong / missed). Cells use
+ * minmax(0,1fr) tracks so the grid always fits the panel width (never scrolls
+ * horizontally). Self-contained: it builds its own DOM inside the host element.
  */
 
 export class OptionsGrid {
@@ -27,11 +28,14 @@ export class OptionsGrid {
      * @param {boolean} cfg.multiSelect
      * @param {string} [cfg.display]  'name' (default) — show label text
      * @param {(answer:string[])=>void} cfg.onSubmit  called with selected values
+     * @param {(count:number)=>void} [cfg.onSelectionChange]  multi-select only:
+     *        fired on every toggle so an external Submit button can enable itself
      */
     render(cfg) {
         this.clear();
         this._multi = !!cfg.multiSelect;
         this._onSubmit = cfg.onSubmit;
+        this._onSelectionChange = cfg.onSelectionChange || null;
         this._locked = false;
 
         const grid = document.createElement('div');
@@ -56,16 +60,6 @@ export class OptionsGrid {
             grid.appendChild(cell);
         });
         this.root.appendChild(grid);
-
-        if (this._multi) {
-            this._submitBtn = document.createElement('button');
-            this._submitBtn.type = 'button';
-            this._submitBtn.className = 'dq-submit';
-            this._submitBtn.textContent = 'Submit';
-            this._submitBtn.addEventListener('click', () => this._submit());
-            this.root.appendChild(this._submitBtn);
-            this._updateSubmitState();
-        }
     }
 
     _onCellClick(value, cell) {
@@ -78,23 +72,16 @@ export class OptionsGrid {
                 this._selected.add(value);
                 cell.classList.add('selected');
             }
-            this._updateSubmitState();
+            if (this._onSelectionChange) this._onSelectionChange(this._selected.size);
         } else {
             this._locked = true;
             this._onSubmit([value]);
         }
     }
 
-    _updateSubmitState() {
-        if (this._submitBtn) {
-            this._submitBtn.textContent = this._selected.size
-                ? `Submit (${this._selected.size})`
-                : 'Submit';
-        }
-    }
-
-    _submit() {
-        if (this._locked) return;
+    /** Submit the current multi-select (called by the external Submit button). */
+    submitSelected() {
+        if (this._locked || !this._selected.size) return;
         this._locked = true;
         this._onSubmit([...this._selected]);
     }
@@ -111,14 +98,12 @@ export class OptionsGrid {
             else if (missed.has(value)) cell.classList.add('reveal-missed');
             cell.classList.add('reveal-dim');
         });
-        if (this._submitBtn) this._submitBtn.disabled = true;
     }
 
     clear() {
         this.root.innerHTML = '';
         this._cells.clear();
         this._selected.clear();
-        this._submitBtn = null;
     }
 
     destroy() {

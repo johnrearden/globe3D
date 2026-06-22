@@ -16,9 +16,10 @@ export class QuestionPresenter {
         this.camera = cameraController;
         this.globe = globeManager;
         this.focusRegistry = focusRegistry;
-        this.els = els;                       // {prompt, flag, gridHost, feedback}
+        this.els = els;                       // {prompt, flag, gridHost, feedback, submit}
         this.grid = new OptionsGrid(this.els.gridHost);
         this._awaitingMapClick = false;
+        this._submitHandler = null;
     }
 
     /**
@@ -39,24 +40,60 @@ export class QuestionPresenter {
             const done = (answer) => {
                 const elapsedMs = Math.round(performance.now() - startedAt);
                 this._awaitingMapClick = false;
+                this._hideSubmit();          // answer is in — the row keeps only Next
                 resolve({ answer, elapsedMs });
             };
 
             const method = question.answer && question.answer.method;
             if (method === 'map-click-single' || method === 'map-click-multi') {
+                // No Submit button — clicking the map/single country is the submit.
                 this._awaitingMapClick = true;
                 this._mapResolve = (name) => done(name);
             } else {
-                // grid-single / grid-multi
+                const multi = !!question.grid.multiSelect;
                 this.grid.render({
                     options: question.grid.options,
                     cols: question.grid.cols,
-                    multiSelect: question.grid.multiSelect,
+                    multiSelect: multi,
                     display: question.grid.display,
-                    onSubmit: (values) => done(question.grid.multiSelect ? values : values[0]),
+                    onSubmit: (values) => done(multi ? values : values[0]),
+                    // Multi-select needs an explicit Submit; single-select submits on tap.
+                    onSelectionChange: multi ? (n) => this._updateSubmit(n) : null,
                 });
+                if (multi) this._showSubmit();
             }
         });
+    }
+
+    /** Reveal the (multi-select) Submit button and wire it to the grid. */
+    _showSubmit() {
+        const btn = this.els.submit;
+        if (!btn) return;
+        btn.hidden = false;
+        btn.disabled = true;            // nothing selected yet
+        btn.textContent = 'Submit';
+        this._submitHandler = () => this.grid.submitSelected();
+        btn.addEventListener('click', this._submitHandler);
+    }
+
+    /** Enable/label the Submit button as the multi-selection changes. */
+    _updateSubmit(count) {
+        const btn = this.els.submit;
+        if (!btn) return;
+        btn.disabled = count === 0;
+        btn.textContent = count ? `Submit (${count})` : 'Submit';
+    }
+
+    /** Hide the Submit button and detach its handler. */
+    _hideSubmit() {
+        const btn = this.els.submit;
+        if (!btn) return;
+        if (this._submitHandler) {
+            btn.removeEventListener('click', this._submitHandler);
+            this._submitHandler = null;
+        }
+        btn.hidden = true;
+        btn.disabled = true;
     }
 
     /** Called by the orchestrator when a country is clicked during a map question. */
@@ -142,6 +179,7 @@ export class QuestionPresenter {
     _resetView() {
         this.grid.clear();
         this.els.flag.style.display = 'none';
+        this._hideSubmit();
     }
 
     /** Full cleanup when the quiz ends. */
@@ -152,5 +190,6 @@ export class QuestionPresenter {
         this.globe.clearSelection();
         this.grid.clear();
         this.els.flag.style.display = 'none';
+        this._hideSubmit();
     }
 }

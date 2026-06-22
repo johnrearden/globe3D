@@ -2705,8 +2705,18 @@ body.dq-active #dq-invite { display: none; }
 .dq-cell.reveal-wrong { border-color: #ff5a5a; background: #41201f; }
 .dq-cell.reveal-missed { border-color: #f0b429; background: #3d3415; }
 
+/* Action row: Submit (multi-select only) + Next share one row that is ALWAYS
+   present and reserves its height, so answering never resizes the panel. The
+   row may differ between questions (that's fine) — just not mid-question. */
+.dq-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: 8px;
+}
 .dq-submit, .dq-next {
-    align-self: center;
     background: #6a5cff;
     color: #fff;
     border: none;
@@ -2715,30 +2725,25 @@ body.dq-active #dq-invite { display: none; }
     font-weight: 700;
     padding: 10px 22px;
     cursor: pointer;
-    margin-top: 4px;
 }
-.dq-submit:disabled { opacity: 0.5; cursor: default; }
-.dq-next:hover, .dq-submit:hover:not(:disabled) { filter: brightness(1.1); }
+/* Faded/inert until usable: Next before the answer is in, Submit with nothing picked. */
+.dq-submit:disabled, .dq-next:disabled { opacity: 0.2; cursor: default; }
+.dq-next:hover:not(:disabled), .dq-submit:hover:not(:disabled) { filter: brightness(1.1); }
 
-/* Feedback + Next take no space until populated, so the panel is only as tall
-   as the current question needs (it may resize per question / on reveal — that's
-   fine now the panel can be slid out of the way). Empty rows collapse to 0. */
+/* Feedback message sits below the action row and reserves ~2 lines so revealing
+   the correct/wrong readout doesn't shift the row above it. */
 .dq-feedback {
     text-align: center;
     font-size: 14px;
     line-height: 1.35;
+    min-height: 2.4em;
+    margin-top: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
-.dq-feedback:not(:empty) { margin: 8px 0; }
 .dq-feedback.correct { color: #45e07a; }
 .dq-feedback.wrong { color: #ff8a8a; }
-.dq-next-wrap {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
 .dq-message { text-align: center; color: #9fb0c8; padding: 8px 0; }
 
 /* Leaderboard */

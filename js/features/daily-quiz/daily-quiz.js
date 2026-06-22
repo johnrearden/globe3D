@@ -78,8 +78,11 @@ export class DailyQuiz {
                 <img class="dq-flag" alt="flag" style="display:none" />
                 <div class="dq-prompt"></div>
                 <div class="dq-grid-host"></div>
+                <div class="dq-actions">
+                    <button type="button" class="dq-submit" hidden>Submit</button>
+                    <button type="button" class="dq-next" disabled>Next</button>
+                </div>
                 <div class="dq-feedback"></div>
-                <div class="dq-next-wrap"></div>
                 <div class="dq-leaderboard"></div>
                 <div class="dq-message"></div>
             </div>
@@ -92,8 +95,10 @@ export class DailyQuiz {
             prompt: this.panel.querySelector('.dq-prompt'),
             flag: this.panel.querySelector('.dq-flag'),
             gridHost: this.panel.querySelector('.dq-grid-host'),
+            actions: this.panel.querySelector('.dq-actions'),
+            submit: this.panel.querySelector('.dq-submit'),
+            next: this.panel.querySelector('.dq-next'),
             feedback: this.panel.querySelector('.dq-feedback'),
-            nextWrap: this.panel.querySelector('.dq-next-wrap'),
             leaderboard: this.panel.querySelector('.dq-leaderboard'),
             message: this.panel.querySelector('.dq-message'),
         };
@@ -117,6 +122,7 @@ export class DailyQuiz {
                 flag: this.el.flag,
                 gridHost: this.el.gridHost,
                 feedback: this.el.feedback,
+                submit: this.el.submit,
             },
         });
     }
@@ -224,14 +230,18 @@ export class DailyQuiz {
     }
 
     _waitNext(isLast) {
+        // The Next button is persistent and was faded/disabled while answering;
+        // enable it now (so the row never resized on submit) and wait for a click.
         return new Promise((resolve) => {
-            this.el.nextWrap.innerHTML = '';
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'dq-next';
+            const btn = this.el.next;
             btn.textContent = isLast ? 'See results' : 'Next';
-            btn.addEventListener('click', () => { this.el.nextWrap.innerHTML = ''; resolve(); });
-            this.el.nextWrap.appendChild(btn);
+            btn.disabled = false;
+            const onClick = () => {
+                btn.removeEventListener('click', onClick);
+                btn.disabled = true;
+                resolve();
+            };
+            btn.addEventListener('click', onClick);
         });
     }
 
@@ -275,20 +285,29 @@ export class DailyQuiz {
         this.el.flag.style.display = 'none';
         this.el.prompt.style.display = '';
         this.el.gridHost.style.display = '';
+        // The action row + feedback area are always present and reserve their
+        // height, so answering (submit / single-click) never resizes the panel.
+        // The presenter reveals Submit only for multi-select questions; Next stays
+        // faded/disabled until the answer is in.
+        this.el.actions.style.display = '';
+        this.el.submit.hidden = true;
+        this.el.submit.disabled = true;
+        this.el.next.disabled = true;
+        this.el.next.textContent = 'Next';
         this.el.feedback.style.display = '';
-        // Empty feedback / Next rows collapse to 0 height, so the panel stays as
-        // short as the question needs; it grows when the reveal + Next appear.
-        this.el.nextWrap.style.display = '';
+        this.el.feedback.textContent = '';
+        this.el.feedback.className = 'dq-feedback';
         this.el.leaderboard.innerHTML = '';
     }
 
     _hideQuestionUi() {
         this.el.prompt.style.display = 'none';
         this.el.gridHost.style.display = 'none';
+        this.el.actions.style.display = 'none';
         this.el.feedback.style.display = 'none';
         this.el.flag.style.display = 'none';
-        this.el.nextWrap.style.display = 'none';
-        this.el.nextWrap.innerHTML = '';
+        this.el.submit.hidden = true;
+        this.el.next.disabled = true;
     }
 
     _setScore(score) {
@@ -307,7 +326,6 @@ export class DailyQuiz {
     close() {
         this.panel.hidden = true;
         if (this.sheet) this.sheet.expand();   // reset peek state for next open
-        this.el.nextWrap.innerHTML = '';
         this.presenter.teardown();
         this._exitQuizMode();
         document.body.classList.remove('dq-active');
