@@ -10,12 +10,24 @@ function fmtTime(ms) {
     return m ? `${m}m ${rem}s` : `${rem}s`;
 }
 
+const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/** Format an ISO date (YYYY-MM-DD) as e.g. "25 March 26"; pass through anything else. */
+function fmtQuizDate(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return iso || 'today';
+    return `${parseInt(m[3], 10)} ${MONTH_NAMES[parseInt(m[2], 10) - 1]} ${m[1].slice(2)}`;
+}
+
 export function renderLeaderboard(container, data) {
     container.innerHTML = '';
 
     const heading = document.createElement('div');
     heading.className = 'dq-lb-heading';
-    heading.textContent = `Leaderboard — ${data.quizDate || 'today'}`;
+    heading.textContent = `Leaderboard — ${fmtQuizDate(data.quizDate)}`;
     container.appendChild(heading);
 
     const table = document.createElement('table');
