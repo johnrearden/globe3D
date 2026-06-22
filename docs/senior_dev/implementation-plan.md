@@ -354,8 +354,10 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
 - `players` app — anonymous `Player` (device token + nickname + country); `email`/`ads_removed`/
   `stripe_customer_id` fields reserved for Stage 9.
 - `quiz` app — `DailyQuiz`/`Question`/`Attempt`/`AnswerRecord`, deterministic date-seeded lazy
-  generation (`quiz/generation/`: core 3 + bespoke bordering/landlocked/region-click), server
-  grading + cumulative score + client-time clamp, DRF endpoints under `/api/`.
+  generation (`quiz/generation/`: core 3 + bespoke bordering/landlocked/coastline/region-click),
+  server grading + cumulative score + client-time clamp, DRF endpoints under `/api/`. The daily mix
+  is weighted (`COMPOSITION_WEIGHTS`) with exactly one `capital` and per-type hard caps
+  (`TYPE_CAPS`: bordering ≤ 2, landlocked ≤ 1, coastline ≤ 1) enforced by `_type_sequence`.
 - `stats` app — staff-only templated dashboards (`/stats/`): leaderboard, per-question difficulty,
   participation.
 - Tests: `backend/*/tests.py` (generation determinism, grading incl. multi-select exact-match,
@@ -370,7 +372,10 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   feature, not micro-modules).
 - `js/core/camera-controls.js` — added `frameView()` / `clearViewOffset()` for map questions
   (focal-anchor offset via `camera.setViewOffset`, math extracted to pure `js/utils/view-offset.js`,
-  unit-tested in `tests/view-offset.test.js`).
+  unit-tested in `tests/view-offset.test.js`). Framing distance for a clicked/searched country (≤40%
+  of the screen) and a quiz *subject* (≤20%) is computed by `framingDistanceFor()` from the
+  country's bbox width + live FOV/aspect (`focus-zoom.framingDistance`); the A–H `LEVEL_DISTANCES`
+  now only drive the label-appearance threshold, not framing.
 - `js/features/pointer-controls.js` — added a `dailyQuiz` map-click hook alongside the `clickQuiz`
   hook.
 

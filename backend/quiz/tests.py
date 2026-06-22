@@ -38,6 +38,18 @@ class GenerationTests(TestCase):
             # The correct set must never appear in the client-facing payload.
             self.assertNotIn('correct', str(question.payload))
 
+    def test_type_sequence_honours_caps(self):
+        import random
+
+        from quiz.generation import _type_sequence
+        # Many seeds so a careless draw would blow a cap on at least one.
+        for seed in range(50):
+            seq = _type_sequence(random.Random(seed), 10)
+            self.assertLessEqual(seq.count('capital'), 1)
+            self.assertLessEqual(seq.count('bordering'), 2)
+            self.assertLessEqual(seq.count('landlocked'), 1)
+            self.assertLessEqual(seq.count('coastline'), 1)
+
 
 class BespokeGeneratorTests(TestCase):
     @classmethod
@@ -86,6 +98,18 @@ class BespokeGeneratorTests(TestCase):
         grid = {o['value'] for o in spec['payload']['grid']['options']}
         self.assertTrue(len(grid) > len(spec['answer']['correct']))
 
+    def test_coastline_answers_are_all_coastal(self):
+        from quiz.generation.bespoke import gen_coastline
+        from geo.models import Country
+        spec = gen_coastline(self._rng(7), self._pool())
+        self.assertEqual(spec['type'], 'coastline')
+        self.assertNotIn('map', spec['payload'])  # text-only
+        for name in spec['answer']['correct']:
+            self.assertFalse(Country.objects.get(mesh_name=name).landlocked)
+        # Grid must also contain non-answers (landlocked distractors).
+        grid = {o['value'] for o in spec['payload']['grid']['options']}
+        self.assertTrue(len(grid) > len(spec['answer']['correct']))
+
     def test_region_click_target_in_clicktargets(self):
         from quiz.generation.bespoke import gen_region_click
         spec = gen_region_click(self._rng(4), self._pool())
@@ -97,7 +121,7 @@ class BespokeGeneratorTests(TestCase):
 
     def test_bespoke_types_registered(self):
         from quiz.generation import REGISTRY
-        for key in ('bordering', 'landlocked', 'region-click'):
+        for key in ('bordering', 'landlocked', 'coastline', 'region-click'):
             self.assertIn(key, REGISTRY)
 
 

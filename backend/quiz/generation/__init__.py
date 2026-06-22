@@ -29,7 +29,18 @@ COMPOSITION_WEIGHTS = {
     'identify-flag': 2,
     'bordering': 2,
     'landlocked': 2,
+    'coastline': 2,
     'capital': 1,         # forced to exactly one per quiz in _type_sequence
+}
+
+# Per-quiz hard caps on how many of a type may appear (omitted = unlimited).
+# `capital` is handled separately (reserved at exactly one). The "click the
+# bordering/landlocked/coastal countries" families are capped so a single daily
+# quiz can't feel repetitive.
+TYPE_CAPS = {
+    'bordering': 2,
+    'landlocked': 1,
+    'coastline': 1,
 }
 
 
@@ -47,7 +58,10 @@ def _type_sequence(rng, count):
     """A deterministic, weighted, shuffled sequence of `count` registered types.
 
     Capital questions are capped at exactly one per quiz (reserved up front); the
-    remaining slots are drawn from the weighted bag with `capital` excluded.
+    remaining slots are drawn from the weighted bag with `capital` excluded, while
+    honouring the per-type hard caps in TYPE_CAPS (e.g. bordering ≤ 2, landlocked ≤
+    1). Each draw re-filters the bag to the still-allowed types, so the weighting
+    stays proportional among whatever remains under-cap.
     """
     capital_slots = 1 if ('capital' in REGISTRY and count > 0) else 0
     bag = []
@@ -57,7 +71,17 @@ def _type_sequence(rng, count):
         bag.extend([key] * weight)
     if not bag and not capital_slots:
         raise RuntimeError('No question generators registered.')
-    rest = [rng.choice(bag) for _ in range(count - capital_slots)] if bag else []
+
+    chosen = {}
+    rest = []
+    for _ in range(count - capital_slots):
+        allowed = [k for k in bag if chosen.get(k, 0) < TYPE_CAPS.get(k, count)]
+        if not allowed:
+            break  # every remaining type is at its cap — stop early
+        pick = rng.choice(allowed)
+        chosen[pick] = chosen.get(pick, 0) + 1
+        rest.append(pick)
+
     seq = (['capital'] * capital_slots) + rest
     rng.shuffle(seq)
     return seq

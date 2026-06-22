@@ -19,6 +19,7 @@ from .base import (
 
 BORDER_GRID_SIZE = 12          # total options shown for a "bordering" question
 LANDLOCKED_GRID_SIZE = 9       # 3x3 grid for "click the landlocked countries"
+COASTLINE_GRID_SIZE = 9        # 3x3 grid for "click the countries with a coastline"
 
 # Push the focus higher up the screen for grid-heavy questions (room below).
 GRID_MAP_ANCHOR = {'x': 0.5, 'y': 0.30}
@@ -141,6 +142,48 @@ def gen_landlocked(rng, pool):
     }
 
 
+def gen_coastline(rng, pool):
+    """Text prompt + grid mixing coastal & landlocked; click the ones with a coastline.
+
+    The mirror image of gen_landlocked: here the coastal countries are the answers
+    and landlocked ones are the distractors. Coastal countries are the majority of
+    the world, so we deliberately seed several landlocked distractors to keep it a
+    real test rather than "click almost everything".
+    """
+    landlocked = [c for c in pool if c.landlocked]
+    coastal = [c for c in pool if not c.landlocked]
+
+    # 3..5 coastal answers, with at least 2 landlocked distractors in the grid.
+    n_correct = rng.randint(3, 5)
+    n_correct = min(n_correct, len(coastal), COASTLINE_GRID_SIZE - 2)
+    chosen_coastal = rng.sample(coastal, n_correct)
+    n_land = COASTLINE_GRID_SIZE - n_correct
+    chosen_land = rng.sample(landlocked, min(n_land, len(landlocked)))
+
+    grid = [*chosen_coastal, *chosen_land]
+    options = [country_option(c) for c in grid]
+    rng.shuffle(options)
+
+    payload = {
+        'type': 'coastline',
+        'prompt': 'Click all the countries with a coastline.',
+        'grid': {
+            'options': options,
+            'cols': 3,
+            'multiSelect': True,
+            'display': 'name',
+        },
+        'answer': {'method': 'grid-multi'},
+    }
+    return {
+        'type': 'coastline',
+        'prompt': payload['prompt'],
+        'payload': payload,
+        'answer': {'correct': sorted(c.mesh_name for c in chosen_coastal)},
+        'points': 1,
+    }
+
+
 def _region_centroid(countries):
     lats = [c.lat for c in countries if c.lat is not None]
     lngs = [c.lng for c in countries if c.lng is not None]
@@ -207,4 +250,5 @@ def gen_region_click(rng, pool):
 
 register('bordering', gen_bordering)
 register('landlocked', gen_landlocked)
+register('coastline', gen_coastline)
 register('region-click', gen_region_click)
