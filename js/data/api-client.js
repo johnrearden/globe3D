@@ -44,7 +44,7 @@ function resolveApiBase() {
     if (isLocalDevHost(hostname)) {
         // Django's default dev port, same host as the frontend (so LAN access
         // works). The static frontend may be served on any port.
-        return `${protocol}//${hostname}:8000/api`;
+        return `${protocol}//${hostname}:8003/api`;
     }
     return '/api';
 }
