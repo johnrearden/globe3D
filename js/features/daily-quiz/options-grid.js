@@ -2,9 +2,10 @@
  * OptionsGrid — a reusable grid of country (or capital) choices.
  *
  * Handles both single-select (submit on tap) and multi-select (toggle + Submit),
- * variable column counts, an optional small flag chip per cell, and post-answer
- * reveal colouring (right / wrong / missed). Self-contained: it builds its own
- * DOM inside the host element passed to render().
+ * variable column counts, and post-answer reveal colouring (right / wrong /
+ * missed). Cells use minmax(0,1fr) tracks so the grid always fits the panel width
+ * (never scrolls horizontally). Self-contained: it builds its own DOM inside the
+ * host element passed to render().
  */
 
 export class OptionsGrid {
@@ -21,10 +22,10 @@ export class OptionsGrid {
     /**
      * Render a question's options.
      * @param {Object} cfg
-     * @param {Array<{value,label,flag?}>} cfg.options
+     * @param {Array<{value,label}>} cfg.options
      * @param {number} cfg.cols
      * @param {boolean} cfg.multiSelect
-     * @param {string} [cfg.display]  'name' (default) — show label text + flag chip
+     * @param {string} [cfg.display]  'name' (default) — show label text
      * @param {(answer:string[])=>void} cfg.onSubmit  called with selected values
      */
     render(cfg) {
@@ -35,7 +36,9 @@ export class OptionsGrid {
 
         const grid = document.createElement('div');
         grid.className = 'dq-grid';
-        grid.style.gridTemplateColumns = `repeat(${cfg.cols || 2}, 1fr)`;
+        // minmax(0,1fr) lets the tracks shrink below their content's min-content
+        // width, so long country names never push the grid past the panel edge.
+        grid.style.gridTemplateColumns = `repeat(${cfg.cols || 2}, minmax(0, 1fr))`;
 
         (cfg.options || []).forEach((opt) => {
             const cell = document.createElement('button');
@@ -43,14 +46,6 @@ export class OptionsGrid {
             cell.className = 'dq-cell';
             cell.dataset.value = opt.value;
 
-            if (opt.flag) {
-                const f = document.createElement('img');
-                f.className = 'dq-cell-flag';
-                f.loading = 'lazy';
-                f.alt = '';
-                f.src = `https://flagcdn.com/w40/${opt.flag}.png`;
-                cell.appendChild(f);
-            }
             const label = document.createElement('span');
             label.className = 'dq-cell-label';
             label.textContent = opt.label != null ? opt.label : opt.value;

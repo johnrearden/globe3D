@@ -2646,25 +2646,27 @@ body.dq-active #dq-invite { display: none; }
 }
 
 .dq-grid-wrap { display: flex; flex-direction: column; gap: 10px; }
-.dq-grid { display: grid; gap: 8px; }
+.dq-grid { display: grid; gap: 8px; width: 100%; }
 .dq-cell {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    min-width: 0;            /* let the 1fr track shrink so the grid fits the panel */
     background: #1b2942;
     border: 2px solid transparent;
     border-radius: 8px;
     color: #e6edf6;
-    padding: 9px 10px;
+    padding: 9px 8px;
     font-size: 14px;
-    text-align: left;
+    text-align: center;
     cursor: pointer;
     transition: border-color 0.12s, background 0.12s;
 }
 .dq-cell:hover { background: #233354; }
 .dq-cell.selected { border-color: #6a8cff; background: #243a63; }
-.dq-cell-flag { width: 26px; height: auto; border-radius: 2px; flex: 0 0 auto; }
-.dq-cell-label { flex: 1 1 auto; }
+/* Wrap long names (incl. unbreakable long words) rather than overflowing the cell. */
+.dq-cell-label { min-width: 0; overflow-wrap: anywhere; }
 
 .dq-cell.reveal-dim { cursor: default; }
 .dq-cell.reveal-right { border-color: #33dd66; background: #18402a; }
