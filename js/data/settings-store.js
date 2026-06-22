@@ -10,7 +10,7 @@
 const STORAGE_KEY = 'globe3d-settings';
 
 const DEFAULTS = {
-    scheme: 'vibrant',
+    scheme: 'browns',
     borders: false,
     borderOpacity: 0.85,
     // lighting is null until the user touches a slider, so we don't override the
