@@ -9,6 +9,7 @@
  */
 
 import { OptionsGrid } from './options-grid.js';
+import { QUIZ_SUBJECT_SCREEN_FRACTION } from '../../core/focus-zoom.js';
 
 export class QuestionPresenter {
     constructor({ cameraController, globeManager, focusRegistry, els }) {
@@ -115,9 +116,12 @@ export class QuestionPresenter {
             return;
         }
 
+        // Server-supplied zoom (multi-country framing) wins; otherwise this is a
+        // single-subject question — frame it so it fills ≤20% of the screen, giving
+        // neighbour context without revealing the answer.
         let distance = map.zoom;
         if (!distance && map.focusCountry) {
-            distance = this.focusRegistry ? this.focusRegistry.distanceOf(map.focusCountry) : null;
+            distance = this.camera.framingDistanceFor(map.focusCountry, QUIZ_SUBJECT_SCREEN_FRACTION);
         }
 
         this.camera.frameView({

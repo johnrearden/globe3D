@@ -3,10 +3,14 @@
  *
  * Classifies every country into one of 8 named focus levels (A–H) by the
  * horizontal width of its bounding box, and maps each level to a camera
- * distance. The chosen distance is used as the universal "focus zoom" for
- * clicking, searching, and the name-the-country quiz, and it ALSO doubles as
- * the country label's appearance threshold (a label is visible at its focus
- * zoom and every closer zoom — see js/core/labels.js updateVisibility).
+ * distance (`distanceOf`). That distance is the country label's appearance
+ * threshold (a label is visible at its focus zoom and every closer zoom — see
+ * js/core/labels.js updateVisibility).
+ *
+ * Camera *framing* for a click/search or a quiz subject is computed separately
+ * from each country's stored bbox width (`widthOf`) + `framingDistance()`, so a
+ * country fills a target fraction of the screen (see camera-controls
+ * framingDistanceFor); the A–H distances no longer drive framing.
  *
  * Manual reclassification is layered on top via overrides (a {name: 'E'} map,
  * persisted to country-zoom.json by the in-app Edit Zoom editor).
@@ -25,6 +29,12 @@ export const LEVEL_DISTANCES = {
 };
 
 export const LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+// Target screen fractions for framing a country (limiting screen axis). A clicked
+// country shows with lots of local context; a quiz *subject* shows even more so
+// neighbours are visible without giving the answer away. See framingDistance().
+export const CLICK_SCREEN_FRACTION = 0.40;
+export const QUIZ_SUBJECT_SCREEN_FRACTION = 0.20;
 
 // The example country that anchors each level (names match assets/country-meta.json).
 export const EXAMPLE_COUNTRIES = {
@@ -84,6 +94,28 @@ export function bboxWidth(bbox) {
 }
 
 /**
+ * Camera distance (in globe radii) so a feature of linear size `width` (in the
+ * same unit-sphere units as bboxWidth) on the near surface subtends `fraction`
+ * of the screen along the limiting axis.
+ *
+ * The near surface sits at distance d-1 from a camera d radii from the globe
+ * centre; a chord `width` there subtends 2·atan((width/2)/(d-1)). Requiring that
+ * to be ≤ fraction·(full FOV) gives d = 1 + (width/2)/tan(fraction·halfFovRad),
+ * where halfFovRad is half the *smaller* of the vertical/horizontal FOV (so the
+ * bound holds in both screen dimensions).
+ *
+ * @param {number} width     country bbox width on the unit sphere
+ * @param {number} fraction  target screen fraction (e.g. 0.40)
+ * @param {number} halfFovRad half the limiting field of view, in radians
+ * @returns {number|null}    camera distance, or null if width is non-positive
+ */
+export function framingDistance(width, fraction, halfFovRad) {
+    if (!(width > 0)) return null;
+    const allowedHalfAngle = fraction * halfFovRad;
+    return 1 + (width / 2) / Math.tan(allowedHalfAngle);
+}
+
+/**
  * Compute the 7 bucket boundaries (upper edge of A..G) as geometric midpoints
  * between consecutive example-country widths. Self-maintaining if the assets
  * are rebuilt. Falls back to FALLBACK_BOUNDARIES if any example is missing.
@@ -118,6 +150,7 @@ export function computeBoundaries(records) {
 export class FocusZoomRegistry {
     constructor() {
         this.levelByName = new Map();
+        this.widthByName = new Map();   // unit-sphere bbox width per country (for framing)
         this.boundaries = FALLBACK_BOUNDARIES.slice();
         this.overrides = {};
     }
@@ -129,8 +162,11 @@ export class FocusZoomRegistry {
     buildFromCountries(records) {
         this.boundaries = computeBoundaries(records);
         this.levelByName.clear();
+        this.widthByName.clear();
         for (const r of records) {
-            this.levelByName.set(r.name, this._classify(bboxWidth(r.bbox)));
+            const w = bboxWidth(r.bbox);
+            this.widthByName.set(r.name, w);
+            this.levelByName.set(r.name, this._classify(w));
         }
         // Re-apply any overrides that were loaded before the build.
         this.applyOverrides(this.overrides);
@@ -173,6 +209,11 @@ export class FocusZoomRegistry {
 
     distanceOf(name) {
         return LEVEL_DISTANCES[this.levelOf(name)];
+    }
+
+    /** Unit-sphere bbox width of a country (0 if unknown). Used for screen-fraction framing. */
+    widthOf(name) {
+        return this.widthByName.get(name) || 0;
     }
 
     getOverrides() {

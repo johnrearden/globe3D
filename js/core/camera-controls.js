@@ -6,6 +6,11 @@
 import { state } from '../data/state.js';
 import { latLngToXYZ } from '../utils/coordinates.js';
 import { viewOffsetFor } from '../utils/view-offset.js';
+import {
+    framingDistance,
+    CLICK_SCREEN_FRACTION,
+    QUIZ_SUBJECT_SCREEN_FRACTION,
+} from './focus-zoom.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -110,11 +115,11 @@ export class CameraController {
         const phi = Math.acos(worldPos.y);
         const theta = Math.atan2(worldPos.z, worldPos.x);
 
-        // Universal focus distance: the country's A–H level (by bbox width),
-        // identical for click, search, and quiz; also the label appearance threshold.
-        const targetDistance = this.focusRegistry
-            ? this.focusRegistry.distanceOf(countryName)
-            : 1.55;
+        // Frame so the country fills no more than a target fraction of the screen,
+        // giving local context: 40% on a plain click/search, 20% when it's a quiz
+        // *subject* (so neighbours show without revealing the answer).
+        const fraction = isQuizMode ? QUIZ_SUBJECT_SCREEN_FRACTION : CLICK_SCREEN_FRACTION;
+        const targetDistance = this.framingDistanceFor(countryName, fraction);
 
         const targetCameraPos = new THREE.Vector3(
             targetDistance * Math.sin(phi) * Math.cos(theta),
@@ -150,6 +155,27 @@ export class CameraController {
             }
         };
         animateRotation();
+    }
+
+    /**
+     * Camera distance that frames `name` so it occupies at most `fraction` of the
+     * screen's limiting axis (see focus-zoom.framingDistance). Uses the live camera
+     * FOV + aspect so portrait phones zoom out further. Clamped to the zoom limits;
+     * falls back to the country's A–H focus distance when its width is unknown.
+     */
+    framingDistanceFor(name, fraction) {
+        const reg = this.focusRegistry;
+        const fallback = reg ? reg.distanceOf(name) : 1.55;
+        if (!reg) return fallback;
+
+        const vHalf = (this.camera.fov || 75) * Math.PI / 360;   // half vertical FOV (rad)
+        const aspect = this.camera.aspect || (window.innerWidth / window.innerHeight);
+        const hHalf = Math.atan(Math.tan(vHalf) * aspect);       // half horizontal FOV (rad)
+        const halfFov = Math.min(vHalf, hHalf);
+
+        const d = framingDistance(reg.widthOf(name), fraction, halfFov);
+        if (!(d > 0)) return fallback;
+        return Math.max(this.controls.minDistance, Math.min(this.controls.maxDistance, d));
     }
 
     /** Animate the camera back to the initial full-globe distance. */
