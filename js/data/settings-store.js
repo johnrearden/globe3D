@@ -11,8 +11,8 @@ const STORAGE_KEY = 'globe3d-settings';
 
 const DEFAULTS = {
     scheme: 'browns',
-    borders: false,
-    borderOpacity: 0.85,
+    borders: true,
+    borderOpacity: 0.1,
     // lighting is null until the user touches a slider, so we don't override the
     // build-time fade-in targets unless they've been deliberately changed.
     lighting: null, // { ambient, diffuse, specStrength, shininess, oceanSpecBoost }
