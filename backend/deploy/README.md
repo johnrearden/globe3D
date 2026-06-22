@@ -167,6 +167,12 @@ sudoedit /etc/ssl/cloudflare/api.terragotcha.com.key   # paste the private key
 sudo chmod 0644 /etc/ssl/cloudflare/api.terragotcha.com.pem
 sudo chmod 0640 /etc/ssl/cloudflare/api.terragotcha.com.key
 
+# Authenticated Origin Pulls (mTLS) CA — nginx-globe3d.conf has `ssl_verify_client on`,
+# so this MUST be present or `nginx -t` fails. Download Cloudflare's origin-pull CA from
+# their Authenticated Origin Pulls docs (the global "origin-pull-ca.pem"):
+sudoedit /etc/ssl/cloudflare/origin-pull-ca.pem        # paste Cloudflare's origin-pull CA
+sudo chmod 0644 /etc/ssl/cloudflare/origin-pull-ca.pem
+
 sudo cp /srv/globe3d/backend/deploy/nginx-globe3d.conf /etc/nginx/sites-available/globe3d.conf
 sudo ln -s /etc/nginx/sites-available/globe3d.conf /etc/nginx/sites-enabled/
 
@@ -180,6 +186,39 @@ curl -I https://api.terragotcha.com/api/daily/today    # expect 200, `server: cl
 No renewal cron — the Origin Cert is valid ~15 years. Re-run `cf-allowlist.sh` if Cloudflare
 ever changes its IP ranges (rare); optionally wire a monthly systemd timer like
 `pg-backup.timer`.
+
+After installing the conf, flip the matching Cloudflare toggle so the edge starts presenting
+its client cert: **SSL/TLS → Origin Server → Authenticated Origin Pulls → ON** (zone-level).
+Until that toggle is on, `ssl_verify_client on` will reject Cloudflare too and the site 400s —
+enable it right after the `nginx -t && reload`.
+
+## 9b. Gate /admin and /stats with Cloudflare Access (Zero Trust)
+The Django admin (`/admin/`) and staff dashboards (`/stats/`) live on the same
+`api.terragotcha.com` origin as the public, ungated API (`/api/*`). Django's own superuser
+login already protects them, but we add **Cloudflare Access as a second factor in front of the
+origin** — an attacker never even reaches the Django login form without first passing Access.
+
+Access is **path-scoped** so it covers only `/admin` and `/stats`; `/api/*` stays open (gating
+the whole hostname would break the frontend's cross-origin API calls — see the warning in the
+repo-root `DEPLOYMENT_GUIDE.md`).
+
+In **Cloudflare dashboard → Zero Trust → Access → Applications**, add a **Self-hosted**
+application (repeat for each path, or add both paths to one app):
+1. **Application domain:** `api.terragotcha.com` with **Path** `admin` (add a second:
+   `api.terragotcha.com` path `stats`). Path matching is a prefix, so `/admin/login/`,
+   `/admin/...` are all covered.
+2. **Session duration:** e.g. 24h.
+3. **Policy:** action **Allow**, rule **Emails** → your admin email(s) (One-time PIN), or a
+   Google/GitHub identity provider if you've configured one.
+4. Leave `/api/*` and `/static/*` **without** any Access app — the API must stay open, and the
+   admin login page pulls its CSS/JS from `/static/` before you're authenticated.
+
+Verify in a private window: `https://api.terragotcha.com/admin/` should show the Cloudflare
+Access login (PIN/SSO) first, then Django's admin login; `https://api.terragotcha.com/api/daily/today`
+should still return JSON with no gate.
+
+> Note: Access protects the browser path. Keep the origin mTLS + IP allowlist (step 9) on
+> regardless — that's what stops a direct-to-origin bypass of Access.
 
 ## 10. Second app (sudoku) — same pattern
 Repeat 5–9 for the second app under `/srv/sudoku` (Django in `/srv/sudoku/backend`), its own
