@@ -119,6 +119,41 @@ class BespokeGeneratorTests(TestCase):
         self.assertIn(correct, targets)
         self.assertEqual(spec['payload']['answer']['method'], 'map-click-single')
 
+    def test_capital_self_evident_rule(self):
+        from quiz.generation.base import capital_is_self_evident as se
+        # Containment / equality (excluded).
+        self.assertTrue(se('Mexico', 'Mexico City'))
+        self.assertTrue(se('Tunisia', 'Tunis'))
+        self.assertTrue(se('Monaco', 'Monaco'))
+        self.assertTrue(se('São Tomé and Príncipe', 'São Tomé'))
+        self.assertTrue(se('Guinea-Bissau', 'Bissau'))
+        # Shared-root-but-not-containment pairs are NOT caught (documented limit).
+        self.assertFalse(se('Brazil', 'Brasília'))
+        self.assertFalse(se('Algeria', 'Algiers'))
+        # Ordinary unrelated pairs.
+        self.assertFalse(se('France', 'Paris'))
+
+    def test_capital_target_is_never_self_evident(self):
+        from quiz.generation.base import capital_is_self_evident
+        from quiz.generation.core import gen_capital
+        for seed in range(40):
+            spec = gen_capital(self._rng(seed), self._pool())
+            # The target is the country whose capital is the answer (forward) or
+            # whose name is the answer (reverse); recover it from the prompt.
+            self.assertEqual(spec['type'], 'capital')
+            # Reconstruct (country, capital) from the graded answer + prompt.
+            prompt = spec['prompt']
+            if prompt.startswith('What is the capital of '):
+                country = prompt[len('What is the capital of '):-1]
+                capital = spec['answer']['correct'][0]
+            else:  # "{capital} is the capital of which country?"
+                capital = prompt.split(' is the capital of')[0]
+                country = spec['answer']['correct'][0]
+            self.assertFalse(
+                capital_is_self_evident(country, capital),
+                f'self-evident target leaked: {country} / {capital}',
+            )
+
     def test_bespoke_types_registered(self):
         from quiz.generation import REGISTRY
         for key in ('bordering', 'landlocked', 'coastline', 'region-click'):

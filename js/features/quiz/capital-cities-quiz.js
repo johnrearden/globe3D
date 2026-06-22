@@ -8,6 +8,7 @@
  */
 
 import { state } from '../../data/state.js';
+import { capitalIsSelfEvident } from '../../utils/self-evident-capital.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -144,7 +145,12 @@ export class CapitalCitiesQuiz {
         const depNames = new Set(Object.keys(
             this.globeManager.getDependencyData ? this.globeManager.getDependencyData() : {}
         ));
-        const quizCentroids = centroids.filter(c => !depNames.has(c.name) && capitals[c.name]);
+        // Also drop pairs where the capital gives the country away (Mexico/Mexico
+        // City, Tunisia/Tunis, the city-states, …) so the answer isn't self-evident.
+        const quizCentroids = centroids.filter(c =>
+            !depNames.has(c.name) &&
+            capitals[c.name] &&
+            !capitalIsSelfEvident(c.name, capitals[c.name].name));
 
         // Filter out countries already used in this quiz
         const availableCountries = quizCentroids.filter(c => !this.usedCountries.includes(c.name));

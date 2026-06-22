@@ -5,7 +5,12 @@ Each generator takes (rng, pool) and returns a question dict:
 `payload` is client-safe (no answer); `answer` is the server-side grading key.
 """
 
-from .base import country_option, map_block, nearest_countries
+from .base import (
+    capital_is_self_evident,
+    country_option,
+    map_block,
+    nearest_countries,
+)
 
 OPTION_COUNT = 4
 
@@ -83,7 +88,12 @@ def gen_capital(rng, pool):
     forward:  "What is the capital of {country}?"  options = capital names
     reverse:  "{capital} is the capital of which country?"  options = country names
     """
-    have_capital = [c for c in pool if c.capital]
+    # Drop pairs where the capital gives the country away (Mexico/Mexico City,
+    # Tunisia/Tunis, the city-states, …) so the answer isn't self-evident.
+    have_capital = [
+        c for c in pool
+        if c.capital and not capital_is_self_evident(c.display_name, c.capital)
+    ]
     target = rng.choice(have_capital)
     distractors = nearest_countries(target, have_capital, OPTION_COUNT - 1)
     direction = rng.choice(['forward', 'reverse'])

@@ -5,12 +5,37 @@ daily generator, so a given date always produces the same quiz.
 """
 
 import math
+import re
+import unicodedata
 
 from geo.models import Country
 
 # Default focal anchor for map questions: push the focus toward the upper area so
 # the options grid has room below on a mobile (portrait) screen.
 DEFAULT_FOCAL_ANCHOR = {'x': 0.5, 'y': 0.40}
+
+
+def _norm_name(s):
+    """Lowercase, strip diacritics, and drop non-alphanumerics for name matching."""
+    s = unicodedata.normalize('NFKD', s or '')
+    s = ''.join(ch for ch in s if not unicodedata.combining(ch))
+    return re.sub(r'[^a-z0-9]', '', s.lower())
+
+
+def capital_is_self_evident(country_name, capital):
+    """True when the capital gives the country away (or vice versa).
+
+    Excludes pairs whose normalized names are equal or where one contains the
+    other — e.g. Mexico/Mexico City, Tunisia/Tunis, São Tomé and Príncipe/São
+    Tomé, Monaco/Monaco. Comparison is diacritic- and punctuation-insensitive.
+
+    NOTE: this only catches containment/equality. Pairs that merely share a root
+    spelling (Brazil/Brasília, Algeria/Algiers, Niger/Niamey) are NOT caught.
+    """
+    c, p = _norm_name(country_name), _norm_name(capital)
+    if not c or not p:
+        return False
+    return c == p or p in c or c in p
 
 
 def eligible_targets():
