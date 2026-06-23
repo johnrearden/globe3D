@@ -2499,77 +2499,151 @@ body.flag-quiz-active #settings-panel {
    above it (map questions push the focus up via setViewOffset).
    ============================================================ */
 
-/* Invite: message + launch button, centered under the globe. Fades in after the
-   intro overlay is dismissed (.dq-invite-show). The container is click-through
-   so dragging the globe over the message still rotates it; only the button is
-   interactive (and only while shown). */
+/* Invite: a navy glass bottom-sheet (Terragotcha design system) shown under the
+   globe after the intro overlay fades (.dq-invite-show — an opacity fade-in). On
+   "Maybe later" it collapses (FLIP morph, see daily-quiz.js _dock) into the
+   #dq-today icon button docked top-left under the Take Quiz button.
+   transform-origin keeps the morph anchored to that corner. */
 #dq-invite {
     position: fixed;
-    left: 50%;
-    bottom: 13%;
-    transform: translateX(-50%);
+    left: 14px;
+    right: 14px;
+    bottom: 18px;
     z-index: 160;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    text-align: center;
-    max-width: 90vw;
+    box-sizing: border-box;
+    padding: 18px 22px 15px;
+    border-radius: 22px;
+    background: rgba(11, 28, 46, 0.74);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.04), 0 16px 44px rgba(0, 0, 0, 0.42);
+    transform-origin: top left;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.6s ease;
 }
+/* Desktop: cap the width and centre it (margin-centring, NOT transform — the FLIP
+   morph needs `transform` free). */
+@media (min-width: 769px) {
+    #dq-invite {
+        left: 50%;
+        right: auto;
+        margin-left: -210px;
+        width: 420px;
+    }
+}
 #dq-invite.dq-invite-show { opacity: 1; }
-#dq-invite.dq-invite-show #dq-launch { pointer-events: auto; }
-.dq-invite-msg {
-    color: #eaf2ff;
-    font-size: 16px;
+#dq-invite.dq-invite-show .dq-sheet-content { pointer-events: auto; }
+
+.dq-sheet-content { transition: opacity 0.18s ease; }
+
+.dq-invite-heading {
+    font-family: 'Fredoka', sans-serif;
     font-weight: 600;
-    line-height: 1.35;
-    max-width: 22em;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    font-size: 21px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: #eef2f6;
+}
+.dq-invite-text {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 400;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: #9fb2c6;
+    margin-top: 6px;
 }
 
 #dq-launch {
-    background: linear-gradient(135deg, #6a5cff, #9b4dff);
-    color: #fff;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 16px;
+    padding: 12px;
     border: none;
-    border-radius: 9px;
-    font-size: 16px;
-    font-weight: 700;
-    padding: 12px 22px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f7a857, #f59440);
+    color: #311a06;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
     cursor: pointer;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 8px 22px rgba(245, 158, 75, 0.34);
+    transition: filter 0.2s ease, transform 0.2s ease;
 }
-#dq-launch:hover { filter: brightness(1.08); }
-#dq-launch:disabled { opacity: 0.6; cursor: default; }
+#dq-launch:hover { filter: brightness(1.04); transform: translateY(-1px); }
+#dq-launch:disabled { opacity: 0.6; cursor: default; transform: none; }
 
-/* "Maybe Later": a subtle, secondary text button under the launch button. */
+/* "Maybe later": a centered, secondary text link under the action. */
 #dq-maybe-later {
+    display: block;
+    width: 100%;
+    margin-top: 11px;
+    padding: 0;
     background: none;
     border: none;
-    color: #aeb9cc;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 2px 6px;
+    text-align: center;
+    color: #6f86a0;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 500;
+    font-size: 14.5px;
+    letter-spacing: 0.04em;
     cursor: pointer;
-    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
 }
-#dq-maybe-later:hover { color: #eaf2ff; }
+#dq-maybe-later:hover { color: #9fb2c6; }
 
-/* Docked: pinned top-left, directly under the Take Quiz button (top:20px, ~38px
-   tall). Message + Maybe Later hide; the launch button shrinks to match Take Quiz. */
-#dq-invite.dq-docked {
-    left: 20px;
-    top: 68px;
-    bottom: auto;
-    transform: none;
-    align-items: flex-start;
-    max-width: none;
+/* The docked "today" icon button — hidden until the sheet collapses, then it
+   fills the shrunken container and fades in (on top of the glass) at the end of
+   the morph so it's never distorted by the FLIP scale. */
+#dq-today {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: linear-gradient(180deg, #f7a857, #f59440);
+    color: #311a06;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(245, 158, 75, 0.32);
+    opacity: 0;
+    transition: opacity 0.2s ease 0.22s, filter 0.2s ease;
 }
-#dq-invite.dq-docked .dq-invite-msg,
-#dq-invite.dq-docked #dq-maybe-later { display: none; }
-#dq-invite.dq-docked #dq-launch { font-size: 14px; padding: 10px 15px; }
+#dq-today svg { width: 22px; height: 22px; display: block; }
+#dq-today:hover { filter: brightness(1.04); }
+
+/* Docked: the morph target — shrink to a 40px button, pinned top-left directly
+   under the Take Quiz button (top:20px desktop / top:110px mobile). Keep the
+   glass card here so it stays visible while shrinking; the amber #dq-today fades
+   in over it at the end. border-radius drops to the button's so corners match. */
+#dq-invite.dq-docked {
+    top: 64px;
+    left: 20px;
+    right: auto;
+    bottom: auto;
+    width: 40px;
+    height: 40px;
+    margin-left: 0;
+    padding: 0;
+    border-radius: 11px;
+    pointer-events: auto;
+}
+#dq-invite.dq-docked .dq-sheet-content {
+    opacity: 0;
+    pointer-events: none;
+    /* collapse out of flow so the container measures as just the 40px button */
+    position: absolute;
+    visibility: hidden;
+}
+#dq-invite.dq-docked #dq-today {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    #dq-invite.dq-docked { top: 154px; left: 10px; }
+}
 
 body.dq-active #dq-invite { display: none; }
 

@@ -16,6 +16,7 @@ import { QuestionPresenter } from './question-renderer.js';
 import { showOnboarding } from './onboarding.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { PanelSheet } from './panel-sheet.js';
+import { calendarDots } from '../../utils/icons.js';
 
 export class DailyQuiz {
     constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
@@ -40,27 +41,45 @@ export class DailyQuiz {
 
     // ---------------------------- DOM ---------------------------------------
     _buildDom() {
-        // Invite: a message + the launch button, shown under the globe once the
-        // intro overlay has faded (see _wireIntroInvite), if today isn't done.
+        // Invite: a glass bottom-sheet shown under the globe once the intro overlay
+        // has faded (see _wireIntroInvite), if today isn't done. Terragotcha design
+        // system (Fredoka heading / Archivo body / amber action). On "Maybe later"
+        // it collapses into the #dq-today icon button docked top-left (see _dock).
         this.invite = document.createElement('div');
         this.invite.id = 'dq-invite';
         this.invite.innerHTML = `
-            <div class="dq-invite-msg">Up for today's Daily Challenge? Test your geography against the world.</div>
+            <div class="dq-sheet-content">
+                <div class="dq-invite-heading">Up for today&rsquo;s challenge?</div>
+                <div class="dq-invite-text">10 questions against the world &hellip;<br>Can&rsquo;t stop, I&rsquo;m being timed</div>
+            </div>
         `;
+        this.content = this.invite.querySelector('.dq-sheet-content');
+
         this.launchBtn = document.createElement('button');
         this.launchBtn.id = 'dq-launch';
         this.launchBtn.type = 'button';
-        this.launchBtn.textContent = 'Daily Challenge';
+        this.launchBtn.textContent = "Start today's challenge";
         this.launchBtn.addEventListener('click', () => this.launch());
-        this.invite.appendChild(this.launchBtn);
-        // "Maybe Later": dismiss the message and dock the button top-left under
-        // the Take Quiz button (still a way back in this session).
+        this.content.appendChild(this.launchBtn);
+
+        // "Maybe later": dismiss the sheet — it collapses into the docked icon below.
         this.maybeLaterBtn = document.createElement('button');
         this.maybeLaterBtn.id = 'dq-maybe-later';
         this.maybeLaterBtn.type = 'button';
-        this.maybeLaterBtn.textContent = 'Maybe Later';
+        this.maybeLaterBtn.textContent = 'Maybe later';
         this.maybeLaterBtn.addEventListener('click', () => this._dock());
-        this.invite.appendChild(this.maybeLaterBtn);
+        this.content.appendChild(this.maybeLaterBtn);
+
+        // The docked "today" button: what the sheet morphs into top-left, under the
+        // Take Quiz button. Hidden while the sheet is expanded; tapping it launches.
+        this.todayBtn = document.createElement('button');
+        this.todayBtn.id = 'dq-today';
+        this.todayBtn.type = 'button';
+        this.todayBtn.setAttribute('aria-label', "Today's challenge");
+        this.todayBtn.innerHTML = calendarDots;
+        this.todayBtn.addEventListener('click', () => this.launch());
+        this.invite.appendChild(this.todayBtn);
+
         document.body.appendChild(this.invite);
         this._wireIntroInvite();
 
@@ -153,10 +172,50 @@ export class DailyQuiz {
 
     _showInvite() {
         this.invite.classList.add('dq-invite-show');
+        // Already dismissed earlier this session — show it docked, no morph.
         if (this._dismissed) this.invite.classList.add('dq-docked');
     }
     _hideInvite() { this.invite.classList.remove('dq-invite-show'); }
-    _dock() { this._dismissed = true; this.invite.classList.add('dq-docked'); }
+
+    /**
+     * "Maybe later" — collapse the sheet into the #dq-today icon button docked
+     * top-left. FLIP: snap to the docked layout, invert with a transform back over
+     * the sheet's old footprint, then transition the transform away so it shrinks
+     * and flies to the corner. The content crossfade (sheet out, icon in) is CSS.
+     */
+    _dock() {
+        if (this._dismissed) return;            // idempotent
+        this._dismissed = true;
+
+        const el = this.invite;
+        const first = el.getBoundingClientRect();
+        el.classList.add('dq-docked');           // → final docked layout
+        const last = el.getBoundingClientRect();
+
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        const sx = first.width / last.width;
+        const sy = first.height / last.height;
+
+        // Invert: place it visually back where the sheet was.
+        el.style.transition = 'none';
+        el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+
+        // Play: next frame, animate the transform away.
+        requestAnimationFrame(() => {
+            el.style.transition = 'transform 0.42s var(--ease-soft, cubic-bezier(0.4,0,0.2,1))';
+            el.style.transform = '';
+        });
+
+        // Clean up the inline transform/transition once it lands.
+        const done = (e) => {
+            if (e.target !== el || e.propertyName !== 'transform') return;
+            el.style.transition = '';
+            el.style.transform = '';
+            el.removeEventListener('transitionend', done);
+        };
+        el.addEventListener('transitionend', done);
+    }
 
     // --------------------------- flow ---------------------------------------
     async launch() {
