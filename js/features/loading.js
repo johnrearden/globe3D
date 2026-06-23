@@ -1,13 +1,16 @@
 /**
- * Loading / intro-overlay handling.
+ * Loading / splash-overlay handling.
  *
- * Owns the one-shot `seoContentHidden` guard. hideLoading() reveals the globe
- * and wires a click on the SEO intro overlay to dismiss it via hideSeoContent().
+ * The Terragotcha splash (#seo-content) is opaque on first paint and covers the
+ * whole viewport while the globe loads. hideLoading() — called once the globe has
+ * rendered (and its lighting fade-in has run) — fades the splash out to reveal the
+ * globe, then fires `globe3d:intro-dismissed` so other features (e.g. the Daily
+ * Challenge invite) can react. The one-shot guard keeps dismissal idempotent.
  */
 
-import { elements, show, hide, addClass } from '../utils/dom.js';
+import { elements, hide, addClass } from '../utils/dom.js';
 
-// One-shot guard so dismissing the intro overlay is idempotent.
+// One-shot guard so dismissing the splash is idempotent.
 let seoContentHidden = false;
 
 export function hideSeoContent() {
@@ -16,29 +19,19 @@ export function hideSeoContent() {
     const seoContent = elements.get('seo-content');
     if (seoContent) {
         addClass(seoContent, 'hidden');
-        // Remove after the fade-out animation completes.
-        setTimeout(() => hide(seoContent), 500);
+        // Remove after the fade-out transition completes (matches CSS 3s).
+        setTimeout(() => hide(seoContent), 3000);
     }
-    // Once the intro has faded, let features react (e.g. the Daily Challenge
+    // Once the splash has faded, let features react (e.g. the Daily Challenge
     // invite appears under the globe). Fires whether or not the overlay existed.
     setTimeout(
         () => document.dispatchEvent(new CustomEvent('globe3d:intro-dismissed')),
-        500,
+        3000,
     );
 }
 
 export function hideLoading() {
     hide(elements.get('loading'));
-
-    // Swap the progress bar for the "tap anywhere" hint, and let a tap/click
-    // anywhere on the intro dismiss it now that the globe is loaded.
-    const progressBar = elements.get('loading-progress-bar');
-    const startHint = elements.get('start-hint');
-    const seoContent = elements.get('seo-content');
-
-    if (progressBar) hide(progressBar);
-    if (startHint) show(startHint);
-    if (seoContent) {
-        seoContent.addEventListener('click', hideSeoContent, { once: true });
-    }
+    // The globe is ready — auto-dismiss the splash (fade out + intro event).
+    hideSeoContent();
 }

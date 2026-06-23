@@ -31,6 +31,11 @@
     }
     </script>
 
+    <!-- Splash / loading-screen webfonts (Fredoka wordmark, Archivo UI text). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="styles.css">
     <!-- Confetti Library -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
@@ -64,12 +69,13 @@
     </script>
 </head>
 <body>
-    <!-- SEO Content Overlay -->
+    <!-- Loading / splash overlay (Terragotcha). Opaque on first paint; auto-dismisses
+         once the globe has rendered (see js/features/loading.js). Styling: styles.css. -->
     <div id="seo-content">
-        <div id="seo-text-wrapper">
+        <!-- SEO copy: kept in the DOM for crawlers, visually hidden behind the splash. -->
+        <div class="sr-only">
             <h1>Interactive 3D World Globe</h1>
             <p>Explore our interactive 3D globe featuring all 195 countries of the world. Click, drag, and zoom to discover geography in an immersive way.</p>
-
             <h2>Features</h2>
             <ul>
                 <li>Interactive 3D visualization of all countries</li>
@@ -78,17 +84,22 @@
                 <li>Smooth rotation and zoom controls</li>
                 <li>Educational tool for learning world geography</li>
             </ul>
-
-            <p><strong>Wait for the globe to load, then click the start button below!</strong></p>
         </div>
 
-        <!-- Loading Progress Bar and Start Button -->
-        <div id="loading-progress-container">
-            <div id="loading-progress-bar">
-                <div id="loading-progress-fill"></div>
-                <div id="loading-progress-text">Loading... 0%</div>
+        <!-- Top lockup: globe mark → wordmark → tagline -->
+        <div class="tg-lockup">
+            <div class="tg-globe">
+                <div class="tg-globe-glow"></div>
+                <img class="tg-globe-img" src="assets/globe-splash.png" width="170" height="170" alt="" aria-hidden="true">
             </div>
-            <div id="start-hint" style="display: none;">Tap anywhere to explore</div>
+            <div class="tg-wordmark"><span class="tg-terra">Terra</span><span class="tg-gotcha">gotcha</span></div>
+            <div class="tg-tagline">Learn geography through quizzes</div>
+        </div>
+
+        <!-- Bottom indicator: progress bar → status label -->
+        <div class="tg-indicator">
+            <div class="tg-track"><div class="tg-bar"></div></div>
+            <div class="tg-status">Loading the world</div>
         </div>
     </div>
 
@@ -725,9 +736,11 @@
                     sceneManager.fadeInLights();
                     globeManager.fadeInLighting();
 
-                    // Complete loading
+                    // Complete loading. Hold the opaque splash through the globe's
+                    // lighting fade-in (1500ms above) so it reveals a fully-lit globe,
+                    // never a black/half-rendered frame.
                     sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
-                    setTimeout(() => hideLoading(), 400);
+                    setTimeout(() => hideLoading(), 1500);
                 },
                 // Error callback
                 (error) => {
