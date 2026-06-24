@@ -194,32 +194,7 @@
             </div>
         </div>
 
-        <!-- Quiz Mode Selector Modal -->
-        <div id="quiz-mode-selector" style="display: none;">
-            <div id="quiz-mode-overlay"></div>
-            <div id="quiz-mode-content">
-                <h2>Choose Quiz Mode</h2>
-                <div id="quiz-mode-options">
-                    <button class="quiz-mode-option" id="name-flag-quiz-btn">
-                        <h3>Name the Country</h3>
-                        <p>See a highlighted country on the globe and select its flag from the options</p>
-                    </button>
-                    <button class="quiz-mode-option" id="identify-flag-quiz-btn">
-                        <h3>Identify the Flag</h3>
-                        <p>Look at the flag and choose which country it belongs to</p>
-                    </button>
-                    <button class="quiz-mode-option" id="find-country-quiz-btn">
-                        <h3>Find the Country</h3>
-                        <p>Click on the correct country when given its name - 10 questions in 45 seconds!</p>
-                    </button>
-                    <button class="quiz-mode-option" id="capital-quiz-btn">
-                        <h3>Capital Cities</h3>
-                        <p>Match countries to their capital cities - the question flips direction at random</p>
-                    </button>
-                </div>
-                <button id="quiz-mode-close">Cancel</button>
-            </div>
-        </div>
+        <!-- Quiz Mode Picker: built dynamically by js/features/quiz/quiz-mode-picker.js -->
 
         <!-- Click Quiz UI -->
         <div id="click-quiz-container" style="display: none;">
@@ -312,6 +287,7 @@
         import { ZoomEditor } from './js/features/zoom-editor.js';
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
         import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
+        import { QuizModePicker } from './js/features/quiz/quiz-mode-picker.js';
         import { LabelEditor } from './js/features/label-editor.js';
         import { PointerControls } from './js/features/pointer-controls.js';
         import { animateFlagWave } from './js/features/flag-wave.js';
@@ -358,6 +334,7 @@
         let shatterAnimation = null;
         let pinballAnimation = null;
         let quizUI = null; // QuizUI instance (celebration + mode-selector glue)
+        let quizModePicker = null; // QuizModePicker (bottom-sheet quiz/scope selector)
 
         // Label editor instance (owns editMode, selected label, config, helper).
         let labelEditor = null;
@@ -624,6 +601,28 @@
                     quizManager.registerMode('click-country', clickQuiz);
                     quizManager.registerMode('capital', capitalCitiesQuiz);
 
+                    // Quiz Mode Picker (bottom-sheet with scope selector)
+                    quizModePicker = new QuizModePicker({
+                        onQuizStart: ({ mode, scope }) => {
+                            // scope is 'globe' or a continent name
+                            // TODO: pass scope to quiz modules when region filtering is implemented
+                            switch (mode) {
+                                case 'name':
+                                    nameFlagQuiz.start();
+                                    break;
+                                case 'flag':
+                                    identifyFlagQuiz.start();
+                                    break;
+                                case 'find':
+                                    clickQuiz.start();
+                                    break;
+                                case 'capital':
+                                    capitalCitiesQuiz.start();
+                                    break;
+                            }
+                        }
+                    });
+
                     // ===== Daily Challenge (backend-driven once-a-day quiz) =====
                     // Self-contained: builds its own launch button + panel DOM.
                     apiClient = new ApiClient();
@@ -636,7 +635,7 @@
 
                     // Quiz reminder invite — takes the bottom slot after the daily
                     // prompt is resolved (listens for globe3d:daily-resolved).
-                    quizInvite = new QuizInvite({ quizUI });
+                    quizInvite = new QuizInvite({ quizModePicker });
                     quizInvite.init();
 
                     // ===== PHASE 9: Initialize Search System =====
@@ -830,7 +829,7 @@
             // Search input handled by SearchManager.init()
 
             // Quiz buttons
-            elements.get('quiz-start-btn').addEventListener('click', () => quizUI.showModeSelector());
+            elements.get('quiz-start-btn').addEventListener('click', () => quizModePicker.show());
             elements.get('quiz-next-btn').addEventListener('click', () => {
                 // Cancel auto-advance timer if user clicks manually
                 if (nameFlagQuiz && nameFlagQuiz.isActive() && nameFlagQuiz.autoAdvanceTimer) {
@@ -855,30 +854,10 @@
                     capitalCitiesQuiz.nextQuestion();
                 }
             });
-            elements.get('take-quiz-btn').addEventListener('click', () => quizUI.showModeSelector());
+            elements.get('take-quiz-btn').addEventListener('click', () => quizModePicker.show());
 
             // Zoom out button
             elements.get('zoom-out-btn').addEventListener('click', () => cameraController.zoomOut());
-
-            // Quiz mode selector buttons
-            elements.get('name-flag-quiz-btn').addEventListener('click', () => {
-                quizUI.hideModeSelector();
-                nameFlagQuiz.start();
-            });
-            elements.get('identify-flag-quiz-btn').addEventListener('click', () => {
-                quizUI.hideModeSelector();
-                identifyFlagQuiz.start();
-            });
-            elements.get('find-country-quiz-btn').addEventListener('click', () => {
-                quizUI.hideModeSelector();
-                clickQuiz.start();
-            });
-            elements.get('capital-quiz-btn').addEventListener('click', () => {
-                quizUI.hideModeSelector();
-                capitalCitiesQuiz.start();
-            });
-            elements.get('quiz-mode-close').addEventListener('click', () => quizUI.hideModeSelector());
-            elements.get('quiz-mode-overlay').addEventListener('click', () => quizUI.hideModeSelector());
 
             // Quiz cancel buttons
             elements.get('quiz-cancel-btn').addEventListener('click', cancelQuiz);

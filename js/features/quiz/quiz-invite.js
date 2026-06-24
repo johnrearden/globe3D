@@ -14,8 +14,8 @@
 const SEEN_KEY = 'globe3d-quiz-reminder-seen';
 
 export class QuizInvite {
-    constructor({ quizUI } = {}) {
-        this.quizUI = quizUI;
+    constructor({ quizModePicker } = {}) {
+        this.quizModePicker = quizModePicker;
         this.panel = null;
         this._dismissed = false;
     }
@@ -68,7 +68,7 @@ export class QuizInvite {
     _onQuizMe() {
         this._markSeen();
         this.panel.classList.remove('qz-invite-show');
-        if (this.quizUI) this.quizUI.showModeSelector();
+        if (this.quizModePicker) this.quizModePicker.show();
     }
 
     /** Maybe later — quick fade out, then jiggle the Take Quiz button. */

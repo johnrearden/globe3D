@@ -655,6 +655,315 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
+        /* ============================================================
+           Quiz Mode Picker (new bottom-sheet design)
+           ============================================================ */
+
+        /* Animations */
+        @keyframes qmp-sheet-in {
+            from { opacity: 0; transform: translateY(34px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes qmp-sheet-out {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(34px); }
+        }
+        @keyframes qmp-fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .qmp {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .qmp--visible {
+            pointer-events: auto;
+        }
+
+        .qmp-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp--visible .qmp-overlay {
+            opacity: 1;
+        }
+
+        .qmp-sheet {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: 14px;
+            top: auto;
+            max-height: calc(100% - 106px);
+            display: flex;
+            flex-direction: column;
+            border-radius: 28px;
+            padding: 22px 20px 18px;
+            background: rgba(11, 28, 46, 0.86);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 -2px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 50px rgba(0, 0, 0, 0.46);
+            opacity: 0;
+            transform: translateY(34px);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp--visible .qmp-sheet {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .qmp-grabber {
+            width: 38px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.16);
+            margin: 0 auto 16px;
+        }
+
+        .qmp-heading {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        .qmp-title {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 22px;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: #eef2f6;
+        }
+        .qmp-subtitle {
+            font-family: sans-serif;
+            font-weight: 500;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #6f86a0;
+            margin-top: 7px;
+        }
+
+        .qmp-scope {
+            margin-bottom: 0;
+        }
+        .qmp-scope-label {
+            font-family: sans-serif;
+            font-weight: 600;
+            font-size: 10.5px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #5c708a;
+            margin-bottom: 9px;
+        }
+
+        .qmp-segmented {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            border-radius: 999px;
+            background: rgba(6, 18, 31, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .qmp-segment {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 10px 0;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            font-family: sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #90a4b8;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp-segment-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qmp-segment-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+        .qmp-segment--active {
+            background: linear-gradient(180deg, #f7a857, #f59440);
+            color: #321a06;
+            box-shadow: 0 4px 14px rgba(245, 158, 75, 0.30);
+        }
+
+        .qmp-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp-chips--visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .qmp-chip {
+            font-family: sans-serif;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 8px 13px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(255, 255, 255, 0.03);
+            color: #9fb2c6;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp-chip:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+        .qmp-chip--active {
+            background: rgba(245, 158, 75, 0.14);
+            border-color: rgba(245, 158, 75, 0.55);
+            color: #ffd9a8;
+        }
+
+        .qmp-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.07);
+            margin: 18px 0 16px;
+        }
+
+        .qmp-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .qmp-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 15px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+        }
+        .qmp-card:hover {
+            background: rgba(245, 158, 75, 0.06);
+            border-color: rgba(245, 158, 75, 0.42);
+            transform: translateY(-1px);
+        }
+        .qmp-card:active {
+            transform: translateY(0);
+            background: rgba(245, 158, 75, 0.11);
+        }
+
+        .qmp-card-icon {
+            flex: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            background: rgba(245, 158, 75, 0.12);
+            border: 1px solid rgba(245, 158, 75, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f7b572;
+        }
+        .qmp-card-icon svg {
+            width: 21px;
+            height: 21px;
+        }
+
+        .qmp-card-text {
+            min-width: 0;
+            flex: 1;
+        }
+        .qmp-card-title {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            color: #eef2f6;
+            letter-spacing: -0.01em;
+        }
+        .qmp-card-desc {
+            font-family: sans-serif;
+            font-weight: 400;
+            font-size: 12.5px;
+            line-height: 1.4;
+            color: #8ca0b4;
+            margin-top: 2px;
+        }
+
+        .qmp-card-arrow {
+            flex: none;
+            color: #5c708a;
+            display: flex;
+            align-items: center;
+        }
+        .qmp-card-arrow svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .qmp-cancel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px;
+            margin-top: 14px;
+            border-radius: 999px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #9fb2c6;
+            font-family: sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp-cancel:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #cdd8e3;
+        }
+
+        /* Desktop: constrain width and center the sheet */
+        @media (min-width: 480px) {
+            .qmp-sheet {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%) translateY(34px);
+                width: 100%;
+                max-width: 380px;
+            }
+            .qmp--visible .qmp-sheet {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
         /* Click Quiz Container Styles */
         #click-quiz-container {
             position: fixed;
