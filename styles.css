@@ -1864,6 +1864,13 @@
             pointer-events: none;
         }
 
+        /* Drop the loading indicator the instant the splash starts fading out:
+           the globe is ready, so a progress bar fading away reads as if loading
+           were still in progress. */
+        #seo-content.hidden .tg-indicator {
+            display: none;
+        }
+
         /* Top lockup: globe mark → wordmark → tagline, centered ~15% from top. */
         .tg-lockup {
             position: absolute;
