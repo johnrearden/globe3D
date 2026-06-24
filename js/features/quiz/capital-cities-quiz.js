@@ -10,6 +10,7 @@
 import { state } from '../../data/state.js';
 import { capitalIsSelfEvident } from '../../utils/self-evident-capital.js';
 import { formatDuration } from './quiz-timer.js';
+import { quizHistoryStore, formatBestSuffix } from '../../data/quiz-history-store.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -31,6 +32,7 @@ export class CapitalCitiesQuiz {
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
+        this.questionLog = []; // [{ country, correct }] for quiz-history recording
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
@@ -47,6 +49,7 @@ export class CapitalCitiesQuiz {
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
+        this.questionLog = [];
 
         // Update state
         state.set('quiz.active', true);
@@ -124,9 +127,23 @@ export class CapitalCitiesQuiz {
         this.globeManager.clearSelection();
         this.globeManager.clearCapitalMarker();
 
-        // Stop the timer and show celebration overlay with score + total time
+        // Stop the timer, persist the result, and show the celebration overlay
+        // with score + total time + standing/new best.
         const elapsedMs = this.quizTimer.stop();
-        this.showQuizCelebration(this.score, this.questionsAnswered, `Time: ${formatDuration(elapsedMs)}`);
+        const summary = quizHistoryStore.record({
+            ts: Date.now(),
+            mode: 'capital',
+            scope: this.scope,
+            score: this.score,
+            total: this.questionsAnswered,
+            durationMs: elapsedMs,
+            questions: this.questionLog
+        });
+        this.showQuizCelebration(
+            this.score,
+            this.questionsAnswered,
+            `Time: ${formatDuration(elapsedMs)}${formatBestSuffix(summary)}`
+        );
 
         // Play Again returns to the quiz-mode chooser. Clear the inline display
         // override on #quiz-container so the next quiz's start() can show the panel.
@@ -275,6 +292,10 @@ export class CapitalCitiesQuiz {
      */
     handleAnswer(selectedAnswer) {
         const isCorrect = selectedAnswer === this.currentQuestion.correctAnswer;
+
+        // Record this question for quiz history. Either direction tests the same
+        // country↔capital pair, so key it on the country.
+        this.questionLog.push({ country: this.currentQuestion.countryName, correct: isCorrect });
 
         // Update score if correct
         if (isCorrect) {

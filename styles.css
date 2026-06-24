@@ -960,6 +960,26 @@
             color: #cdd8e3;
         }
 
+        .qmp-stats-link {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 12px;
+            padding: 4px;
+            background: none;
+            border: none;
+            color: #f7b572;
+            font-family: sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qmp-stats-link:hover {
+            color: #ffd9a8;
+        }
+
         /* Desktop: constrain width and center the sheet */
         @media (min-width: 480px) {
             .qmp-sheet {
@@ -970,6 +990,248 @@
                 max-width: 380px;
             }
             .qmp--visible .qmp-sheet {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* ===== Quiz Stats screen (shares the mode-picker bottom-sheet look) ===== */
+        .qsv {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .qsv--visible {
+            pointer-events: auto;
+        }
+        .qsv-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qsv--visible .qsv-overlay {
+            opacity: 1;
+        }
+        .qsv-sheet {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: 14px;
+            top: auto;
+            max-height: calc(100% - 106px);
+            display: flex;
+            flex-direction: column;
+            border-radius: 28px;
+            padding: 22px 20px 18px;
+            background: rgba(11, 28, 46, 0.86);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 -2px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 50px rgba(0, 0, 0, 0.46);
+            opacity: 0;
+            transform: translateY(34px);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qsv--visible .qsv-sheet {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .qsv-grabber {
+            width: 38px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.16);
+            margin: 0 auto 16px;
+        }
+        .qsv-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .qsv-title {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 22px;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: #eef2f6;
+        }
+        .qsv-subtitle {
+            font-family: sans-serif;
+            font-weight: 500;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #6f86a0;
+            margin-top: 7px;
+        }
+        .qsv-close {
+            flex: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(255, 255, 255, 0.03);
+            color: #9fb2c6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qsv-close:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #cdd8e3;
+        }
+        .qsv-close svg {
+            width: 15px;
+            height: 15px;
+        }
+        .qsv-body {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
+        }
+        .qsv-section {
+            margin-bottom: 18px;
+        }
+        .qsv-section-label {
+            font-family: sans-serif;
+            font-weight: 600;
+            font-size: 10.5px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #5c708a;
+            margin-bottom: 9px;
+        }
+        .qsv-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 13px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 8px;
+        }
+        .qsv-row-main {
+            min-width: 0;
+            flex: 1;
+        }
+        .qsv-row-title {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            color: #eef2f6;
+        }
+        .qsv-row-sub {
+            font-family: sans-serif;
+            font-size: 12px;
+            color: #8ca0b4;
+            margin-top: 2px;
+        }
+        .qsv-row-metric {
+            flex: none;
+            text-align: right;
+        }
+        .qsv-row-best {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            color: #f7b572;
+        }
+        .qsv-row-best-label {
+            font-family: sans-serif;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6f86a0;
+            margin-top: 1px;
+        }
+        .qsv-missed,
+        .qsv-recent {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            padding: 8px 13px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.02);
+            margin-bottom: 5px;
+            font-family: sans-serif;
+        }
+        .qsv-missed-name,
+        .qsv-recent-mode {
+            flex: 1;
+            min-width: 0;
+            font-size: 13.5px;
+            font-weight: 500;
+            color: #dbe5ee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .qsv-missed-stat,
+        .qsv-recent-score {
+            flex: none;
+            font-size: 12px;
+            color: #90a4b8;
+        }
+        .qsv-recent-scope {
+            flex: none;
+            font-size: 12px;
+            color: #6f86a0;
+        }
+        .qsv-empty {
+            text-align: center;
+            padding: 26px 10px 16px;
+        }
+        .qsv-empty-title {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 17px;
+            color: #cdd8e3;
+        }
+        .qsv-empty-text {
+            font-family: sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #8ca0b4;
+            margin-top: 8px;
+        }
+        .qsv-reset {
+            flex: none;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 999px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #9fb2c6;
+            font-family: sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .qsv-reset:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #cdd8e3;
+        }
+        @media (min-width: 480px) {
+            .qsv-sheet {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%) translateY(34px);
+                width: 100%;
+                max-width: 380px;
+            }
+            .qsv--visible .qsv-sheet {
                 transform: translateX(-50%) translateY(0);
             }
         }

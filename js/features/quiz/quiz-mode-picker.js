@@ -57,6 +57,7 @@ export class QuizModePicker {
     constructor(options = {}) {
         this.onQuizStart = options.onQuizStart || (() => {});
         this.onCancel = options.onCancel || (() => {});
+        this.onStats = options.onStats || (() => {});
 
         // State
         this.scope = 'globe'; // 'globe' | 'region'
@@ -123,6 +124,7 @@ export class QuizModePicker {
                     `).join('')}
                 </div>
 
+                <button class="qmp-stats-link">View your progress</button>
                 <button class="qmp-cancel">Cancel</button>
             </div>
         `;
@@ -155,6 +157,12 @@ export class QuizModePicker {
 
         // Cancel button
         this.container.querySelector('.qmp-cancel').addEventListener('click', () => this.hide());
+
+        // Progress / stats link — close the picker, then open the stats screen.
+        this.container.querySelector('.qmp-stats-link').addEventListener('click', () => {
+            this.hide();
+            this.onStats();
+        });
     }
 
     _setScope(scope) {

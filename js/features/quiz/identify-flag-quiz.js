@@ -5,6 +5,7 @@
 
 import { state } from '../../data/state.js';
 import { formatDuration } from './quiz-timer.js';
+import { quizHistoryStore, formatBestSuffix } from '../../data/quiz-history-store.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -23,6 +24,7 @@ export class IdentifyFlagQuiz {
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
+        this.questionLog = []; // [{ country, correct }] for quiz-history recording
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
@@ -177,6 +179,7 @@ export class IdentifyFlagQuiz {
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
+        this.questionLog = [];
 
         // Update state
         state.set('quiz.active', true);
@@ -250,9 +253,23 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-container').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
 
-        // Stop the timer and show celebration overlay with score + total time
+        // Stop the timer, persist the result, and show the celebration overlay
+        // with score + total time + standing/new best.
         const elapsedMs = this.quizTimer.stop();
-        this.showQuizCelebration(this.score, this.questionsAnswered, `Time: ${formatDuration(elapsedMs)}`);
+        const summary = quizHistoryStore.record({
+            ts: Date.now(),
+            mode: 'identify-flag',
+            scope: this.scope,
+            score: this.score,
+            total: this.questionsAnswered,
+            durationMs: elapsedMs,
+            questions: this.questionLog
+        });
+        this.showQuizCelebration(
+            this.score,
+            this.questionsAnswered,
+            `Time: ${formatDuration(elapsedMs)}${formatBestSuffix(summary)}`
+        );
 
         // Play Again returns to the quiz-mode chooser so the user can pick
         // any quiz, not just re-enter this one. Clear the inline display
@@ -370,6 +387,9 @@ export class IdentifyFlagQuiz {
      */
     handleAnswer(selectedCountry) {
         const isCorrect = selectedCountry === this.currentQuestion.correctCountry;
+
+        // Record this question for quiz history (the flag shown is the answer).
+        this.questionLog.push({ country: this.currentQuestion.correctCountry, correct: isCorrect });
 
         // Update score if correct
         if (isCorrect) {

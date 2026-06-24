@@ -4,6 +4,7 @@
  */
 
 import { state } from '../../data/state.js';
+import { quizHistoryStore, formatBestSuffix } from '../../data/quiz-history-store.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -22,6 +23,7 @@ export class ClickQuiz {
         this.currentIndex = 0;
         this.score = 0;
         this.countries = []; // List of 10 random countries for this quiz
+        this.questionLog = []; // [{ country, correct }] for quiz-history recording
         this.timeRemaining = 45000; // 45 seconds
         this.startTime = 0;
         this.timerInterval = null;
@@ -36,6 +38,7 @@ export class ClickQuiz {
         this.scope = scope;
         this.currentIndex = 0;
         this.score = 0;
+        this.questionLog = [];
         this.timeRemaining = 45000; // 45 seconds
         this.startTime = Date.now();
 
@@ -93,8 +96,27 @@ export class ClickQuiz {
         const seconds = (timeUsed / 1000).toFixed(1);
         const timeInfo = completed ? `Completed in ${seconds}s` : `Time's Up! ${seconds}s elapsed`;
 
+        // On a timeout the in-progress country was shown but never found — log it
+        // as a miss. The guard (log length === currentIndex) avoids double-logging
+        // a country already counted correct during the post-answer advance delay.
+        if (!completed && this.currentIndex < this.countries.length
+            && this.questionLog.length === this.currentIndex) {
+            this.questionLog.push({ country: this.countries[this.currentIndex], correct: false });
+        }
+
+        // Persist the result. Score is out of the full 10-country quiz.
+        const summary = quizHistoryStore.record({
+            ts: Date.now(),
+            mode: 'click-country',
+            scope: this.scope,
+            score: this.score,
+            total: this.countries.length,
+            durationMs: timeUsed,
+            questions: this.questionLog
+        });
+
         // Show celebration overlay with score
-        this.showQuizCelebration(this.score, this.currentIndex, timeInfo);
+        this.showQuizCelebration(this.score, this.currentIndex, `${timeInfo}${formatBestSuffix(summary)}`);
 
         // Play Again returns to the quiz-mode chooser so the user can pick
         // any quiz, not just re-enter this one.
@@ -146,6 +168,8 @@ export class ClickQuiz {
         if (clickedCountryName === correctCountryName) {
             // Correct answer!
             this.score++;
+            // Log the resolved question (advancing past it means it was found).
+            this.questionLog.push({ country: correctCountryName, correct: true });
             this.showFeedback('Correct!', true);
 
             // Flash country green

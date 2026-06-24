@@ -403,6 +403,34 @@ already forward-compatible (fields exist, unused).
 
 ---
 
+## Quiz history & progress tracking — ✅ Done
+
+Local-first history for the four **practice** quizzes (the Daily Challenge already has server-side
+scoring and is untouched). Per-quiz, per-question results persist to `localStorage` and surface as a
+progress screen plus a best/new-best line on the celebration overlay.
+
+- `js/data/quiz-history-store.js` — singleton store (key `globe3d-quiz-history`), same
+  guarded-read/write shape as `settings-store.js`. Holds a pruned session log (last 200) of
+  `{ ts, mode, scope, score, total, durationMs, questions: [{country, correct}] }` plus a permanent
+  per-country tally that survives pruning. API: `record()` (returns a best/new-best summary),
+  `getSessions()`, `getModeStats()` (per mode×scope bests + best/avg time), `getCountryStats()`
+  (worst-accuracy-first), `getTotalGames()`, `clear()`. Also exports `MODE_LABELS` and
+  `formatBestSuffix()` (the overlay suffix builder).
+- The four quiz modes (`name-flag`, `identify-flag`, `click-country`, `capital`) import the store
+  singleton directly (mirroring how they import `state`), accumulate a `questionLog` at their
+  existing correctness checkpoints, and call `record()` in `end()` — sourcing `durationMs` from the
+  value already computed there (shared `QuizTimer.stop()`, or the click quiz's `timeUsed`). Cancel
+  paths never reach `end()`, so abandoned quizzes aren't recorded.
+- `js/features/quiz/quiz-stats.js` — self-contained bottom-sheet (shares the mode-picker `qmp` look
+  under a `qsv-` prefix in `styles.css`): per-mode bests, "Countries you keep missing", recent
+  games, and a clear-history control. Opened from a "View your progress" link in
+  `quiz-mode-picker.js` (new `onStats` option). `index.html` touched only by an import + one
+  instantiation + passing `onStats`.
+- Out of scope (possible phase 2): mode-picker tile badges and a weak-countries *drill* quiz seeded
+  from `getCountryStats()` (the store already supports it).
+
+---
+
 ## Cross-cutting conventions
 
 - **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.
