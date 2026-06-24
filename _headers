@@ -14,3 +14,10 @@
 # HTML is the entry point — always revalidate so deploys are picked up.
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
+
+# Stylesheet + JS module tree change every deploy — revalidate (etag → 304 when
+# unchanged) so a stale cache never serves old CSS/JS against fresh index.html.
+/styles.css
+  Cache-Control: public, max-age=0, must-revalidate
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
