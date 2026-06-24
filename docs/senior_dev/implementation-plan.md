@@ -76,7 +76,7 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 |-------|----------------|-------|
 | Head / meta / external `<script>`s | 3–224 | confetti CDN (11), **eruda + `eruda.init()` (13–14)**, three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
 | Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
-| Zoom widget, flag panel, search, controls legend | ~63–106 | |
+| Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
 | Quiz container + celebration + mode-selector + click-quiz UI + results modals | ~107–187 | |
 | Label-editor modal | ~189–219 | sliders + buttons |
 | `<script type="module">` | 224–3089 | the JS reviewed in 1c |

@@ -24,21 +24,6 @@
             max-width: 300px;
         }
         
-        #controls {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 100;
-        }
-        
-        .control-item {
-            margin: 5px 0;
-        }
-        
         label {
             display: inline-block;
             width: 120px;
@@ -1746,10 +1731,6 @@
                 margin: 2px 0;
             }
 
-            #controls {
-                display: none;
-            }
-
             /* Click Quiz Mobile Styles */
             #click-quiz-container {
                 top: 10px;
@@ -2116,7 +2097,6 @@
         body.celebration-active #flag-container,
         body.celebration-active #search-container,
         body.celebration-active #seo-content,
-        body.celebration-active #controls,
         body.celebration-active #info-area {
             display: none !important;
         }
@@ -2187,7 +2167,6 @@ body.map-mode #globe-canvas,
 body.map-mode #zoom-widget,
 body.map-mode #search-container,
 body.map-mode #flag-container,
-body.map-mode #controls,
 body.map-mode #take-quiz-btn,
 body.map-mode #settings-toggle,
 body.map-mode #settings-panel,

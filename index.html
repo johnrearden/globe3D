@@ -168,23 +168,6 @@
             </div>
             <div id="search-results"></div>
         </div>
-        <div id="controls">
-            <div class="control-item">
-                <strong>Controls:</strong>
-            </div>
-            <div class="control-item">
-                • Drag to rotate
-            </div>
-            <div class="control-item">
-                • Scroll to zoom
-            </div>
-            <div class="control-item">
-                <label for="sphere-toggle" style="width: auto;">
-                    <input type="checkbox" id="sphere-toggle" checked style="width: auto; margin-right: 5px;">
-                    Show Countries
-                </label>
-            </div>
-        </div>
         <div id="quiz-container">
             <div id="quiz-header">Geography Quiz</div>
             <div id="quiz-score" style="display: none;">Score: <span id="quiz-score-value">0</span> / <span id="quiz-total-value">0</span></div>
@@ -898,9 +881,6 @@
             elements.get('click-quiz-close-btn').addEventListener('click', () => quizUI.closeClickQuizResults());
             elements.get('click-quiz-results-overlay').addEventListener('click', () => quizUI.closeClickQuizResults());
 
-            // Show-countries toggle
-            elements.get('sphere-toggle').addEventListener('change', toggleSphere);
-
             // Edit mode keyboard shortcuts
             window.addEventListener('keydown', onKeyDown);
 
@@ -983,14 +963,6 @@
 
         // Repurposed: the textured sphere is the only globe surface now, so
         // the toggle controls whether countries are drawn (vs. ocean only).
-        function toggleSphere(event) {
-            if (globeManager) {
-                globeManager.setShowCountries(event.target.checked);
-            }
-        }
-
-
-
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
