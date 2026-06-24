@@ -175,6 +175,13 @@ export class SettingsPanel {
         }
         schemeRow.appendChild(group);
 
+        // Show / hide the country fills (vs the bare ocean sphere). Drives the
+        // uShowCountries shader uniform (globeManager.setShowCountries).
+        this._checkbox(sec, 'Show countries', saved.showCountries !== false, (checked) => {
+            if (this.globeManager) this.globeManager.setShowCountries(checked);
+            settingsStore.save({ showCountries: checked });
+        });
+
         // Borders toggle (independent of scheme). Drawn as a shader edge effect
         // from the baked border distance field (globeManager.setBorder*).
         this._checkbox(sec, 'Country borders', !!saved.borders, (checked) => {
@@ -329,8 +336,9 @@ export class SettingsPanel {
         // Color scheme + highlight (paletteOriginal exists by now).
         this._selectScheme(saved.scheme || 'vibrant');
 
-        // Borders (opacity set first so enabling uses the saved strength).
+        // Country fills + borders (opacity set first so enabling uses the saved strength).
         if (this.globeManager) {
+            this.globeManager.setShowCountries(saved.showCountries !== false);
             this.globeManager.setBorderOpacity(saved.borderOpacity);
             this.globeManager.setBorderVisible(!!saved.borders);
         }

@@ -11,6 +11,7 @@ const STORAGE_KEY = 'globe3d-settings';
 
 const DEFAULTS = {
     scheme: 'browns',
+    showCountries: true,
     borders: true,
     borderOpacity: 0.1,
     // lighting is null until the user touches a slider, so we don't override the
