@@ -9,6 +9,7 @@
 
 import { state } from '../../data/state.js';
 import { capitalIsSelfEvident } from '../../utils/self-evident-capital.js';
+import { formatDuration } from './quiz-timer.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -24,6 +25,7 @@ export class CapitalCitiesQuiz {
         this.clearQuizTimers = options.clearQuizTimers;
         this.calculateGreatCircleDistance = options.calculateGreatCircleDistance;
         this.labelManager = options.labelManager;
+        this.quizTimer = options.quizTimer;
 
         // Quiz state
         this.score = 0;
@@ -83,6 +85,9 @@ export class CapitalCitiesQuiz {
         // Reset score display
         this.updateScoreDisplay();
 
+        // Start the count-up timer
+        this.quizTimer.start();
+
         // Load first question
         this.nextQuestion();
     }
@@ -119,8 +124,9 @@ export class CapitalCitiesQuiz {
         this.globeManager.clearSelection();
         this.globeManager.clearCapitalMarker();
 
-        // Show celebration overlay with score
-        this.showQuizCelebration(this.score, this.questionsAnswered);
+        // Stop the timer and show celebration overlay with score + total time
+        const elapsedMs = this.quizTimer.stop();
+        this.showQuizCelebration(this.score, this.questionsAnswered, `Time: ${formatDuration(elapsedMs)}`);
 
         // Play Again returns to the quiz-mode chooser. Clear the inline display
         // override on #quiz-container so the next quiz's start() can show the panel.
@@ -339,6 +345,7 @@ export class CapitalCitiesQuiz {
             clearTimeout(this.autoAdvanceTimer);
             this.autoAdvanceTimer = null;
         }
+        this.quizTimer.cancel();
         this.active = false;
         state.set('quiz.active', false);
         state.set('quiz.mode', null);

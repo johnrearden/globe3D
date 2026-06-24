@@ -4,6 +4,7 @@
  */
 
 import { state } from '../../data/state.js';
+import { formatDuration } from './quiz-timer.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -18,6 +19,7 @@ export class NameFlagQuiz {
         this.clearQuizTimers = options.clearQuizTimers;
         this.calculateGreatCircleDistance = options.calculateGreatCircleDistance;
         this.labelManager = options.labelManager;
+        this.quizTimer = options.quizTimer;
 
         // Quiz state
         this.score = 0;
@@ -78,6 +80,9 @@ export class NameFlagQuiz {
         // Reset score display
         this.updateScoreDisplay();
 
+        // Start the count-up timer
+        this.quizTimer.start();
+
         // Load first question
         this.nextQuestion();
     }
@@ -110,8 +115,9 @@ export class NameFlagQuiz {
         // Reset globe highlighting
         this.globeManager.clearSelection();
 
-        // Show celebration overlay with score
-        this.showQuizCelebration(this.score, this.questionsAnswered);
+        // Stop the timer and show celebration overlay with score + total time
+        const elapsedMs = this.quizTimer.stop();
+        this.showQuizCelebration(this.score, this.questionsAnswered, `Time: ${formatDuration(elapsedMs)}`);
 
         // Play Again returns to the quiz-mode chooser so the user can pick
         // any quiz, not just re-enter this one. Clear the inline display
@@ -323,6 +329,7 @@ export class NameFlagQuiz {
             clearTimeout(this.autoAdvanceTimer);
             this.autoAdvanceTimer = null;
         }
+        this.quizTimer.cancel();
         this.active = false;
         state.set('quiz.active', false);
         state.set('quiz.mode', null);

@@ -312,6 +312,16 @@
             border-radius: 4px;
         }
 
+        /* Subtle count-up timer, injected as a child of #quiz-score so it follows
+           the score's show/hide and positioning in every quiz layout. */
+        #quiz-timer {
+            display: block;
+            margin-top: 4px;
+            font-size: 14px;
+            color: #888;
+            font-variant-numeric: tabular-nums;
+        }
+
         #quiz-flag-display {
             margin-bottom: 15px;
             text-align: center;

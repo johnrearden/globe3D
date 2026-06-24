@@ -287,6 +287,7 @@
         import { ZoomEditor } from './js/features/zoom-editor.js';
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
         import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
+        import { QuizTimer } from './js/features/quiz/quiz-timer.js';
         import { QuizModePicker } from './js/features/quiz/quiz-mode-picker.js';
         import { LabelEditor } from './js/features/label-editor.js';
         import { PointerControls } from './js/features/pointer-controls.js';
@@ -334,6 +335,7 @@
         let shatterAnimation = null;
         let pinballAnimation = null;
         let quizUI = null; // QuizUI instance (celebration + mode-selector glue)
+        let quizTimer = null; // Shared count-up stopwatch for the practice quizzes
         let quizModePicker = null; // QuizModePicker (bottom-sheet quiz/scope selector)
 
         // Label editor instance (owns editMode, selected label, config, helper).
@@ -445,6 +447,7 @@
             // Quiz UI (celebration + mode-selector glue). Animation refs are
             // assigned once the animations are built (see globe-load completion).
             quizUI = new QuizUI();
+            quizTimer = new QuizTimer();
             globeManager.init();
 
             // Get globe reference
@@ -563,7 +566,8 @@
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance,
-                        labelManager: labelManager
+                        labelManager: labelManager,
+                        quizTimer: quizTimer
                     });
 
                     identifyFlagQuiz = new IdentifyFlagQuiz({
@@ -572,7 +576,8 @@
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         countryToISO: countryToISO,
-                        animateFlagWave: animateFlagWave
+                        animateFlagWave: animateFlagWave,
+                        quizTimer: quizTimer
                     });
 
                     clickQuiz = new ClickQuiz({
@@ -592,7 +597,8 @@
                         showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance,
-                        labelManager: labelManager
+                        labelManager: labelManager,
+                        quizTimer: quizTimer
                     });
 
                     // Register quiz modes with QuizManager

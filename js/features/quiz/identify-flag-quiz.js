@@ -4,6 +4,7 @@
  */
 
 import { state } from '../../data/state.js';
+import { formatDuration } from './quiz-timer.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -16,6 +17,7 @@ export class IdentifyFlagQuiz {
         this.clearQuizTimers = options.clearQuizTimers;
         this.countryToISO = options.countryToISO;
         this.animateFlagWave = options.animateFlagWave;
+        this.quizTimer = options.quizTimer;
 
         // Quiz state
         this.score = 0;
@@ -213,6 +215,9 @@ export class IdentifyFlagQuiz {
         // Reset score display
         this.updateScoreDisplay();
 
+        // Start the count-up timer
+        this.quizTimer.start();
+
         // Load first question
         this.nextQuestion();
     }
@@ -245,8 +250,9 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-container').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
 
-        // Show celebration overlay with score
-        this.showQuizCelebration(this.score, this.questionsAnswered);
+        // Stop the timer and show celebration overlay with score + total time
+        const elapsedMs = this.quizTimer.stop();
+        this.showQuizCelebration(this.score, this.questionsAnswered, `Time: ${formatDuration(elapsedMs)}`);
 
         // Play Again returns to the quiz-mode chooser so the user can pick
         // any quiz, not just re-enter this one. Clear the inline display
@@ -437,6 +443,7 @@ export class IdentifyFlagQuiz {
             clearTimeout(this.autoAdvanceTimer);
             this.autoAdvanceTimer = null;
         }
+        this.quizTimer.cancel();
         this.active = false;
         state.set('quiz.active', false);
         state.set('quiz.mode', null);
