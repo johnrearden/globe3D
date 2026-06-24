@@ -2967,7 +2967,8 @@ body.flag-quiz-active #settings-panel {
 }
 
 @media (max-width: 768px) {
-    #dq-invite.dq-docked { top: 154px; left: 10px; }
+    /* Position below Quiz Me button (10px + ~40px height + 15px margin) */
+    #dq-invite.dq-docked { top: 65px; left: 10px; }
 }
 
 body.dq-active #dq-invite { display: none; }
