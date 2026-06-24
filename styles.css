@@ -712,6 +712,13 @@
         .qr-btn-secondary:hover { background: rgba(255, 255, 255, .04); color: #cdd8e3; }
         .qr-btn-secondary .qr-btn-icon svg { width: 16px; height: 16px; }
 
+        /* Transient confirmation after Share copies to the clipboard. */
+        .qr-share.qr-share--flash {
+            color: #f7b572;
+            border-color: rgba(245, 158, 75, .4);
+            background: rgba(245, 158, 75, .12);
+        }
+
         /* Quiz Mode Selector Styles */
         #quiz-mode-selector {
             position: fixed;

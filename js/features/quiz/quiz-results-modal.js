@@ -111,7 +111,7 @@ export class QuizResultsModal {
 
                 <div class="qr-secondary qr-fade-item" style="animation-delay:.3s">
                     <button class="qr-btn-secondary qr-share" type="button">
-                        <span class="qr-btn-icon">${ICONS.shareNetwork}</span>Share
+                        <span class="qr-btn-icon">${ICONS.shareNetwork}</span><span class="qr-share-label">Share</span>
                     </button>
                     <button class="qr-btn-secondary qr-globe" type="button">
                         <span class="qr-btn-icon">${ICONS.globeHemisphereWest}</span>Globe
@@ -131,6 +131,8 @@ export class QuizResultsModal {
         this.bestEl = this.container.querySelector('.qr-best');
         this.timeValueEl = this.container.querySelector('.qr-time-value');
         this.shareBtn = this.container.querySelector('.qr-share');
+        this.shareLabelEl = this.container.querySelector('.qr-share-label');
+        this._shareFlashTimer = null;
 
         // Share needs the Web Share API or clipboard; drop the button if neither exists.
         if (!navigator.share && !(navigator.clipboard && navigator.clipboard.writeText)) {
@@ -232,10 +234,42 @@ export class QuizResultsModal {
         if (!this._last) return;
         const { score, total, quizName, scopeLabel, seconds } = this._last;
         const text = `I scored ${score}/${total} on ${quizName} (${scopeLabel}) in ${formatTime(seconds)} — Terragotcha`;
+
+        // Web Share API is the preferred path, but it's not implemented on every
+        // desktop browser (e.g. Chrome on Linux), so fall back to the clipboard.
+        // Either way give visible feedback — a silent copy reads as "broken".
         if (navigator.share) {
-            navigator.share({ title: 'Terragotcha', text }).catch(() => {});
-        } else if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).catch(() => {});
+            navigator.share({ title: 'Terragotcha', text })
+                .then(() => this._flashShareLabel('Shared!'))
+                .catch((err) => {
+                    // User-cancelled share is not an error; only fall back on real failures.
+                    if (err && err.name === 'AbortError') return;
+                    this._copyToClipboard(text);
+                });
+        } else {
+            this._copyToClipboard(text);
         }
+    }
+
+    _copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => this._flashShareLabel('Copied!'))
+                .catch(() => this._flashShareLabel('Copy failed'));
+        } else {
+            this._flashShareLabel('Copy failed');
+        }
+    }
+
+    /** Briefly swap the Share button label to confirm the action, then restore it. */
+    _flashShareLabel(message) {
+        if (this._shareFlashTimer) clearTimeout(this._shareFlashTimer);
+        this.shareLabelEl.textContent = message;
+        this.shareBtn.classList.add('qr-share--flash');
+        this._shareFlashTimer = setTimeout(() => {
+            this.shareLabelEl.textContent = 'Share';
+            this.shareBtn.classList.remove('qr-share--flash');
+            this._shareFlashTimer = null;
+        }, 1600);
     }
 }
