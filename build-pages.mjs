@@ -29,6 +29,14 @@ const INCLUDE = [
     'country-colors.json',
     'country-zoom.json',
     'robots.txt',
+    'sitemap.xml',
+    // SEO / share assets served from the site root (referenced in index.html's
+    // <head>): favicons, Apple touch icon, and the 1200x630 Open Graph image.
+    'favicon-16.png',
+    'favicon-32.png',
+    'favicon-180.png',
+    'favicon-512.png',
+    'og-image.png',
     '_headers',
 ];
 
