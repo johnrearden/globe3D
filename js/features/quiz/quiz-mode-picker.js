@@ -90,6 +90,7 @@ export class QuizModePicker {
                     <div class="qmp-subtitle">PICK A MODE TO START PLAYING</div>
                 </div>
 
+                <div class="qmp-scroll">
                 <div class="qmp-scope">
                     <div class="qmp-scope-label">COUNTRIES FROM</div>
                     <div class="qmp-segmented">
@@ -126,6 +127,7 @@ export class QuizModePicker {
 
                 <button class="qmp-stats-link">View your progress</button>
                 <button class="qmp-cancel">Cancel</button>
+                </div>
             </div>
         `;
 
