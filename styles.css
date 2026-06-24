@@ -456,123 +456,261 @@
             border: 1px solid #ff0000;
         }
 
-        /* Quiz Celebration Overlay */
-        #quiz-celebration-overlay {
+        /* ===== Quiz Results Modal (.qr) — end-of-quiz "Quiz Results" card ===== */
+        @keyframes qr-pop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(.92); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes qr-fade {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes qr-glow {
+            0%, 100% { opacity: .45; }
+            50% { opacity: .8; }
+        }
+
+        /* Overlay: dims + blurs the live globe behind the card. */
+        .qr {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
+            inset: 0;
             z-index: 10000;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding-top: 24px;
+            background: rgba(6, 18, 31, 0.62);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+            opacity: 0;
             pointer-events: none;
-            animation: fadeIn 0.5s ease-in;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        #quiz-celebration-content {
-            text-align: center;
-            color: white;
-            padding: 16px 24px;
-            background: rgba(211, 211, 211, 0.2);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        .qr.qr--visible {
+            opacity: 1;
             pointer-events: auto;
-            animation: bounceIn 0.8s ease-out;
         }
 
-        @keyframes bounceIn {
-            0% {
-                transform: scale(0.3);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.05);
-            }
-            70% {
-                transform: scale(0.9);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
+        .qr-card {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(.96);
+            width: 332px;
+            max-width: calc(100vw - 32px);
+            box-sizing: border-box;
+            padding: 28px 26px 22px;
+            border-radius: 26px;
+            background: linear-gradient(180deg, rgba(16, 42, 68, .96), rgba(11, 28, 46, .96));
+            border: 1px solid rgba(255, 255, 255, .10);
+            box-shadow: 0 22px 60px rgba(0, 0, 0, .5), 0 -2px 0 rgba(255, 255, 255, .05) inset;
+            color: #eef2f6;
+            opacity: 0;
+        }
+        .qr--visible .qr-card {
+            animation: qr-pop .5s cubic-bezier(.4, 0, .2, 1) both;
         }
 
-        #celebration-title {
-            font-size: 2rem;
-            margin: 0 0 8px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            animation: pulse 2s ease-in-out infinite;
+        /* Inner blocks fade up with staggered delays (set inline in the markup). */
+        .qr-fade-item { opacity: 0; }
+        .qr--visible .qr-fade-item {
+            animation: qr-fade .5s cubic-bezier(.4, 0, .2, 1) both;
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
+        /* 1. Status label */
+        .qr-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .qr-status-icon { display: inline-flex; color: #f7b572; }
+        .qr-status-icon svg { width: 14px; height: 14px; }
+        .qr-status-text {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: .22em;
+            text-transform: uppercase;
+            color: #7e93a8;
         }
 
-        #celebration-message {
-            font-size: 1.2rem;
-            margin: 0 0 6px;
-            font-weight: bold;
+        /* 2. Score ring */
+        .qr-ring {
+            position: relative;
+            width: 148px;
+            height: 148px;
+            margin: 18px auto 0;
+        }
+        .qr-ring-glow {
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(245, 158, 75, .22), rgba(245, 158, 75, 0) 68%);
+            animation: qr-glow 3.5s ease-in-out infinite;
+        }
+        .qr-ring-svg {
+            position: absolute;
+            inset: 0;
+            transform: rotate(-90deg);
+        }
+        .qr-ring-track {
+            fill: none;
+            stroke: rgba(255, 255, 255, .08);
+            stroke-width: 10;
+        }
+        .qr-ring-arc {
+            fill: none;
+            stroke: url(#qr-arc-gradient);
+            stroke-width: 10;
+            stroke-linecap: round;
+        }
+        .qr-ring-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-ring-score {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            letter-spacing: -.02em;
+            line-height: 1;
+            color: #eef2f6;
+        }
+        .qr-score-num { font-size: 46px; }
+        .qr-score-total { font-size: 22px; color: #7e93a8; }
+        .qr-ring-caption {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 9.5px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: #5c708a;
+            margin-top: 5px;
         }
 
-        #celebration-score {
-            font-size: 1.4rem;
-            margin: 8px 0 12px;
-            font-weight: bold;
-            color: #FFD700;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        /* 3. Headline */
+        .qr-headline {
+            text-align: center;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 21px;
+            letter-spacing: -.01em;
+            color: #eef2f6;
+            margin-top: 16px;
         }
 
-        #celebration-close-btn {
-            padding: 8px 24px;
-            font-size: 1rem;
-            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+        /* 4. Meta line */
+        .qr-meta {
+            text-align: center;
+            font-family: 'Archivo', sans-serif;
+            font-weight: 500;
+            font-size: 12px;
+            letter-spacing: .04em;
+            color: #7e93a8;
+            margin-top: 5px;
+        }
+
+        /* Best-score badge (no native slot in the design — a subtle pill under the meta). */
+        .qr-best {
+            margin: 10px auto 0;
+            width: fit-content;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: rgba(6, 18, 31, .55);
+            border: 1px solid rgba(255, 255, 255, .08);
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: .04em;
+            color: #9fb2c6;
+        }
+        .qr-best.qr-best--new {
+            color: #f7b572;
+            border-color: rgba(245, 158, 75, .35);
+            background: rgba(245, 158, 75, .12);
+        }
+
+        /* 5. Time pill */
+        .qr-time {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: rgba(6, 18, 31, .55);
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+        .qr-time-icon { display: inline-flex; color: #f7b572; }
+        .qr-time-icon svg { width: 19px; height: 19px; }
+        .qr-time-label {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 10px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: #5c708a;
+        }
+        .qr-time-value {
+            margin-left: auto;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 500;
+            font-size: 17px;
+            letter-spacing: -.01em;
+            color: #eef2f6;
+        }
+
+        /* 6. Primary action — Play again */
+        .qr-btn-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 18px;
+            padding: 13px;
             border: none;
-            border-radius: 50px;
-            color: white;
-            font-weight: bold;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #f7a857, #f59440);
+            color: #311a06;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            box-shadow: 0 8px 22px rgba(245, 158, 75, .34);
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            transition: all 0.3s ease;
+            transition: filter .15s ease, transform .15s ease;
         }
+        .qr-btn-primary:hover { filter: brightness(1.04); transform: translateY(-1px); }
+        .qr-btn-primary:active { transform: translateY(0); filter: brightness(.97); }
+        .qr-btn-icon { display: inline-flex; }
+        .qr-btn-primary .qr-btn-icon svg { width: 16px; height: 16px; }
 
-        #celebration-close-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        /* 7. Secondary actions — Share / Globe */
+        .qr-secondary {
+            display: flex;
+            gap: 10px;
+            margin-top: 11px;
         }
-
-        @media (max-width: 768px) {
-            #celebration-title {
-                font-size: 1.6rem;
-            }
-
-            #celebration-message {
-                font-size: 1.1rem;
-            }
-
-            #celebration-score {
-                font-size: 1.3rem;
-            }
-
-            #celebration-close-btn {
-                padding: 8px 22px;
-                font-size: 0.95rem;
-            }
+        .qr-btn-secondary {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px;
+            border-radius: 999px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, .12);
+            color: #9fb2c6;
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 13.5px;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
         }
+        .qr-btn-secondary:hover { background: rgba(255, 255, 255, .04); color: #cdd8e3; }
+        .qr-btn-secondary .qr-btn-icon svg { width: 16px; height: 16px; }
 
         /* Quiz Mode Selector Styles */
         #quiz-mode-selector {

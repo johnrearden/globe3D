@@ -1,20 +1,18 @@
 /**
- * Quiz UI glue: the end-of-quiz celebration overlay, the mode-selector / results
+ * Quiz UI glue: the end-of-quiz results modal trigger, the mode-selector / results
  * show-hide helpers, and the small pure helpers injected into the quiz modes.
  *
- * The celebration picks one of three animations by score fraction; the animation
- * instances are injected (they're also driven by the dev buttons), assigned via
- * `quizUI.animations` once they've been built.
+ * `showCelebration` plays a score-gated globe flourish (shatter on a poor run,
+ * confetti on a perfect one) and then hands the result to the QuizResultsModal.
+ * Both the animation instances (`quizUI.animations`) and the modal
+ * (`quizUI.resultsModal`) are injected once they've been built.
  */
 
-import { elements, show, hide, showFlex } from '../../utils/dom.js';
+import { elements, show, hide } from '../../utils/dom.js';
+import { MODE_LABELS } from '../../data/quiz-history-store.js';
 
 // Score fraction at or below which the celebration shatters the globe.
 const SHATTER_THRESHOLD = 0.3;
-// Score fraction at which the celebration triggers the pinball animation.
-const PINBALL_THRESHOLD = 1.0;
-// How long the pinball plays before auto-restoring to rest pose.
-const PINBALL_DURATION_MS = 3000;
 
 /** Clear quiz timers (auto-advance, click-quiz interval). Returns nulled ids. */
 export function clearQuizTimers(autoAdvanceTimer = null, clickQuizTimer = null) {
@@ -49,39 +47,58 @@ function triggerConfetti() {
     }, 250);
 }
 
+/**
+ * Turn a `quizHistoryStore.record()` summary into best-score badge data for the
+ * results modal: a "🎉 New best!" shout on a personal best, otherwise the standing
+ * best once there's a history to compare against, or null on a first-ever game.
+ * Mirrors `formatBestSuffix` (quiz-history-store.js) as structured data.
+ */
+function bestBadge(summary) {
+    if (!summary) return null;
+    if (summary.isNewBest) return { text: '🎉 New best!', isNewBest: true };
+    if (summary.gamesPlayed > 1) return { text: `Best ${summary.bestScore}/${summary.total}`, isNewBest: false };
+    return null;
+}
+
 export class QuizUI {
     constructor({ animations = {} } = {}) {
         // { bounce, shatter, pinball } — assigned once the animations are built.
         this.animations = animations;
+        // QuizResultsModal instance — assigned post-construction in index.html
+        // (mirrors how `animations` is wired up after the modes are built).
+        this.resultsModal = null;
     }
 
-    /** Show the celebration overlay and play a score-appropriate animation. */
-    showCelebration(score, total, extraInfo = '') {
-        const percentage = Math.round((score / total) * 100);
-        const extraHTML = extraInfo
-            ? `<div style="font-size: 1.2rem; margin-top: 15px; color: #E0E0E0;">${extraInfo}</div>`
-            : '';
-
-        elements.get('celebration-score').innerHTML = `
-            <div style="font-size: 1rem; margin-bottom: 4px;">Your Score</div>
-            <div>${score} / ${total} (${percentage}%)</div>
-            ${extraHTML}
-        `;
-
-        showFlex(elements.get('quiz-celebration-overlay'));
-        // Hide background UI chrome so the celebration is the only focus.
-        document.body.classList.add('celebration-active');
-
+    /**
+     * Show the end-of-quiz results modal and play a score-gated globe flourish.
+     * Shatter for a poor run (≤30%), confetti for a perfect run; mid-range plays
+     * nothing (the bounce/pinball animations are kept but no longer auto-triggered).
+     *
+     * @param {Object} opts
+     * @param {number} opts.score   - correct answers
+     * @param {number} opts.total   - total questions
+     * @param {number} opts.seconds - elapsed time in seconds (may be fractional)
+     * @param {string} opts.mode    - mode id ('name-flag', 'click-country', …)
+     * @param {string} opts.scope   - 'globe' or a region name
+     * @param {Object} [opts.summary] - the quizHistoryStore.record() return value
+     */
+    showCelebration({ score, total, seconds, mode, scope, summary }) {
         const fraction = total > 0 ? score / total : 0;
         if (fraction <= SHATTER_THRESHOLD) {
             if (this.animations.shatter) this.animations.shatter.start();
-        } else if (fraction >= PINBALL_THRESHOLD) {
+        } else if (score === total) {
             triggerConfetti();
-            if (this.animations.pinball) this.animations.pinball.start(PINBALL_DURATION_MS);
-        } else {
-            triggerConfetti();
-            if (this.animations.bounce) this.animations.bounce.start();
         }
+        // Mid-range: no globe animation (bounce/pinball intentionally not called).
+
+        this.resultsModal.show({
+            score,
+            total,
+            seconds,
+            quizName: MODE_LABELS[mode] || 'Quiz',
+            scopeLabel: scope === 'globe' ? 'Whole globe' : scope,
+            best: bestBadge(summary),
+        });
     }
 
     showModeSelector() {

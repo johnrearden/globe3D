@@ -55,7 +55,7 @@
     <!-- Splash / loading-screen webfonts (Fredoka wordmark, Archivo UI text). -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="styles.css">
     <!-- Confetti Library -->
@@ -184,15 +184,7 @@
             <button id="quiz-cancel-btn" style="display: none;" title="Cancel Quiz">×</button>
         </div>
 
-        <!-- Quiz Celebration Overlay -->
-        <div id="quiz-celebration-overlay" style="display: none;">
-            <div id="quiz-celebration-content">
-                <h1 id="celebration-title">Congratulations!</h1>
-                <p id="celebration-message">Quiz Complete!</p>
-                <div id="celebration-score"></div>
-                <button id="celebration-close-btn">Play Again</button>
-            </div>
-        </div>
+        <!-- Quiz Results modal: built dynamically by js/features/quiz/quiz-results-modal.js -->
 
         <!-- Quiz Mode Picker: built dynamically by js/features/quiz/quiz-mode-picker.js -->
 
@@ -290,6 +282,7 @@
         import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
         import { QuizTimer } from './js/features/quiz/quiz-timer.js';
         import { QuizModePicker } from './js/features/quiz/quiz-mode-picker.js';
+        import { QuizResultsModal } from './js/features/quiz/quiz-results-modal.js';
         import { QuizStats } from './js/features/quiz/quiz-stats.js';
         import { LabelEditor } from './js/features/label-editor.js';
         import { PointerControls } from './js/features/pointer-controls.js';
@@ -339,6 +332,7 @@
         let quizUI = null; // QuizUI instance (celebration + mode-selector glue)
         let quizTimer = null; // Shared count-up stopwatch for the practice quizzes
         let quizModePicker = null; // QuizModePicker (bottom-sheet quiz/scope selector)
+        let quizResultsModal = null; // QuizResultsModal (end-of-quiz results card)
         let quizStats = null; // QuizStats (bottom-sheet progress/history screen)
 
         // Label editor instance (owns editMode, selected label, config, helper).
@@ -566,7 +560,7 @@
                         cameraController: cameraController,
                         elements: elements,
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
-                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
+                        showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance,
                         labelManager: labelManager,
@@ -576,7 +570,7 @@
                     identifyFlagQuiz = new IdentifyFlagQuiz({
                         globeManager: globeManager,
                         elements: elements,
-                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
+                        showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
                         countryToISO: countryToISO,
                         animateFlagWave: animateFlagWave,
@@ -587,7 +581,7 @@
                         globeManager: globeManager,
                         cameraController: cameraController,
                         elements: elements,
-                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
+                        showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers
                     });
 
@@ -597,7 +591,7 @@
                         elements: elements,
                         countryMap: countryMap,
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
-                        showQuizCelebration: (s, t, e) => quizUI.showCelebration(s, t, e),
+                        showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
                         calculateGreatCircleDistance: calculateGreatCircleDistance,
                         labelManager: labelManager,
@@ -634,6 +628,19 @@
                             }
                         }
                     });
+
+                    // End-of-quiz results modal. Both dismiss paths restore the globe
+                    // from any in-progress shatter (the modal's hide() restores chrome +
+                    // clears celebration-active). Play again reopens the quiz chooser.
+                    const restoreGlobeFromCelebration = () => {
+                        if (shatterAnimation) shatterAnimation.restore();
+                        if (pinballAnimation) pinballAnimation.restore();
+                    };
+                    quizResultsModal = new QuizResultsModal({
+                        onPlayAgain: () => { restoreGlobeFromCelebration(); quizModePicker.show(); },
+                        onGlobe: () => { restoreGlobeFromCelebration(); }
+                    });
+                    quizUI.resultsModal = quizResultsModal;
 
                     // ===== Daily Challenge (backend-driven once-a-day quiz) =====
                     // Self-contained: builds its own launch button + panel DOM.
@@ -702,21 +709,14 @@
                         initialCameraDistance: initialCameraDistance
                     });
 
-                    // Hand the built animations to the quiz celebration.
+                    // Hand the built animations to the quiz celebration. The results
+                    // modal's dismiss callbacks (above) restore the globe from any
+                    // in-progress shatter/pinball when it closes.
                     quizUI.animations = {
                         bounce: bounceAnimation,
                         shatter: shatterAnimation,
                         pinball: pinballAnimation
                     };
-
-                    // Closing the celebration panel restores the globe from
-                    // any in-progress shatter or pinball. addEventListener
-                    // coexists with each quiz's per-end onclick handler.
-                    elements.get('celebration-close-btn').addEventListener('click', () => {
-                        if (shatterAnimation) shatterAnimation.restore();
-                        if (pinballAnimation) pinballAnimation.restore();
-                        document.body.classList.remove('celebration-active');
-                    });
 
                     // Load saved configurations
                     sceneManager.updateLoadingProgress(95, 'Loading configuration...', true, (id) => elements.get(id));

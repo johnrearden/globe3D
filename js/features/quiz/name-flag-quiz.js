@@ -4,8 +4,7 @@
  */
 
 import { state } from '../../data/state.js';
-import { formatDuration } from './quiz-timer.js';
-import { quizHistoryStore, formatBestSuffix } from '../../data/quiz-history-store.js';
+import { quizHistoryStore } from '../../data/quiz-history-store.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -130,25 +129,15 @@ export class NameFlagQuiz {
             durationMs: elapsedMs,
             questions: this.questionLog
         });
-        this.showQuizCelebration(
-            this.score,
-            this.questionsAnswered,
-            `Time: ${formatDuration(elapsedMs)}${formatBestSuffix(summary)}`
-        );
-
-        // Play Again returns to the quiz-mode chooser so the user can pick
-        // any quiz, not just re-enter this one. Clear the inline display
-        // override on #quiz-container — leaving it as 'none' would beat the
-        // CSS rules (e.g. body.flag-quiz-active) that the next quiz's start()
-        // relies on to show the panel.
-        this.elements.get('celebration-close-btn').onclick = () => {
-            this.elements.get('quiz-celebration-overlay').style.display = 'none';
-            this.elements.get('quiz-container').style.display = '';
-            this.elements.get('quiz-next-btn').style.visibility = 'hidden';
-            this.elements.get('quiz-start-btn').style.display = 'block';
-            this.elements.get('quiz-start-btn').textContent = 'Start Quiz';
-            this.elements.get('quiz-mode-selector').style.display = 'block';
-        };
+        // The results modal owns Play again (→ quiz chooser) / Share / Globe.
+        this.showQuizCelebration({
+            score: this.score,
+            total: this.questionsAnswered,
+            seconds: elapsedMs / 1000,
+            mode: 'name-flag',
+            scope: this.scope,
+            summary
+        });
     }
 
     /**

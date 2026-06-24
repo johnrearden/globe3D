@@ -77,7 +77,7 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 | Head / meta / external `<script>`s | 3–224 | confetti CDN (11), **eruda + `eruda.init()` (13–14)**, three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
 | Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
 | Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
-| Quiz container + celebration + mode-selector + click-quiz UI + results modals | ~107–187 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder |
+| Quiz container + mode-selector + click-quiz UI + results modals | ~107–187 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder. The end-of-quiz celebration overlay was **extracted** — now built at runtime by `js/features/quiz/quiz-results-modal.js` (the new "Quiz Results" design); only the `body.celebration-active` chrome-hiding CSS remains |
 | Label-editor modal | ~189–219 | sliders + buttons |
 | `<script type="module">` | 224–3089 | the JS reviewed in 1c |
 
@@ -142,7 +142,7 @@ The ~2,865 remaining inline lines sort into three buckets.
 | **Color editor** | `buildSwatchPanel` (2125), `toggleColorEditMode` (2144), change-color, config I/O | `js/features/color-editor.js` | UI + config state |
 | **Zoom/focus editor** | `buildLevelPanel` (2206), `toggleZoomEditMode` (2225), set-level, config I/O | `js/features/zoom-editor.js` | UI + config state |
 | **Pointer/interaction core** | `onPointerDown` (2295), `onPointerUp` (2336), `onPointerMove` (2448) | `js/features/pointer-controls.js` | branches on edit/color/zoom/quiz modes; leave a thin dispatch in `index.html` |
-| **Quiz UI glue** | mode selector / results / cancel | `js/features/quiz/quiz-ui.js` | modal UI + quiz instance refs |
+| **Quiz UI glue** | mode selector / cancel; score-gated flourish + hands off to the results modal | `js/features/quiz/quiz-ui.js` (results card extracted to `quiz-results-modal.js`) | modal UI + quiz instance refs |
 | **Small-country indicator** | arrow mesh build/update/dispose | `js/features/small-country-indicator.js` | Three.js mesh lifecycle, needs scene ref |
 | **Camera focus** | `focusOnCountry` (2513), `rotateGlobeToCountry` (2937), `animateRotation` | fold into `js/core/camera-controls.js` | camera animation already partly there |
 
@@ -407,7 +407,7 @@ already forward-compatible (fields exist, unused).
 
 Local-first history for the four **practice** quizzes (the Daily Challenge already has server-side
 scoring and is untouched). Per-quiz, per-question results persist to `localStorage` and surface as a
-progress screen plus a best/new-best line on the celebration overlay.
+progress screen plus a best/new-best badge on the end-of-quiz results modal (`quiz-results-modal.js`).
 
 - `js/data/quiz-history-store.js` — singleton store (key `globe3d-quiz-history`), same
   guarded-read/write shape as `settings-store.js`. Holds a pruned session log (last 200) of

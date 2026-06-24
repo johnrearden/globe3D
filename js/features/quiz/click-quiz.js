@@ -4,7 +4,7 @@
  */
 
 import { state } from '../../data/state.js';
-import { quizHistoryStore, formatBestSuffix } from '../../data/quiz-history-store.js';
+import { quizHistoryStore } from '../../data/quiz-history-store.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -93,8 +93,6 @@ export class ClickQuiz {
         // Calculate final time
         const totalTime = 45000;
         const timeUsed = totalTime - Math.max(0, this.timeRemaining);
-        const seconds = (timeUsed / 1000).toFixed(1);
-        const timeInfo = completed ? `Completed in ${seconds}s` : `Time's Up! ${seconds}s elapsed`;
 
         // On a timeout the in-progress country was shown but never found — log it
         // as a miss. The guard (log length === currentIndex) avoids double-logging
@@ -115,17 +113,17 @@ export class ClickQuiz {
             questions: this.questionLog
         });
 
-        // Show celebration overlay with score
-        this.showQuizCelebration(this.score, this.currentIndex, `${timeInfo}${formatBestSuffix(summary)}`);
-
-        // Play Again returns to the quiz-mode chooser so the user can pick
-        // any quiz, not just re-enter this one.
-        this.elements.get('celebration-close-btn').onclick = () => {
-            this.elements.get('quiz-celebration-overlay').style.display = 'none';
-            this.elements.get('search-container').style.display = 'block';
-            this.elements.get('take-quiz-btn').style.display = 'block';
-            this.elements.get('quiz-mode-selector').style.display = 'block';
-        };
+        // Show the results modal. Score is out of the full 10-country quiz so the
+        // ring ratio reflects the whole quiz, not just the questions reached.
+        // The modal owns Play again (→ quiz chooser) / Share / Globe.
+        this.showQuizCelebration({
+            score: this.score,
+            total: this.countries.length,
+            seconds: timeUsed / 1000,
+            mode: 'click-country',
+            scope: this.scope,
+            summary
+        });
     }
 
     /**
