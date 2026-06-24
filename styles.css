@@ -2600,51 +2600,57 @@ body.flag-quiz-active #settings-panel {
 }
 #dq-maybe-later:hover { color: #9fb2c6; }
 
-/* The docked "today" icon button — hidden until the sheet collapses, then it
-   fills the shrunken container and fades in (on top of the glass) at the end of
-   the morph so it's never distorted by the FLIP scale. */
+/* The docked button — a labelled "Daily Challenge" amber pill (no icon, so a
+   returning user remembers what it is). Hidden until the sheet collapses, then it
+   fades in over the shrunken glass card at the end of the morph (delayed past the
+   FLIP scale so the text lands crisp, never stretched). border-radius matches the
+   docked container so corners line up. */
 #dq-today {
     display: none;
     align-items: center;
     justify-content: center;
-    border-radius: 11px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 999px;
     background: linear-gradient(180deg, #f7a857, #f59440);
     color: #311a06;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(245, 158, 75, 0.32);
     opacity: 0;
-    transition: opacity 0.2s ease 0.22s, filter 0.2s ease;
+    transition: opacity 0.18s ease 0.3s, filter 0.2s ease;
 }
-#dq-today svg { width: 22px; height: 22px; display: block; }
 #dq-today:hover { filter: brightness(1.04); }
 
-/* Docked: the morph target — shrink to a 40px button, pinned top-left directly
-   under the Take Quiz button (top:20px desktop / top:110px mobile). Keep the
-   glass card here so it stays visible while shrinking; the amber #dq-today fades
-   in over it at the end. border-radius drops to the button's so corners match. */
+/* Docked: the morph target — shrink to the "Daily Challenge" pill, pinned
+   top-left directly under the Take Quiz button (top:20px desktop / top:110px
+   mobile). The container shrink-wraps the in-flow #dq-today button. Keep the
+   glass card here so it stays visible while shrinking; the amber pill fades in
+   over it at the end. border-radius matches the pill so corners line up. */
 #dq-invite.dq-docked {
     top: 64px;
     left: 20px;
     right: auto;
     bottom: auto;
-    width: 40px;
-    height: 40px;
+    width: auto;
+    height: auto;
     margin-left: 0;
     padding: 0;
-    border-radius: 11px;
+    border-radius: 999px;
     pointer-events: auto;
 }
 #dq-invite.dq-docked .dq-sheet-content {
     opacity: 0;
     pointer-events: none;
-    /* collapse out of flow so the container measures as just the 40px button */
+    /* collapse out of flow so the container measures as just the pill */
     position: absolute;
     visibility: hidden;
 }
 #dq-invite.dq-docked #dq-today {
     display: flex;
-    position: absolute;
-    inset: 0;
     opacity: 1;
 }
 

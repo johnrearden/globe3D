@@ -16,7 +16,6 @@ import { QuestionPresenter } from './question-renderer.js';
 import { showOnboarding } from './onboarding.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { PanelSheet } from './panel-sheet.js';
-import { calendarDots } from '../../utils/icons.js';
 
 export class DailyQuiz {
     constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
@@ -70,13 +69,13 @@ export class DailyQuiz {
         this.maybeLaterBtn.addEventListener('click', () => this._dock());
         this.content.appendChild(this.maybeLaterBtn);
 
-        // The docked "today" button: what the sheet morphs into top-left, under the
-        // Take Quiz button. Hidden while the sheet is expanded; tapping it launches.
+        // The docked button: what the sheet morphs into top-left, under the Take
+        // Quiz button. Labelled (not an icon) so a returning user remembers what it
+        // is. Hidden while the sheet is expanded; tapping it launches.
         this.todayBtn = document.createElement('button');
         this.todayBtn.id = 'dq-today';
         this.todayBtn.type = 'button';
-        this.todayBtn.setAttribute('aria-label', "Today's challenge");
-        this.todayBtn.innerHTML = calendarDots;
+        this.todayBtn.textContent = 'Daily Challenge';
         this.todayBtn.addEventListener('click', () => this.launch());
         this.invite.appendChild(this.todayBtn);
 
