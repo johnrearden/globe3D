@@ -255,6 +255,7 @@ update that document accordingly in the same change.
 
 - **main** - Stable releases
 - **ui** - Current development branch (label editor, quizzes)
+- **Don't create new git branches** - commit to the current branch.
 
 ## Credits
 
