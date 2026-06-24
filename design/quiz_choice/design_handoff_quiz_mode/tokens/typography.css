@@ -1,0 +1,27 @@
+:root {
+  /* Families */
+  --font-display: "Fredoka", system-ui, sans-serif;        /* wordmark, big numerals */
+  --font-ui: "Archivo", -apple-system, system-ui, sans-serif; /* labels, body, buttons */
+
+  /* Weights */
+  --weight-light: 400;   /* "Terra" half of the wordmark */
+  --weight-medium: 500;  /* taglines */
+  --weight-semibold: 600;/* "gotcha" half, emphasis */
+  --weight-bold: 700;
+
+  /* Display scale (Fredoka) */
+  --display-lg: 38px;    /* wordmark on splash */
+  --display-md: 28px;    /* wordmark inline */
+  --display-tracking: -0.01em;
+
+  /* UI scale (Archivo) */
+  --ui-tagline: 12.5px;  /* uppercase, letter-spacing .22em */
+  --ui-label: 11px;      /* uppercase section labels, .16em */
+  --ui-caption: 10.5px;  /* status text, .2em */
+  --ui-body: 15px;
+
+  /* Letter-spacing for the uppercase label system */
+  --track-tagline: 0.22em;
+  --track-label: 0.16em;
+  --track-caption: 0.20em;
+}

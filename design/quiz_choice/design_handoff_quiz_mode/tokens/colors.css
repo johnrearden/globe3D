@@ -1,0 +1,34 @@
+:root {
+  /* --- Navy surfaces (the app canvas) --- */
+  --navy-900: #06121f;   /* deepest — gradient base / vignette */
+  --navy-800: #0a1c30;   /* primary background (solid) */
+  --navy-700: #102a44;   /* raised / gradient top */
+
+  /* --- Amber accent (the globe + primary action) --- */
+  --amber-300: #ffd9a8;  /* warm light — highlights, shimmer stop */
+  --amber-500: #f59e4b;  /* PRIMARY accent — buttons, progress, glow */
+  --amber-600: #f59440;  /* mid — gradient / hover */
+  --amber-700: #c96a1f;  /* deep — gradient base, pressed */
+
+  /* --- Text on navy --- */
+  --text-high: #eef2f6;  /* headings, wordmark (static) */
+  --text-mid:  #7e93a8;  /* taglines, secondary labels */
+  --text-low:  #5c708a;  /* status, captions, hints */
+
+  /* --- Lines & fills --- */
+  --line-faint: rgba(255,255,255,0.09); /* tracks, hairline dividers */
+  --glow-amber: rgba(245,158,75,0.18);  /* soft radial glow tint */
+
+  /* --- Semantic aliases --- */
+  --bg-app:        var(--navy-800);
+  --bg-elevated:   var(--navy-700);
+  --accent:        var(--amber-500);
+  --accent-hover:  var(--amber-600);
+  --accent-press:  var(--amber-700);
+  --on-accent:     var(--navy-900);
+  --text-body:     var(--text-mid);
+  --text-heading:  var(--text-high);
+
+  /* App gradient (loading frame / hero canvas) */
+  --bg-gradient: radial-gradient(120% 80% at 50% 8%, var(--navy-700) 0%, var(--navy-800) 42%, var(--navy-900) 100%);
+}

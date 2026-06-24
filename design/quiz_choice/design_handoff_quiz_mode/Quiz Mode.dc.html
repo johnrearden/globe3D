@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <style>
+    @keyframes qm-sheet { 0% { opacity: 0; transform: translateY(34px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes qm-fade { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes qm-glow { 0%,100% { opacity: .5; } 50% { opacity: .85; } }
+    @keyframes qm-toast { 0% { opacity: 0; transform: translate(-50%, 12px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
+  </style>
+</helmet>
+<div style="min-width:100%; min-height:100vh; box-sizing:border-box; padding:48px; background:#e7e5df; font-family:'Archivo',-apple-system,sans-serif; display:flex; flex-direction:column; align-items:flex-start;">
+
+  <div style="font-family:'Archivo',sans-serif; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#8a8780; margin-bottom:14px;">Choose quiz mode &mdash; overlay</div>
+
+  <div style="flex:none;">
+    <div style="width:392px; height:800px; border-radius:40px; background:#0a1c30; box-shadow:0 8px 40px rgba(0,0,0,.28); overflow:hidden; position:relative; background-image:radial-gradient(120% 80% at 50% 8%, #102a44 0%, #0a1c30 42%, #06121f 100%);">
+
+      <!-- top chrome -->
+      <div style="position:absolute; top:22px; left:20px; z-index:5;">
+        <div style="font-family:'Archivo',sans-serif; font-weight:600; font-size:14px; color:#3a2008; background:#f59e4b; padding:9px 18px; border-radius:999px; box-shadow:0 4px 14px rgba(245,158,75,.32);">Quiz me</div>
+      </div>
+      <div style="position:absolute; top:22px; right:20px; z-index:5; width:38px; height:38px; border-radius:11px; background:rgba(10,20,34,.7); border:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; color:#a9bccf; font-size:18px;"><i class="ph ph-gear-six"></i></div>
+
+      <!-- globe glow peeking behind the sheet top -->
+      <div style="position:absolute; left:50%; top:6px; transform:translateX(-50%); width:300px; height:170px; z-index:1; pointer-events:none;">
+        <div style="position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 50% 60%, rgba(245,158,75,.20), rgba(245,158,75,0) 64%); animation:qm-glow 3.5s ease-in-out infinite;"></div>
+        <img src="assets/globe.png" width="150" height="150" style="position:absolute; left:50%; top:14px; transform:translateX(-50%); display:block; opacity:.92;" alt="">
+      </div>
+
+      <!-- the quiz-mode sheet -->
+      <div style="position:absolute; left:12px; right:12px; top:92px; bottom:14px; z-index:4; display:flex; flex-direction:column; border-radius:28px; padding:22px 20px 18px; background:rgba(11,28,46,.86); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.09); box-shadow:0 -2px 0 rgba(255,255,255,.04) inset, 0 18px 50px rgba(0,0,0,.46); animation:qm-sheet .6s cubic-bezier(.4,0,.2,1) both;">
+
+        <!-- grabber -->
+        <div style="width:38px; height:4px; border-radius:999px; background:rgba(255,255,255,.16); margin:0 auto 16px;"></div>
+
+        <!-- heading -->
+        <div style="text-align:center; animation:qm-fade .6s .08s both;">
+          <div style="font-family:'Fredoka',sans-serif; font-weight:600; font-size:22px; line-height:1.15; letter-spacing:-.01em; color:#eef2f6;">Choose a quiz</div>
+          <div style="font-family:'Archivo',sans-serif; font-weight:500; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#6f86a0; margin-top:7px;">Pick a mode to start playing</div>
+        </div>
+
+        <!-- scope selector -->
+        <div style="margin-top:18px; animation:qm-fade .6s .14s both;">
+          <div style="font-family:'Archivo',sans-serif; font-weight:600; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#5c708a; margin-bottom:9px;">Countries from</div>
+          <div style="display:flex; gap:4px; padding:4px; border-radius:999px; background:rgba(6,18,31,.55); border:1px solid rgba(255,255,255,.07);">
+            <div style="{{ globeSegStyle }}" onClick="{{ setGlobe }}"><span style="display:inline-flex; align-items:center; gap:7px; justify-content:center;"><i class="ph ph-globe-hemisphere-west" style="font-size:16px;"></i>Whole globe</span></div>
+            <div style="{{ regionSegStyle }}" onClick="{{ setRegion }}"><span style="display:inline-flex; align-items:center; gap:7px; justify-content:center;"><i class="ph ph-compass" style="font-size:16px;"></i>By region</span></div>
+          </div>
+
+          <sc-if value="{{ regionMode }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; animation:qm-fade .4s both;">
+              <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="6">
+                <div style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.name }}</div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- divider -->
+        <div style="height:1px; background:rgba(255,255,255,.07); margin:18px 0 16px; animation:qm-fade .6s .18s both;"></div>
+
+        <!-- quiz cards -->
+        <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+
+          <div style="display:flex; align-items:center; gap:14px; padding:14px 15px; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.08); cursor:pointer; transition:all .2s cubic-bezier(.4,0,.2,1); animation:qm-fade .6s .22s both;" style-hover="background:rgba(245,158,75,.06); border-color:rgba(245,158,75,.42); transform:translateY(-1px);" style-active="transform:translateY(0); background:rgba(245,158,75,.11);" onClick="{{ startName }}">
+            <div style="flex:none; width:42px; height:42px; border-radius:13px; background:rgba(245,158,75,.12); border:1px solid rgba(245,158,75,.22); display:flex; align-items:center; justify-content:center; color:#f7b572; font-size:21px;"><i class="ph ph-globe-hemisphere-west"></i></div>
+            <div style="min-width:0; flex:1;">
+              <div style="font-family:'Fredoka',sans-serif; font-weight:600; font-size:16px; color:#eef2f6; letter-spacing:-.01em;">Name the country</div>
+              <div style="font-family:'Archivo',sans-serif; font-weight:400; font-size:12.5px; line-height:1.4; color:#8ca0b4; margin-top:2px;">Find a highlighted country and pick its flag</div>
+            </div>
+            <i class="ph ph-arrow-right" style="flex:none; color:#5c708a; font-size:16px;"></i>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px; padding:14px 15px; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.08); cursor:pointer; transition:all .2s cubic-bezier(.4,0,.2,1); animation:qm-fade .6s .27s both;" style-hover="background:rgba(245,158,75,.06); border-color:rgba(245,158,75,.42); transform:translateY(-1px);" style-active="transform:translateY(0); background:rgba(245,158,75,.11);" onClick="{{ startFlag }}">
+            <div style="flex:none; width:42px; height:42px; border-radius:13px; background:rgba(245,158,75,.12); border:1px solid rgba(245,158,75,.22); display:flex; align-items:center; justify-content:center; color:#f7b572; font-size:21px;"><i class="ph ph-flag"></i></div>
+            <div style="min-width:0; flex:1;">
+              <div style="font-family:'Fredoka',sans-serif; font-weight:600; font-size:16px; color:#eef2f6; letter-spacing:-.01em;">Identify the flag</div>
+              <div style="font-family:'Archivo',sans-serif; font-weight:400; font-size:12.5px; line-height:1.4; color:#8ca0b4; margin-top:2px;">See a flag and choose which country it belongs to</div>
+            </div>
+            <i class="ph ph-arrow-right" style="flex:none; color:#5c708a; font-size:16px;"></i>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px; padding:14px 15px; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.08); cursor:pointer; transition:all .2s cubic-bezier(.4,0,.2,1); animation:qm-fade .6s .32s both;" style-hover="background:rgba(245,158,75,.06); border-color:rgba(245,158,75,.42); transform:translateY(-1px);" style-active="transform:translateY(0); background:rgba(245,158,75,.11);" onClick="{{ startFind }}">
+            <div style="flex:none; width:42px; height:42px; border-radius:13px; background:rgba(245,158,75,.12); border:1px solid rgba(245,158,75,.22); display:flex; align-items:center; justify-content:center; color:#f7b572; font-size:21px;"><i class="ph ph-map-pin"></i></div>
+            <div style="min-width:0; flex:1;">
+              <div style="font-family:'Fredoka',sans-serif; font-weight:600; font-size:16px; color:#eef2f6; letter-spacing:-.01em;">Find the country</div>
+              <div style="font-family:'Archivo',sans-serif; font-weight:400; font-size:12.5px; line-height:1.4; color:#8ca0b4; margin-top:2px;">Tap the right country &mdash; 10 in 45 seconds</div>
+            </div>
+            <i class="ph ph-arrow-right" style="flex:none; color:#5c708a; font-size:16px;"></i>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px; padding:14px 15px; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.08); cursor:pointer; transition:all .2s cubic-bezier(.4,0,.2,1); animation:qm-fade .6s .37s both;" style-hover="background:rgba(245,158,75,.06); border-color:rgba(245,158,75,.42); transform:translateY(-1px);" style-active="transform:translateY(0); background:rgba(245,158,75,.11);" onClick="{{ startCapital }}">
+            <div style="flex:none; width:42px; height:42px; border-radius:13px; background:rgba(245,158,75,.12); border:1px solid rgba(245,158,75,.22); display:flex; align-items:center; justify-content:center; color:#f7b572; font-size:21px;"><i class="ph ph-bank"></i></div>
+            <div style="min-width:0; flex:1;">
+              <div style="font-family:'Fredoka',sans-serif; font-weight:600; font-size:16px; color:#eef2f6; letter-spacing:-.01em;">Capital cities</div>
+              <div style="font-family:'Archivo',sans-serif; font-weight:400; font-size:12.5px; line-height:1.4; color:#8ca0b4; margin-top:2px;">Match countries to capitals &mdash; direction flips</div>
+            </div>
+            <i class="ph ph-arrow-right" style="flex:none; color:#5c708a; font-size:16px;"></i>
+          </div>
+
+        </div>
+
+        <!-- cancel -->
+        <div style="margin-top:14px; animation:qm-fade .6s .42s both;">
+          <div style="display:flex; align-items:center; justify-content:center; width:100%; box-sizing:border-box; padding:13px; border-radius:999px; background:transparent; border:1px solid rgba(255,255,255,.12); color:#9fb2c6; font-family:'Archivo',sans-serif; font-weight:600; font-size:14px; letter-spacing:.02em; cursor:pointer;" style-hover="background:rgba(255,255,255,.04); color:#cdd8e3;">Cancel</div>
+        </div>
+
+      </div>
+
+      <!-- launch toast -->
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; left:50%; bottom:30px; z-index:9; transform:translateX(-50%); display:flex; align-items:center; gap:9px; padding:11px 17px; border-radius:999px; background:rgba(6,18,31,.94); border:1px solid rgba(245,158,75,.4); box-shadow:0 10px 30px rgba(0,0,0,.5); white-space:nowrap; animation:qm-toast .3s cubic-bezier(.4,0,.2,1) both;">
+          <i class="ph-bold ph-play" style="color:#f7b572; font-size:14px;"></i>
+          <span style="font-family:'Archivo',sans-serif; font-weight:500; font-size:13px; color:#eef2f6;">{{ toast }}</span>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  state = { scope: 'globe', region: 'Africa', toast: null };
+
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  launch(title) {
+    const label = this.state.scope === 'globe' ? 'Whole globe' : this.state.region;
+    clearTimeout(this._t);
+    this.setState({ toast: title + '  \u00b7  ' + label });
+    this._t = setTimeout(() => this.setState({ toast: null }), 2600);
+  }
+
+  renderVals() {
+    const scope = this.state.scope;
+    const regionMode = scope === 'region';
+
+    const segBase = 'flex:1; padding:10px 0; border-radius:999px; font-family:Archivo,sans-serif; font-size:13px; font-weight:600; cursor:pointer; text-align:center; transition:all .2s cubic-bezier(.4,0,.2,1);';
+    const segActive = 'background:linear-gradient(180deg,#f7a857,#f59440); color:#321a06; box-shadow:0 4px 14px rgba(245,158,75,.30);';
+    const segIdle = 'background:transparent; color:#90a4b8;';
+
+    const continents = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+    const chipBase = 'font-family:Archivo,sans-serif; font-size:12.5px; font-weight:500; padding:8px 13px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:all .18s cubic-bezier(.4,0,.2,1);';
+    const chips = continents.map((c) => {
+      const active = this.state.region === c;
+      const style = chipBase + (active
+        ? 'background:rgba(245,158,75,.14); border:1px solid rgba(245,158,75,.55); color:#ffd9a8;'
+        : 'background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.10); color:#9fb2c6;');
+      return { name: c, style, onClick: () => this.setState({ region: c }) };
+    });
+
+    return {
+      regionMode,
+      chips,
+      globeSegStyle: segBase + (scope === 'globe' ? segActive : segIdle),
+      regionSegStyle: segBase + (scope === 'region' ? segActive : segIdle),
+      setGlobe: () => this.setState({ scope: 'globe' }),
+      setRegion: () => this.setState({ scope: 'region' }),
+      startName: () => this.launch('Name the country'),
+      startFlag: () => this.launch('Identify the flag'),
+      startFind: () => this.launch('Find the country'),
+      startCapital: () => this.launch('Capital cities'),
+      toast: this.state.toast,
+      hasToast: !!this.state.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
