@@ -318,6 +318,7 @@
         import { SettingsPanel } from './js/features/settings-panel.js';
         import { ApiClient } from './js/data/api-client.js';
         import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
+        import { QuizInvite } from './js/features/quiz/quiz-invite.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -411,6 +412,7 @@
         let capitalCitiesQuiz = null;
         let apiClient = null;
         let dailyQuiz = null;
+        let quizInvite = null;
         let flagRenderer = null;
         let countryMap = null;
         let searchManager = null;
@@ -631,6 +633,11 @@
                         globeManager,
                         focusRegistry
                     });
+
+                    // Quiz reminder invite — takes the bottom slot after the daily
+                    // prompt is resolved (listens for globe3d:daily-resolved).
+                    quizInvite = new QuizInvite({ quizUI });
+                    quizInvite.init();
 
                     // ===== PHASE 9: Initialize Search System =====
                     searchManager = new SearchManager({

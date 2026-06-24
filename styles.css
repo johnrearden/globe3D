@@ -195,6 +195,18 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             min-width: 300px;
             max-width: 350px;
+            /* Hidden when idle — the persistent "Geography Quiz" launcher panel was
+               replaced by the Take Quiz button + the quiz-reminder invite. It is the
+               gameplay container, so it reappears during an active quiz (below). */
+            display: none;
+        }
+
+        /* Shown only during an active quiz. Every mode that renders into the
+           container sets body.quiz-active (find-country uses its own container).
+           The flag-quiz-active rule below comes later, so it still wins for the
+           fullscreen flag quiz. */
+        body.quiz-active #quiz-container {
+            display: block;
         }
 
         /* Flag Quiz Fullscreen Mode */
@@ -2490,7 +2502,8 @@ body.flag-quiz-active #settings-panel {
    "Maybe later" it collapses (FLIP morph, see daily-quiz.js _dock) into the
    #dq-today icon button docked top-left under the Take Quiz button.
    transform-origin keeps the morph anchored to that corner. */
-#dq-invite {
+#dq-invite,
+#quiz-invite {
     position: fixed;
     left: 14px;
     right: 14px;
@@ -2512,19 +2525,24 @@ body.flag-quiz-active #settings-panel {
 /* Desktop: cap the width and centre it (margin-centring, NOT transform — the FLIP
    morph needs `transform` free). */
 @media (min-width: 769px) {
-    #dq-invite {
+    #dq-invite,
+    #quiz-invite {
         left: 50%;
         right: auto;
         margin-left: -210px;
         width: 420px;
     }
 }
-#dq-invite.dq-invite-show { opacity: 1; }
-#dq-invite.dq-invite-show .dq-sheet-content { pointer-events: auto; }
+#dq-invite.dq-invite-show,
+#quiz-invite.qz-invite-show { opacity: 1; }
+#dq-invite.dq-invite-show .dq-sheet-content,
+#quiz-invite.qz-invite-show .qz-sheet-content { pointer-events: auto; }
 
-.dq-sheet-content { transition: opacity 0.18s ease; }
+.dq-sheet-content,
+.qz-sheet-content { transition: opacity 0.18s ease; }
 
-.dq-invite-heading {
+.dq-invite-heading,
+.qz-invite-heading {
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
     font-size: 21px;
@@ -2532,7 +2550,8 @@ body.flag-quiz-active #settings-panel {
     letter-spacing: -0.01em;
     color: #eef2f6;
 }
-.dq-invite-text {
+.dq-invite-text,
+.qz-invite-text {
     font-family: 'Archivo', sans-serif;
     font-weight: 400;
     font-size: 13.5px;
@@ -2541,7 +2560,8 @@ body.flag-quiz-active #settings-panel {
     margin-top: 6px;
 }
 
-#dq-launch {
+#dq-launch,
+#qz-launch {
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -2558,11 +2578,14 @@ body.flag-quiz-active #settings-panel {
     box-shadow: 0 8px 22px rgba(245, 158, 75, 0.34);
     transition: filter 0.2s ease, transform 0.2s ease;
 }
-#dq-launch:hover { filter: brightness(1.04); transform: translateY(-1px); }
-#dq-launch:disabled { opacity: 0.6; cursor: default; transform: none; }
+#dq-launch:hover,
+#qz-launch:hover { filter: brightness(1.04); transform: translateY(-1px); }
+#dq-launch:disabled,
+#qz-launch:disabled { opacity: 0.6; cursor: default; transform: none; }
 
 /* "Maybe later": a centered, secondary text link under the action. */
-#dq-maybe-later {
+#dq-maybe-later,
+#qz-maybe-later {
     display: block;
     width: 100%;
     margin-top: 11px;
@@ -2577,7 +2600,8 @@ body.flag-quiz-active #settings-panel {
     letter-spacing: 0.04em;
     cursor: pointer;
 }
-#dq-maybe-later:hover { color: #9fb2c6; }
+#dq-maybe-later:hover,
+#qz-maybe-later:hover { color: #9fb2c6; }
 
 /* The docked button — a labelled "Daily Challenge" amber pill (no icon, so a
    returning user remembers what it is). Hidden until the sheet collapses, then it
@@ -2638,6 +2662,21 @@ body.flag-quiz-active #settings-panel {
 }
 
 body.dq-active #dq-invite { display: none; }
+
+/* The quiz reminder steps aside whenever a quiz / daily / map view is busy. */
+body.quiz-active #quiz-invite,
+body.flag-quiz-active #quiz-invite,
+body.dq-active #quiz-invite,
+body.map-mode #quiz-invite { display: none; }
+
+/* Subtle jiggle of the top-left Take Quiz button when the quiz reminder is
+   dismissed — associates the dismissed panel with its persistent entry point. */
+@keyframes tq-jiggle {
+    0%, 100% { transform: scale(1) rotate(0); }
+    30%      { transform: scale(1.05) rotate(-3deg); }
+    60%      { transform: scale(1.05) rotate(3deg); }
+}
+#take-quiz-btn.tq-jiggle { animation: tq-jiggle 0.5s ease-in-out; }
 
 #dq-panel {
     position: fixed;
@@ -2887,6 +2926,7 @@ button {
     border-radius: 999px !important;
 }
 
-/* "Maybe later" is the invite's quiet secondary link — keep the design's lighter
+/* "Maybe later" is each invite's quiet secondary link — keep the design's lighter
    weight rather than the 600 above (it has no fill, so the pill radius is moot). */
-#dq-maybe-later { font-weight: 500 !important; }
+#dq-maybe-later,
+#qz-maybe-later { font-weight: 500 !important; }

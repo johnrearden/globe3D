@@ -166,7 +166,18 @@ export class DailyQuiz {
         } catch (_) {
             played = false;                        // can't tell (server down) — still invite
         }
-        if (!played && !this._active) this._showInvite();
+        if (!played && !this._active) {
+            this._showInvite();
+        } else {
+            // Already played today — no daily prompt — so the bottom slot is free
+            // for the quiz reminder right away.
+            this._emitDailyResolved();
+        }
+    }
+
+    /** Tell the quiz reminder the bottom-sheet slot is free (see quiz-invite.js). */
+    _emitDailyResolved() {
+        document.dispatchEvent(new CustomEvent('globe3d:daily-resolved'));
     }
 
     _showInvite() {
@@ -218,6 +229,10 @@ export class DailyQuiz {
             el.removeEventListener('transitionend', done);
         };
         el.addEventListener('transitionend', done);
+
+        // The daily prompt is dismissed — the bottom slot is now free for the
+        // quiz reminder to fade in (it docks top-left, the reminder shows below).
+        this._emitDailyResolved();
     }
 
     // --------------------------- flow ---------------------------------------

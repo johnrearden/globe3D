@@ -77,7 +77,7 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 | Head / meta / external `<script>`s | 3–224 | confetti CDN (11), **eruda + `eruda.init()` (13–14)**, three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
 | Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
 | Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
-| Quiz container + celebration + mode-selector + click-quiz UI + results modals | ~107–187 | |
+| Quiz container + celebration + mode-selector + click-quiz UI + results modals | ~107–187 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder |
 | Label-editor modal | ~189–219 | sliders + buttons |
 | `<script type="module">` | 224–3089 | the JS reviewed in 1c |
 
@@ -372,6 +372,10 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   **feature sub-folder** — a deliberate exception to the "one module per
   feature" rule, mirroring the existing `js/features/quiz/` precedent (a cohesive multi-file
   feature, not micro-modules).
+- `js/features/quiz/quiz-invite.js` — bottom-sheet reminder nudging the regular quizzes
+  (shares the daily invite's `#dq-`/`#qz-` CSS). Appears after the daily prompt resolves
+  (`globe3d:daily-resolved`), shows once (localStorage), and on dismiss fades out + jiggles
+  the Take Quiz button.
 - `js/core/camera-controls.js` — added `frameView()` / `clearViewOffset()` for map questions
   (focal-anchor offset via `camera.setViewOffset`, math extracted to pure `js/utils/view-offset.js`,
   unit-tested in `tests/view-offset.test.js`). Framing distance for a clicked/searched country (≤40%
