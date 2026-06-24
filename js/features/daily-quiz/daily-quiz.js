@@ -201,11 +201,15 @@ export class DailyQuiz {
         el.style.transition = 'none';
         el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
 
-        // Play: next frame, animate the transform away.
-        requestAnimationFrame(() => {
-            el.style.transition = 'transform 0.42s var(--ease-soft, cubic-bezier(0.4,0,0.2,1))';
-            el.style.transform = '';
-        });
+        // Commit the inverted transform as the transition's start state by forcing
+        // a synchronous reflow. A single requestAnimationFrame is unreliable on
+        // mobile WebKit, which coalesces these style writes into one frame and
+        // skips the transition (the panel just snaps to the docked button).
+        void el.offsetWidth;
+
+        // Play: animate the transform away.
+        el.style.transition = 'transform 0.42s var(--ease-soft, cubic-bezier(0.4,0,0.2,1))';
+        el.style.transform = '';
 
         // Clean up the inline transform/transition once it lands.
         const done = (e) => {
