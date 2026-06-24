@@ -2572,7 +2572,7 @@ body.flag-quiz-active #settings-panel {
     border-radius: 999px;
     background: linear-gradient(180deg, #f7a857, #f59440);
     color: #311a06;
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Archivo', sans-serif;
     font-weight: 600;
     font-size: 15px;
     cursor: pointer;
@@ -2614,7 +2614,7 @@ body.flag-quiz-active #settings-panel {
     border-radius: 999px;
     background: linear-gradient(180deg, #f7a857, #f59440);
     color: #311a06;
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Archivo', sans-serif;
     font-weight: 600;
     font-size: 14px;
     white-space: nowrap;
