@@ -2890,3 +2890,24 @@ body.dq-active #dq-invite { display: none; }
 /* Hide the launch button while any legacy quiz is fullscreen. */
 body.flag-quiz-active #dq-invite,
 body.quiz-active #dq-invite { display: none; }
+
+/* ============================================================
+   Button normalization — every button matches the Daily Challenge action:
+   a pill (border-radius: 999px) in Archivo 600. Each button keeps its own
+   colour, size, padding and positioning; only shape + font are unified.
+
+   This lives last and uses !important because the project's buttons predate
+   this design system: dozens of id-specific rules (e.g. #take-quiz-btn) set
+   their own border-radius/font-weight and would otherwise win on specificity.
+   Every button in the app is a real <button>, so this one selector covers them
+   all (incl. runtime-created quiz options, swatches, and panel buttons).
+   ============================================================ */
+button {
+    font-family: 'Archivo', sans-serif !important;
+    font-weight: 600 !important;
+    border-radius: 999px !important;
+}
+
+/* "Maybe later" is the invite's quiet secondary link — keep the design's lighter
+   weight rather than the 600 above (it has no fill, so the pill radius is moot). */
+#dq-maybe-later { font-weight: 500 !important; }
