@@ -267,6 +267,7 @@
         import { GlobeManager } from './js/core/globe.js';
         import { LabelManager } from './js/core/labels.js';
         import { CameraController } from './js/core/camera-controls.js';
+        import { installContextRecovery } from './js/core/context-recovery.js';
         import { QuizManager } from './js/features/quiz/quiz-manager.js';
         import { NameFlagQuiz } from './js/features/quiz/name-flag-quiz.js';
         import { IdentifyFlagQuiz } from './js/features/quiz/identify-flag-quiz.js';
@@ -766,6 +767,10 @@
 
             // Add event listeners
             setupEventListeners();
+
+            // Recover gracefully if the browser reclaims the WebGL context (e.g. after
+            // the tab has been backgrounded/frozen) instead of leaving a dead canvas.
+            installContextRecovery(sceneManager, { globeManager });
 
             // Register render callbacks
             sceneManager.onRender(() => {

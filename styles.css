@@ -3250,3 +3250,30 @@ button {
    weight rather than the 600 above (it has no fill, so the pill radius is moot). */
 #dq-maybe-later,
 #qz-maybe-later { font-weight: 500 !important; }
+
+/* Transient status pill shown while recovering from a lost WebGL context
+   (see js/core/context-recovery.js). Sits above all UI; non-interactive. */
+.context-recovery-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px);
+    padding: 10px 18px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.context-recovery-toast.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}

@@ -668,6 +668,16 @@ export class GlobeManager {
         this.paletteTexture.needsUpdate = true;
     }
 
+    /**
+     * Flag the globe's app-managed textures for re-upload. Used by WebGL
+     * context-restore recovery — Three re-inits GL state from live source data on
+     * its own, but marking these explicitly is a cheap safety net.
+     */
+    markTexturesForUpdate() {
+        if (this.paletteTexture) this.paletteTexture.needsUpdate = true;
+        if (this._capitalIconTexture) this._capitalIconTexture.needsUpdate = true;
+    }
+
     /** Back-compat alias for callers still referencing the override-era API. */
     clearCountryColor(name) {
         this.resetCountryColor(name);

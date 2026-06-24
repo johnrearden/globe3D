@@ -384,6 +384,13 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   now only drive the label-appearance threshold, not framing.
 - `js/features/pointer-controls.js` — added a `dailyQuiz` map-click hook alongside the `clickQuiz`
   hook.
+- `js/core/context-recovery.js` — WebGL context-loss recovery for the main globe canvas.
+  `installContextRecovery(sceneManager, { globeManager })` (wired once in `index.html` init after
+  `setupEventListeners()`) listens for `webglcontextlost`/`webglcontextrestored`: on loss it pauses
+  the render loop, shows a `.context-recovery-toast` (styled in `styles.css`), and arms a ~4s
+  fallback that `location.reload()`s if the browser never restores the context (the symptom when a
+  tab is frozen/backgrounded). On restore it nudges app-managed textures via
+  `globeManager.markTexturesForUpdate()` and resumes the loop. Scope is the main globe only.
 
 **Remaining in this stage:** browser verification pass; wire `manage.py generate_daily` to cron if
 pre-warming is wanted (otherwise generation is lazy on first request).
