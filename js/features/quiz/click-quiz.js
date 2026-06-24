@@ -18,6 +18,7 @@ export class ClickQuiz {
 
         // Quiz state
         this.active = false;
+        this.scope = 'globe'; // Region filter: 'globe' or a region name
         this.currentIndex = 0;
         this.score = 0;
         this.countries = []; // List of 10 random countries for this quiz
@@ -28,9 +29,11 @@ export class ClickQuiz {
 
     /**
      * Start the quiz
+     * @param {string} scope - 'globe' for all countries, or a region name
      */
-    start() {
+    start(scope = 'globe') {
         this.active = true;
+        this.scope = scope;
         this.currentIndex = 0;
         this.score = 0;
         this.timeRemaining = 45000; // 45 seconds
@@ -40,7 +43,7 @@ export class ClickQuiz {
         state.set('quiz.active', true);
         state.set('quiz.mode', 'click-country');
 
-        const centroids = this.globeManager.getCentroids();
+        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
         const shuffled = [...centroids].sort(() => Math.random() - 0.5);
         this.countries = shuffled.slice(0, 10).map(c => c.name);
 

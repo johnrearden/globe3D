@@ -26,13 +26,16 @@ export class NameFlagQuiz {
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
+        this.scope = 'globe'; // Region filter: 'globe' or a region name
     }
 
     /**
      * Start the quiz
+     * @param {string} scope - 'globe' for all countries, or a region name
      */
-    start() {
+    start(scope = 'globe') {
         this.active = true;
+        this.scope = scope;
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
@@ -130,7 +133,7 @@ export class NameFlagQuiz {
      * @returns {Object} Question with correctCountry, options, and countryObj
      */
     generateQuestion() {
-        const centroids = this.globeManager.getCentroids();
+        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
 
         // Exclude overseas territories / dependencies (Greenland, Pitcairn, …).
         // They stay clickable on the globe, but are too obscure / numerous to be

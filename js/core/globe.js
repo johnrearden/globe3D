@@ -10,6 +10,7 @@
 import { state } from '../data/state.js';
 import { assetUrl } from '../data/asset-base.js';
 import { latLngToXYZ } from '../utils/coordinates.js';
+import { COUNTRY_REGIONS } from '../data/country-regions.js';
 
 const THREE = window.THREE;
 
@@ -850,6 +851,18 @@ export class GlobeManager {
 
     getCentroids() {
         return this.countryCentroids;
+    }
+
+    /**
+     * Get centroids filtered by quiz region.
+     * @param {string} region - 'globe' for all, or one of the 8 quiz regions
+     * @returns {Array} Filtered array of country centroid objects
+     */
+    getCentroidsByRegion(region) {
+        if (!region || region === 'globe') {
+            return this.countryCentroids;
+        }
+        return this.countryCentroids.filter(c => COUNTRY_REGIONS[c.name] === region);
     }
 
     /**

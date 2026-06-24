@@ -24,6 +24,7 @@ export class IdentifyFlagQuiz {
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
+        this.scope = 'globe'; // Region filter: 'globe' or a region name
 
         // Flag renderer state
         this.renderer = null;
@@ -166,9 +167,11 @@ export class IdentifyFlagQuiz {
 
     /**
      * Start the quiz
+     * @param {string} scope - 'globe' for all countries, or a region name
      */
-    start() {
+    start(scope = 'globe') {
         this.active = true;
+        this.scope = scope;
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
@@ -265,7 +268,7 @@ export class IdentifyFlagQuiz {
      * @returns {Object} Question with correctCountry, options, and countryObj
      */
     generateQuestion() {
-        const centroids = this.globeManager.getCentroids();
+        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
 
         // Filter out countries already used in this quiz
         const availableCountries = centroids.filter(c => !this.usedCountries.includes(c.name));

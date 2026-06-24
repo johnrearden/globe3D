@@ -4,7 +4,17 @@
  * Based on the design handoff from docs/quiz_choice.
  */
 
-const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+// 8 balanced quiz regions (alphabetically sorted for UI)
+const REGIONS = [
+    'Africa',
+    'Asia',
+    'Caribbean',
+    'Europe',
+    'Latin America',
+    'Middle East',
+    'North America',
+    'Oceania'
+];
 
 // Inline SVG icons (Phosphor regular, 256x256 viewBox, scaled via CSS)
 const ICONS = {
@@ -92,7 +102,7 @@ export class QuizModePicker {
                         </button>
                     </div>
                     <div class="qmp-chips" style="display: none;">
-                        ${CONTINENTS.map((c, i) => `
+                        ${REGIONS.map((c, i) => `
                             <button class="qmp-chip${i === 0 ? ' qmp-chip--active' : ''}" data-region="${c}">${c}</button>
                         `).join('')}
                     </div>

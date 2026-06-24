@@ -604,20 +604,19 @@
                     // Quiz Mode Picker (bottom-sheet with scope selector)
                     quizModePicker = new QuizModePicker({
                         onQuizStart: ({ mode, scope }) => {
-                            // scope is 'globe' or a continent name
-                            // TODO: pass scope to quiz modules when region filtering is implemented
+                            // scope is 'globe' or a region name (Africa, Asia, Caribbean, etc.)
                             switch (mode) {
                                 case 'name':
-                                    nameFlagQuiz.start();
+                                    nameFlagQuiz.start(scope);
                                     break;
                                 case 'flag':
-                                    identifyFlagQuiz.start();
+                                    identifyFlagQuiz.start(scope);
                                     break;
                                 case 'find':
-                                    clickQuiz.start();
+                                    clickQuiz.start(scope);
                                     break;
                                 case 'capital':
-                                    capitalCitiesQuiz.start();
+                                    capitalCitiesQuiz.start(scope);
                                     break;
                             }
                         }

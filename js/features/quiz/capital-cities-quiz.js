@@ -32,13 +32,16 @@ export class CapitalCitiesQuiz {
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
+        this.scope = 'globe'; // Region filter: 'globe' or a region name
     }
 
     /**
      * Start the quiz
+     * @param {string} scope - 'globe' for all countries, or a region name
      */
-    start() {
+    start(scope = 'globe') {
         this.active = true;
+        this.scope = scope;
         this.score = 0;
         this.questionsAnswered = 0;
         this.usedCountries = [];
@@ -136,7 +139,7 @@ export class CapitalCitiesQuiz {
      * @returns {Object|null} {direction, countryName, capital, options, correctAnswer, countryObj}
      */
     generateQuestion() {
-        const centroids = this.globeManager.getCentroids();
+        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
         const capitals = this.globeManager.getCapitalsData();
 
         // Exclude overseas territories / dependencies — too obscure / numerous to be
