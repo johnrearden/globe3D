@@ -20,12 +20,19 @@ export class SceneManager {
         // Callbacks for render loop
         this.renderCallbacks = [];
 
+        // Callbacks invoked after each (settled) resize, e.g. to reposition the camera.
+        this.resizeCallbacks = [];
+
         // Loading progress tracking
         this.currentProgress = 0;
         this.progressAnimationFrame = null;
 
         // Stable bound handler so addEventListener/removeEventListener match.
-        this._onResize = () => this.onWindowResize();
+        // It schedules (rather than runs) the resize so we can wait for layout to
+        // settle — mobile reports stale innerWidth/innerHeight right after an
+        // orientationchange, which otherwise sizes the canvas for the old orientation.
+        this._onResize = () => this._scheduleResize();
+        this._resizeRaf = null;
     }
 
     /**
@@ -71,6 +78,9 @@ export class SceneManager {
 
         // Create renderer
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        // Cap DPR at 2: high-DPI phones otherwise render blurry (DPR never applied)
+        // while >2 wastes fill rate for no visible gain.
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -86,8 +96,14 @@ export class SceneManager {
         state.set('scene.renderer', this.renderer, false);
         state.set('scene.initialCameraDistance', this.initialCameraDistance, false);
 
-        // Setup window resize listener
+        // Setup resize listeners. orientationchange and visualViewport are needed
+        // on mobile: a plain 'resize' can fire before the post-rotation viewport
+        // dimensions have settled, and visualViewport reports the settled size.
         window.addEventListener('resize', this._onResize);
+        window.addEventListener('orientationchange', this._onResize);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', this._onResize);
+        }
 
         console.log('SceneManager initialized');
     }
@@ -146,17 +162,42 @@ export class SceneManager {
     }
 
     /**
-     * Handle window resize events
+     * Coalesce resize/orientationchange bursts and defer the actual resize until
+     * layout has settled. Two rAFs give the browser a chance to report the real
+     * post-rotation viewport before we read it — without this, mobile sizes the
+     * canvas to the stale pre-rotation (e.g. landscape) dimensions and the globe
+     * ends up oversized in a corner after rotating back to portrait.
      */
-    onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+    _scheduleResize() {
+        if (this._resizeRaf) cancelAnimationFrame(this._resizeRaf);
+        this._resizeRaf = requestAnimationFrame(() => {
+            this._resizeRaf = requestAnimationFrame(() => {
+                this._resizeRaf = null;
+                this.applyResize();
+            });
+        });
+    }
+
+    /**
+     * Apply a resize using the settled viewport dimensions, then notify any
+     * registered resize callbacks (e.g. camera repositioning).
+     */
+    applyResize() {
+        // visualViewport reports the settled post-rotation size on mobile;
+        // fall back to innerWidth/innerHeight elsewhere.
+        const vv = window.visualViewport;
+        const width = Math.round(vv ? vv.width : window.innerWidth);
+        const height = Math.round(vv ? vv.height : window.innerHeight);
+        const aspectRatio = width / height;
+
+        this.camera.aspect = aspectRatio;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        this.renderer.setSize(width, height);
 
         // Recalculate camera distance for new viewport size
-        const aspectRatio = window.innerWidth / window.innerHeight;
         const fov = 75 * Math.PI / 180;
-        const isMobile = window.innerWidth <= 768;
+        const isMobile = width <= 768;
 
         let cameraDistance;
         let targetPercentage = isMobile ? 0.85 : 0.65;
@@ -171,6 +212,23 @@ export class SceneManager {
         // Update stored initial distance
         this.initialCameraDistance = cameraDistance;
         state.set('scene.initialCameraDistance', this.initialCameraDistance);
+
+        // Notify resize subscribers (e.g. reposition camera + controls.update)
+        this.resizeCallbacks.forEach(callback => {
+            try {
+                callback({ width, height });
+            } catch (error) {
+                console.error('Error in resize callback:', error);
+            }
+        });
+    }
+
+    /**
+     * Register a callback invoked after each settled resize.
+     * @param {Function} callback - Function called with { width, height }
+     */
+    onResize(callback) {
+        this.resizeCallbacks.push(callback);
     }
 
     /**
@@ -308,11 +366,20 @@ export class SceneManager {
         }
 
         window.removeEventListener('resize', this._onResize);
+        window.removeEventListener('orientationchange', this._onResize);
+        if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', this._onResize);
+        }
+        if (this._resizeRaf) {
+            cancelAnimationFrame(this._resizeRaf);
+            this._resizeRaf = null;
+        }
 
         this.scene = null;
         this.camera = null;
         this.renderer = null;
         this.renderCallbacks = [];
+        this.resizeCallbacks = [];
     }
 
     /**

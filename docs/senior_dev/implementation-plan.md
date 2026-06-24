@@ -129,7 +129,7 @@ The ~2,865 remaining inline lines sort into three buckets.
 | `addLatLongLines()` | 1411–1501 | `js/features/debug-grid.js` (or delete if unused) | isolated viz |
 | `setupLights()` | 1297–1323 | `js/core/scene.js` (verify not dead first) | scene setup |
 | `updateLoadingProgress()`, `hideLoading()`, `hideSeoContent()` | 1324–1386, 2574–2604, 833–847 | `js/features/loading.js` | loading/SEO screen |
-| `onWindowResize()` | 2541–2573 | `js/core/scene.js` | resize handler (see Stage 1 fix) |
+| `onWindowResize()` | — | `js/core/scene.js` | ✅ Done — resize logic (renderer/camera sizing, debounced + mobile orientation-safe via `visualViewport`/`orientationchange`) now lives in `SceneManager.applyResize()`. The slim `onWindowResize()` left in `index.html` is only a camera-reposition callback registered via `sceneManager.onResize()`. |
 | `zoomOutToDefault()` | 1700–1743 | `js/core/camera-controls.js` | camera animation |
 | `updateZoomWidget`, `updateSearchVisibilityOnMobile`, `updateZoomOutButtonVisibility` | 3021+ | `js/features/ui-sync.js` | UI-sync helpers |
 | `countryData` + `countryToISO` data tables | ~592–830 | `js/data/country-data.js` | static data (extracted under aggressive target) |
