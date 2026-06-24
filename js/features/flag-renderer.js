@@ -150,8 +150,9 @@ export class FlagRenderer {
      * @param {string} countryName - Name of the country
      * @param {Object} countryData - Country data with iso, pop, area, lang
      * @param {Object} countryToISO - Legacy ISO mapping fallback
+     * @param {string} [capital] - Capital city name (from globeManager.getCapital)
      */
-    show(countryName, countryData, countryToISO) {
+    show(countryName, countryData, countryToISO, capital) {
         // Try to get data from countryData first, fallback to legacy ISO mapping
         let data = countryData[countryName];
         let isoCode = data ? data.iso : countryToISO[countryName];
@@ -195,6 +196,7 @@ export class FlagRenderer {
                 data && data.area !== 'N/A' ? data.area : 'N/A';
             this.elements.get('info-language').textContent =
                 data && data.lang !== 'N/A' ? data.lang : 'N/A';
+            this.elements.get('info-capital').textContent = capital || 'N/A';
 
             // Dependencies carry a sovereign parent ("Territory of: Denmark").
             // Sovereign states have no parent — hide the row entirely.

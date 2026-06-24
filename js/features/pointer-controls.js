@@ -203,7 +203,8 @@ export class PointerControls {
 
             this.rotateGlobeToCountry(pickedName, false, pickResult.point);
             if (this.flagRenderer) {
-                this.flagRenderer.show(pickedName, this.countryData, this.countryToISO);
+                this.flagRenderer.show(pickedName, this.countryData, this.countryToISO,
+                    this.globeManager.getCapital(pickedName)?.name);
             }
         }
     }

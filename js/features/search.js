@@ -180,7 +180,8 @@ export class SearchManager {
         if (!record) return;
 
         if (this.flagRenderer) {
-            this.flagRenderer.show(countryName, this.countryData, this.countryToISO);
+            this.flagRenderer.show(countryName, this.countryData, this.countryToISO,
+                this.globeManager.getCapital(countryName)?.name);
         }
 
         this.globeManager.clearSelection();
