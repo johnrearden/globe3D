@@ -113,14 +113,19 @@ export class QuizQuestionChrome {
      */
     setPrompt(type, country) {
         if (!this.root) return;
+        const prompt = this.root.querySelector('.fqq-prompt');
         const eyebrow = this.root.querySelector('#fqq-eyebrow');
         const main = this.root.querySelector('#fqq-main');
         if (type === 'reverse') {
+            // Small eyebrow over the large country name.
+            prompt.classList.remove('fqq-prompt-forward');
             eyebrow.textContent = 'WHICH FLAG BELONGS TO';
             main.innerHTML = `${country}<span class="fqq-q">?</span>`;
             main.classList.add('fqq-main-lg');
         } else {
-            eyebrow.textContent = 'WHICH COUNTRY';
+            // Forward: large bold "Which country" over small-caps "does this flag…".
+            prompt.classList.add('fqq-prompt-forward');
+            eyebrow.textContent = 'Which country';
             main.textContent = 'does this flag belong to?';
             main.classList.remove('fqq-main-lg');
         }

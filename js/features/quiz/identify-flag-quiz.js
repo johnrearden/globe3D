@@ -651,12 +651,14 @@ export class IdentifyFlagQuiz {
                 clearTimeout(this.autoAdvanceTimer);
             }
 
-            // Set new timer
+            // Linger longer on a wrong answer so the player can see the correct
+            // flag/name highlighted before advancing.
+            const advanceDelay = isCorrect ? 1500 : 2500;
             this.autoAdvanceTimer = setTimeout(() => {
                 this.elements.get('quiz-next-btn').style.visibility = 'hidden';
                 this.autoAdvanceTimer = null;
                 this.nextQuestion();
-            }, 1500);
+            }, advanceDelay);
         }
     }
 

@@ -607,6 +607,26 @@
             color: #f7b572;
         }
 
+        /* Forward prompt: "Which country" is the large bold display line, and
+           "does this flag belong to?" sits below it in small-caps. */
+        .fqq-prompt-forward .fqq-eyebrow {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 26px;
+            letter-spacing: -0.01em;
+            text-transform: none;
+            color: #eef2f6;
+            margin-bottom: 4px;
+        }
+        .fqq-prompt-forward .fqq-main {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            font-variant: small-caps;
+            letter-spacing: 0.08em;
+            color: #7e93a8;
+        }
+
         /* Forward flag stage: rounded panel + pulsing amber glow, hero flag inside. */
         body.flag-quiz-active #quiz-flag-display {
             position: relative;
