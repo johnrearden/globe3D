@@ -227,6 +227,11 @@ minimize what they add to `index.html`:**
   instead of new `<script>`/`<link>` tags.
 - Net effect: a new feature should touch `index.html` by roughly an `import` + one instantiation
   call, and nothing more.
+- **Icons: use inline SVG everywhere.** Do not add icon-font `<link>`s (e.g. Phosphor/Font
+  Awesome webfonts) or `<i class="...">` glyphs. Define the needed SVG markup as constants in the
+  feature's module and inject it at runtime. This keeps `index.html` free of new `<link>` tags and
+  avoids a webfont dependency. When recreating a design that specifies an icon font (e.g. Phosphor),
+  port the individual glyphs to inline SVG.
 
 **`docs/senior_dev/implementation-plan.md` is the single source of truth** for the refactor and all
 prospective code-quality/modularization/deployment improvements (it includes an `index.html`

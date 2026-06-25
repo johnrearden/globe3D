@@ -28,7 +28,10 @@ export class QuizTimer {
 
     /** Lazily create the `#quiz-timer` span inside `#quiz-score` (idempotent). */
     ensureDisplay() {
-        if (this.displayEl) return this.displayEl;
+        // Re-query if the cached node was detached — the flag quiz moves #quiz-timer
+        // into its chrome time chip and removes it on exit, so a stale ref would
+        // otherwise leave the timer updating an orphaned node for other quizzes.
+        if (this.displayEl && this.displayEl.isConnected) return this.displayEl;
 
         const existing = document.getElementById('quiz-timer');
         if (existing) {

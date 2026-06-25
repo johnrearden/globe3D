@@ -5,6 +5,7 @@
 
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
+import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -29,13 +30,122 @@ export class IdentifyFlagQuiz {
         this.active = false;
         this.scope = 'globe'; // Region filter: 'globe' or a region name
 
-        // Flag renderer state
+        // Hero flag renderer state (forward questions: one big waving flag)
         this.renderer = null;
         this.scene = null;
         this.camera = null;
         this.flagMesh = null;
         this.flagOriginalPositions = null;
         this.flagTime = 0;
+
+        // Reverse-question grid: 6 waving flags on one shared canvas/context.
+        this.activeLayout = 'forward'; // 'forward' (hero) | 'reverse' (grid)
+        this.gridRenderer = null;
+        this.gridScene = null;
+        this.gridCamera = null;
+        this.gridFlags = []; // [{ mesh, originalPositions, country }]
+        // Bumped on every nextQuestion so stale async flag loads are dropped.
+        this.questionToken = 0;
+
+        // Terragotcha question-screen chrome (top bar / chips / progress / prompt).
+        this.chrome = new QuizQuestionChrome({
+            elements: this.elements,
+            onClose: () => this.cancel()
+        });
+    }
+
+    // 2×3 grid cell centres (world units), row-major. Flags share the hero plane
+    // size (10×6.67) so animateFlagWave reuses the hero's wave constants unchanged;
+    // renderGrid() draws each flag through its own viewport with the camera aimed
+    // at that flag, so every tile looks like a centred copy of the hero flag. The
+    // world spacing only needs to exceed each cell's frustum so neighbours don't
+    // bleed into adjacent viewports.
+    static GRID_CELLS = [[-10, 16], [10, 16], [-10, 0], [10, 0], [-10, -16], [10, -16]];
+
+    /**
+     * Initialize the reverse-question grid renderer (one canvas, 6 flags).
+     */
+    initGridRenderer() {
+        if (this.gridRenderer) return;
+
+        this.gridScene = new THREE.Scene();
+        this.gridScene.background = null;
+
+        // Perspective camera (re-aimed at each flag per cell in renderGrid) so the
+        // Z-wave produces the same edge-flutter as the hero flag — an orthographic
+        // camera would render a Z-only ripple as a motionless rectangle.
+        this.gridCamera = new THREE.PerspectiveCamera(45, 1.5, 0.1, 100);
+
+        this.gridRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // updateStyle=false: keep the drawing buffer square (2 cols × 3 rows of 3:2
+        // cells → 1:1) but let CSS size the canvas element (else setSize writes inline
+        // px and beats the stylesheet).
+        this.gridRenderer.setSize(720, 720, false);
+        this.gridRenderer.setClearColor(0x000000, 0);
+
+        // Lights so the wave is visible: under orthographic projection a pure-Z
+        // ripple only reads through shading (the lit material's normals), exactly
+        // like the hero flag. Same setup as initRenderer().
+        this.gridScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(5, 5, 5);
+        this.gridScene.add(dir);
+    }
+
+    /** Dispose all current grid flag meshes/materials/textures. */
+    clearGridFlags() {
+        for (const f of this.gridFlags) {
+            if (this.gridScene) this.gridScene.remove(f.mesh);
+            f.mesh.geometry.dispose();
+            if (f.mesh.material.map) f.mesh.material.map.dispose();
+            f.mesh.material.dispose();
+        }
+        this.gridFlags = [];
+    }
+
+    /**
+     * Load and lay out 6 waving flags for a reverse question, one per option.
+     * Flag i sits in grid cell i so it aligns with overlay button i.
+     * @param {string[]} options - the 6 shuffled country names
+     */
+    displayFlagGrid(options) {
+        this.initGridRenderer();
+        this.clearGridFlags();
+
+        const token = this.questionToken;
+        const loader = new THREE.TextureLoader();
+
+        options.forEach((countryName, i) => {
+            const iso = this.countryToISO[countryName];
+            if (!iso || i >= IdentifyFlagQuiz.GRID_CELLS.length) return;
+            const [cx, cy] = IdentifyFlagQuiz.GRID_CELLS[i];
+
+            loader.load(
+                `https://flagcdn.com/w320/${iso}.png`,
+                (tex) => {
+                    // Drop the load if the player already advanced.
+                    if (token !== this.questionToken) { tex.dispose(); return; }
+
+                    const geo = new THREE.PlaneGeometry(10, 6.67, 12, 8);
+                    // Lit material (matches the hero) so the Z-wave shows as moving
+                    // shading under the orthographic camera.
+                    const mat = new THREE.MeshStandardMaterial({
+                        map: tex,
+                        side: THREE.DoubleSide,
+                        roughness: 0.7,
+                        metalness: 0.1
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(cx, cy, 0);
+
+                    const orig = new Float32Array(geo.attributes.position.array);
+                    this.gridScene.add(mesh);
+                    this.gridFlags.push({ mesh, originalPositions: orig, country: countryName, cellIndex: i });
+                },
+                undefined,
+                (error) => console.error('Error loading grid flag:', countryName, error)
+            );
+        });
     }
 
     /**
@@ -52,9 +162,10 @@ export class IdentifyFlagQuiz {
         this.camera = new THREE.PerspectiveCamera(45, 560 / 373, 0.1, 1000);
         this.camera.position.z = 9.5;
 
-        // Create flag renderer for quiz
+        // Create flag renderer for quiz. updateStyle=false so CSS controls the
+        // display size (the stage panel caps it); inline px would fight the CSS.
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        this.renderer.setSize(560, 373);
+        this.renderer.setSize(560, 373, false);
         this.renderer.setClearColor(0x000000, 0); // Transparent
 
         // Add lights to flag scene
@@ -70,9 +181,61 @@ export class IdentifyFlagQuiz {
      * Update flag wave animation
      */
     updateAnimation() {
-        if (!this.flagMesh || !this.flagOriginalPositions) return;
         this.flagTime = performance.now() * 0.001 * 3; // Speed factor
-        this.animateFlagWave(this.flagMesh, this.flagOriginalPositions, this.flagTime);
+        if (this.activeLayout === 'reverse') {
+            // Animate the 6 grid flags, then render them ourselves (per-cell
+            // viewports). The getters return null in reverse so the main loop
+            // skips its single render() call and we own the draw entirely.
+            for (const f of this.gridFlags) {
+                this.animateFlagWave(f.mesh, f.originalPositions, this.flagTime);
+            }
+            this.renderGrid();
+        } else {
+            if (!this.flagMesh || !this.flagOriginalPositions) return;
+            this.animateFlagWave(this.flagMesh, this.flagOriginalPositions, this.flagTime);
+        }
+    }
+
+    /**
+     * Render the 6 reverse-question flags, each through its own viewport with the
+     * camera aimed straight at it — gives every tile the hero flag's perspective
+     * edge-flutter while keeping each flag centred and aligned to its button cell.
+     */
+    renderGrid() {
+        if (!this.gridRenderer || this.gridFlags.length === 0) return;
+
+        const r = this.gridRenderer;
+        const W = 720, H = 720;            // drawing-buffer size (square: 2×3 of 3:2)
+        const cw = W / 2, ch = H / 3;      // cell size in buffer pixels
+        // Inset each flag's viewport inside its cell to add separation between flags
+        // (the invisible click buttons still cover the full cell).
+        const mx = cw * 0.12, my = ch * 0.12;
+        const cam = this.gridCamera;
+        cam.aspect = (cw - 2 * mx) / (ch - 2 * my);
+
+        // Clear the whole canvas once; each per-cell render then clears+draws only
+        // its scissored cell, so cells don't wipe each other.
+        r.setScissorTest(false);
+        r.clear();
+        r.setScissorTest(true);
+
+        for (const f of this.gridFlags) {
+            const col = f.cellIndex % 2;
+            const row = (f.cellIndex / 2) | 0;
+            const px = col * cw + mx;
+            const py = H - (row + 1) * ch + my; // WebGL viewport origin is bottom-left
+            r.setViewport(px, py, cw - 2 * mx, ch - 2 * my);
+            r.setScissor(px, py, cw - 2 * mx, ch - 2 * my);
+
+            const p = f.mesh.position;
+            cam.position.set(p.x, p.y, 9.5);
+            cam.lookAt(p.x, p.y, 0);
+            cam.updateProjectionMatrix();
+            r.render(this.gridScene, cam);
+        }
+
+        r.setScissorTest(false);
+        r.setViewport(0, 0, W, H);
     }
 
     /**
@@ -141,8 +304,9 @@ export class IdentifyFlagQuiz {
                     // Force render with new texture
                     this.renderer.render(this.scene, this.camera);
 
-                    // Now that texture is loaded, show the flag display
-                    this.elements.get('quiz-flag-display').style.display = 'block';
+                    // Now that texture is loaded, show the flag stage (flex centres
+                    // the canvas; matches the CSS panel layout).
+                    this.elements.get('quiz-flag-display').style.display = 'flex';
                 } else {
                     // Question changed before texture loaded, dispose texture
                     flagTexture.dispose();
@@ -180,6 +344,12 @@ export class IdentifyFlagQuiz {
         this.usedCountries = [];
         this.questionLog = [];
 
+        // Balanced-random schedule: 5 forward (flag → name) + 5 reverse
+        // (name → flags), shuffled. Consumed by index in generateQuestion().
+        this.questionTypes = ['forward', 'forward', 'forward', 'forward', 'forward',
+                              'reverse', 'reverse', 'reverse', 'reverse', 'reverse']
+            .sort(() => Math.random() - 0.5);
+
         // Update state
         state.set('quiz.active', true);
         state.set('quiz.mode', 'identify-flag');
@@ -200,22 +370,21 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-container').style.display = '';
         this.elements.get('take-quiz-btn').style.display = '';
 
-        // Show quiz elements
-        this.elements.get('quiz-score').style.display = 'block';
-        this.elements.get('quiz-question').textContent = 'Which country does this flag belong to?';
-        this.elements.get('quiz-question').style.display = 'block';
-
-        // Hide start button and previous results
+        // Legacy chrome (header/score/question/result/×) is replaced by the
+        // Terragotcha question screen — hide it (CSS also hides it, but these
+        // elements carry inline display overrides we must clear).
+        this.elements.get('quiz-score').style.display = 'none';
+        this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-start-btn').style.display = 'none';
         this.elements.get('quiz-result').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
         this.elements.get('quiz-flag-display').style.display = 'none';
+        this.elements.get('quiz-cancel-btn').style.display = 'none';
 
-        // Show cancel button
-        this.elements.get('quiz-cancel-btn').style.display = 'block';
-
-        // Reset score display
-        this.updateScoreDisplay();
+        // Build the question-screen chrome (top bar / chips / progress / prompt).
+        // Must run before quizTimer.start() so the timer binds to the chip's span.
+        this.chrome.show();
+        this.chrome.setScore(0, 0);
 
         // Start the count-up timer
         this.quizTimer.start();
@@ -244,10 +413,17 @@ export class IdentifyFlagQuiz {
         document.body.classList.remove('quiz-active');
         document.body.classList.remove('flag-quiz-active');
 
+        // Drop any in-flight flag loads and dispose the reverse grid.
+        this.questionToken++;
+        this.clearGridFlags();
+        this.activeLayout = 'forward';
+
         // Hide quiz elements
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-flag-display').style.display = 'none';
+        this.elements.get('quiz-options').classList.remove('flag-overlay');
+        this.elements.get('quiz-options').classList.remove('name-grid');
         this.elements.get('quiz-options').innerHTML = '';
         this.elements.get('quiz-container').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
@@ -255,6 +431,7 @@ export class IdentifyFlagQuiz {
         // Stop the timer, persist the result, and show the celebration overlay
         // with score + total time + standing/new best.
         const elapsedMs = this.quizTimer.stop();
+        this.chrome.hide();
         const summary = quizHistoryStore.record({
             ts: Date.now(),
             mode: 'identify-flag',
@@ -285,19 +462,23 @@ export class IdentifyFlagQuiz {
         // Filter out countries already used in this quiz
         const availableCountries = centroids.filter(c => !this.usedCountries.includes(c.name));
 
-        if (availableCountries.length < 4) {
+        if (availableCountries.length < 6) {
             console.error('Not enough unused countries for quiz');
             return null;
         }
 
-        // The correct answer must have an ISO code so displayFlag can fetch its flag.
-        // Without this filter, a country missing from countryToISO causes displayFlag
-        // to early-return without clearing the previous flag, leaving stale art on screen.
+        // The correct answer must have an ISO code so displayFlag (forward) or the
+        // correct flag tile (reverse) has art. Without this, a country missing from
+        // countryToISO leaves stale art / a broken image on screen.
         const flaggable = availableCountries.filter(c => this.countryToISO[c.name]);
         if (flaggable.length === 0) {
             console.error('No remaining countries with flags available for quiz');
             return null;
         }
+
+        // Pull this question's type from the pre-shuffled schedule. At generation
+        // time questionsAnswered equals the current question's 0-based index.
+        let type = this.questionTypes[this.questionsAnswered] || 'forward';
 
         // Select random country from flaggable countries as the correct answer
         const correctIndex = Math.floor(Math.random() * flaggable.length);
@@ -306,12 +487,22 @@ export class IdentifyFlagQuiz {
         // Mark this country as used
         this.usedCountries.push(correctCountry.name);
 
-        // Get all other countries for random distractors
-        const otherCountries = centroids.filter(country => country.name !== correctCountry.name);
+        // Reverse questions show 6 flag tiles, so every distractor needs an ISO
+        // code too. Forward questions show names, so any country works as a
+        // distractor. Fall back to forward if a small region lacks enough flags.
+        let distractorPool = centroids.filter(country => country.name !== correctCountry.name);
+        if (type === 'reverse') {
+            const flaggablePool = distractorPool.filter(c => this.countryToISO[c.name]);
+            if (flaggablePool.length < 5) {
+                type = 'forward';
+            } else {
+                distractorPool = flaggablePool;
+            }
+        }
 
-        // Select 3 random distractors
-        const shuffledOthers = otherCountries.sort(() => Math.random() - 0.5);
-        const distractors = shuffledOthers.slice(0, 3).map(c => c.name);
+        // Select 5 random distractors (6 options total)
+        const shuffledOthers = distractorPool.sort(() => Math.random() - 0.5);
+        const distractors = shuffledOthers.slice(0, 5).map(c => c.name);
 
         // Combine correct answer with distractors
         const allOptions = [correctCountry.name, ...distractors];
@@ -322,7 +513,8 @@ export class IdentifyFlagQuiz {
         return {
             correctCountry: correctCountry.name,
             options: shuffledOptions,
-            countryObj: correctCountry
+            countryObj: correctCountry,
+            type
         };
     }
 
@@ -342,26 +534,56 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-result').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
 
-        // Display the flag
-        this.displayFlag(this.currentQuestion.correctCountry);
+        // Invalidate any in-flight async flag loads from the previous question.
+        this.questionToken++;
+
+        const isReverse = this.currentQuestion.type === 'reverse';
+        this.activeLayout = isReverse ? 'reverse' : 'forward';
+        const optionsContainer = this.elements.get('quiz-options');
+        const flagDisplay = this.elements.get('quiz-flag-display');
+
+        // Drive the question-screen chrome (counter + progress + prompt).
+        this.chrome.setQuestion(this.questionsAnswered + 1);
+        this.chrome.setPrompt(this.currentQuestion.type, this.currentQuestion.correctCountry);
+
+        if (isReverse) {
+            // Reverse: country name in the prompt, pick from 6 waving flags.
+            flagDisplay.style.display = 'none';
+            optionsContainer.classList.add('flag-overlay');
+            optionsContainer.classList.remove('name-grid');
+            this.displayFlagGrid(this.currentQuestion.options);
+        } else {
+            // Forward: show the waving hero flag, pick from 6 country names.
+            optionsContainer.classList.remove('flag-overlay');
+            optionsContainer.classList.add('name-grid');
+            this.displayFlag(this.currentQuestion.correctCountry);
+        }
 
         // Clear previous options completely
-        const optionsContainer = this.elements.get('quiz-options');
         optionsContainer.innerHTML = '';
 
         // Small delay to ensure DOM is clean before creating new buttons
         setTimeout(() => {
-            // Create option buttons with explicit neutral styling
+            // Reverse: the grid canvas sits behind the buttons as the first child,
+            // absolutely filling #quiz-options; the 6 transparent buttons overlay it
+            // in a matching 3×2 grid so clicks/feedback reuse the .quiz-option flow.
+            if (isReverse && this.gridRenderer) {
+                optionsContainer.appendChild(this.gridRenderer.domElement);
+            }
+
             this.currentQuestion.options.forEach(optionName => {
                 const button = document.createElement('button');
-                button.className = 'quiz-option';
+                button.className = isReverse ? 'quiz-option flag-cell' : 'quiz-option';
                 button.disabled = false;
                 button.removeAttribute('style');
 
-                // Create span for country name
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = optionName;
-                button.appendChild(nameSpan);
+                if (!isReverse) {
+                    // Forward: country-name label.
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = optionName;
+                    button.appendChild(nameSpan);
+                }
+                // Reverse buttons stay empty/transparent — the waving flag shows through.
 
                 button.dataset.country = optionName;
                 button.addEventListener('click', () => this.handleAnswer(optionName));
@@ -388,20 +610,28 @@ export class IdentifyFlagQuiz {
         this.questionsAnswered++;
         state.set('quiz.questionsAnswered', this.questionsAnswered);
 
-        // Update score display
+        // Update score display (legacy spans + the chrome chip).
         this.updateScoreDisplay();
+        this.chrome.setScore(this.score, this.questionsAnswered);
 
-        // Disable all option buttons
+        // Reveal locked state per the design: the correct option always turns
+        // green (+ check mark), a wrong pick turns red (+ x mark), and every other
+        // option dims. Marks are appended as a corner badge (flag tiles) or a
+        // trailing icon (name buttons); CSS positions .fqq-mark per layout.
         const optionButtons = document.querySelectorAll('.quiz-option');
         optionButtons.forEach(button => {
             button.disabled = true;
-
-            // Highlight correct and incorrect answers (color only — appending a label here
-            // mutates button size and reflows neighbours).
-            if (button.dataset.country === this.currentQuestion.correctCountry) {
+            const country = button.dataset.country;
+            if (country === this.currentQuestion.correctCountry) {
                 button.classList.add('correct');
-            } else if (button.dataset.country === selectedCountry && !isCorrect) {
+                button.insertAdjacentHTML('beforeend',
+                    `<span class="fqq-mark fqq-mark-correct">${svgIcon('check', 16)}</span>`);
+            } else if (country === selectedCountry && !isCorrect) {
                 button.classList.add('incorrect');
+                button.insertAdjacentHTML('beforeend',
+                    `<span class="fqq-mark fqq-mark-wrong">${svgIcon('x', 16)}</span>`);
+            } else {
+                button.classList.add('dimmed');
             }
         });
 
@@ -453,6 +683,7 @@ export class IdentifyFlagQuiz {
             this.autoAdvanceTimer = null;
         }
         this.quizTimer.cancel();
+        this.chrome.hide();
         this.active = false;
         state.set('quiz.active', false);
         state.set('quiz.mode', null);
@@ -460,9 +691,16 @@ export class IdentifyFlagQuiz {
         document.body.classList.remove('quiz-active');
         document.body.classList.remove('flag-quiz-active');
 
+        // Drop any in-flight flag loads and dispose the reverse grid.
+        this.questionToken++;
+        this.clearGridFlags();
+        this.activeLayout = 'forward';
+
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-flag-display').style.display = 'none';
+        this.elements.get('quiz-options').classList.remove('flag-overlay');
+        this.elements.get('quiz-options').classList.remove('name-grid');
         this.elements.get('quiz-options').innerHTML = '';
         // Clear the inline overrides (don't set 'none'/'block') so CSS restores
         // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.
@@ -481,8 +719,11 @@ export class IdentifyFlagQuiz {
      * Get the flag renderer (for animation updates in main loop)
      * @returns {THREE.WebGLRenderer}
      */
+    // Reverse questions render themselves (renderGrid, per-cell viewports), so the
+    // getters return null in that layout — the main loop's `if (renderer && scene
+    // && camera)` guard then skips its single render() and leaves the draw to us.
     getRenderer() {
-        return this.renderer;
+        return this.activeLayout === 'reverse' ? null : this.renderer;
     }
 
     /**
@@ -490,7 +731,7 @@ export class IdentifyFlagQuiz {
      * @returns {THREE.Scene}
      */
     getScene() {
-        return this.scene;
+        return this.activeLayout === 'reverse' ? null : this.scene;
     }
 
     /**
@@ -498,7 +739,7 @@ export class IdentifyFlagQuiz {
      * @returns {THREE.Camera}
      */
     getCamera() {
-        return this.camera;
+        return this.activeLayout === 'reverse' ? null : this.camera;
     }
 
     /**
