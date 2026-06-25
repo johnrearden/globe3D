@@ -22,15 +22,6 @@ const HIGHLIGHT_SWATCHES = [
     { label: 'Cyan', hex: 0x4dd0e1 }
 ];
 
-// 2D-map feature toggles surfaced as global defaults (mirror country-map's TOGGLE_GROUPS).
-const MAP_TOGGLES = [
-    { key: 'labels', label: 'Place labels' },
-    { key: 'roads', label: 'Roads' },
-    { key: 'water', label: 'Water' },
-    { key: 'land', label: 'Land use' },
-    { key: 'boundaries', label: 'Boundaries' }
-];
-
 // Dev/editing buttons (existing markup) relocated into the Developer section.
 const DEV_BUTTON_IDS = [
     'edit-mode-btn', 'save-config-btn', 'fine-tune-btn',
@@ -69,7 +60,6 @@ export class SettingsPanel {
         this._buildAppearance();
         this._buildLighting();
         this._buildRotation();
-        this._buildMapToggles();
         this._buildDeveloper();
         this._buildDebug();
 
@@ -299,20 +289,6 @@ export class SettingsPanel {
                 if (cc && cc.controls) cc.controls.autoRotateSpeed = v;
                 settingsStore.save({ autoRotate: { speed: v } });
             });
-    }
-
-    _buildMapToggles() {
-        const sec = this._section('2D map features');
-        const note = document.createElement('p');
-        note.className = 'settings-note';
-        note.textContent = 'Defaults applied when opening a country in the 2D map.';
-        sec.appendChild(note);
-        const defaults = settingsStore.getMapToggleDefaults();
-        for (const t of MAP_TOGGLES) {
-            this._checkbox(sec, t.label, defaults[t.key] !== false, (checked) => {
-                settingsStore.save({ mapToggles: { [t.key]: checked } });
-            });
-        }
     }
 
     _buildDeveloper() {

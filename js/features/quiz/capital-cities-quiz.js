@@ -19,7 +19,6 @@ export class CapitalCitiesQuiz {
         this.globeManager = options.globeManager;
         this.cameraController = options.cameraController;
         this.elements = options.elements;
-        this.countryMap = options.countryMap; // 2D country map used as the quiz visual
         this.rotateGlobeToCountry = options.rotateGlobeToCountry;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
@@ -113,18 +112,16 @@ export class CapitalCitiesQuiz {
         // Remove quiz-active class from body
         document.body.classList.remove('quiz-active');
 
-        // Close the 2D map and return to the globe.
-        if (this.countryMap) this.countryMap.hide();
-
         // Hide quiz elements
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-options').innerHTML = '';
         this.elements.get('quiz-container').style.display = 'none';
 
-        // Reset globe highlighting + capital marker
+        // Reset globe highlighting + markers and zoom back out.
         this.globeManager.clearSelection();
-        this.globeManager.clearCapitalMarker();
+        this.globeManager.markers.clear();
+        this.cameraController.zoomOut();
 
         // Stop the timer, persist the result, and show the celebration overlay
         // with score + total time + standing/new best.
@@ -241,18 +238,27 @@ export class CapitalCitiesQuiz {
         this.elements.get('quiz-result').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
 
-        const { direction, countryName, capital } = this.currentQuestion;
+        const { direction, countryName, capital, countryObj } = this.currentQuestion;
 
-        // Set the question prompt text and the 2D-map visual for each direction.
+        // Reset the previous marker, then drop a dot (no name) on the capital.
+        this.globeManager.markers.clear();
+        this.globeManager.markers.place(capital.lat, capital.lng);
+
+        // Set the question prompt and frame the globe for each direction.
         const questionEl = this.elements.get('quiz-question');
         if (direction === 'forward') {
-            // "What is the capital of X?" — show the country with a red dot + "?".
+            // "What is the capital of X?" — the country is given, so pan/zoom to
+            // it; the dot marks the capital but its name stays hidden until the
+            // answer is revealed.
             questionEl.textContent = `What is the capital of ${countryName}?`;
-            this.countryMap.showForQuiz(countryName, 'capital');
+            const aimPoint = this.globeManager.latLngToVector3(capital.lat, capital.lng, 1.0, 0);
+            this.cameraController.rotateToCountry(countryObj, true, aimPoint);
         } else {
-            // "Y is the capital of which country?" — show only the country outline.
+            // "Y is the capital of which country?" — don't give the country away:
+            // zoom way out so the globe fills ~25% of the screen width with the
+            // dot visible, leaving the player to place it.
             questionEl.textContent = `${capital.name} is the capital of which country?`;
-            this.countryMap.showForQuiz(countryName, 'shape');
+            this.cameraController.frameWholeGlobe({ lat: capital.lat, lng: capital.lng, widthFraction: 0.25 });
         }
 
         // Clear previous options completely
@@ -313,8 +319,10 @@ export class CapitalCitiesQuiz {
 
         this.elements.get('quiz-result').style.display = 'none';
 
-        // Reveal the full 2D map (basemap, outline, named capital) for both directions.
-        this.countryMap.revealQuizAnswer();
+        // Reveal the capital's name at the marker (no camera move). The green/red
+        // option buttons already convey correct/incorrect.
+        this.globeManager.markers.setLabel(this.currentQuestion.capital.name);
+        this.globeManager.markers.showLabel();
 
         if (this.questionsAnswered >= 10) {
             setTimeout(() => {
@@ -372,10 +380,10 @@ export class CapitalCitiesQuiz {
         // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.
         this.elements.get('quiz-container').style.display = '';
 
-        // Close the 2D map and reset globe highlighting + capital marker.
-        if (this.countryMap) this.countryMap.hide();
+        // Reset globe highlighting + markers and zoom back out.
         this.globeManager.clearSelection();
-        this.globeManager.clearCapitalMarker();
+        this.globeManager.markers.clear();
+        this.cameraController.zoomOut();
         if (this.labelManager) this.labelManager.setHighlight(null);
 
         this.elements.get('search-container').style.display = 'block';

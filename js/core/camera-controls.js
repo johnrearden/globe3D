@@ -178,6 +178,26 @@ export class CameraController {
         return Math.max(this.controls.minDistance, Math.min(this.controls.maxDistance, d));
     }
 
+    /**
+     * Zoom out so the whole globe (diameter 2) fills `widthFraction` of the
+     * viewport WIDTH, centred on a lat/lng. Used by the capitals quiz "which
+     * country?" direction to show the marker on a small, far-away globe.
+     * @param {Object} opts
+     * @param {number} opts.lat
+     * @param {number} opts.lng
+     * @param {number} [opts.widthFraction=0.25] target fraction of screen width
+     * @param {number} [opts.duration=800]
+     */
+    frameWholeGlobe({ lat, lng, widthFraction = 0.25, duration = 800 } = {}) {
+        const vHalf = (this.camera.fov || 75) * Math.PI / 360;   // half vertical FOV (rad)
+        const aspect = this.camera.aspect || (window.innerWidth / window.innerHeight);
+        const hHalf = Math.atan(Math.tan(vHalf) * aspect);       // half horizontal FOV (rad)
+
+        // Globe diameter = 2; frame it against the horizontal axis specifically.
+        const distance = framingDistance(2, widthFraction, hHalf) || this.controls.maxDistance;
+        this.frameView({ lat, lng, distance, duration });
+    }
+
     /** Animate the camera back to the initial full-globe distance. */
     zoomOut() {
         this.cancelFlick();

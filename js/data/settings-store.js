@@ -17,8 +17,7 @@ const DEFAULTS = {
     // lighting is null until the user touches a slider, so we don't override the
     // build-time fade-in targets unless they've been deliberately changed.
     lighting: null, // { ambient, diffuse, specStrength, shininess, oceanSpecBoost }
-    autoRotate: { enabled: true, delayMs: 120000, speed: 1.0 },
-    mapToggles: { labels: true, roads: true, water: true, land: true, boundaries: true }
+    autoRotate: { enabled: true, delayMs: 120000, speed: 1.0 }
 };
 
 function read() {
@@ -29,8 +28,7 @@ function read() {
         return {
             ...DEFAULTS,
             ...parsed,
-            autoRotate: { ...DEFAULTS.autoRotate, ...(parsed.autoRotate || {}) },
-            mapToggles: { ...DEFAULTS.mapToggles, ...(parsed.mapToggles || {}) }
+            autoRotate: { ...DEFAULTS.autoRotate, ...(parsed.autoRotate || {}) }
         };
     } catch (_) {
         return { ...DEFAULTS };
@@ -48,8 +46,8 @@ class SettingsStore {
     }
 
     /**
-     * Shallow-merge a patch and persist. Nested `autoRotate` / `mapToggles` /
-     * `lighting` patches are merged one level deep.
+     * Shallow-merge a patch and persist. Nested `autoRotate` / `lighting`
+     * patches are merged one level deep.
      */
     save(patch = {}) {
         const d = this._data;
@@ -67,11 +65,6 @@ class SettingsStore {
             /* storage full / unavailable — preferences just won't persist */
         }
         return d;
-    }
-
-    /** Default checked-state for the 2D-map feature toggles. */
-    getMapToggleDefaults() {
-        return { ...DEFAULTS.mapToggles, ...(this._data.mapToggles || {}) };
     }
 }
 

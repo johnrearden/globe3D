@@ -282,7 +282,6 @@
         import { ClickQuiz } from './js/features/quiz/click-quiz.js';
         import { CapitalCitiesQuiz } from './js/features/quiz/capital-cities-quiz.js';
         import { FlagRenderer } from './js/features/flag-renderer.js';
-        import { CountryMap } from './js/features/country-map.js';
         import { SearchManager } from './js/features/search.js';
         import { BounceAnimation } from './js/features/bounce-animation.js';
         import { ShatterAnimation } from './js/features/shatter-animation.js';
@@ -406,7 +405,6 @@
         let dailyQuiz = null;
         let quizInvite = null;
         let flagRenderer = null;
-        let countryMap = null;
         let searchManager = null;
         let settingsPanel = null;     // SettingsPanel instance (the ⚙ gear + panel)
 
@@ -474,28 +472,6 @@
             // Get controls reference
             controls = cameraController.getControls();
 
-            // Full-screen 2D country map (self-contained; see js/features/country-map.js).
-            // Save/restore the globe camera around the map so returning keeps the
-            // exact view (latitude included) — onWindowResize() flattens to the
-            // equator (camera.position.y = 0), which loses the country's latitude.
-            let savedGlobeView = null;
-            countryMap = new CountryMap({
-                globeManager, sceneManager, flagRenderer,
-                onEnter: () => {
-                    cameraController.disableAutoRotation();
-                    savedGlobeView = { pos: camera.position.clone(), target: controls.target.clone() };
-                },
-                onExit: () => {
-                    if (savedGlobeView) {
-                        camera.position.copy(savedGlobeView.pos);
-                        controls.target.copy(savedGlobeView.target);
-                        controls.update();
-                    }
-                    cameraController.resetIdleTimer();
-                }
-            });
-            countryMap.init();
-
             // Gently spin the globe behind the intro screen while assets load.
             // Drives the idle system (CameraController): any interaction stops it
             // (resetIdleTimer), and it resumes after IDLE_DELAY of inactivity.
@@ -554,7 +530,7 @@
                     }
 
                     // Settings gear (⚙) — color scheme, borders, lighting, auto-rotate,
-                    // 2D-map defaults, and the absorbed edit/animation dev tools. Built
+                    // and the absorbed edit/animation dev tools. Built
                     // here (after load) so the lighting uniforms + palette already exist.
                     // Replaces the old dev-edit toggle and the debug lighting panel.
                     // Borders are now a baked shader edge effect owned by globeManager.
@@ -605,7 +581,6 @@
                         globeManager: globeManager,
                         cameraController: cameraController,
                         elements: elements,
-                        countryMap: countryMap,
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,

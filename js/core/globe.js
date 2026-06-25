@@ -11,6 +11,7 @@ import { state } from '../data/state.js';
 import { assetUrl } from '../data/asset-base.js';
 import { latLngToXYZ } from '../utils/coordinates.js';
 import { COUNTRY_REGIONS } from '../data/country-regions.js';
+import { MarkerLayer } from './markers.js';
 
 const THREE = window.THREE;
 
@@ -181,7 +182,9 @@ export class GlobeManager {
         this.countryCentroids = []; // [{name, centroid: Vector3, meshRef: null}]
 
         this.capitals = {};         // {countryName: {name, lat, lng}} (sidecar, fail-soft)
-        this.capitalMarker = null;  // reusable marker mesh for the capitals quiz
+
+        // Reusable marker layer for plotting points (e.g. capitals) at any lat/lng.
+        this.markers = new MarkerLayer(this);
 
         this.flashTimer = null;     // {id, color, startTime, duration}
 
@@ -902,67 +905,6 @@ export class GlobeManager {
         return this.capitals[name] || null;
     }
 
-    /**
-     * Build (once) a canvas texture of a small black dot ringed by a black
-     * circle — a simple location marker.
-     */
-    _buildCapitalIconTexture() {
-        if (this._capitalIconTexture) return this._capitalIconTexture;
-        const S = 64;
-        const c = S / 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = S;
-        const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#000000';
-        ctx.strokeStyle = '#000000';
-
-        // Outer ring (stroked circle) with a transparent gap to the inner dot.
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(c, c, 24, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Inner filled dot.
-        ctx.beginPath();
-        ctx.arc(c, c, 9, 0, Math.PI * 2);
-        ctx.fill();
-
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.minFilter = THREE.LinearFilter;
-        this._capitalIconTexture = tex;
-        return tex;
-    }
-
-    /**
-     * Drop (or move) a small city-icon marker at a capital's lat/lng. The marker
-     * lives inside the globe group so it rotates with the surface. Used by the
-     * capitals quiz to reveal where a capital sits once the answer is shown.
-     */
-    showCapitalMarker(lat, lng) {
-        if (!this.globe) return;
-        if (!this.capitalMarker) {
-            const mat = new THREE.SpriteMaterial({
-                map: this._buildCapitalIconTexture(),
-                depthTest: false,
-                transparent: true
-            });
-            this.capitalMarker = new THREE.Sprite(mat);
-            this.capitalMarker.scale.setScalar(0.0055);
-            this.capitalMarker.renderOrder = 999; // draw on top of the country fills
-            this.globe.add(this.capitalMarker);
-        }
-        const pos = this.latLngToVector3(lat, lng, SPHERE_RADIUS, 0.015);
-        this.capitalMarker.position.copy(pos);
-        this.capitalMarker.visible = true;
-    }
-
-    /**
-     * Hide the capital marker (between questions / on quiz end).
-     */
-    clearCapitalMarker() {
-        if (this.capitalMarker) this.capitalMarker.visible = false;
-    }
 
     /**
      * Build a {name: {iso, parent, pop, area, lang}} map for every dependency /

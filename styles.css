@@ -3473,181 +3473,10 @@
         }
 
 /* ===========================================================================
-   Country map view — full-screen 2D MapLibre map of a single country.
-   Driven entirely by `body.map-mode`: adding the class shows the map view and
-   hides the globe canvas + chrome; removing it returns to the globe. DOM is
-   created at runtime by js/features/country-map.js.
-   =========================================================================== */
-#country-map-view {
-    position: fixed;
-    inset: 0;
-    z-index: 500;
-    display: none;
-    background: #0a0a12;
-}
-body.map-mode #country-map-view { display: block; }
-
-/* Hide the globe and its chrome while the 2D map is open. */
-body.map-mode #globe-canvas,
-body.map-mode #zoom-widget,
-body.map-mode #search-container,
-body.map-mode #flag-container,
-body.map-mode #take-quiz-btn,
-body.map-mode #settings-toggle,
-body.map-mode #settings-panel,
-body.map-mode #bounce-btn,
-body.map-mode #shatter-btn,
-body.map-mode #pinball-btn {
-    display: none !important;
-}
-
-#country-map-canvas { position: absolute; inset: 0; }
-
-#country-map-back {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 510;
-    padding: 9px 14px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(20, 24, 32, 0.92);
-    color: #dfe6f0;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-}
-#country-map-back:hover { background: rgba(40, 48, 64, 0.95); }
-
-#country-map-title {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 510;
-    padding: 8px 16px;
-    border-radius: 8px;
-    background: rgba(20, 24, 32, 0.85);
-    color: #fff;
-    font-family: Arial, sans-serif;
-    font-size: 16px;
-    font-weight: bold;
-    pointer-events: none;
-    max-width: calc(100vw - 320px);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#country-map-toggles {
-    position: absolute;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 510;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px 14px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(20, 24, 32, 0.9);
-    color: #dfe6f0;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    max-width: calc(100vw - 24px);
-    box-sizing: border-box;
-}
-#country-map-toggles:empty { display: none; }
-.cm-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-}
-.cm-toggle input { cursor: pointer; margin: 0; }
-
-/* "View 2D Map" button appended into the country info panel. The panel itself
-   is pointer-events:none (passive display), so the button must opt back in. */
-#view-map-btn {
-    display: block;
-    width: 100%;
-    margin-top: 14px;
-    padding: 9px 12px;
-    border: none;
-    border-radius: 6px;
-    background: #2563eb;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
-    pointer-events: auto;
-}
-#view-map-btn:hover { background: #1d4ed8; }
-
-/* Capital city marker (DOM marker, style-independent). The dot is anchored on
-   the point; the label is absolutely positioned beside it so it can flip to the
-   left side near the right screen edge without moving the dot. */
-.cm-capital {
-    position: relative;
-    width: 11px;
-    height: 11px;
-    pointer-events: none;
-}
-.cm-capital-dot {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: #e23b3b;
-    border: 2px solid #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-}
-.cm-capital-label {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    white-space: nowrap;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 1px 2px #000, 0 0 3px #000;
-}
-/* Near the right edge: label sits to the LEFT of the dot. */
-.cm-capital.flip .cm-capital-label {
-    left: auto;
-    right: 15px;
-    text-align: right;
-}
-/* Quiz "capital of X?" — large "?" in place of the city name. */
-.cm-capital-label.cm-capital-q {
-    font-size: 30px;
-    left: 18px;
-}
-.cm-capital.flip .cm-capital-label.cm-capital-q { left: auto; right: 18px; }
-
-/* Hide the map title pill when empty (quiz hides the country name). */
-#country-map-title:empty { display: none; }
-
-/* Capital-quiz over the 2D map: hide the map's own chrome (the quiz has its own
-   cancel/next), and raise the quiz panel above the full-screen map, clear of the
-   bottom-right attribution. */
-body.map-quiz #country-map-back,
-body.map-quiz #country-map-toggles,
-body.map-quiz .maplibregl-ctrl-top-right { display: none !important; }
-body.map-quiz #quiz-container { z-index: 600; left: 20px; right: auto; }
-body.map-quiz #quiz-cancel-btn { z-index: 601; }
-
-/* ===========================================================================
    Settings panel — the ⚙ gear (top-right) and its slide-in panel. Built at
    runtime by js/features/settings-panel.js. Hosts the color-scheme picker,
-   border toggle, lighting, auto-rotate, 2D-map defaults, and the relocated
-   developer/editing buttons. Replaces the old ✎ dev-edit toggle + light panel.
+   border toggle, lighting, auto-rotate, and the relocated developer/editing
+   buttons. Replaces the old ✎ dev-edit toggle + light panel.
    =========================================================================== */
 #settings-toggle {
     position: fixed;
@@ -3977,11 +3806,10 @@ body.flag-quiz-active #settings-panel {
 
 body.dq-active #dq-invite { display: none; }
 
-/* The quiz reminder steps aside whenever a quiz / daily / map view is busy. */
+/* The quiz reminder steps aside whenever a quiz / daily view is busy. */
 body.quiz-active #quiz-invite,
 body.flag-quiz-active #quiz-invite,
-body.dq-active #quiz-invite,
-body.map-mode #quiz-invite { display: none; }
+body.dq-active #quiz-invite { display: none; }
 
 /* Subtle jiggle of the top-left Take Quiz button when the quiz reminder is
    dismissed — associates the dismissed panel with its persistent entry point. */

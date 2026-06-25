@@ -17,7 +17,7 @@ reduce risk; later stages depend on the safety net the earlier ones lay down.
   extracted.
 - **One module per feature** — e.g. a single `js/features/label-editor.js`, not a
   `label-editor/` sub-folder of micro-modules. Matches the existing `js/features/` style
-  (`country-map.js`, `search.js`).
+  (`flag-renderer.js`, `search.js`).
 
 ---
 
@@ -46,6 +46,18 @@ and `js/features/quiz/quiz-ui.js`. `js/core/camera-controls.js` absorbed the cam
 idle logic and shed its dead duplicate API; the inline DOM helpers now import from the pre-existing
 `js/utils/dom.js`. Each Bucket-C feature is a class owning its own state, wired in via constructor
 injection (with an `onEnter` seam for the mutually-exclusive edit modes).
+
+**2D map removed; capitals quiz moved to the globe (2026-06-25):** the full-screen 2D MapLibre
+country view (`js/features/country-map.js`, the `js/vendor/` MapLibre+PMTiles libs, and the
+`assets/planet-z9.pmtiles` / `countries.geojson` / `pmtiles-layers.json` assets) was deleted as
+out-of-scope for a casual learning experience. A new reusable `js/core/markers.js` (`MarkerLayer`,
+owned by `GlobeManager` as `globeManager.markers`) plots dot markers — with optional name labels —
+at any lat/lng on the globe; it absorbs the old inline `showCapitalMarker`/`clearCapitalMarker`
+code. The Capital Cities quiz now runs on the 3D globe: forward questions pan/zoom to the country
+(`rotateToCountry` with an `aimPoint`), reverse questions zoom the globe out to ~25% of screen width
+(new `CameraController.frameWholeGlobe`), the capital is marked with a dot (no name) during the
+question, and the name label is revealed on answer. The settings panel's "2D map features" toggles
+(`MAP_TOGGLES`, `settingsStore.mapToggles`/`getMapToggleDefaults`) were removed with it.
 
 **Beyond the staged plan** (polish + fixes surfaced during smoke testing): a runtime config
 cache-buster (`?v=` on the label/color/zoom JSON fetches), a per-quiz-module `cancel()` (restoring
