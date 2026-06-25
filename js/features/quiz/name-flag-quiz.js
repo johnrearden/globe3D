@@ -312,7 +312,7 @@ export class NameFlagQuiz {
                 this.elements.get('quiz-next-btn').style.visibility = 'hidden';
                 this.autoAdvanceTimer = null;
                 this.nextQuestion();
-            }, 3000);
+            }, 1500);
         }
     }
 
