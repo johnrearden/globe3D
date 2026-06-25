@@ -423,7 +423,7 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-flag-display').style.display = 'none';
         this.elements.get('quiz-options').classList.remove('flag-overlay');
-        this.elements.get('quiz-options').classList.remove('name-grid');
+        this.elements.get('quiz-options').classList.remove('qz-answers');
         this.elements.get('quiz-options').innerHTML = '';
         this.elements.get('quiz-container').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
@@ -544,18 +544,31 @@ export class IdentifyFlagQuiz {
 
         // Drive the question-screen chrome (counter + progress + prompt).
         this.chrome.setQuestion(this.questionsAnswered + 1);
-        this.chrome.setPrompt(this.currentQuestion.type, this.currentQuestion.correctCountry);
+        if (this.currentQuestion.type === 'reverse') {
+            this.chrome.setPrompt({
+                layout: 'reverse',
+                eyebrow: 'WHICH FLAG BELONGS TO',
+                main: this.currentQuestion.correctCountry,
+                mainQuestion: true
+            });
+        } else {
+            this.chrome.setPrompt({
+                layout: 'forward',
+                eyebrow: 'Which country',
+                main: 'does this flag belong to?'
+            });
+        }
 
         if (isReverse) {
             // Reverse: country name in the prompt, pick from 6 waving flags.
             flagDisplay.style.display = 'none';
             optionsContainer.classList.add('flag-overlay');
-            optionsContainer.classList.remove('name-grid');
+            optionsContainer.classList.remove('qz-answers');
             this.displayFlagGrid(this.currentQuestion.options);
         } else {
             // Forward: show the waving hero flag, pick from 6 country names.
             optionsContainer.classList.remove('flag-overlay');
-            optionsContainer.classList.add('name-grid');
+            optionsContainer.classList.add('qz-answers');
             this.displayFlag(this.currentQuestion.correctCountry);
         }
 
@@ -617,7 +630,7 @@ export class IdentifyFlagQuiz {
         // Reveal locked state per the design: the correct option always turns
         // green (+ check mark), a wrong pick turns red (+ x mark), and every other
         // option dims. Marks are appended as a corner badge (flag tiles) or a
-        // trailing icon (name buttons); CSS positions .fqq-mark per layout.
+        // trailing icon (name buttons); CSS positions .qz-mark per layout.
         const optionButtons = document.querySelectorAll('.quiz-option');
         optionButtons.forEach(button => {
             button.disabled = true;
@@ -625,11 +638,11 @@ export class IdentifyFlagQuiz {
             if (country === this.currentQuestion.correctCountry) {
                 button.classList.add('correct');
                 button.insertAdjacentHTML('beforeend',
-                    `<span class="fqq-mark fqq-mark-correct">${svgIcon('check', 16)}</span>`);
+                    `<span class="qz-mark qz-mark-correct">${svgIcon('check', 16)}</span>`);
             } else if (country === selectedCountry && !isCorrect) {
                 button.classList.add('incorrect');
                 button.insertAdjacentHTML('beforeend',
-                    `<span class="fqq-mark fqq-mark-wrong">${svgIcon('x', 16)}</span>`);
+                    `<span class="qz-mark qz-mark-wrong">${svgIcon('x', 16)}</span>`);
             } else {
                 button.classList.add('dimmed');
             }
@@ -702,7 +715,7 @@ export class IdentifyFlagQuiz {
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-flag-display').style.display = 'none';
         this.elements.get('quiz-options').classList.remove('flag-overlay');
-        this.elements.get('quiz-options').classList.remove('name-grid');
+        this.elements.get('quiz-options').classList.remove('qz-answers');
         this.elements.get('quiz-options').innerHTML = '';
         // Clear the inline overrides (don't set 'none'/'block') so CSS restores
         // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.

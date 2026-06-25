@@ -21,7 +21,7 @@ const ICON = {
 
 /** Build an inline SVG markup string for one of the ICON glyphs. */
 export function svgIcon(name, size = 18) {
-    return `<svg class="fqq-svg" viewBox="0 0 256 256" width="${size}" height="${size}" `
+    return `<svg class="qz-svg" viewBox="0 0 256 256" width="${size}" height="${size}" `
         + `fill="currentColor" aria-hidden="true">${ICON[name]}</svg>`;
 }
 
@@ -32,10 +32,15 @@ export class QuizQuestionChrome {
      * @param {object} opts
      * @param {Map} opts.elements - dom element registry (needs 'quiz-container')
      * @param {Function} opts.onClose - called when the close button is tapped
+     * @param {'fullscreen'|'floating'} [opts.variant] - 'fullscreen' (flag quiz,
+     *   takes over the screen) or 'floating' (Name-the-Country quiz, a panel that
+     *   floats over the live globe). Only adds a marker class; the container
+     *   geometry lives in styles.css under the owning body class.
      */
     constructor(opts = {}) {
         this.elements = opts.elements;
         this.onClose = opts.onClose || (() => {});
+        this.variant = opts.variant || 'fullscreen';
         this.root = null; // wrapper holding all chrome rows
     }
 
@@ -48,32 +53,58 @@ export class QuizQuestionChrome {
         document.querySelectorAll('#quiz-timer').forEach(el => el.remove());
 
         const root = document.createElement('div');
-        root.id = 'fqq-chrome';
-        root.innerHTML = `
-            <div class="fqq-topbar">
-                <div class="fqq-progress-label">QUESTION <span id="fqq-qnum">1</span> OF ${TOTAL_QUESTIONS}</div>
-                <button type="button" class="fqq-close" aria-label="Close quiz">${svgIcon('x', 15)}</button>
-            </div>
-            <div class="fqq-chips">
-                <div class="fqq-chip">
-                    <span class="fqq-chip-icon">${svgIcon('checkCircle', 18)}</span>
-                    <span class="fqq-chip-label">SCORE</span>
-                    <span class="fqq-chip-val"><span id="fqq-score">0</span><span class="fqq-chip-sub">/<span id="fqq-answered">0</span></span></span>
+        root.id = 'qz-chrome';
+        const progress = `<div class="qz-progress"><div class="qz-progress-fill" id="qz-progress-fill"></div></div>`;
+        const prompt = `
+            <div class="qz-prompt">
+                <div class="qz-eyebrow" id="qz-eyebrow">WHICH COUNTRY</div>
+                <div class="qz-main" id="qz-main">does this flag belong to?</div>
+            </div>`;
+        if (this.variant === 'floating') {
+            // Compact, non-scrolling header: counter · score · time · close on a
+            // single row, so the panel hugs the bottom edge with minimal height.
+            root.classList.add('qz-floating');
+            root.innerHTML = `
+                <div class="qz-bar">
+                    <div class="qz-progress-label">Q<span id="qz-qnum">1</span>/${TOTAL_QUESTIONS}</div>
+                    <span class="qz-stat">
+                        <span class="qz-stat-icon">${svgIcon('checkCircle', 15)}</span>
+                        <span id="qz-score">0</span><span class="qz-stat-sub">/<span id="qz-answered">0</span></span>
+                    </span>
+                    <span class="qz-stat">
+                        <span class="qz-stat-icon">${svgIcon('clock', 15)}</span>
+                        <span id="quiz-timer">0:00</span>
+                    </span>
+                    <button type="button" class="qz-close" aria-label="Close quiz">${svgIcon('x', 15)}</button>
                 </div>
-                <div class="fqq-chip">
-                    <span class="fqq-chip-icon">${svgIcon('clock', 18)}</span>
-                    <span class="fqq-chip-label">TIME</span>
-                    <span class="fqq-chip-val"><span id="quiz-timer">0:00</span></span>
+                ${progress}
+                ${prompt}
+            `;
+        } else {
+            // Fullscreen variant: roomy top bar + score/time stat chips.
+            root.innerHTML = `
+                <div class="qz-topbar">
+                    <div class="qz-progress-label">QUESTION <span id="qz-qnum">1</span> OF ${TOTAL_QUESTIONS}</div>
+                    <button type="button" class="qz-close" aria-label="Close quiz">${svgIcon('x', 15)}</button>
                 </div>
-            </div>
-            <div class="fqq-progress"><div class="fqq-progress-fill" id="fqq-progress-fill"></div></div>
-            <div class="fqq-prompt">
-                <div class="fqq-eyebrow" id="fqq-eyebrow">WHICH COUNTRY</div>
-                <div class="fqq-main" id="fqq-main">does this flag belong to?</div>
-            </div>
-        `;
+                <div class="qz-chips">
+                    <div class="qz-chip">
+                        <span class="qz-chip-icon">${svgIcon('checkCircle', 18)}</span>
+                        <span class="qz-chip-label">SCORE</span>
+                        <span class="qz-chip-val"><span id="qz-score">0</span><span class="qz-chip-sub">/<span id="qz-answered">0</span></span></span>
+                    </div>
+                    <div class="qz-chip">
+                        <span class="qz-chip-icon">${svgIcon('clock', 18)}</span>
+                        <span class="qz-chip-label">TIME</span>
+                        <span class="qz-chip-val"><span id="quiz-timer">0:00</span></span>
+                    </div>
+                </div>
+                ${progress}
+                ${prompt}
+            `;
+        }
 
-        root.querySelector('.fqq-close').addEventListener('click', () => this.onClose());
+        root.querySelector('.qz-close').addEventListener('click', () => this.onClose());
 
         // Insert at the top of the flex column so order: topbar → chips → progress →
         // prompt → (stage/options, ordered via CSS) → next button.
@@ -91,8 +122,8 @@ export class QuizQuestionChrome {
     /** Update the "QUESTION n OF 10" label and the progress-bar fill. */
     setQuestion(n) {
         if (!this.root) return;
-        const num = this.root.querySelector('#fqq-qnum');
-        const fill = this.root.querySelector('#fqq-progress-fill');
+        const num = this.root.querySelector('#qz-qnum');
+        const fill = this.root.querySelector('#qz-progress-fill');
         if (num) num.textContent = String(n);
         if (fill) fill.style.width = `${(n / TOTAL_QUESTIONS) * 100}%`;
     }
@@ -100,34 +131,43 @@ export class QuizQuestionChrome {
     /** Update the score chip ("score/answered"). */
     setScore(score, answered) {
         if (!this.root) return;
-        const s = this.root.querySelector('#fqq-score');
-        const a = this.root.querySelector('#fqq-answered');
+        const s = this.root.querySelector('#qz-score');
+        const a = this.root.querySelector('#qz-answered');
         if (s) s.textContent = String(score);
         if (a) a.textContent = String(answered);
     }
 
     /**
-     * Set the prompt for the active question direction.
-     * @param {'forward'|'reverse'} type
-     * @param {string} country - correct country (used by the reverse prompt)
+     * Set the two-line prompt. Reusable across quizzes — the caller supplies the
+     * copy and which line carries the emphasis.
+     * @param {object} opts
+     * @param {'forward'|'reverse'} [opts.layout] - 'forward': the eyebrow is the
+     *   large Fredoka line over a small-caps main line (e.g. "Which country" /
+     *   "does this flag belong to?"). 'reverse': a small uppercase eyebrow over a
+     *   large main line (e.g. "WHICH FLAG BELONGS TO" / "France?").
+     * @param {string} opts.eyebrow - first (top) line.
+     * @param {string} opts.main - second (bottom) line.
+     * @param {boolean} [opts.mainQuestion] - append an accented "?" to the main
+     *   line (used by the reverse layout's country name).
      */
-    setPrompt(type, country) {
+    setPrompt(opts = {}) {
         if (!this.root) return;
-        const prompt = this.root.querySelector('.fqq-prompt');
-        const eyebrow = this.root.querySelector('#fqq-eyebrow');
-        const main = this.root.querySelector('#fqq-main');
-        if (type === 'reverse') {
-            // Small eyebrow over the large country name.
-            prompt.classList.remove('fqq-prompt-forward');
-            eyebrow.textContent = 'WHICH FLAG BELONGS TO';
-            main.innerHTML = `${country}<span class="fqq-q">?</span>`;
-            main.classList.add('fqq-main-lg');
+        const { layout = 'forward', eyebrow = '', main = '', mainQuestion = false } = opts;
+        const prompt = this.root.querySelector('.qz-prompt');
+        const eyebrowEl = this.root.querySelector('#qz-eyebrow');
+        const mainEl = this.root.querySelector('#qz-main');
+        if (layout === 'reverse') {
+            // Small eyebrow over the large main line.
+            prompt.classList.remove('qz-prompt-forward');
+            eyebrowEl.textContent = eyebrow;
+            mainEl.innerHTML = mainQuestion ? `${main}<span class="qz-q">?</span>` : main;
+            mainEl.classList.add('qz-main-lg');
         } else {
-            // Forward: large bold "Which country" over small-caps "does this flag…".
-            prompt.classList.add('fqq-prompt-forward');
-            eyebrow.textContent = 'Which country';
-            main.textContent = 'does this flag belong to?';
-            main.classList.remove('fqq-main-lg');
+            // Forward: large bold eyebrow over a small-caps main line.
+            prompt.classList.add('qz-prompt-forward');
+            eyebrowEl.textContent = eyebrow;
+            mainEl.textContent = main;
+            mainEl.classList.remove('qz-main-lg');
         }
     }
 }

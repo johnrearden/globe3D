@@ -431,6 +431,29 @@ progress screen plus a best/new-best badge on the end-of-quiz results modal (`qu
 
 ---
 
+## Shared quiz question chrome (`quiz-question-chrome.js` + `.qz-*` CSS)
+
+The redesigned in-quiz question screen (top bar / stat chips / progress bar / two-line
+prompt) is a **single reusable component**, `js/features/quiz/quiz-question-chrome.js`,
+plus one shared, mostly-unscoped CSS layer (the `.qz-*` classes + the `--qz-*` semantic
+colour tokens in `styles.css`). Built to serve all four quizzes; adopted so far by:
+
+- **Identify the flag** (`identify-flag-quiz.js`) — `variant: 'fullscreen'`: the chrome
+  takes over the screen (`body.flag-quiz-active`, navy gradient, globe hidden).
+- **Name the country** (`name-flag-quiz.js`) — `variant: 'floating'`: the chrome floats
+  over the **live globe** (`body.globe-quiz-active`) as a bottom-right card (desktop) /
+  bottom sheet capped at `33vh` (mobile). Implements `design/name_country_quiz/`.
+
+Shared pieces (no per-quiz duplication): the chrome markup/JS, `#quiz-options.qz-answers`
+(name-pick option grid: idle/hover/`.correct`/`.incorrect`/`.dimmed` states + the
+`.qz-mark` result badge), and the `--qz-correct-*` / `--qz-wrong-*` / `--qz-opt-*` tokens.
+Only **container geometry** is scoped by body class (`flag-quiz-active` vs
+`globe-quiz-active`). `setPrompt({layout, eyebrow, main, mainQuestion})` is copy-driven so
+each quiz supplies its own prompt. **Find the country** and **Capital cities** can adopt
+the same chrome later with no new CSS. *(CSS gotcha when editing the token comment: never
+write a literal `*/` — e.g. `--qz-correct-*/...` — inside a `/* */` block; it closes the
+comment early and silently drops the following `:root` rule.)*
+
 ## Cross-cutting conventions
 
 - **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.

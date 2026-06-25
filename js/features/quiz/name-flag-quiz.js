@@ -5,6 +5,7 @@
 
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
+import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -30,6 +31,15 @@ export class NameFlagQuiz {
         this.autoAdvanceTimer = null;
         this.active = false;
         this.scope = 'globe'; // Region filter: 'globe' or a region name
+
+        // Shared question-screen chrome (top bar / chips / progress / prompt),
+        // floating-panel variant: it sits over the live globe rather than taking
+        // over the screen like the flag quiz. See design/name_country_quiz/.
+        this.chrome = new QuizQuestionChrome({
+            elements: this.elements,
+            onClose: () => this.cancel(),
+            variant: 'floating'
+        });
     }
 
     /**
@@ -54,12 +64,16 @@ export class NameFlagQuiz {
         const controls = this.cameraController.getControls();
         controls.autoRotate = false;
 
-        // Add quiz-active class to body for mobile styling
+        // Add quiz-active class to body for mobile styling. globe-quiz-active
+        // turns #quiz-container into the floating panel that lets the live globe
+        // (the question) show through behind it.
         document.body.classList.add('quiz-active');
+        document.body.classList.add('globe-quiz-active');
 
         // Clear any previous quiz options before starting
         const optionsContainer = this.elements.get('quiz-options');
         optionsContainer.innerHTML = '';
+        optionsContainer.classList.add('qz-answers');
 
         // Clear any inline display overrides left over from cancelQuiz/end —
         // otherwise the container stays hidden and the Take Quiz button stays
@@ -81,6 +95,12 @@ export class NameFlagQuiz {
 
         // Reset score display
         this.updateScoreDisplay();
+
+        // Build the floating question-screen chrome (top bar / chips / progress /
+        // prompt) before the timer starts — the timer binds to the #quiz-timer
+        // span that lives inside the chrome's time chip.
+        this.chrome.show();
+        this.chrome.setScore(0, 0);
 
         // Start the count-up timer
         this.quizTimer.start();
@@ -105,13 +125,16 @@ export class NameFlagQuiz {
         state.set('quiz.active', false);
         state.set('quiz.mode', null);
 
-        // Remove quiz-active class from body
+        // Tear down the floating chrome and its body classes.
+        this.chrome.hide();
         document.body.classList.remove('quiz-active');
+        document.body.classList.remove('globe-quiz-active');
 
         // Hide quiz elements
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-options').innerHTML = '';
+        this.elements.get('quiz-options').classList.remove('qz-answers');
         this.elements.get('quiz-container').style.display = 'none';
 
         // Reset globe highlighting
@@ -158,8 +181,8 @@ export class NameFlagQuiz {
         // Filter out countries already used in this quiz
         const availableCountries = quizCentroids.filter(c => !this.usedCountries.includes(c.name));
 
-        if (availableCountries.length < 4) {
-            console.error('Not enough unused countries for quiz');
+        if (availableCountries.length < 1 || quizCentroids.length < 6) {
+            console.error('Not enough countries for a 6-option quiz');
             return null;
         }
 
@@ -181,9 +204,9 @@ export class NameFlagQuiz {
         // Sort by distance (ascending - closest first)
         distancesWithCountries.sort((a, b) => a.distance - b.distance);
 
-        // Select 3 closest countries as distractors
+        // Select 5 closest countries as distractors (6 options total, per design)
         const distractors = distancesWithCountries
-            .slice(0, 3)
+            .slice(0, 5)
             .map(item => item.country.name);
 
         // Combine correct answer with distractors
@@ -214,6 +237,16 @@ export class NameFlagQuiz {
         // Hide result and next button
         this.elements.get('quiz-result').style.display = 'none';
         this.elements.get('quiz-next-btn').style.visibility = 'hidden';
+
+        // Drive the floating chrome (counter + progress + prompt). The prompt
+        // reuses the forward layout: large "Which country" over a quiet
+        // "is highlighted on the globe".
+        this.chrome.setQuestion(this.questionsAnswered + 1);
+        this.chrome.setPrompt({
+            layout: 'forward',
+            eyebrow: 'Which country',
+            main: 'is highlighted on the globe'
+        });
 
         // Clear previous options completely
         const optionsContainer = this.elements.get('quiz-options');
@@ -274,20 +307,27 @@ export class NameFlagQuiz {
         this.questionsAnswered++;
         state.set('quiz.questionsAnswered', this.questionsAnswered);
 
-        // Update score display
+        // Update score display (legacy spans + the chrome score chip).
         this.updateScoreDisplay();
+        this.chrome.setScore(this.score, this.questionsAnswered);
 
-        // Disable all option buttons
+        // Reveal outcome on every option: correct (green + check), the wrong pick
+        // (red + ✕), and dim the rest. The .qz-mark badge is an inline SVG icon
+        // (no icon font, per CLAUDE.md); CSS positions it per layout.
         const optionButtons = document.querySelectorAll('.quiz-option');
         optionButtons.forEach(button => {
             button.disabled = true;
 
-            // Highlight correct and incorrect answers (color only — no appended label,
-            // because appending mutates the button's intrinsic size and reflows the grid).
             if (button.dataset.country === this.currentQuestion.correctCountry) {
                 button.classList.add('correct');
+                button.insertAdjacentHTML('beforeend',
+                    `<span class="qz-mark qz-mark-correct">${svgIcon('check', 16)}</span>`);
             } else if (button.dataset.country === selectedCountry && !isCorrect) {
                 button.classList.add('incorrect');
+                button.insertAdjacentHTML('beforeend',
+                    `<span class="qz-mark qz-mark-wrong">${svgIcon('x', 16)}</span>`);
+            } else {
+                button.classList.add('dimmed');
             }
         });
 
@@ -299,20 +339,16 @@ export class NameFlagQuiz {
                 this.end();
             }, 2000);
         } else {
-            // Show next button for 3 seconds, then auto-advance
-            this.elements.get('quiz-next-btn').style.visibility = 'visible';
-
-            // Clear any existing timer
+            // Auto-advance (the floating panel hides the Next button). Give a wrong
+            // answer longer to read the correct one, matching the flag quiz.
             if (this.autoAdvanceTimer) {
                 clearTimeout(this.autoAdvanceTimer);
             }
-
-            // Set new timer
+            const advanceDelay = isCorrect ? 1500 : 2500;
             this.autoAdvanceTimer = setTimeout(() => {
-                this.elements.get('quiz-next-btn').style.visibility = 'hidden';
                 this.autoAdvanceTimer = null;
                 this.nextQuestion();
-            }, 1500);
+            }, advanceDelay);
         }
     }
 
@@ -343,11 +379,14 @@ export class NameFlagQuiz {
         state.set('quiz.active', false);
         state.set('quiz.mode', null);
 
+        this.chrome.hide();
         document.body.classList.remove('quiz-active');
+        document.body.classList.remove('globe-quiz-active');
 
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-options').innerHTML = '';
+        this.elements.get('quiz-options').classList.remove('qz-answers');
         // Clear the inline overrides (don't set 'none'/'block') so CSS restores
         // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.
         this.elements.get('quiz-container').style.display = '';
