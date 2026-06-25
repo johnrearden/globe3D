@@ -623,37 +623,50 @@
                     // Quiz progress / history screen (reads quiz-history-store).
                     quizStats = new QuizStats();
 
+                    // Start a quiz by picker mode id + scope, remembering the choice
+                    // so the results modal's "Play again" can replay the same quiz
+                    // (same mode + scope, fresh random questions).
+                    let lastQuiz = null; // { mode, scope } of the most recently started quiz
+                    const startQuizMode = ({ mode, scope }) => {
+                        lastQuiz = { mode, scope };
+                        // scope is 'globe' or a region name (Africa, Asia, Caribbean, etc.)
+                        switch (mode) {
+                            case 'name':
+                                nameFlagQuiz.start(scope);
+                                break;
+                            case 'flag':
+                                identifyFlagQuiz.start(scope);
+                                break;
+                            case 'find':
+                                clickQuiz.start(scope);
+                                break;
+                            case 'capital':
+                                capitalCitiesQuiz.start(scope);
+                                break;
+                        }
+                    };
+
                     // Quiz Mode Picker (bottom-sheet with scope selector)
                     quizModePicker = new QuizModePicker({
                         onStats: () => quizStats.show(),
-                        onQuizStart: ({ mode, scope }) => {
-                            // scope is 'globe' or a region name (Africa, Asia, Caribbean, etc.)
-                            switch (mode) {
-                                case 'name':
-                                    nameFlagQuiz.start(scope);
-                                    break;
-                                case 'flag':
-                                    identifyFlagQuiz.start(scope);
-                                    break;
-                                case 'find':
-                                    clickQuiz.start(scope);
-                                    break;
-                                case 'capital':
-                                    capitalCitiesQuiz.start(scope);
-                                    break;
-                            }
-                        }
+                        onQuizStart: startQuizMode
                     });
 
-                    // End-of-quiz results modal. Both dismiss paths restore the globe
+                    // End-of-quiz results modal. All dismiss paths restore the globe
                     // from any in-progress shatter (the modal's hide() restores chrome +
-                    // clears celebration-active). Play again reopens the quiz chooser.
+                    // clears celebration-active). Play again replays the same quiz;
+                    // "Choose another quiz" reopens the quiz chooser.
                     const restoreGlobeFromCelebration = () => {
                         if (shatterAnimation) shatterAnimation.restore();
                         if (pinballAnimation) pinballAnimation.restore();
                     };
                     quizResultsModal = new QuizResultsModal({
-                        onPlayAgain: () => { restoreGlobeFromCelebration(); quizModePicker.show(); },
+                        onPlayAgain: () => {
+                            restoreGlobeFromCelebration();
+                            if (lastQuiz) startQuizMode(lastQuiz);
+                            else quizModePicker.show();
+                        },
+                        onChooseQuiz: () => { restoreGlobeFromCelebration(); quizModePicker.show(); },
                         onGlobe: () => { restoreGlobeFromCelebration(); }
                     });
                     quizUI.resultsModal = quizResultsModal;

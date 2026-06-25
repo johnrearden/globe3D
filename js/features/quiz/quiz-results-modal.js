@@ -19,7 +19,8 @@ const ICONS = {
     clock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></svg>`,
     arrowClockwise: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M197.67,186.37a8,8,0,0,1,0,11.29C196.58,198.73,170.82,224,128,224c-37.39,0-64.53-22.4-80-39.85V208a8,8,0,0,1-16,0V160a8,8,0,0,1,8-8H88a8,8,0,0,1,0,16H55.44C67.76,183.35,93,208,128,208c36,0,58.14-21.46,58.36-21.68A8,8,0,0,1,197.67,186.37ZM216,40a8,8,0,0,0-8,8V71.85C192.53,54.4,165.39,32,128,32,85.18,32,59.42,57.27,58.34,58.34a8,8,0,0,0,11.3,11.34C69.86,69.46,92,48,128,48c35,0,60.24,24.65,72.56,40H168a8,8,0,0,0,0,16h48a8,8,0,0,0,8-8V48A8,8,0,0,0,216,40Z"/></svg>`,
     shareNetwork: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M176,160a39.89,39.89,0,0,0-28.62,12.09l-46.1-29.63a39.8,39.8,0,0,0,0-28.92l46.1-29.63a40,40,0,1,0-8.66-13.45l-46.1,29.63a40,40,0,1,0,0,55.82l46.1,29.63A40,40,0,1,0,176,160Zm0-128a24,24,0,1,1-24,24A24,24,0,0,1,176,32ZM64,152a24,24,0,1,1,24-24A24,24,0,0,1,64,152Zm112,72a24,24,0,1,1,24-24A24,24,0,0,1,176,224Z"/></svg>`,
-    globeHemisphereWest: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM62.29,186.47l2.52-1.65A16,16,0,0,0,72,171.53l.21-36.23L93.17,104a3.62,3.62,0,0,0,.32.22l19.67,12.87a15.94,15.94,0,0,0,11.35,2.77L156,115.59a16,16,0,0,0,10-5.41l22.17-25.76A16,16,0,0,0,192,74V67.67A87.87,87.87,0,0,1,211.77,155l-16.14-14.76a16,16,0,0,0-16.93-3l-30.46,12.65a16.08,16.08,0,0,0-9.68,12.45l-2.39,16.19a16,16,0,0,0,11.77,17.81L169.4,202l2.36,2.37A87.88,87.88,0,0,1,62.29,186.47ZM40,128a87.78,87.78,0,0,1,9.64-40.1L73,104.51,52.13,135.82a8,8,0,0,0-1.29,3.78l-.22,38.77a88.1,88.1,0,0,1-10.62-50.37Zm136-64V74l-22.17,25.76-31.54,4.27L102.62,91.16a19.93,19.93,0,0,0-10.12-3.14l-32.14.21A88,88,0,0,1,128,40a87.44,87.44,0,0,1,48,14.24Z"/></svg>`
+    globeHemisphereWest: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM62.29,186.47l2.52-1.65A16,16,0,0,0,72,171.53l.21-36.23L93.17,104a3.62,3.62,0,0,0,.32.22l19.67,12.87a15.94,15.94,0,0,0,11.35,2.77L156,115.59a16,16,0,0,0,10-5.41l22.17-25.76A16,16,0,0,0,192,74V67.67A87.87,87.87,0,0,1,211.77,155l-16.14-14.76a16,16,0,0,0-16.93-3l-30.46,12.65a16.08,16.08,0,0,0-9.68,12.45l-2.39,16.19a16,16,0,0,0,11.77,17.81L169.4,202l2.36,2.37A87.88,87.88,0,0,1,62.29,186.47ZM40,128a87.78,87.78,0,0,1,9.64-40.1L73,104.51,52.13,135.82a8,8,0,0,0-1.29,3.78l-.22,38.77a88.1,88.1,0,0,1-10.62-50.37Zm136-64V74l-22.17,25.76-31.54,4.27L102.62,91.16a19.93,19.93,0,0,0-10.12-3.14l-32.14.21A88,88,0,0,1,128,40a87.44,87.44,0,0,1,48,14.24Z"/></svg>`,
+    squaresFour: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>`
 };
 
 // Full circumference of the r=62 ring (2 * pi * 62), the SVG stroke-dasharray.
@@ -45,8 +46,9 @@ function formatTime(totalSeconds) {
 }
 
 export class QuizResultsModal {
-    constructor({ onPlayAgain = () => {}, onGlobe = () => {} } = {}) {
+    constructor({ onPlayAgain = () => {}, onChooseQuiz = () => {}, onGlobe = () => {} } = {}) {
         this.onPlayAgain = onPlayAgain;
+        this.onChooseQuiz = onChooseQuiz;
         this.onGlobe = onGlobe;
 
         this.visible = false;
@@ -109,7 +111,13 @@ export class QuizResultsModal {
                     </button>
                 </div>
 
-                <div class="qr-secondary qr-fade-item" style="animation-delay:.3s">
+                <div class="qr-fade-item" style="animation-delay:.28s">
+                    <button class="qr-btn-wide qr-choose" type="button">
+                        <span class="qr-btn-icon">${ICONS.squaresFour}</span>Choose another quiz
+                    </button>
+                </div>
+
+                <div class="qr-secondary qr-fade-item" style="animation-delay:.32s">
                     <button class="qr-btn-secondary qr-share" type="button">
                         <span class="qr-btn-icon">${ICONS.shareNetwork}</span><span class="qr-share-label">Share</span>
                     </button>
@@ -144,6 +152,10 @@ export class QuizResultsModal {
         this.container.querySelector('.qr-btn-primary').addEventListener('click', () => {
             this.hide();
             this.onPlayAgain();
+        });
+        this.container.querySelector('.qr-choose').addEventListener('click', () => {
+            this.hide();
+            this.onChooseQuiz();
         });
         this.container.querySelector('.qr-globe').addEventListener('click', () => {
             this.hide();

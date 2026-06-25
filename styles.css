@@ -1181,6 +1181,29 @@
         .qr-btn-icon { display: inline-flex; }
         .qr-btn-primary .qr-btn-icon svg { width: 16px; height: 16px; }
 
+        /* Full-width secondary action under Play again — pick a different quiz. */
+        .qr-btn-wide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 999px;
+            background: transparent;
+            color: #cdd8e3;
+            font-family: 'Archivo', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
+        }
+        .qr-btn-wide:hover { background: rgba(255, 255, 255, .05); color: #eef2f6; }
+        .qr-btn-wide .qr-btn-icon svg { width: 16px; height: 16px; }
+
         /* 7. Secondary actions — Share / Globe */
         .qr-secondary {
             display: flex;
