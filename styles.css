@@ -804,18 +804,28 @@
             box-shadow: 0 22px 60px rgba(0, 0, 0, 0.5), 0 -2px 0 rgba(255, 255, 255, 0.05) inset;
             overflow: visible;
         }
-        /* Legacy chrome is replaced by #qz-chrome (as in the flag quiz); the
-           floating panel auto-advances, so the Next button is hidden too. */
+        /* Legacy chrome is replaced by #qz-chrome (as in the flag quiz). The
+           Next button is kept — it sits at the bottom of the panel. */
         body.globe-quiz-active #quiz-container #quiz-header,
         body.globe-quiz-active #quiz-container #quiz-score,
         body.globe-quiz-active #quiz-container #quiz-question,
         body.globe-quiz-active #quiz-container #quiz-result,
-        body.globe-quiz-active #quiz-container #quiz-cancel-btn,
-        body.globe-quiz-active #quiz-container #quiz-next-btn {
+        body.globe-quiz-active #quiz-container #quiz-cancel-btn {
             display: none !important;
         }
         /* Chrome fills the card rather than centering at its own max-width. */
         body.globe-quiz-active #qz-chrome { max-width: none; }
+
+        /* Next button → amber pill at the bottom of the floating panel. */
+        body.globe-quiz-active #quiz-next-btn {
+            width: 100%;
+            margin-top: 14px;
+            padding: 11px;
+            font-family: 'Archivo', sans-serif;
+            font-size: 14px;
+            background: linear-gradient(90deg, #f59e4b, #f59440);
+            border-radius: 999px;
+        }
 
         /* Floating-variant compact header — counter · score · time · close on a
            single row (no chip boxes), so the panel stays short and never scrolls. */
@@ -2863,6 +2873,11 @@
             body.globe-quiz-active #quiz-options.qz-answers .qz-mark .qz-svg {
                 width: 13px;
                 height: 13px;
+            }
+            body.globe-quiz-active #quiz-next-btn {
+                margin-top: 10px;
+                padding: 9px;
+                font-size: 13px;
             }
 
             /* Flag Quiz Fullscreen on Mobile */

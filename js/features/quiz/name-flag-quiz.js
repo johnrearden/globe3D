@@ -339,13 +339,15 @@ export class NameFlagQuiz {
                 this.end();
             }, 2000);
         } else {
-            // Auto-advance (the floating panel hides the Next button). Give a wrong
-            // answer longer to read the correct one, matching the flag quiz.
+            // Reveal the Next button (bottom of the panel) for manual advance, and
+            // also auto-advance. Give a wrong answer longer to read the correct one.
+            this.elements.get('quiz-next-btn').style.visibility = 'visible';
             if (this.autoAdvanceTimer) {
                 clearTimeout(this.autoAdvanceTimer);
             }
             const advanceDelay = isCorrect ? 1500 : 2500;
             this.autoAdvanceTimer = setTimeout(() => {
+                this.elements.get('quiz-next-btn').style.visibility = 'hidden';
                 this.autoAdvanceTimer = null;
                 this.nextQuestion();
             }, advanceDelay);
