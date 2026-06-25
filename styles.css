@@ -816,6 +816,12 @@
         /* Chrome fills the card rather than centering at its own max-width. */
         body.globe-quiz-active #qz-chrome { max-width: none; }
 
+        /* Capitals quiz has 4 options → keep a 2×2 grid. The extra .capital-quiz-active
+           class outranks the shared 6-option 3-col mobile rule at every width. */
+        body.globe-quiz-active.capital-quiz-active #quiz-options.qz-answers {
+            grid-template-columns: 1fr 1fr;
+        }
+
         /* Next button → amber pill at the bottom of the floating panel. */
         body.globe-quiz-active #quiz-next-btn {
             width: 100%;

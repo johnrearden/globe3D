@@ -74,6 +74,9 @@ export class CapitalCitiesQuiz {
         // (the question) show through behind it.
         document.body.classList.add('quiz-active');
         document.body.classList.add('globe-quiz-active');
+        // Marks this as the 4-option capitals quiz so the answer grid stays 2×2
+        // (the shared mobile rule is a 3-col layout tuned for 6 options).
+        document.body.classList.add('capital-quiz-active');
 
         // Clear any previous quiz options before starting
         const optionsContainer = this.elements.get('quiz-options');
@@ -132,6 +135,7 @@ export class CapitalCitiesQuiz {
         this.chrome.hide();
         document.body.classList.remove('quiz-active');
         document.body.classList.remove('globe-quiz-active');
+        document.body.classList.remove('capital-quiz-active');
 
         // Hide quiz elements
         this.elements.get('quiz-score').style.display = 'none';
@@ -417,6 +421,7 @@ export class CapitalCitiesQuiz {
         this.chrome.hide();
         document.body.classList.remove('quiz-active');
         document.body.classList.remove('globe-quiz-active');
+        document.body.classList.remove('capital-quiz-active');
 
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
