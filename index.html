@@ -306,6 +306,7 @@
         import { ApiClient } from './js/data/api-client.js';
         import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
         import { QuizInvite } from './js/features/quiz/quiz-invite.js';
+        import { WeakSpotsWidget } from './js/features/weak-spots-widget.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -406,6 +407,7 @@
         let quizInvite = null;
         let flagRenderer = null;
         let searchManager = null;
+        let weakSpotsWidget = null;   // WeakSpotsWidget (top-right most-missed overlay)
         let settingsPanel = null;     // SettingsPanel instance (the ⚙ gear + panel)
 
 
@@ -755,6 +757,15 @@
                         globeManager, labelManager, smallCountryIndicator, flagRenderer,
                         searchManager, focusRegistry, initialCameraDistance
                     });
+
+                    // Weak Spots overlay — top-right most-missed list. Clicking a row
+                    // reproduces a globe country-click (highlight + fly-to + flag panel).
+                    weakSpotsWidget = new WeakSpotsWidget({
+                        globeManager, cameraController, flagRenderer, labelManager,
+                        countryData, countryToISO, state,
+                        resetIdleTimer: () => cameraController.resetIdleTimer()
+                    });
+                    weakSpotsWidget.init();
 
                     // Texture fully loaded — reveal the globe by smoothly bringing
                     // the scene up from black to full lighting. The scene lights and

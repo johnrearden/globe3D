@@ -59,6 +59,16 @@ code. The Capital Cities quiz now runs on the 3D globe: forward questions pan/zo
 question, and the name label is revealed on answer. The settings panel's "2D map features" toggles
 (`MAP_TOGGLES`, `settingsStore.mapToggles`/`getMapToggleDefaults`) were removed with it.
 
+**Weak Spots overlay (2026-06-25):** a chromeless top-right heads-up list of the player's
+most-missed countries, `js/features/weak-spots-widget.js` (`WeakSpotsWidget`). It builds its own
+DOM (no static markup in `index.html`), reads the existing wrong-answer tally via
+`quizHistoryStore.getCountryStats({ minAsked: 1 })` (top 10, `pct < 100`), shows 5 rows at a time
+under a viewport-pinned fade mask, and subscribes to `state` `quiz.active` to hide during quizzes /
+refresh after. Clicking a row reproduces the non-quiz globe click (highlight + `rotateToCountry` +
+flag panel). Styling lives in `styles.css` (`.weakspots-*`). To free the top-right corner the
+desktop `#flag-container` was moved from `top` to `bottom` (mobile already docks it bottom-center);
+wiring is an import + one instantiation in `index.html`.
+
 **Beyond the staged plan** (polish + fixes surfaced during smoke testing): a runtime config
 cache-buster (`?v=` on the label/color/zoom JSON fetches), a per-quiz-module `cancel()` (restoring
 the desktop Start-Quiz panel), two fullscreen flag-quiz cancel-`×` fixes (`box-sizing:border-box`

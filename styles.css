@@ -45,7 +45,10 @@
 
         #flag-container {
             position: fixed;
-            top: 20px;
+            /* Docked bottom-right on desktop so it doesn't collide with the
+               top-right Weak Spots overlay. Mobile docks it bottom-center
+               (see the mobile media query below). */
+            bottom: 20px;
             right: 20px;
             pointer-events: none;
             z-index: 150;
@@ -94,6 +97,115 @@
         #flag-info .info-label {
             font-weight: bold;
             color: #FF8C00;
+        }
+
+        /* ===== WEAK SPOTS OVERLAY =====
+           Chromeless heads-up list docked top-right over the globe. No panel/
+           background — a text-shadow carries legibility over the busy globe.
+           Type/sizing scale with viewport (clamp between the design's mobile and
+           desktop anchors). The list is exactly 5 rows tall and fades out at the
+           bottom via a viewport-pinned mask so the fade stays put while scrolling. */
+        .weakspots {
+            --ws-row-h: clamp(26px, 1.3vw + 20px, 32px);
+            --ws-name-fs: clamp(11px, 0.7vw + 8.5px, 15px);
+            --ws-label-fs: clamp(9px, 0.4vw + 7.5px, 11.5px);
+            --ws-icon-fs: clamp(11px, 0.7vw + 8.5px, 15px);
+            --ws-flag-w: clamp(19px, 1.3vw + 14px, 27px);
+            --ws-gap: clamp(7px, 0.7vw + 4px, 11px);
+
+            position: fixed;
+            top: 26px;
+            right: 30px;
+            z-index: 151;
+            width: fit-content;
+            max-width: 240px;
+            /* Container ignores pointer events; only the rows opt back in so the
+               globe stays draggable through the gaps. */
+            pointer-events: none;
+            font-family: 'Archivo', sans-serif;
+            animation: ws-fade 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        @keyframes ws-fade {
+            0% { opacity: 0; transform: translateY(-8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .weakspots-title {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-bottom: 7px;
+        }
+
+        .weakspots-label {
+            font-weight: 600;
+            font-size: var(--ws-label-fs);
+            letter-spacing: 0.17em;
+            text-transform: uppercase;
+            color: #9fb2c6;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+        }
+
+        .weakspots-icon {
+            width: var(--ws-icon-fs);
+            height: var(--ws-icon-fs);
+            color: #f7b572;
+            flex: none;
+        }
+
+        .weakspots-list {
+            height: calc(5 * var(--ws-row-h));
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            /* Fade from the top of the 4th of 5 rows (60%) to the bottom of the 5th
+               (100%). Anchored to the viewport so it stays pinned while scrolling. */
+            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
+                    mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
+        }
+
+        .weakspots-list::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+        }
+
+        .weakspots-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--ws-gap);
+            height: var(--ws-row-h);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .weakspots-name {
+            font-weight: 500;
+            font-size: var(--ws-name-fs);
+            color: #f4f7fa;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .weakspots-flag {
+            width: var(--ws-flag-w);
+            height: calc(var(--ws-flag-w) * 2 / 3);
+            object-fit: cover;
+            border-radius: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+            flex: none;
+        }
+
+        /* Hide the overlay during quizzes (mirrors the flag/search overlays). */
+        body.quiz-active .weakspots {
+            display: none !important;
         }
 
         #search-container {
@@ -3035,6 +3147,13 @@
                 display: none !important;
             }
 
+            /* Weak Spots overlay must take no more than 30% of mobile width. */
+            .weakspots {
+                top: 18px;
+                right: 14px;
+                max-width: 30vw;
+            }
+
             #flag-container-content {
                 flex-direction: row;
                 gap: 10px;
@@ -3486,8 +3605,9 @@
    =========================================================================== */
 #settings-toggle {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    /* Moved to bottom-left so it clears the top-right Weak Spots overlay. */
+    bottom: 20px;
+    left: 20px;
     width: 40px;
     height: 40px;
     z-index: 350;
