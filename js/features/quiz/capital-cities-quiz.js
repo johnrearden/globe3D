@@ -10,6 +10,7 @@
 import { state } from '../../data/state.js';
 import { capitalIsSelfEvident } from '../../utils/self-evident-capital.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
+import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -35,6 +36,15 @@ export class CapitalCitiesQuiz {
         this.autoAdvanceTimer = null;
         this.active = false;
         this.scope = 'globe'; // Region filter: 'globe' or a region name
+
+        // Shared floating question-screen chrome (top bar / chips / progress /
+        // prompt) — the same one the Name-the-Country quiz uses, so this quiz
+        // matches its look and floats over the live globe.
+        this.chrome = new QuizQuestionChrome({
+            elements: this.elements,
+            onClose: () => this.cancel(),
+            variant: 'floating'
+        });
     }
 
     /**
@@ -59,12 +69,16 @@ export class CapitalCitiesQuiz {
         const controls = this.cameraController.getControls();
         controls.autoRotate = false;
 
-        // Add quiz-active class to body for mobile styling
+        // Add quiz-active class to body for mobile styling. globe-quiz-active
+        // turns #quiz-container into the floating panel that lets the live globe
+        // (the question) show through behind it.
         document.body.classList.add('quiz-active');
+        document.body.classList.add('globe-quiz-active');
 
         // Clear any previous quiz options before starting
         const optionsContainer = this.elements.get('quiz-options');
         optionsContainer.innerHTML = '';
+        optionsContainer.classList.add('qz-answers');
 
         // Clear inline display overrides left over from a previous quiz/end so the
         // CSS rules driven by body.quiz-active can govern visibility again.
@@ -85,6 +99,11 @@ export class CapitalCitiesQuiz {
 
         // Reset score display
         this.updateScoreDisplay();
+
+        // Build the floating chrome before the timer starts — the timer binds to
+        // the #quiz-timer span that lives inside the chrome's time chip.
+        this.chrome.show();
+        this.chrome.setScore(0, 0);
 
         // Start the count-up timer
         this.quizTimer.start();
@@ -109,13 +128,16 @@ export class CapitalCitiesQuiz {
         state.set('quiz.active', false);
         state.set('quiz.mode', null);
 
-        // Remove quiz-active class from body
+        // Tear down the floating chrome and its body classes.
+        this.chrome.hide();
         document.body.classList.remove('quiz-active');
+        document.body.classList.remove('globe-quiz-active');
 
         // Hide quiz elements
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-options').innerHTML = '';
+        this.elements.get('quiz-options').classList.remove('qz-answers');
         this.elements.get('quiz-container').style.display = 'none';
 
         // Reset globe highlighting + markers and zoom back out.
@@ -244,20 +266,32 @@ export class CapitalCitiesQuiz {
         this.globeManager.markers.clear();
         this.globeManager.markers.place(capital.lat, capital.lng);
 
-        // Set the question prompt and frame the globe for each direction.
-        const questionEl = this.elements.get('quiz-question');
+        // Drive the floating chrome prompt and frame the globe for each direction.
+        // Both use the 'reverse' layout: a small uppercase eyebrow over the large
+        // given entity (country or capital) with an accented "?".
+        this.chrome.setQuestion(this.questionsAnswered + 1);
         if (direction === 'forward') {
             // "What is the capital of X?" — the country is given, so pan/zoom to
             // it; the dot marks the capital but its name stays hidden until the
             // answer is revealed.
-            questionEl.textContent = `What is the capital of ${countryName}?`;
+            this.chrome.setPrompt({
+                layout: 'reverse',
+                eyebrow: 'WHAT IS THE CAPITAL OF',
+                main: countryName,
+                mainQuestion: true
+            });
             const aimPoint = this.globeManager.latLngToVector3(capital.lat, capital.lng, 1.0, 0);
             this.cameraController.rotateToCountry(countryObj, true, aimPoint);
         } else {
             // "Y is the capital of which country?" — don't give the country away:
             // zoom way out so the globe fills ~25% of the screen width with the
             // dot visible, leaving the player to place it.
-            questionEl.textContent = `${capital.name} is the capital of which country?`;
+            this.chrome.setPrompt({
+                layout: 'reverse',
+                eyebrow: 'WHICH COUNTRY HAS THE CAPITAL',
+                main: capital.name,
+                mainQuestion: true
+            });
             this.cameraController.frameWholeGlobe({ lat: capital.lat, lng: capital.lng, widthFraction: 0.25 });
         }
 
@@ -304,16 +338,25 @@ export class CapitalCitiesQuiz {
         state.set('quiz.questionsAnswered', this.questionsAnswered);
 
         this.updateScoreDisplay();
+        this.chrome.setScore(this.score, this.questionsAnswered);
 
-        // Disable all option buttons and color correct/incorrect (color only — no
-        // appended label, which would reflow the grid).
+        // Reveal outcome on every option: correct (green + check), the wrong pick
+        // (red + ✕), and dim the rest — matching the Name-the-Country quiz. The
+        // .qz-mark badge is an inline SVG icon (no icon font, per CLAUDE.md).
         const optionButtons = document.querySelectorAll('.quiz-option');
         optionButtons.forEach(button => {
             button.disabled = true;
+
             if (button.dataset.answer === this.currentQuestion.correctAnswer) {
                 button.classList.add('correct');
+                button.insertAdjacentHTML('beforeend',
+                    `<span class="qz-mark qz-mark-correct">${svgIcon('check', 16)}</span>`);
             } else if (button.dataset.answer === selectedAnswer && !isCorrect) {
                 button.classList.add('incorrect');
+                button.insertAdjacentHTML('beforeend',
+                    `<span class="qz-mark qz-mark-wrong">${svgIcon('x', 16)}</span>`);
+            } else {
+                button.classList.add('dimmed');
             }
         });
 
@@ -371,11 +414,14 @@ export class CapitalCitiesQuiz {
         state.set('quiz.active', false);
         state.set('quiz.mode', null);
 
+        this.chrome.hide();
         document.body.classList.remove('quiz-active');
+        document.body.classList.remove('globe-quiz-active');
 
         this.elements.get('quiz-score').style.display = 'none';
         this.elements.get('quiz-question').style.display = 'none';
         this.elements.get('quiz-options').innerHTML = '';
+        this.elements.get('quiz-options').classList.remove('qz-answers');
         // Clear the inline overrides (don't set 'none'/'block') so CSS restores
         // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.
         this.elements.get('quiz-container').style.display = '';
