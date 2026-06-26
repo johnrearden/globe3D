@@ -3319,7 +3319,7 @@
             color: #eef2f6;
             z-index: 9999;
             overflow: hidden;
-            transition: opacity 3s ease-out;
+            transition: opacity 1s ease-out;
         }
 
         #seo-content.hidden {

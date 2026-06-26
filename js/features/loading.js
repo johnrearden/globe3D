@@ -19,14 +19,14 @@ export function hideSeoContent() {
     const seoContent = elements.get('seo-content');
     if (seoContent) {
         addClass(seoContent, 'hidden');
-        // Remove after the fade-out transition completes (matches CSS 3s).
-        setTimeout(() => hide(seoContent), 3000);
+        // Remove after the fade-out transition completes (matches CSS 1s).
+        setTimeout(() => hide(seoContent), 1000);
     }
     // Once the splash has faded, let features react (e.g. the Daily Challenge
     // invite appears under the globe). Fires whether or not the overlay existed.
     setTimeout(
         () => document.dispatchEvent(new CustomEvent('globe3d:intro-dismissed')),
-        3000,
+        1000,
     );
 }
 
