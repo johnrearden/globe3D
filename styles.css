@@ -4155,7 +4155,11 @@ body.dq-active #quiz-invite { display: none; }
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
-.dq-lb-you { background: rgba(245, 158, 75, 0.14); color: #ffd9a8; font-weight: 700; }
+.dq-lb-you {
+    background: rgba(245, 158, 75, 0.14);
+    color: #ffd9a8;
+    font-weight: 700;
+}
 .dq-lb-pad td { color: #56657f; }   /* placeholder rows padding the board to a full top-10 */
 .dq-lb-yourrow {
     text-align: center;
@@ -4163,6 +4167,30 @@ body.dq-active #quiz-invite { display: none; }
     color: #ffd9a8;
     font-weight: 600;
     font-family: 'Archivo', sans-serif;
+}
+
+/* The player's own row slides in from off-screen left (~500ms) and lands with a
+   quick jiggle (the tight oscillation near the end reads as a vibration). Both are
+   built fresh each render, so the animation plays once on insert. */
+.dq-lb-you,
+.dq-lb-yourrow {
+    /* linear shorthand → the jiggle steps stay crisp; the slide segment overrides
+       with ease-in (start slow, accelerate, then hit the wall and stop abruptly). */
+    animation: dq-you-slide-in 1s linear both;
+}
+@keyframes dq-you-slide-in {
+    0%   { transform: translateX(-130%); animation-timing-function: ease-in; }
+    70%  { transform: translateX(0); }
+    /* lands and immediately jiggles — a quick vibration in place */
+    77%  { transform: translateX(-7px); }
+    84%  { transform: translateX(5px); }
+    90%  { transform: translateX(-3px); }
+    95%  { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dq-lb-you,
+    .dq-lb-yourrow { animation: none; }
 }
 
 /* Onboarding modal */
