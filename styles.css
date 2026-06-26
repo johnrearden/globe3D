@@ -1606,6 +1606,7 @@
         .qmp-chips {
             display: flex;
             flex-wrap: wrap;
+            justify-content: center;
             gap: 8px;
             margin-top: 12px;
             opacity: 0;
@@ -1676,9 +1677,9 @@
 
         .qmp-card-icon {
             flex: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 13px;
+            width: 21px;
+            height: 21px;
+            border-radius: 7px;
             background: rgba(245, 158, 75, 0.12);
             border: 1px solid rgba(245, 158, 75, 0.22);
             display: flex;
@@ -1687,8 +1688,8 @@
             color: #f7b572;
         }
         .qmp-card-icon svg {
-            width: 21px;
-            height: 21px;
+            width: 11px;
+            height: 11px;
         }
 
         .qmp-card-text {
@@ -1777,6 +1778,15 @@
             }
             .qmp--visible .qmp-sheet {
                 transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Mobile: hide non-essential helper text to save vertical space */
+        @media (max-width: 479px) {
+            .qmp-subtitle,
+            .qmp-scope-label,
+            .qmp-card-desc {
+                display: none;
             }
         }
 

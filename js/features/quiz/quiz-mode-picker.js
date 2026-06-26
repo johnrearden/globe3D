@@ -100,7 +100,7 @@ export class QuizModePicker {
                         </button>
                         <button class="qmp-segment" data-scope="region">
                             <span class="qmp-segment-icon">${ICONS.compass}</span>
-                            <span>By region</span>
+                            <span class="qmp-segment-text">By region</span>
                         </button>
                     </div>
                     <div class="qmp-chips" style="display: none;">
@@ -136,6 +136,7 @@ export class QuizModePicker {
         // Cache references
         this.sheet = this.container.querySelector('.qmp-sheet');
         this.chipsContainer = this.container.querySelector('.qmp-chips');
+        this.regionLabel = this.container.querySelector('.qmp-segment[data-scope="region"] .qmp-segment-text');
     }
 
     _attachListeners() {
@@ -168,7 +169,6 @@ export class QuizModePicker {
     }
 
     _setScope(scope) {
-        if (this.scope === scope) return;
         this.scope = scope;
 
         // Update segment styles
@@ -176,31 +176,49 @@ export class QuizModePicker {
             btn.classList.toggle('qmp-segment--active', btn.dataset.scope === scope);
         });
 
-        // Show/hide chips
+        // Show/hide chips. Picking the region segment always re-opens the panel
+        // (even if already in region scope) so the user can change their pick.
         if (scope === 'region') {
-            this.chipsContainer.style.display = 'flex';
-            // Trigger reflow for animation
-            void this.chipsContainer.offsetWidth;
-            this.chipsContainer.classList.add('qmp-chips--visible');
+            this._showChips();
         } else {
-            this.chipsContainer.classList.remove('qmp-chips--visible');
-            // Hide after animation
-            setTimeout(() => {
-                if (this.scope !== 'region') {
-                    this.chipsContainer.style.display = 'none';
-                }
-            }, 300);
+            this._hideChips();
+            this._resetRegionLabel();
         }
     }
 
+    _showChips() {
+        this.chipsContainer.style.display = 'flex';
+        // Trigger reflow for animation
+        void this.chipsContainer.offsetWidth;
+        this.chipsContainer.classList.add('qmp-chips--visible');
+    }
+
+    _hideChips() {
+        this.chipsContainer.classList.remove('qmp-chips--visible');
+        // Hide after the collapse animation finishes
+        setTimeout(() => {
+            if (!this.chipsContainer.classList.contains('qmp-chips--visible')) {
+                this.chipsContainer.style.display = 'none';
+            }
+        }, 300);
+    }
+
+    _resetRegionLabel() {
+        this.regionLabel.textContent = 'By region';
+    }
+
     _setRegion(region) {
-        if (this.region === region) return;
         this.region = region;
 
         // Update chip styles
         this.container.querySelectorAll('.qmp-chip').forEach(btn => {
             btn.classList.toggle('qmp-chip--active', btn.dataset.region === region);
         });
+
+        // Show the chosen region as the segment label and collapse the panel
+        // to save vertical space.
+        this.regionLabel.textContent = region;
+        this._hideChips();
     }
 
     _startQuiz(mode) {
@@ -214,8 +232,17 @@ export class QuizModePicker {
         this.visible = true;
 
         // Reset state to defaults
-        this._setScope('globe');
-        this._setRegion('Africa');
+        this.scope = 'globe';
+        this.region = 'Africa';
+        this.container.querySelectorAll('.qmp-segment').forEach(btn => {
+            btn.classList.toggle('qmp-segment--active', btn.dataset.scope === 'globe');
+        });
+        this.container.querySelectorAll('.qmp-chip').forEach(btn => {
+            btn.classList.toggle('qmp-chip--active', btn.dataset.region === 'Africa');
+        });
+        this._resetRegionLabel();
+        this.chipsContainer.classList.remove('qmp-chips--visible');
+        this.chipsContainer.style.display = 'none';
 
         this.container.style.display = 'block';
         // Trigger reflow for animations
