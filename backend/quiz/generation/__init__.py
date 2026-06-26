@@ -97,9 +97,12 @@ def generate_for_quiz(quiz):
     count = settings.DAILY_QUIZ_QUESTION_COUNT
     sequence = _type_sequence(rng, count)
 
+    # Shared across the quiz so no country is the subject/answer of two questions
+    # (generators exclude these pks when picking subjects; distractors are exempt).
+    used = set()
     created = []
     for index, qtype in enumerate(sequence):
-        spec = REGISTRY[qtype](rng, pool)
+        spec = REGISTRY[qtype](rng, pool, used)
         payload = dict(spec['payload'])
         payload['index'] = index
         question = Question.objects.create(

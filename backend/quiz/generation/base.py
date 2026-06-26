@@ -94,6 +94,20 @@ def frame_distance(center_lat, center_lng, countries):
     return round(max(1.3, min(dist, 6.0)), 3)
 
 
+def choose_unused(rng, candidates, used):
+    """Random candidate whose pk isn't in `used`; falls back to the full list
+    when every candidate is already used (tiny pool / many questions).
+
+    Lets the daily generator keep one country from being the *subject* of two
+    questions in the same quiz without disturbing distractor selection.
+    """
+    if used:
+        fresh = [c for c in candidates if c.pk not in used]
+        if fresh:
+            return rng.choice(fresh)
+    return rng.choice(candidates)
+
+
 def nearest_countries(target, pool, count):
     """The `count` countries in `pool` geographically closest to `target`."""
     others = [c for c in pool if c.pk != target.pk]

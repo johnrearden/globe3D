@@ -11,6 +11,7 @@ from . import register
 from .base import (
     DEFAULT_FOCAL_ANCHOR,
     cca3_index,
+    choose_unused,
     country_option,
     frame_distance,
     nearest_countries,
@@ -35,17 +36,18 @@ def _resolve_neighbours(target, by_cca3):
     return out
 
 
-def gen_bordering(rng, pool):
+def gen_bordering(rng, pool, used=None):
     """Map centered on a country + a grid of ~12; click all its neighbours.
 
     Picks a target with a fair number (3..8) of on-globe neighbours so the answer
     is neither trivial nor exhausting, then fills the grid with the geographically
     nearest non-neighbours as distractors.
     """
+    used = set() if used is None else used
     globe = on_globe()
     by_cca3 = cca3_index(globe)
 
-    candidates = list(pool)
+    candidates = [c for c in pool if c.pk not in used]
     rng.shuffle(candidates)
     target = None
     neighbours = []
@@ -64,8 +66,9 @@ def gen_bordering(rng, pool):
     if target is None:
         # Extremely unlikely; degrade to a name-country-style single pick.
         from .core import gen_name_country
-        return gen_name_country(rng, pool)
+        return gen_name_country(rng, pool, used)
 
+    used.add(target.pk)
     neighbour_names = {n.mesh_name for n in neighbours}
     # Distractors: nearest countries that are neither the target nor neighbours.
     exclude = neighbour_names | {target.mesh_name}
@@ -107,14 +110,19 @@ def gen_bordering(rng, pool):
     }
 
 
-def gen_landlocked(rng, pool):
+def gen_landlocked(rng, pool, used=None):
     """Text prompt + grid mixing landlocked & coastal; click the landlocked ones."""
+    used = set() if used is None else used
     landlocked = [c for c in pool if c.landlocked]
     coastal = [c for c in pool if not c.landlocked]
 
+    # Draw the correct (subject) answers from the unused landlocked countries so
+    # they don't repeat as another question's subject; distractors stay unfiltered.
+    answer_pool = [c for c in landlocked if c.pk not in used] or landlocked
     n_correct = rng.randint(2, 4)
-    n_correct = min(n_correct, len(landlocked), LANDLOCKED_GRID_SIZE - 2)
-    chosen_landlocked = rng.sample(landlocked, n_correct)
+    n_correct = min(n_correct, len(answer_pool), LANDLOCKED_GRID_SIZE - 2)
+    chosen_landlocked = rng.sample(answer_pool, n_correct)
+    used.update(c.pk for c in chosen_landlocked)
     n_coastal = LANDLOCKED_GRID_SIZE - n_correct
     chosen_coastal = rng.sample(coastal, min(n_coastal, len(coastal)))
 
@@ -142,7 +150,7 @@ def gen_landlocked(rng, pool):
     }
 
 
-def gen_coastline(rng, pool):
+def gen_coastline(rng, pool, used=None):
     """Text prompt + grid mixing coastal & landlocked; click the ones with a coastline.
 
     The mirror image of gen_landlocked: here the coastal countries are the answers
@@ -150,13 +158,18 @@ def gen_coastline(rng, pool):
     the world, so we deliberately seed several landlocked distractors to keep it a
     real test rather than "click almost everything".
     """
+    used = set() if used is None else used
     landlocked = [c for c in pool if c.landlocked]
     coastal = [c for c in pool if not c.landlocked]
 
+    # Draw the correct (subject) answers from the unused coastal countries so they
+    # don't repeat as another question's subject; distractors stay unfiltered.
+    answer_pool = [c for c in coastal if c.pk not in used] or coastal
     # 3..5 coastal answers, with at least 2 landlocked distractors in the grid.
     n_correct = rng.randint(3, 5)
-    n_correct = min(n_correct, len(coastal), COASTLINE_GRID_SIZE - 2)
-    chosen_coastal = rng.sample(coastal, n_correct)
+    n_correct = min(n_correct, len(answer_pool), COASTLINE_GRID_SIZE - 2)
+    chosen_coastal = rng.sample(answer_pool, n_correct)
+    used.update(c.pk for c in chosen_coastal)
     n_land = COASTLINE_GRID_SIZE - n_correct
     chosen_land = rng.sample(landlocked, min(n_land, len(landlocked)))
 
@@ -190,13 +203,14 @@ def _region_centroid(countries):
     return (sum(lats) / len(lats), sum(lngs) / len(lngs))
 
 
-def gen_region_click(rng, pool):
+def gen_region_click(rng, pool, used=None):
     """Zoomed-out map of a subregion; 'Click {country}' — pick it on the map.
 
     No grid: the whole subregion is clickable (clickTargets). Camera framing is
     left to the frontend (zoom=None) which derives it from the click targets'
     local bboxes; we just supply the region centroid as the center.
     """
+    used = set() if used is None else used
     globe = on_globe()
     # Group on-globe countries by subregion, excluding tiny ones — they're
     # near-impossible to tap on the globe, so they're neither asked nor clickable.
@@ -208,7 +222,7 @@ def gen_region_click(rng, pool):
     regions = [(sub, members) for sub, members in by_sub.items() if len(members) >= 4]
     if not regions:
         from .core import gen_name_country
-        return gen_name_country(rng, pool)
+        return gen_name_country(rng, pool, used)
 
     # Prefer a subregion that has at least one independent country to ask for.
     rng.shuffle(regions)
@@ -222,7 +236,8 @@ def gen_region_click(rng, pool):
 
     # Ask for an independent country (recognizable); keep all members clickable.
     askable = [m for m in members if m.independent] or members
-    target = rng.choice(askable)
+    target = choose_unused(rng, askable, used)
+    used.add(target.pk)
     center_lat, center_lng = _region_centroid(members)
 
     payload = {

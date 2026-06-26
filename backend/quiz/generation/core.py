@@ -7,6 +7,7 @@ Each generator takes (rng, pool) and returns a question dict:
 
 from .base import (
     capital_is_self_evident,
+    choose_unused,
     country_option,
     map_block,
     nearest_countries,
@@ -34,9 +35,11 @@ def _single_choice_payload(qtype, prompt, options, *, map_=None, flag=None, disp
     return payload
 
 
-def gen_name_country(rng, pool):
+def gen_name_country(rng, pool, used=None):
     """Highlight a country on the globe; pick its name from four options."""
-    target = rng.choice(pool)
+    used = set() if used is None else used
+    target = choose_unused(rng, pool, used)
+    used.add(target.pk)
     distractors = nearest_countries(target, pool, OPTION_COUNT - 1)
     options = [country_option(c) for c in [target, *distractors]]
     rng.shuffle(options)
@@ -55,10 +58,12 @@ def gen_name_country(rng, pool):
     }
 
 
-def gen_identify_flag(rng, pool):
+def gen_identify_flag(rng, pool, used=None):
     """Show a country's flag; pick the matching country from four options."""
+    used = set() if used is None else used
     flaggable = [c for c in pool if c.flag_iso]
-    target = rng.choice(flaggable)
+    target = choose_unused(rng, flaggable, used)
+    used.add(target.pk)
     # Distractors here are random (a flag gives no geographic hint), but keep them
     # plausible by drawing from the same region when possible.
     same_region = [c for c in flaggable if c.region == target.region and c.pk != target.pk]
@@ -82,7 +87,7 @@ def gen_identify_flag(rng, pool):
     }
 
 
-def gen_capital(rng, pool):
+def gen_capital(rng, pool, used=None):
     """Bidirectional capital question.
 
     forward:  "What is the capital of {country}?"  options = capital names
@@ -90,11 +95,13 @@ def gen_capital(rng, pool):
     """
     # Drop pairs where the capital gives the country away (Mexico/Mexico City,
     # Tunisia/Tunis, the city-states, …) so the answer isn't self-evident.
+    used = set() if used is None else used
     have_capital = [
         c for c in pool
         if c.capital and not capital_is_self_evident(c.display_name, c.capital)
     ]
-    target = rng.choice(have_capital)
+    target = choose_unused(rng, have_capital, used)
+    used.add(target.pk)
     distractors = nearest_countries(target, have_capital, OPTION_COUNT - 1)
     direction = rng.choice(['forward', 'reverse'])
 

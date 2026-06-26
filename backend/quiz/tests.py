@@ -38,6 +38,26 @@ class GenerationTests(TestCase):
             # The correct set must never appear in the client-facing payload.
             self.assertNotIn('correct', str(question.payload))
 
+    def test_no_country_is_the_subject_of_two_questions(self):
+        # Regression: a daily quiz once asked "Name the Country" for Ivory Coast
+        # twice. Each generator now excludes already-used subjects, so the subject
+        # (the single-answer correct country) must be unique across a quiz.
+        SINGLE_SUBJECT = {'name-country', 'identify-flag', 'capital', 'region-click'}
+        for day in range(1, 13):
+            d = datetime.date(2026, 7, day)
+            DailyQuiz.objects.all().delete()
+            quiz = services.get_or_create_quiz(d)
+            subjects = []
+            for q in quiz.questions.all():
+                if q.type in SINGLE_SUBJECT:
+                    correct = q.answer.get('correct', [])
+                    self.assertEqual(len(correct), 1, q.type)
+                    subjects.append(correct[0])
+            self.assertEqual(
+                len(subjects), len(set(subjects)),
+                f'duplicate subject on {d}: {subjects}',
+            )
+
     def test_type_sequence_honours_caps(self):
         import random
 
