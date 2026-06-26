@@ -8,6 +8,9 @@ import { state } from '../data/state.js';
 // Access global THREE.js library
 const THREE = window.THREE;
 
+// Phosphor `x` glyph (inline SVG per CLAUDE.md — no icon font) for the close button.
+const CLOSE_ICON = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>';
+
 export class FlagRenderer {
     constructor(containerElement, elements) {
         this.containerElement = containerElement;
@@ -25,6 +28,10 @@ export class FlagRenderer {
 
         // Current state
         this.currentCountry = null;
+
+        // Optional dismiss callback (wired by the app to also clear the globe
+        // selection / label highlight). Falls back to just hiding the panel.
+        this.onClose = null;
     }
 
     /**
@@ -47,6 +54,21 @@ export class FlagRenderer {
         // Insert the canvas into the flag-container-content, after flag-info
         const flagContainerContent = this.elements.get('flag-container-content');
         flagContainerContent.appendChild(this.renderer.domElement);
+
+        // Dismiss (×) button, top-right of the panel. The panel is pointer-events:none
+        // so the button re-enables them (see styles.css .flag-close). stopPropagation
+        // keeps the tap from reaching the globe pointer handlers behind it.
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'flag-close';
+        closeBtn.setAttribute('aria-label', 'Close country info');
+        closeBtn.innerHTML = CLOSE_ICON;
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.onClose) this.onClose();
+            else this.hide();
+        });
+        this.elements.get('flag-container').appendChild(closeBtn);
 
         // Add lights to flag scene
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);

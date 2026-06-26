@@ -75,6 +75,28 @@
             flex-shrink: 0;
         }
 
+        /* Dismiss (×) button, top-right of the country info panel (desktop + mobile).
+           The panel is pointer-events:none, so re-enable them just on the button. */
+        #flag-container .flag-close {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.35);
+            color: #cdd9e6;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        #flag-container .flag-close:hover { background: rgba(0, 0, 0, 0.6); color: #fff; }
+
         #flag-info {
             color: #e0e0e0;
             font-family: Arial, sans-serif;
@@ -3923,10 +3945,11 @@ body.dq-active #main-cta-cluster {
         display: none !important;
     }
 
-    /* The country detail panel docks at the bottom on mobile — hide both the Quiz
-       cluster and the docked Daily pill while it's up so they don't overlap. */
+    /* The country detail panel docks at the bottom on mobile — hide the Quiz cluster,
+       the docked Daily pill, and the settings gear while it's up so they don't overlap. */
     body.flag-info-active #main-cta-cluster,
-    body.flag-info-active #dq-invite {
+    body.flag-info-active #dq-invite,
+    body.flag-info-active #settings-toggle {
         display: none !important;
     }
 }

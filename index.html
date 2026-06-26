@@ -752,6 +752,10 @@
                     });
                     pointerControls.attach();
 
+                    // The country-info panel's × dismisses the whole selection
+                    // (panel + globe highlight + label), same as an off-globe tap.
+                    flagRenderer.onClose = () => pointerControls.deselectCountry();
+
                     // Hand the camera controller its late-created collaborators so its
                     // rotateToCountry / zoomOut / idle-rotation logic can use them.
                     cameraController.configure({

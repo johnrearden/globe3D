@@ -177,7 +177,14 @@ export class PointerControls {
         // Ordinary click: select a country.
         this.raycaster.setFromCamera(this.mouse, this.camera);
         const pickResult = this.globeManager.pick(this.raycaster.ray);
-        if (!pickResult) return;
+        if (!pickResult) {
+            // A tap on the ocean or off the globe dismisses the country detail panel
+            // (pick() returns null for ocean id 0 and for rays that miss the sphere).
+            if (!this.state.get('quiz.active') && this.flagRenderer && this.flagRenderer.isShowing()) {
+                this.deselectCountry();
+            }
+            return;
+        }
 
         const pickedName = pickResult.name;
         this.selectedCountry = pickedName;
@@ -207,6 +214,15 @@ export class PointerControls {
                     this.globeManager.getCapital(pickedName)?.name);
             }
         }
+    }
+
+    /** Clear the current country selection: globe highlight, label, indicator, panel. */
+    deselectCountry() {
+        this.selectedCountry = null;
+        if (this.smallCountryIndicator) this.smallCountryIndicator.remove();
+        this.globeManager.clearSelection();
+        if (this.labelManager) this.labelManager.setHighlight(null);
+        if (this.flagRenderer) this.flagRenderer.hide();
     }
 
     onPointerMove(event) {
