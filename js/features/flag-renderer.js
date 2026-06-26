@@ -210,8 +210,11 @@ export class FlagRenderer {
             }
         }
 
-        // Show flag container (fixed position in top right)
+        // Show flag container (fixed position in top right). The body class lets CSS
+        // hide the bottom-right main CTA cluster on mobile, where the country detail
+        // panel docks at the bottom and would otherwise overlap it.
         this.elements.get('flag-container').style.display = 'block';
+        document.body.classList.add('flag-info-active');
     }
 
     /**
@@ -219,6 +222,7 @@ export class FlagRenderer {
      */
     hide() {
         this.elements.get('flag-container').style.display = 'none';
+        document.body.classList.remove('flag-info-active');
         this.currentCountry = null;
     }
 

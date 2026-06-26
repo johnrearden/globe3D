@@ -307,6 +307,7 @@
         import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
         import { QuizInvite } from './js/features/quiz/quiz-invite.js';
         import { WeakSpotsWidget } from './js/features/weak-spots-widget.js';
+        import { initMainCta } from './js/features/main-cta.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -888,6 +889,7 @@
                 }
             });
             elements.get('take-quiz-btn').addEventListener('click', () => quizModePicker.show());
+            initMainCta();   // wrap the Quiz button into the amber CTA cluster (+ glow / label)
 
             // Zoom out button
             elements.get('zoom-out-btn').addEventListener('click', () => cameraController.zoomOut());

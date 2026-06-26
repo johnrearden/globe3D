@@ -3770,6 +3770,168 @@ body.flag-quiz-active #settings-panel {
 }
 
 /* ============================================================
+   Main CTA cluster — the primary "Give me a quiz" button (amber)
+   per design/main_buttons. The secondary Daily Challenge pill
+   (#dq-today, violet) lands in the same cluster slot but is owned
+   by the Daily Challenge section below. Desktop: top-left. Mobile:
+   bottom-right. Built by js/features/main-cta.js, which wraps the
+   pre-existing #take-quiz-btn (so its click wiring stays put) and
+   adds the glow + two-line label. These rules override the legacy
+   orange #take-quiz-btn styles via higher (#id #id) specificity.
+   ============================================================ */
+:root {
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    /* New secondary accent (violet) — see the design/main_buttons handoff.
+       Single-accent system otherwise; this differentiates the daily action. */
+    --violet-400: #8c7cf0;
+    --violet-fill: rgba(124, 108, 232, 0.16);
+    --violet-fill-hover: rgba(124, 108, 232, 0.26);
+    --violet-border: rgba(140, 124, 240, 0.42);
+    --violet-border-hover: rgba(160, 144, 248, 0.6);
+    --violet-icon: #b6a7f5;
+    --violet-label: #d8cffb;
+}
+
+#main-cta-cluster {
+    position: fixed;
+    top: 32px;
+    left: 34px;
+    z-index: 150;
+    animation: qb-fade 0.6s var(--ease-soft) both;
+}
+
+/* The amber pill. Keep the button `position: static` (NOT relative/fixed): the legacy
+   `#take-quiz-btn { top/left: …!important }` rules would otherwise shift a positioned
+   button ~20px inside the cluster (!important beats specificity). Static makes those
+   inert. The glow sits behind via its own `z-index:-1` (no positioned button needed). */
+#main-cta-cluster #take-quiz-btn {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 28px 15px 22px;
+    border: none;
+    background: linear-gradient(180deg, #f9b25f, #f59440);
+    box-shadow: 0 10px 30px rgba(245, 158, 75, 0.42), 0 2px 0 rgba(255, 255, 255, 0.30) inset;
+    color: #321a06;
+    cursor: pointer;
+    transition: transform 0.18s var(--ease-soft), box-shadow 0.18s var(--ease-soft);
+}
+#main-cta-cluster #take-quiz-btn:hover {
+    transform: translateY(-2px);
+    /* re-declare the gradient to cancel the legacy orange :hover background-color */
+    background: linear-gradient(180deg, #f9b25f, #f59440);
+    box-shadow: 0 16px 38px rgba(245, 158, 75, 0.5), 0 2px 0 rgba(255, 255, 255, 0.30) inset;
+}
+#main-cta-cluster #take-quiz-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 8px 20px rgba(245, 158, 75, 0.4), 0 2px 0 rgba(255, 255, 255, 0.30) inset;
+}
+
+/* Leading icon badge (desktop: 44px circle). */
+.qb-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(58, 32, 8, 0.16);
+    color: #3a2008;
+}
+.qb-icon svg { width: 25px; height: 25px; display: block; }
+
+.qb-text { display: flex; flex-direction: column; line-height: 1; text-align: left; }
+.qb-title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    color: #321a06;
+}
+.qb-sub {
+    margin-top: 6px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 600;
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(58, 26, 6, 0.62);
+}
+
+/* Pulsing amber glow behind the pill (translate keeps it centred during the pulse). */
+.qb-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 340px;
+    height: 170px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 75, 0.34), rgba(245, 158, 75, 0) 68%);
+    pointer-events: none;
+    z-index: -1;   /* behind the in-flow button, above the cluster's transparent bg */
+    animation: qb-glow 3.5s ease-in-out infinite;
+}
+@keyframes qb-glow {
+    0%, 100% { opacity: 0.45; transform: translate(-50%, -50%) scale(1); }
+    50%      { opacity: 0.8;  transform: translate(-50%, -50%) scale(1.08); }
+}
+@keyframes qb-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Hidden whenever a quiz / daily view takes over the screen. */
+body.quiz-active #main-cta-cluster,
+body.flag-quiz-active #main-cta-cluster,
+body.celebration-active #main-cta-cluster,
+body.dq-active #main-cta-cluster {
+    display: none !important;
+}
+
+/* Mobile: cluster bottom-right, compact single-line pill. */
+@media (max-width: 768px) {
+    #main-cta-cluster {
+        top: auto;
+        left: auto;
+        right: 18px;
+        bottom: 18px;
+    }
+    #main-cta-cluster #take-quiz-btn {
+        gap: 8px;
+        padding: 11px 18px;
+        box-shadow: 0 8px 24px rgba(245, 158, 75, 0.40), 0 2px 0 rgba(255, 255, 255, 0.28) inset;
+    }
+    /* No badge on mobile — the globe icon sits inline. */
+    .qb-icon { width: auto; height: auto; border-radius: 0; background: none; }
+    .qb-icon svg { width: 18px; height: 18px; }
+    .qb-title { font-size: 15px; color: #3a2008; }
+    .qb-sub { display: none; }
+    .qb-glow {
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(circle, rgba(245, 158, 75, 0.42), rgba(245, 158, 75, 0) 68%);
+    }
+
+    /* Keep the Quiz pill clear of the bottom-docked invite / reminder sheets: hide
+       it while either is open (it returns once they dock/dismiss). The daily invite
+       keeps .dq-invite-show after docking, so :not(.dq-docked) re-shows the pill. */
+    body:has(#dq-invite.dq-invite-show:not(.dq-docked)) #main-cta-cluster,
+    body:has(#quiz-invite.qz-invite-show) #main-cta-cluster {
+        display: none !important;
+    }
+
+    /* The country detail panel docks at the bottom on mobile — hide both the Quiz
+       cluster and the docked Daily pill while it's up so they don't overlap. */
+    body.flag-info-active #main-cta-cluster,
+    body.flag-info-active #dq-invite {
+        display: none !important;
+    }
+}
+
+/* ============================================================
    Daily Challenge (backend-driven daily quiz + leaderboard)
    Mobile-first: the panel is a bottom sheet; the globe shows
    above it (map questions push the focus up via setViewOffset).
@@ -3889,22 +4051,29 @@ body.flag-quiz-active #settings-panel {
 #dq-today {
     display: none;
     align-items: center;
-    justify-content: center;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #f7a857, #f59440);
-    color: #311a06;
-    font-family: 'Archivo', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
+    gap: 10px;
+    padding: 12px 20px;
+    border: 1px solid var(--violet-border);
+    background: var(--violet-fill);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--violet-label);
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: -0.01em;
     white-space: nowrap;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(245, 158, 75, 0.32);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
     opacity: 0;
-    transition: opacity 0.18s ease 0.3s, filter 0.2s ease;
+    /* opacity stays delayed so the label lands crisp after the FLIP scale */
+    transition: opacity 0.18s ease 0.3s, background 0.18s var(--ease-soft),
+        border-color 0.18s var(--ease-soft), transform 0.18s var(--ease-soft);
 }
-#dq-today:hover { filter: brightness(1.04); }
+#dq-today .dq-today-icon { display: flex; color: var(--violet-icon); }
+#dq-today .dq-today-label { font-family: 'Fredoka', sans-serif; font-weight: 500; }
+#dq-today:hover { background: var(--violet-fill-hover); border-color: var(--violet-border-hover); }
+#dq-today:active { transform: translateY(1px); }
 
 /* Docked: the morph target — shrink to the "Daily Challenge" pill, pinned
    top-left directly under the Take Quiz button (top:20px desktop / top:110px
@@ -3912,8 +4081,11 @@ body.flag-quiz-active #settings-panel {
    glass card here so it stays visible while shrinking; the amber pill fades in
    over it at the end. border-radius matches the pill so corners line up. */
 #dq-invite.dq-docked {
-    top: 64px;
-    left: 20px;
+    /* Lands in the main CTA cluster slot, a 15px gap below the Quiz pill, left edges
+       aligned to the same edge (left 34). The pill height is measured live into
+       --cta-quiz-h (main-cta.js) so the gap holds regardless of font/badge height. */
+    top: calc(32px + var(--cta-quiz-h, 74px) + 15px);
+    left: 34px;
     right: auto;
     bottom: auto;
     width: auto;
@@ -3936,8 +4108,17 @@ body.flag-quiz-active #settings-panel {
 }
 
 @media (max-width: 768px) {
-    /* Position below Quiz Me button (10px + ~40px height + 15px margin) */
-    #dq-invite.dq-docked { top: 65px; left: 10px; }
+    /* Mobile cluster sits bottom-right: dock the daily pill a 12px gap ABOVE the
+       Quiz pill (measured height), right edges aligned to the same edge (right 18). */
+    #dq-invite.dq-docked {
+        top: auto;
+        left: auto;
+        right: 18px;
+        bottom: calc(18px + var(--cta-quiz-h, 50px) + 12px);
+    }
+    /* Smaller daily pill on mobile, to match the compact Quiz pill. */
+    #dq-today { padding: 10px 16px; gap: 8px; font-size: 14px; }
+    #dq-today .dq-today-icon svg { width: 17px; height: 17px; }
 }
 
 body.dq-active #dq-invite { display: none; }
@@ -4167,6 +4348,26 @@ body.dq-active #quiz-invite { display: none; }
     color: #ffd9a8;
     font-weight: 600;
     font-family: 'Archivo', sans-serif;
+}
+
+/* Dismiss the board — a wide outline pill, matching the practice quizzes'
+   secondary action (the global button rule supplies the pill radius + font). */
+.dq-lb-dismiss {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 16px;
+    padding: 11px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #cdd9e6;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+.dq-lb-dismiss:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.24);
 }
 
 /* The player's own row slides in from off-screen left (~500ms) and lands with a

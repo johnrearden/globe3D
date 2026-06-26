@@ -26,7 +26,7 @@ function fmtQuizDate(iso) {
     return `${parseInt(m[3], 10)} ${MONTH_NAMES[parseInt(m[2], 10) - 1]} ${m[1].slice(2)}`;
 }
 
-export function renderLeaderboard(container, data) {
+export function renderLeaderboard(container, data, onDismiss) {
     container.innerHTML = '';
 
     const heading = document.createElement('div');
@@ -73,6 +73,16 @@ export function renderLeaderboard(container, data) {
         you.className = 'dq-lb-yourrow';
         you.textContent = `You: #${data.you.rank} · ${data.you.score} pts · ${fmtTime(data.you.timeMs)}`;
         container.appendChild(you);
+    }
+
+    // Dismiss button at the foot of the board (the × top-right still closes too).
+    if (onDismiss) {
+        const dismiss = document.createElement('button');
+        dismiss.type = 'button';
+        dismiss.className = 'dq-lb-dismiss';
+        dismiss.textContent = 'Back to globe';
+        dismiss.addEventListener('click', onDismiss);
+        container.appendChild(dismiss);
     }
 }
 

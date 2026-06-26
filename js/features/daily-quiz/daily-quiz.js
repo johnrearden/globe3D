@@ -19,6 +19,10 @@ import { PanelSheet } from './panel-sheet.js';
 import { svgIcon } from '../quiz/quiz-question-chrome.js';
 import { formatDuration } from '../quiz/quiz-timer.js';
 
+// Phosphor fill `calendar-dots` (viewBox 0 0 256 256), filled with currentColor —
+// the icon on the docked Daily Challenge pill. Inline SVG per CLAUDE.md (no webfont).
+const CALENDAR_DOTS_FILL = '<path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM84,168a12,12,0,1,1,12-12A12,12,0,0,1,84,168Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,128,168Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,172,168Zm44-88H40V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h32Z"/>';
+
 export class DailyQuiz {
     constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
         this.api = apiClient;
@@ -71,13 +75,18 @@ export class DailyQuiz {
         this.maybeLaterBtn.addEventListener('click', () => this._dock());
         this.content.appendChild(this.maybeLaterBtn);
 
-        // The docked button: what the sheet morphs into top-left, under the Take
-        // Quiz button. Labelled (not an icon) so a returning user remembers what it
-        // is. Hidden while the sheet is expanded; tapping it launches.
+        // The docked button: the secondary entry point the sheet morphs into, beside
+        // the Quiz button (below it on desktop, above it on mobile — see the main CTA
+        // cluster in styles.css). A translucent violet "ghost" pill with a calendar
+        // icon + label so a returning user remembers what it is. Hidden while the
+        // sheet is expanded; tapping it launches.
         this.todayBtn = document.createElement('button');
         this.todayBtn.id = 'dq-today';
         this.todayBtn.type = 'button';
-        this.todayBtn.textContent = 'Daily Challenge';
+        this.todayBtn.innerHTML =
+            `<span class="dq-today-icon" aria-hidden="true">`
+            + `<svg viewBox="0 0 256 256" width="19" height="19" fill="currentColor">${CALENDAR_DOTS_FILL}</svg>`
+            + `</span><span class="dq-today-label">Daily challenge</span>`;
         this.todayBtn.addEventListener('click', () => this.launch());
         this.invite.appendChild(this.todayBtn);
 
@@ -346,7 +355,7 @@ export class DailyQuiz {
         this.el.message.textContent = message || '';
         try {
             const data = await this.api.getLeaderboard();
-            renderLeaderboard(this.el.leaderboard, data);
+            renderLeaderboard(this.el.leaderboard, data, () => this.close());
         } catch (e) {
             this.el.leaderboard.textContent = this._errText(e);
         }

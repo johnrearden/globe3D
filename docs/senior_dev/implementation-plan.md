@@ -404,6 +404,13 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   (shares the daily invite's `#dq-`/`#qz-` CSS). Appears after the daily prompt resolves
   (`globe3d:daily-resolved`), shows once (localStorage), and on dismiss fades out + jiggles
   the Take Quiz button.
+- `js/features/main-cta.js` — wraps the pre-existing `#take-quiz-btn` in `#main-cta-cluster`
+  (amber "Give me a quiz" pill + pulsing glow + two-line scope subtitle) per
+  `design/main_buttons`. The docked Daily Challenge pill (`#dq-today`, now a translucent
+  **violet ghost pill** with a `calendar-dots` icon) sits in the same cluster slot. Placement is
+  responsive: desktop top-left, mobile bottom-right (Quiz hugging the corner; hidden while a
+  bottom-sheet invite is open). Introduces the `--violet-400` secondary accent token. All CSS in
+  `styles.css`; `index.html` gains only an import + one `initMainCta()` call.
 - `js/core/camera-controls.js` — added `frameView()` / `clearViewOffset()` for map questions
   (focal-anchor offset via `camera.setViewOffset`, math extracted to pure `js/utils/view-offset.js`,
   unit-tested in `tests/view-offset.test.js`). Framing distance for a clicked/searched country (≤40%
