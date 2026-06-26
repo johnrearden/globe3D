@@ -7,7 +7,13 @@
  * column counts; post-answer reveal colouring (right / wrong / missed). Cells use
  * minmax(0,1fr) tracks so the grid always fits the panel width (never scrolls
  * horizontally). Self-contained: it builds its own DOM inside the host element.
+ *
+ * Cells are `.quiz-option` buttons + `.qz-mark` reveal icons — the same markup and
+ * design tokens as the practice quizzes (js/features/quiz) — so the Daily Challenge
+ * shares their look; daily-specific rules live under `.dq-grid` in styles.css.
  */
+
+import { svgIcon } from '../quiz/quiz-question-chrome.js';
 
 export class OptionsGrid {
     constructor(host) {
@@ -47,7 +53,7 @@ export class OptionsGrid {
         (cfg.options || []).forEach((opt) => {
             const cell = document.createElement('button');
             cell.type = 'button';
-            cell.className = 'dq-cell';
+            cell.className = 'quiz-option';
             cell.dataset.value = opt.value;
 
             const label = document.createElement('span');
@@ -86,17 +92,32 @@ export class OptionsGrid {
         this._onSubmit([...this._selected]);
     }
 
-    /** Colour cells from a reveal object after the answer is graded. */
+    /**
+     * Colour cells from a reveal object after the answer is graded, reusing the
+     * practice-quiz feedback classes (.correct / .incorrect / .dimmed) + a trailing
+     * .qz-mark icon. `missed` (a correct option the player didn't pick) keeps its
+     * own distinct gold cue so multi-select reveals still separate "you got it"
+     * (green) from "you missed it" (gold).
+     */
     applyReveal(reveal) {
         this._locked = true;
         const right = new Set(reveal.rightPicks || []);
         const wrong = new Set(reveal.wrongPicks || []);
         const missed = new Set(reveal.missed || []);
         this._cells.forEach((cell, value) => {
-            if (right.has(value)) cell.classList.add('reveal-right');
-            else if (wrong.has(value)) cell.classList.add('reveal-wrong');
-            else if (missed.has(value)) cell.classList.add('reveal-missed');
-            cell.classList.add('reveal-dim');
+            cell.classList.remove('selected');
+            let mark = null;
+            if (right.has(value)) { cell.classList.add('correct'); mark = 'correct'; }
+            else if (wrong.has(value)) { cell.classList.add('incorrect'); mark = 'wrong'; }
+            else if (missed.has(value)) { cell.classList.add('missed'); mark = 'missed'; }
+            else cell.classList.add('dimmed');
+            if (mark) {
+                const glyph = mark === 'wrong' ? 'x' : 'check';
+                cell.insertAdjacentHTML(
+                    'beforeend',
+                    `<span class="qz-mark qz-mark-${mark}">${svgIcon(glyph, 16)}</span>`,
+                );
+            }
         });
     }
 

@@ -394,6 +394,12 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   **feature sub-folder** — a deliberate exception to the "one module per
   feature" rule, mirroring the existing `js/features/quiz/` precedent (a cohesive multi-file
   feature, not micro-modules).
+  - The panel UI reuses the practice quizzes' Terragotcha chrome: the header is built from the
+    shared `.qz-bar`/`.qz-stat`/`.qz-progress` classes + `svgIcon()` (progress label · score chip ·
+    a live count-up timer chip driven by `formatDuration()` · close), and `options-grid.js` emits
+    `.quiz-option` cells + `.qz-mark` reveal icons against the shared `--qz-*` tokens (daily-scoped
+    rules under `.dq-grid` keep variable columns + a distinct gold "missed" cue). The end-of-quiz
+    leaderboard is restyled to the same palette. No new `index.html`; all CSS in `styles.css`.
 - `js/features/quiz/quiz-invite.js` — bottom-sheet reminder nudging the regular quizzes
   (shares the daily invite's `#dq-`/`#qz-` CSS). Appears after the daily prompt resolves
   (`globe3d:daily-resolved`), shows once (localStorage), and on dismiss fades out + jiggles

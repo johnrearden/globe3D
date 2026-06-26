@@ -68,12 +68,12 @@ export class PanelSheet {
     }
 
     /**
-     * Peek height when collapsed: leave only the grab tab visible (the top bar
+     * Peek height when collapsed: leave only the grab tab visible (the header bar
      * and everything below it slide off the bottom). The tab's bottom edge is
-     * exactly where the top bar begins, so `topbar.offsetTop` is the peek.
+     * exactly where the header bar begins, so `.dq-bar`'s offsetTop is the peek.
      */
     _peekHeight() {
-        const bar = this.panel.querySelector('.dq-topbar');
+        const bar = this.panel.querySelector('.dq-bar');
         if (bar) return bar.offsetTop;
         const grab = this.panel.querySelector('.dq-grab');
         return grab ? grab.offsetTop + grab.offsetHeight : 40;

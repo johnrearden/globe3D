@@ -16,6 +16,8 @@ import { QuestionPresenter } from './question-renderer.js';
 import { showOnboarding } from './onboarding.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { PanelSheet } from './panel-sheet.js';
+import { svgIcon } from '../quiz/quiz-question-chrome.js';
+import { formatDuration } from '../quiz/quiz-timer.js';
 
 export class DailyQuiz {
     constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
@@ -85,13 +87,24 @@ export class DailyQuiz {
         this.panel = document.createElement('div');
         this.panel.id = 'dq-panel';
         this.panel.hidden = true;
+        // Header reuses the practice quizzes' floating chrome (.qz-bar / .qz-stat /
+        // .qz-progress) + svgIcon glyphs so the Daily Challenge shares their look:
+        // progress label · score chip · live timer chip · close, over a progress bar.
         this.panel.innerHTML = `
             <div class="dq-grab" role="button" tabindex="0" aria-label="Drag to show or hide the panel"></div>
-            <div class="dq-topbar">
-                <span class="dq-counter"></span>
-                <span class="dq-score">Score: 0</span>
-                <button type="button" class="dq-close" aria-label="Close">×</button>
+            <div class="qz-bar dq-bar">
+                <span class="qz-progress-label dq-counter"></span>
+                <span class="qz-stat">
+                    <span class="qz-stat-icon">${svgIcon('checkCircle', 15)}</span>
+                    <span class="dq-score">0</span>
+                </span>
+                <span class="qz-stat">
+                    <span class="qz-stat-icon">${svgIcon('clock', 15)}</span>
+                    <span class="dq-timer">0:00</span>
+                </span>
+                <button type="button" class="qz-close dq-close" aria-label="Close">${svgIcon('x', 15)}</button>
             </div>
+            <div class="qz-progress"><div class="qz-progress-fill dq-progress-fill"></div></div>
             <div class="dq-body">
                 <img class="dq-flag" alt="flag" style="display:none" />
                 <div class="dq-prompt"></div>
@@ -110,6 +123,8 @@ export class DailyQuiz {
         this.el = {
             counter: this.panel.querySelector('.dq-counter'),
             score: this.panel.querySelector('.dq-score'),
+            timer: this.panel.querySelector('.dq-timer'),
+            progressFill: this.panel.querySelector('.dq-progress-fill'),
             prompt: this.panel.querySelector('.dq-prompt'),
             flag: this.panel.querySelector('.dq-flag'),
             gridHost: this.panel.querySelector('.dq-grid-host'),
@@ -127,7 +142,7 @@ export class DailyQuiz {
         this.sheet = new PanelSheet(this.panel, {
             handles: [
                 this.panel.querySelector('.dq-grab'),
-                this.panel.querySelector('.dq-topbar'),
+                this.panel.querySelector('.dq-bar'),
             ],
         });
 
@@ -273,6 +288,7 @@ export class DailyQuiz {
         this.attemptId = startResp.attemptId;
         this.total = startResp.questionCount;
         this._setScore(startResp.runningScore);
+        this._startTimer();
 
         let question = startResp.question;
         while (question) {
@@ -323,6 +339,7 @@ export class DailyQuiz {
     }
 
     async _showLeaderboard(message) {
+        this._stopTimer();
         this._hideQuestionUi();
         this.presenter.teardown();
         this._exitQuizMode();
@@ -388,11 +405,34 @@ export class DailyQuiz {
     }
 
     _setScore(score) {
-        this.el.score.textContent = `Score: ${score}`;
+        this.el.score.textContent = String(score);
     }
 
     _setCounter(index) {
-        this.el.counter.textContent = `Q${index + 1} / ${this.total}`;
+        this.el.counter.textContent = `Q${index + 1}/${this.total}`;
+        // Fill the progress bar through the question currently being answered.
+        const pct = this.total ? ((index + 1) / this.total) * 100 : 0;
+        this.el.progressFill.style.width = `${pct}%`;
+    }
+
+    // ----------------------------- timer ------------------------------------
+    // A whole-quiz count-up shown in the time chip, matching the practice quizzes.
+    // Reuses formatDuration() but drives its own .dq-timer node (not the shared
+    // #quiz-timer id, which QuizQuestionChrome.show() removes wholesale).
+    _startTimer() {
+        this._timerStart = performance.now();
+        this.el.timer.textContent = formatDuration(0);
+        clearInterval(this._timerInterval);
+        this._timerInterval = setInterval(() => {
+            this.el.timer.textContent = formatDuration(performance.now() - this._timerStart);
+        }, 1000);
+    }
+
+    _stopTimer() {
+        if (this._timerInterval) {
+            clearInterval(this._timerInterval);
+            this._timerInterval = null;
+        }
     }
 
     _message(text) {
@@ -402,6 +442,7 @@ export class DailyQuiz {
 
     close() {
         this.panel.hidden = true;
+        this._stopTimer();
         if (this.sheet) this.sheet.expand();   // reset peek state for next open
         this.presenter.teardown();
         this._exitQuizMode();
