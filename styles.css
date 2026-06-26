@@ -4138,6 +4138,7 @@ body.dq-active #quiz-invite { display: none; }
     font-size: 16px;
     color: #eef2f6;
     text-align: center;
+    margin-top: 12px;
     margin-bottom: 10px;
 }
 .dq-lb-table { width: 100%; border-collapse: collapse; font-family: 'Archivo', sans-serif; }
