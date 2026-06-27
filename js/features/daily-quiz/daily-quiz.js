@@ -294,6 +294,7 @@ export class DailyQuiz {
     }
 
     async _play(startResp) {
+        this._aborted = false;
         this.attemptId = startResp.attemptId;
         this.total = startResp.questionCount;
         this._setScore(startResp.runningScore);
@@ -321,7 +322,8 @@ export class DailyQuiz {
             this._setScore(res.runningScore);
             this.presenter.showReveal(res.reveal, question);
 
-            await this._waitNext(res.done);
+            await this._waitNext(res.done, res.reveal && res.reveal.correct);
+            if (this._aborted) return;   // closed mid-wait
             if (res.done) {
                 this._doneForToday = true;
                 await this._showLeaderboard();   // the table speaks for itself
@@ -331,19 +333,30 @@ export class DailyQuiz {
         }
     }
 
-    _waitNext(isLast) {
+    _waitNext(isLast, isCorrect) {
         // The Next button is persistent and was faded/disabled while answering;
-        // enable it now (so the row never resized on submit) and wait for a click.
+        // enable it now (so the row never resized on submit). Auto-advance after a
+        // beat (matching the standard quizzes — a wrong answer gets longer to read
+        // the reveal), but a manual click advances immediately and cancels the timer.
         return new Promise((resolve) => {
             const btn = this.el.next;
             btn.textContent = isLast ? 'See results' : 'Next';
             btn.disabled = false;
-            const onClick = () => {
+            let timer = null;
+            const finish = () => {
+                if (timer) clearTimeout(timer);
                 btn.removeEventListener('click', onClick);
                 btn.disabled = true;
+                this._cancelWait = null;
                 resolve();
             };
+            const onClick = finish;
             btn.addEventListener('click', onClick);
+            const delay = isCorrect ? 1500 : 2500;
+            timer = setTimeout(finish, delay);
+            // Let close() cancel the pending advance so it can't fire after the
+            // panel is hidden and silently drive the quiz on in the background.
+            this._cancelWait = finish;
         });
     }
 
@@ -450,6 +463,8 @@ export class DailyQuiz {
     }
 
     close() {
+        this._aborted = true;
+        if (this._cancelWait) this._cancelWait();   // drop any pending auto-advance
         this.panel.hidden = true;
         this._stopTimer();
         if (this.sheet) this.sheet.expand();   // reset peek state for next open
