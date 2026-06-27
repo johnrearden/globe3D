@@ -106,6 +106,22 @@ class BespokeGeneratorTests(TestCase):
         self.assertIn('Niger', correct)
         self.assertIn('Cameroon', correct)
 
+    def test_bordering_options_exclude_islands(self):
+        # Distractors are drawn from the nearest non-neighbours, but islands
+        # (borders == []) can never be a correct "border" answer and must be
+        # filtered out of the grid.
+        from quiz.generation.bespoke import gen_bordering
+        from geo.models import Country
+        chad = Country.objects.get(cca2='td')
+        spec = gen_bordering(self._rng(2), [chad])
+        by_display = {c.display_name: c for c in Country.objects.all()}
+        for opt in spec['payload']['grid']['options']:
+            country = by_display[opt['value']]
+            self.assertTrue(
+                country.borders,
+                f"island {opt['value']} should not appear as a border option",
+            )
+
     def test_landlocked_answers_are_all_landlocked(self):
         from quiz.generation.bespoke import gen_landlocked
         from geo.models import Country

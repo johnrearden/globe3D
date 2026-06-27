@@ -71,8 +71,12 @@ def gen_bordering(rng, pool, used=None):
     used.add(target.pk)
     neighbour_names = {n.mesh_name for n in neighbours}
     # Distractors: nearest countries that are neither the target nor neighbours.
+    # Exclude islands (no land borders) — they can never be a correct "border"
+    # answer, so they're trivially-eliminable distractors.
     exclude = neighbour_names | {target.mesh_name}
-    distractor_pool = [c for c in globe if c.mesh_name not in exclude]
+    distractor_pool = [
+        c for c in globe if c.mesh_name not in exclude and c.borders
+    ]
     needed = max(0, BORDER_GRID_SIZE - len(neighbours))
     distractors = nearest_countries(target, distractor_pool, needed)
 
