@@ -4743,9 +4743,48 @@ button {
 }
 .lp-ad .adsbygoogle { display: block; min-height: 100px; }
 
+/* Two same-size CTA panels ride a horizontal track inside a clipped viewport.
+   Starts showing the 2nd panel (Reclaim Your Brain); .is-swapped slides the
+   track right so the 1st panel (Like map puzzles?) scrolls in from the left. */
+.lp-cta-carousel {
+    overflow: hidden;
+    border-radius: 14px;
+    margin: 4px 0 20px;
+}
+.lp-cta-track {
+    display: flex;
+    flex-wrap: nowrap;
+    transform: translateX(-100%);
+    will-change: transform;
+}
+/* On swap the 1st panel slides in from the left and lands with the exact same
+   juddering stop as the leaderboard's own-row slide-in (see dq-you-slide-in):
+   1s linear, ease-in slide to 70%, then a tight in-place vibration. */
+.lp-cta-track.is-swapped {
+    transform: translateX(0);
+    animation: lp-cta-slide-in 1s linear both;
+}
+.lp-cta-track > .lp-cta {
+    flex: 0 0 100%;        /* each panel fills the viewport; no shrink */
+    box-sizing: border-box; /* so 100% incl. padding/border = one translate step */
+    margin: 0;             /* the carousel owns the outer spacing */
+}
+@keyframes lp-cta-slide-in {
+    0%   { transform: translateX(-100%); animation-timing-function: ease-in; }
+    70%  { transform: translateX(0); }
+    /* lands and immediately jiggles — a quick vibration in place */
+    77%  { transform: translateX(-7px); }
+    84%  { transform: translateX(5px); }
+    90%  { transform: translateX(-3px); }
+    95%  { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-cta-track.is-swapped { animation: none; }
+}
+
 .lp-cta {
     text-align: center;
-    margin: 4px 0 20px;
     padding: 16px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.03);
@@ -4811,6 +4850,7 @@ button {
     }
     .lp-answer, .lp-quiz, .lp-related { margin-bottom: 10px; }
     .lp-quiz-instruction { margin-bottom: 8px; }
-    .lp-cta { margin-bottom: 12px; padding: 14px; }
+    .lp-cta-carousel { margin-bottom: 12px; }
+    .lp-cta { padding: 14px; }
     .lp-footer { margin-top: 14px; padding-top: 14px; }
 }

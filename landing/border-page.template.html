@@ -66,10 +66,22 @@ __ANSWER_LIST__
         </section>
 __RELATED_SECTION__
 __AD_SECTION__
-        <section class="lp-cta">
-            <p class="lp-cta-lead">Like map puzzles?</p>
-            <a class="lp-cta-btn" href="/">Explore the interactive 3D globe →</a>
-        </section>
+        <!-- Two same-size CTA panels on a sliding track. The "Reclaim Your Brain"
+             panel shows first; 1s after the quiz is answered the track slides
+             right so the "Like map puzzles?" panel scrolls in from the left and
+             the first panel scrolls off (border-quiz.js adds .is-swapped). -->
+        <div class="lp-cta-carousel">
+            <div class="lp-cta-track">
+                <section class="lp-cta">
+                    <p class="lp-cta-lead">Like map puzzles?</p>
+                    <a class="lp-cta-btn" href="/">Explore the interactive 3D globe →</a>
+                </section>
+                <section class="lp-cta">
+                    <p class="lp-cta-lead">Reclaim Your Brain</p>
+                    <a class="lp-cta-btn" href="https://terragotcha.com/">Visit Terragotcha.com</a>
+                </section>
+            </div>
+        </div>
         <footer class="lp-footer">
             <a href="/privacy/">Privacy Policy</a>
         </footer>

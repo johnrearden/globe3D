@@ -67,6 +67,11 @@ function init() {
             // Reveal the "More border quizzes" links now the quiz is done, so
             // they don't spoil the answers up front.
             document.querySelector('.lp-related')?.classList.remove('is-collapsed');
+            // A beat later, slide the CTA carousel: the "Like map puzzles?" panel
+            // scrolls in from the left as the "Reclaim Your Brain" panel exits.
+            setTimeout(() => {
+                document.querySelector('.lp-cta-track')?.classList.add('is-swapped');
+            }, 1000);
         },
     });
 
