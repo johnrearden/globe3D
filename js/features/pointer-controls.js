@@ -8,6 +8,8 @@
  * injected; nothing here is globe-specific beyond the injected managers.
  */
 
+import { track } from './analytics.js';
+
 const THREE = window.THREE;
 
 export class PointerControls {
@@ -206,6 +208,7 @@ export class PointerControls {
 
             this.globeManager.clearSelection();
             this.globeManager.setSelectedCountry(pickedName);
+            track('country_select', { country: pickedName, source: 'globe' });
             if (this.labelManager) this.labelManager.setHighlight(pickedName);
 
             this.rotateGlobeToCountry(pickedName, false, pickResult.point);

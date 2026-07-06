@@ -10,6 +10,7 @@
 
 import { elements, show, hide } from '../../utils/dom.js';
 import { MODE_LABELS } from '../../data/quiz-history-store.js';
+import { track } from '../analytics.js';
 
 // Score fraction at or below which the celebration shatters the globe.
 const SHATTER_THRESHOLD = 0.3;
@@ -84,6 +85,14 @@ export class QuizUI {
      */
     showCelebration({ score, total, seconds, mode, scope, summary }) {
         const fraction = total > 0 ? score / total : 0;
+
+        track('quiz_complete', {
+            mode: mode || 'unknown',
+            scope: scope === 'globe' ? 'globe' : scope,
+            score,
+            total,
+        });
+
         if (fraction <= SHATTER_THRESHOLD) {
             if (this.animations.shatter) this.animations.shatter.start();
         } else if (score === total) {

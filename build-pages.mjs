@@ -30,6 +30,9 @@ const INCLUDE = [
     'country-zoom.json',
     'robots.txt',
     'sitemap.xml',
+    'ads.txt',              // AdSense authorized-sellers file (served at site root)
+    'privacy',              // /privacy/ policy page (required by AdSense)
+    'manifest.webmanifest', // PWA manifest (referenced from index.html <head>)
     // SEO / share assets served from the site root (referenced in index.html's
     // <head>): favicons, Apple touch icon, and the 1200x630 Open Graph image.
     'favicon-16.png',

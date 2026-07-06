@@ -17,6 +17,7 @@ import { showOnboarding } from './onboarding.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { PanelSheet } from './panel-sheet.js';
 import { svgIcon } from '../quiz/quiz-question-chrome.js';
+import { track } from '../analytics.js';
 import { formatDuration } from '../quiz/quiz-timer.js';
 
 // Phosphor fill `calendar-dots` (viewBox 0 0 256 256), filled with currentColor —
@@ -326,6 +327,7 @@ export class DailyQuiz {
             if (this._aborted) return;   // closed mid-wait
             if (res.done) {
                 this._doneForToday = true;
+                track('daily_complete', { score: res.runningScore });
                 await this._showLeaderboard();   // the table speaks for itself
                 return;
             }

@@ -12,6 +12,7 @@
  */
 
 import { elements } from '../../utils/dom.js';
+import { track } from '../analytics.js';
 
 // Inline Phosphor SVG icons (256x256 viewBox, scaled via CSS — matches quiz-mode-picker).
 const ICONS = {
@@ -245,6 +246,7 @@ export class QuizResultsModal {
     _share() {
         if (!this._last) return;
         const { score, total, quizName, scopeLabel, seconds } = this._last;
+        track('share', { method: navigator.share ? 'web_share' : 'clipboard', score, total });
         const text = `I scored ${score}/${total} on ${quizName} (${scopeLabel}) in ${formatTime(seconds)} — Terragotcha`;
 
         // Web Share API is the preferred path, but it's not implemented on every

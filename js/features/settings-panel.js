@@ -62,6 +62,7 @@ export class SettingsPanel {
         this._buildRotation();
         this._buildDeveloper();
         this._buildDebug();
+        this._buildFooter();
 
         this._applyPersisted();
     }
@@ -319,6 +320,19 @@ export class SettingsPanel {
         btn.textContent = 'Open debug console';
         btn.addEventListener('click', () => { if (window.eruda) window.eruda.show(); });
         row.appendChild(btn);
+    }
+
+    /** Footer with the privacy-policy link (required disclosure for ads/analytics). */
+    _buildFooter() {
+        const footer = document.createElement('div');
+        footer.className = 'settings-footer';
+        const link = document.createElement('a');
+        link.href = '/privacy/';
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = 'Privacy Policy';
+        footer.appendChild(link);
+        this.panel.appendChild(footer);
     }
 
     // ---- persisted state ----------------------------------------------------

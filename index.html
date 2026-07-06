@@ -19,6 +19,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+    <link rel="manifest" href="/manifest.webmanifest">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -308,6 +309,8 @@
         import { QuizInvite } from './js/features/quiz/quiz-invite.js';
         import { WeakSpotsWidget } from './js/features/weak-spots-widget.js';
         import { initMainCta } from './js/features/main-cta.js';
+        import { initAnalytics } from './js/features/analytics.js';
+        import { initAds } from './js/features/ads/adsense.js';
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -894,6 +897,13 @@
             });
             elements.get('take-quiz-btn').addEventListener('click', () => quizModePicker.show());
             initMainCta();   // wrap the Quiz button into the amber CTA cluster (+ glow / label)
+
+            // Analytics (GA4) + AdSense. Both self-gate to production hosts and to
+            // configured IDs (js/data/site-config.js), and defer their heavy
+            // third-party scripts until after the intro splash so first paint /
+            // LCP is untouched. No-ops in local dev and until the IDs are set.
+            initAnalytics();
+            initAds();
 
             // Zoom out button
             elements.get('zoom-out-btn').addEventListener('click', () => cameraController.zoomOut());

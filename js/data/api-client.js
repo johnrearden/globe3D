@@ -24,7 +24,7 @@
  * loopback, 0.0.0.0, mDNS `*.local`, and the private-LAN IPv4 ranges so a
  * backend bound to 0.0.0.0 and reached over the LAN still finds the API.
  */
-function isLocalDevHost(hostname) {
+export function isLocalDevHost(hostname) {
     return (
         hostname === 'localhost' ||
         hostname === '127.0.0.1' ||

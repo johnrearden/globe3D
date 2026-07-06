@@ -68,6 +68,8 @@ New **`build-landing.mjs`**:
   - **Quiz mount** + the question data inlined as `<script type="application/json">`.
   - **CTA** deep-linking the Daily Challenge (`https://terragotcha.com/?daily=1` or equivalent),
     plus **related-page links** to 2–3 neighbours that also have pages (internal-link graph).
+  - **In-content AdSense slot** (see below) between the quiz reveal and the related-links block.
+  - **Privacy-policy footer link** to `/privacy/` (required disclosure for ads/analytics).
 - Appends every page URL to **`sitemap.xml`**.
 
 ### 3. Tiny landing JS entry (no globe tree)
@@ -82,6 +84,23 @@ New **`js/landing/border-quiz.js`** (+ minimal helpers):
 Landing pages `<link>` the existing **`styles.css`** directly. Globe-specific rules are
 inert (no matching elements); the `.dq-*` rules give the exact quiz look. ~18 KB gzipped,
 cached across pages — avoids a parallel stylesheet that would drift.
+
+### 4b. Ads (AdSense) — these pages are the primary ad surface
+These content-rich, standard-layout pages are the **safest, highest-RPM AdSense inventory** and
+are what makes the whole domain approvable (the main WebGL app is thin-content). So each border
+page carries **one in-content responsive display unit**, placed **between the quiz reveal and the
+related-links block** — never adjacent to the answer buttons (accidental-click policy), never
+above the fold before content.
+- Use the shared client id from **`js/data/site-config.js`** (`ADSENSE_CLIENT_ID`) and a
+  dedicated landing ad-unit slot id. The static template can either inline the standard
+  `<ins class="adsbygoogle">` + `adsbygoogle.push({})` snippet, or (preferred, to match the app)
+  call **`mountAd(el, { slot })`** from `js/features/ads/adsense.js` after loading the loader
+  script. Keep the loader `<script async>` in the template `<head>`.
+- Label the unit "Advertisement" and reserve its height in `styles.css` so it causes no layout
+  shift (protect the cold-traffic Lighthouse win).
+- Consent: the same Google CMP + Consent Mode v2 defaults used by the app apply here; set the
+  denied defaults before the ad/analytics tags fire.
+- **Privacy policy:** link `/privacy/` in the page footer (shared page at `privacy/index.html`).
 
 ### 5. Build & routing wiring
 - `package.json`: `build:pages` runs `node build-landing.mjs` **before** `node build-pages.mjs`.

@@ -69,6 +69,21 @@ flag panel). Styling lives in `styles.css` (`.weakspots-*`). To free the top-rig
 desktop `#flag-container` was moved from `top` to `bottom` (mobile already docks it bottom-center);
 wiring is an import + one instantiation in `index.html`.
 
+**Analytics + AdSense + consent (2026-07-06):** GA4 and Google AdSense added as self-contained,
+prod-gated, consent-gated feature modules (extends Stage 6 "Deployment & SEO"). IDs live in
+`js/data/site-config.js` (empty → every consumer no-ops; `isProdHost()` mirrors `isLocalDevHost`,
+with a `?ads=1` override). `js/features/analytics.js` sets Consent Mode v2 defaults (denied) then
+loads `gtag.js`, exports `track()`, and auto-wires `quiz_start` via `state.subscribe`; a few
+explicit `track()` call-sites cover `quiz_complete` (`quiz-ui.js`), `share`
+(`quiz-results-modal.js`), `country_select` (`pointer-controls.js`), and `daily_complete`
+(`daily-quiz.js`). `js/features/ads/{adsense,ad-rail}.js` load `adsbygoogle.js` and mount a
+desktop-only side rail (`#ad-rail`, styled in `styles.css`); the mobile bottom anchor is served by
+Auto-Ads Anchor-only. Both defer behind `globe3d:intro-dismissed` (`js/utils/after-intro.js`) so
+first paint/LCP is untouched. New root files (`ads.txt`, `privacy/index.html`,
+`manifest.webmanifest`) are added to `build-pages.mjs` INCLUDE; `index.html` gains only the
+manifest `<link>`, two imports, and two init calls. Landing-page ad slots documented in
+`docs/individual_landing_pages/plan.md`.
+
 **Beyond the staged plan** (polish + fixes surfaced during smoke testing): a runtime config
 cache-buster (`?v=` on the label/color/zoom JSON fetches), a per-quiz-module `cancel()` (restoring
 the desktop Start-Quiz panel), two fullscreen flag-quiz cancel-`×` fixes (`box-sizing:border-box`

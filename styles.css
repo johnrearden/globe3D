@@ -4586,3 +4586,55 @@ button {
     visibility: visible;
     transform: translateX(-50%) translateY(0);
 }
+
+/* ==========================================================================
+   Ad side rail (Google AdSense) — js/features/ads/ad-rail.js
+   A single responsive display unit in the empty LEFT margin (the zoom widget
+   owns the right edge), vertically centred over the dark backdrop. Hidden below
+   1200px so it never collides with the globe, CTA cluster, search, or widgets;
+   the rail slot reserves its height so mounting an ad causes no layout shift.
+   z-index sits above the canvas (0–1) but below every UI overlay/modal (1000+).
+   ========================================================================== */
+#ad-rail { display: none; }
+
+@media (min-width: 1200px) {
+    #ad-rail {
+        display: block;
+        position: fixed;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 160px;
+        z-index: 90;
+        pointer-events: auto;
+    }
+    #ad-rail .ad-rail-label {
+        font: 500 10px/1.4 'Archivo', system-ui, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+        text-align: center;
+        margin-bottom: 6px;
+    }
+    #ad-rail .ad-rail-slot {
+        width: 160px;
+        min-height: 600px; /* reserve space → no layout shift (CLS) */
+    }
+}
+
+/* Settings drawer footer — privacy-policy link (js/features/settings-panel.js). */
+#settings-panel .settings-footer {
+    margin-top: 18px;
+    padding: 14px 0 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+}
+#settings-panel .settings-footer a {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+#settings-panel .settings-footer a:hover {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: underline;
+}
