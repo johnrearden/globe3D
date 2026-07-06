@@ -194,7 +194,38 @@ export const countryData = {
     'Vanuatu': { iso: 'vu', pop: 0.3, area: '12K km²', lang: 'Bislama, English, French' },
     'Yemen': { iso: 'ye', pop: 32.7, area: '456K km²', lang: 'Arabic' },
     'Zambia': { iso: 'zm', pop: 20.2, area: '753K km²', lang: 'English' },
-    'Zimbabwe': { iso: 'zw', pop: 16.6, area: '391K km²', lang: 'English, Shona' }
+    'Zimbabwe': { iso: 'zw', pop: 16.6, area: '391K km²', lang: 'English, Shona' },
+
+    // Clickable countries that previously showed a blank/incomplete panel. The
+    // globe picks these by the names below (from country-meta.json); some data
+    // existed only under legacy keys the globe never uses (e.g. "Swaziland",
+    // "Macedonia", "Timor Leste", "Dem Rep Of Congo", "Vatican City"), so the
+    // panel fell through to N/A. Keyed here by the exact picked name.
+    'South Sudan': { iso: 'ss', pop: 11.1, area: '620K km²', lang: 'English, Arabic' },
+    'Bahamas': { iso: 'bs', pop: 0.4, area: '14K km²', lang: 'English' },
+    'El Salvador': { iso: 'sv', pop: 6.3, area: '21K km²', lang: 'Spanish' },
+    'Palestine': { iso: 'ps', pop: 5.4, area: '6K km²', lang: 'Arabic' },
+    'Western Sahara': { iso: 'eh', pop: 0.6, area: '266K km²', lang: 'Arabic' },
+    'Democratic Congo': { iso: 'cd', pop: 112.0, area: '2.3M km²', lang: 'French' },
+    'East Timor': { iso: 'tl', pop: 1.3, area: '15K km²', lang: 'Portuguese, Tetum' },
+    'Eswatini': { iso: 'sz', pop: 1.2, area: '17K km²', lang: 'Swazi, English' },
+    'North Macedonia': { iso: 'mk', pop: 1.8, area: '25K km²', lang: 'Macedonian, Albanian' },
+    'Vatican': { iso: 'va', pop: 0.001, area: '0.44 km²', lang: 'Italian, Latin' },
+    'Cook Islands': { iso: 'ck', pop: 0.017, area: '236 km²', lang: 'English, Cook Islands Māori' },
+    'Niue': { iso: 'nu', pop: 0.002, area: '261 km²', lang: 'Niuean, English' },
+
+    // Microstates/small nations that had a flag (via countryToISO) but no stats.
+    'Andorra': { iso: 'ad', pop: 0.08, area: '468 km²', lang: 'Catalan' },
+    'Monaco': { iso: 'mc', pop: 0.04, area: '2 km²', lang: 'French' },
+    'San Marino': { iso: 'sm', pop: 0.03, area: '61 km²', lang: 'Italian' },
+    'Liechtenstein': { iso: 'li', pop: 0.04, area: '160 km²', lang: 'German' },
+    'Antigua And Barbuda': { iso: 'ag', pop: 0.09, area: '442 km²', lang: 'English' },
+    'Barbados': { iso: 'bb', pop: 0.3, area: '430 km²', lang: 'English' },
+    'Dominica': { iso: 'dm', pop: 0.07, area: '751 km²', lang: 'English' },
+    'Grenada': { iso: 'gd', pop: 0.1, area: '344 km²', lang: 'English' },
+    'Saint Kitts And Nevis': { iso: 'kn', pop: 0.05, area: '261 km²', lang: 'English' },
+    'Saint Lucia': { iso: 'lc', pop: 0.18, area: '617 km²', lang: 'English' },
+    'Saint Vincent And The Grenadines': { iso: 'vc', pop: 0.1, area: '389 km²', lang: 'English' }
 };
 
 // Legacy ISO mapping for backward compatibility
