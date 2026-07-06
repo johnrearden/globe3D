@@ -35,7 +35,7 @@ monolith became a thin bootstrap shell plus focused ES modules, all under a gree
 | 3 — Docs & cleanup | ✅ Done | retired the 2 stale plans (superseded banners), fixed CLAUDE.md asset sizes, removed stray prototypes, committed the lockfile |
 | 4 — Modularization | ✅ Done | 4a quick wins, 4b Bucket-C feature modules, 4c dead state-sync removal, 4d camera/idle + dead-code |
 | 5 — Perf/correctness polish | ⬜ Pending | `_lookupIdLoose` tighten, override precedence, `getCountries()` removal still open |
-| 6 — Deployment & SEO hardening | ✅ Done | eruda gated behind `?debug`/localhost, full SEO/OG/Twitter/JSON-LD `<head>`, `_headers`, `robots.txt` (dev buttons were already CSS-gated) |
+| 6 — Deployment & SEO hardening | ✅ Done | eruda debug console removed, full SEO/OG/Twitter/JSON-LD `<head>`, `_headers`, `robots.txt` (dev buttons were already CSS-gated) |
 | 7 — Optional next bets | 🟡 In progress | ✅ country borders (baked distance field + shader edge); search index, multi-language labels still open |
 | 8 — Daily Challenge + Django backend | 🟡 In progress | new `backend/` (geo/players/quiz/stats), `js/features/daily-quiz/`, `frameView` camera offset; tests green, browser verification pending |
 | 9 — Ads + Stripe remove-ads + account upgrade | ⬜ Pending | deferred; data model already forward-compatible |
@@ -111,7 +111,7 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 
 | Block | Lines (approx) | Notes |
 |-------|----------------|-------|
-| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), **eruda + `eruda.init()` (13–14)**, three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
+| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
 | Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
 | Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
 | Quiz container + mode-selector + click-quiz UI + results modals | ~107–187 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder. The end-of-quiz celebration overlay was **extracted** — now built at runtime by `js/features/quiz/quiz-results-modal.js` (the new "Quiz Results" design); only the `body.celebration-active` chrome-hiding CSS remains |
@@ -344,8 +344,9 @@ For each slice: move code module-by-module, run tests, eyeball the page, delete 
 `DEPLOYMENT_GUIDE.md` and `docs/deployment/temp_deploy.md` — see those docs for the full
 Cloudflare/nginx how-to, cost analysis, and AdSense/Analytics setup.
 
-1. **Remove or gate the eruda debug console** (`index.html:13–14`). It loads unconditionally today
-   and must not ship to production — either delete it or gate it behind a `?debug` query param.
+1. **Remove the eruda debug console** (was in `index.html` `<head>`). ✅ Done — the CDN loader,
+   `__GLOBE_DEBUG__` gate, and the settings-drawer launcher have all been deleted; no eruda code
+   ships.
 2. **Hide dev-only UI for production** (per `temp_deploy.md` "Hardening before sharing"): the
    `#bounce-btn`, `#shatter-btn`, `#pinball-btn` mobile dev buttons, `#dev-edit-toggle`, and the
    light-dev panel (also resolves the Section 1b JS-injected-CSS item).

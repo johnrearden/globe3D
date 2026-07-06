@@ -61,7 +61,6 @@ export class SettingsPanel {
         this._buildLighting();
         this._buildRotation();
         this._buildDeveloper();
-        this._buildDebug();
         this._buildFooter();
 
         this._applyPersisted();
@@ -304,22 +303,6 @@ export class SettingsPanel {
             const el = document.getElementById(id);
             if (el) tools.appendChild(el);
         }
-    }
-
-    /**
-     * Debug console launcher (bottom of the drawer). Replaces eruda's floating
-     * entry button, which is hidden in the debug bootstrap. Only present in debug
-     * builds (?debug or localhost), matching where eruda itself is loaded.
-     */
-    _buildDebug() {
-        if (!window.__GLOBE_DEBUG__) return;
-        const sec = this._section('Debug');
-        const row = this._row(sec, null);
-        const btn = document.createElement('button');
-        btn.className = 'settings-btn';
-        btn.textContent = 'Open debug console';
-        btn.addEventListener('click', () => { if (window.eruda) window.eruda.show(); });
-        row.appendChild(btn);
     }
 
     /** Footer with the privacy-policy link (required disclosure for ads/analytics). */
