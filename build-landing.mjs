@@ -117,9 +117,14 @@ rmSync(bordersDir, { recursive: true, force: true });
 const built = [];
 const skipped = [];
 
+// A slug is buildable iff its hero image exists. Computed up front so related
+// links can be gated to pages that will actually be generated (no 404s).
+const buildable = new Set(
+    data.filter((e) => existsSync(join(ROOT, 'img/borders', `${e.slug}.png`))).map((e) => e.slug),
+);
+
 for (const e of data) {
-    const imgPath = join(ROOT, 'img/borders', `${e.slug}.png`);
-    if (!existsSync(imgPath)) { skipped.push(e.slug); continue; }
+    if (!buildable.has(e.slug)) { skipped.push(e.slug); continue; }
 
     const name = e.name;
     const canonical = `${ORIGIN}/borders/${e.slug}`;
@@ -140,11 +145,16 @@ for (const e of data) {
         .map((n) => `                <li>${esc(n)}</li>`)
         .join('\n');
 
-    const relatedSection = e.related && e.related.length
-        ? `        <nav class="lp-related" aria-label="Related quizzes">
+    // Only link to neighbours whose page is actually being built (no 404s).
+    // Hidden by default (is-collapsed) — border-quiz.js reveals it after the
+    // quiz is answered, so it doesn't spoil the answers up front. Still in the
+    // server-rendered HTML, so the internal links stay crawlable for SEO.
+    const related = (e.related || []).filter((r) => buildable.has(r.slug));
+    const relatedSection = related.length
+        ? `        <nav class="lp-related is-collapsed" aria-label="Related quizzes">
             <h2>More border quizzes</h2>
             <ul>
-${e.related.map((r) => `                <li><a href="/borders/${r.slug}">Countries bordering ${esc(r.name)}</a></li>`).join('\n')}
+${related.map((r) => `                <li><a href="/borders/${r.slug}">Countries bordering ${esc(r.name)}</a></li>`).join('\n')}
             </ul>
         </nav>
 `

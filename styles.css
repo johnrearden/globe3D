@@ -4660,15 +4660,24 @@ button {
 .lp-main {
     max-width: 760px;
     margin: 0 auto;
-    padding: 24px 20px 80px;
+    padding: 16px 18px 40px;
 }
-.lp-header { padding: 8px 0 20px; }
+/* Title + brand share one row; brand sits at the right edge and never wraps. */
+.lp-titlebar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 0 8px;
+}
 .lp-brand {
     font-family: 'Fredoka', system-ui, sans-serif;
     font-weight: 600;
-    font-size: 1.35rem;
+    font-size: 0.95rem;
     text-decoration: none;
     letter-spacing: 0.01em;
+    white-space: nowrap;
+    flex: 0 0 auto;
 }
 .lp-brand-terra { color: #e6edf5; }
 .lp-brand-gotcha { color: #f59440; }
@@ -4676,11 +4685,13 @@ button {
 .lp-title {
     font-family: 'Fredoka', system-ui, sans-serif;
     font-weight: 600;
-    font-size: clamp(1.7rem, 5vw, 2.4rem);
+    font-size: clamp(1.25rem, 4.2vw, 1.75rem);
     line-height: 1.15;
-    margin: 8px 0 12px;
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
 }
-.lp-intro { color: #c3d0de; font-size: 1.05rem; margin: 0 0 22px; }
+.lp-intro { color: #c3d0de; font-size: 0.95rem; margin: 0 0 14px; }
 
 .lp-hero {
     display: block;
@@ -4690,15 +4701,15 @@ button {
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-    margin: 0 0 28px;
+    margin: 0 0 16px;
     background: rgba(255, 255, 255, 0.02);
 }
 
-.lp-answer, .lp-quiz, .lp-related { margin: 0 0 28px; }
-.lp-answer h2, .lp-quiz-title, .lp-related h2 {
+.lp-answer, .lp-quiz, .lp-related { margin: 0 0 18px; }
+.lp-answer h2, .lp-related h2 {
     font-family: 'Fredoka', system-ui, sans-serif;
     font-weight: 600;
-    font-size: 1.3rem;
+    font-size: 1.05rem;
     margin: 0 0 10px;
 }
 .lp-answer p { color: #c3d0de; margin: 0 0 12px; }
@@ -4719,7 +4730,7 @@ button {
     color: #e6edf5;
 }
 
-.lp-quiz-sub { color: #8aa0b6; font-size: 0.95rem; margin: 0 0 14px; }
+.lp-quiz-instruction { color: #c3d0de; font-size: 0.95rem; margin: 0 0 12px; }
 
 /* In-content ad — reserve height so mounting a unit causes no layout shift. */
 .lp-ad { margin: 0 0 28px; text-align: center; }
@@ -4734,13 +4745,13 @@ button {
 
 .lp-cta {
     text-align: center;
-    margin: 8px 0 32px;
-    padding: 24px;
-    border-radius: 16px;
+    margin: 4px 0 20px;
+    padding: 16px;
+    border-radius: 14px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.lp-cta-lead { margin: 0 0 12px; color: #c3d0de; }
+.lp-cta-lead { margin: 0 0 10px; color: #c3d0de; }
 .lp-cta-btn {
     display: inline-block;
     background: linear-gradient(180deg, #f7a94e, #f59440);
@@ -4753,6 +4764,9 @@ button {
 }
 .lp-cta-btn:hover { filter: brightness(1.05); }
 
+/* Hidden until the quiz is answered (border-quiz.js removes the class). Kept in
+   the DOM so the internal links stay crawlable for SEO even while collapsed. */
+.lp-related.is-collapsed { display: none; }
 .lp-related ul { list-style: none; padding: 0; margin: 0; }
 .lp-related li { margin: 0 0 8px; }
 .lp-related a { color: #f59440; text-decoration: none; }
@@ -4766,3 +4780,16 @@ button {
 }
 .lp-footer a { color: rgba(255, 255, 255, 0.5); font-size: 0.85rem; text-decoration: none; }
 .lp-footer a:hover { color: rgba(255, 255, 255, 0.8); text-decoration: underline; }
+
+/* Small phones (e.g. iPhone SE): squeeze the vertical rhythm so the quiz and
+   the "explore the globe" CTA panel fit with minimal scrolling. The hero map is
+   capped and cover-cropped (it's decorative framing) to reclaim the most space. */
+@media (max-width: 480px) {
+    .lp-main { padding: 10px 14px 28px; }
+    .lp-intro { margin-bottom: 8px; }
+    .lp-hero { max-height: 30vw; object-fit: cover; object-position: center; margin-bottom: 10px; }
+    .lp-answer, .lp-quiz, .lp-related { margin-bottom: 10px; }
+    .lp-quiz-instruction { margin-bottom: 8px; }
+    .lp-cta { margin-bottom: 16px; padding: 14px; }
+    .lp-footer { margin-top: 24px; }
+}

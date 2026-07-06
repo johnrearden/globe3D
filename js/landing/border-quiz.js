@@ -64,6 +64,9 @@ function init() {
             feedback.classList.add(correct ? 'correct' : 'wrong');
             submit.disabled = true;
             submit.textContent = 'Answer revealed';
+            // Reveal the "More border quizzes" links now the quiz is done, so
+            // they don't spoil the answers up front.
+            document.querySelector('.lp-related')?.classList.remove('is-collapsed');
         },
     });
 
