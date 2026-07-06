@@ -31,10 +31,11 @@ const DEV_BUTTON_IDS = [
 ];
 
 export class SettingsPanel {
-    constructor({ globeManager, cameraController, labelManager } = {}) {
+    constructor({ globeManager, cameraController, labelManager, flagRenderer } = {}) {
         this.globeManager = globeManager;
         this.cameraController = cameraController;
         this.labelManager = labelManager;
+        this.flagRenderer = flagRenderer;
         this.panel = null;
         this.gear = null;
         this._schemeButtons = new Map();
@@ -179,6 +180,13 @@ export class SettingsPanel {
         this._checkbox(sec, 'Country names', saved.showLabels !== false, (checked) => {
             if (this.labelManager) this.labelManager.setLabelsVisible(checked);
             settingsStore.save({ showLabels: checked });
+        });
+
+        // Show / hide the country info panel (flag + population/area/etc.) that
+        // appears on selecting a country. Off = clean screenshots.
+        this._checkbox(sec, 'Country info panel', saved.showInfoPanel !== false, (checked) => {
+            if (this.flagRenderer) this.flagRenderer.setInfoPanelEnabled(checked);
+            settingsStore.save({ showInfoPanel: checked });
         });
 
         // Borders toggle (independent of scheme). Drawn as a shader edge effect
@@ -341,8 +349,9 @@ export class SettingsPanel {
             this.globeManager.setBorderVisible(!!saved.borders);
         }
 
-        // Country name labels master switch.
+        // Country name labels + info panel master switches.
         if (this.labelManager) this.labelManager.setLabelsVisible(saved.showLabels !== false);
+        if (this.flagRenderer) this.flagRenderer.setInfoPanelEnabled(saved.showInfoPanel !== false);
 
         // Auto-rotate prefs. Set the delay/speed directly and, when enabled, just
         // flip the master flag so the intro idle-spin already running is preserved

@@ -29,6 +29,11 @@ export class FlagRenderer {
         // Current state
         this.currentCountry = null;
 
+        // Master switch (settings panel): when true, show() is a no-op so the
+        // country info panel never appears. Used to capture clean globe
+        // screenshots.
+        this.suppressed = false;
+
         // Optional dismiss callback (wired by the app to also clear the globe
         // selection / label highlight). Falls back to just hiding the panel.
         this.onClose = null;
@@ -175,6 +180,9 @@ export class FlagRenderer {
      * @param {string} [capital] - Capital city name (from globeManager.getCapital)
      */
     show(countryName, countryData, countryToISO, capital) {
+        // Suppressed via the settings panel — keep the info panel from appearing.
+        if (this.suppressed) return;
+
         // Try to get data from countryData first, fallback to legacy ISO mapping
         let data = countryData[countryName];
         let isoCode = data ? data.iso : countryToISO[countryName];
@@ -246,6 +254,16 @@ export class FlagRenderer {
         this.elements.get('flag-container').style.display = 'none';
         document.body.classList.remove('flag-info-active');
         this.currentCountry = null;
+    }
+
+    /**
+     * Master enable/disable for the country info panel (settings panel). When
+     * disabled, show() becomes a no-op and any panel currently open is hidden.
+     * @param {boolean} enabled
+     */
+    setInfoPanelEnabled(enabled) {
+        this.suppressed = !enabled;
+        if (this.suppressed) this.hide();
     }
 
     /**
