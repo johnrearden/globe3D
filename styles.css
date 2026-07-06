@@ -4365,12 +4365,36 @@ body.dq-active #quiz-invite { display: none; }
     font-weight: 700;
 }
 .dq-lb-pad td { color: #56657f; }   /* placeholder rows padding the board to a full top-10 */
+
+/* Player cell: small country flag left of the nickname (see leaderboard.js flagHtml). */
+.dq-lb-player {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.dq-lb-flag {
+    flex: none;
+    width: 20px;
+    height: 15px;          /* 4:3 flag ratio; w40 source is 2× for retina crispness */
+    object-fit: cover;
+    border-radius: 2px;
+    /* hairline edge + shadow so light/white flags read on the dark panel */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.dq-lb-flag--none {       /* alignment placeholder when a player has no country */
+    display: inline-block;
+    box-shadow: none;
+}
 .dq-lb-yourrow {
-    text-align: center;
     margin-top: 10px;
     color: #ffd9a8;
     font-weight: 600;
     font-family: 'Archivo', sans-serif;
+    /* flex so the prepended flag sits inline with the centered text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
 }
 
 /* Dismiss the board — a wide outline pill, matching the practice quizzes'

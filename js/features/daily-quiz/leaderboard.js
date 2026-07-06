@@ -3,9 +3,23 @@
  * Highlights the current player's row (matched by the `you` entry's rank).
  */
 
+import { countryData, countryToISO } from '../../data/country-data.js';
+
 // Always show a full top-N board, padding with placeholder rows when there are
 // fewer real finishers.
 const LEADERBOARD_ROWS = 10;
+
+/**
+ * A small country flag for a player's stored country NAME (e.g. "France"), or an
+ * empty fixed-width placeholder when the country is missing/unknown so nicknames
+ * stay aligned across rows. `iso` is a lowercase 2-letter code from our own data
+ * map (safe to interpolate); `country` is only ever used as a lookup key.
+ */
+function flagHtml(country) {
+    const iso = country && (countryData[country]?.iso || countryToISO[country]);
+    if (!iso) return '<span class="dq-lb-flag dq-lb-flag--none"></span>';
+    return `<img class="dq-lb-flag" src="https://flagcdn.com/w40/${iso}.png" alt="" loading="lazy">`;
+}
 
 function fmtTime(ms) {
     const s = Math.round(ms / 1000);
@@ -49,7 +63,7 @@ export function renderLeaderboard(container, data, onDismiss) {
         if (youRank && e.rank === youRank) tr.className = 'dq-lb-you';
         tr.innerHTML = `
             <td>${e.rank}</td>
-            <td>${escapeHtml(e.nickname)}</td>
+            <td><span class="dq-lb-player">${flagHtml(e.country)}${escapeHtml(e.nickname)}</span></td>
             <td>${e.score}</td>
             <td>${fmtTime(e.timeMs)}</td>
         `;
@@ -61,7 +75,7 @@ export function renderLeaderboard(container, data, onDismiss) {
     for (let rank = entries.length + 1; rank <= LEADERBOARD_ROWS; rank++) {
         const tr = document.createElement('tr');
         tr.className = 'dq-lb-pad';
-        tr.innerHTML = `<td>${rank}</td><td>----</td><td>--</td><td>--m --s</td>`;
+        tr.innerHTML = `<td>${rank}</td><td><span class="dq-lb-player"><span class="dq-lb-flag dq-lb-flag--none"></span>----</span></td><td>--</td><td>--m --s</td>`;
         body.appendChild(tr);
     }
 
@@ -71,7 +85,9 @@ export function renderLeaderboard(container, data, onDismiss) {
     if (data.you && (!data.entries || !data.entries.some((e) => e.rank === data.you.rank))) {
         const you = document.createElement('div');
         you.className = 'dq-lb-yourrow';
-        you.textContent = `You: #${data.you.rank} · ${data.you.score} pts · ${fmtTime(data.you.timeMs)}`;
+        // innerHTML so the flag can be prepended; the trailing text is all
+        // app-controlled numbers/labels (no user input), the flag iso is safe.
+        you.innerHTML = `${flagHtml(data.you.country)}<span>You: #${data.you.rank} · ${data.you.score} pts · ${fmtTime(data.you.timeMs)}</span>`;
         container.appendChild(you);
     }
 
