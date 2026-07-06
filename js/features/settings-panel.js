@@ -31,9 +31,10 @@ const DEV_BUTTON_IDS = [
 ];
 
 export class SettingsPanel {
-    constructor({ globeManager, cameraController } = {}) {
+    constructor({ globeManager, cameraController, labelManager } = {}) {
         this.globeManager = globeManager;
         this.cameraController = cameraController;
+        this.labelManager = labelManager;
         this.panel = null;
         this.gear = null;
         this._schemeButtons = new Map();
@@ -171,6 +172,13 @@ export class SettingsPanel {
         this._checkbox(sec, 'Show countries', saved.showCountries !== false, (checked) => {
             if (this.globeManager) this.globeManager.setShowCountries(checked);
             settingsStore.save({ showCountries: checked });
+        });
+
+        // Show / hide the country name labels. Master switch honoured every frame
+        // by LabelManager.updateVisibility — used to capture clean screenshots.
+        this._checkbox(sec, 'Country names', saved.showLabels !== false, (checked) => {
+            if (this.labelManager) this.labelManager.setLabelsVisible(checked);
+            settingsStore.save({ showLabels: checked });
         });
 
         // Borders toggle (independent of scheme). Drawn as a shader edge effect
@@ -332,6 +340,9 @@ export class SettingsPanel {
             this.globeManager.setBorderOpacity(saved.borderOpacity);
             this.globeManager.setBorderVisible(!!saved.borders);
         }
+
+        // Country name labels master switch.
+        if (this.labelManager) this.labelManager.setLabelsVisible(saved.showLabels !== false);
 
         // Auto-rotate prefs. Set the delay/speed directly and, when enabled, just
         // flip the master flag so the intro idle-spin already running is preserved

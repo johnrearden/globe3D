@@ -516,7 +516,7 @@
                     // here (after load) so the lighting uniforms + palette already exist.
                     // Replaces the old dev-edit toggle and the debug lighting panel.
                     // Borders are now a baked shader edge effect owned by globeManager.
-                    settingsPanel = new SettingsPanel({ globeManager, cameraController });
+                    settingsPanel = new SettingsPanel({ globeManager, cameraController, labelManager });
                     settingsPanel.init();
 
                     // ===== PHASE 6: Initialize Quiz System =====

@@ -17,6 +17,10 @@ export class LabelManager {
         this.labelConfig = {};
         this.labelDefaults = {};
         this.currentHighlight = null;
+        // Master switch (settings panel): when true, every country name label is
+        // kept hidden regardless of zoom/facing. Used to capture clean globe
+        // screenshots. updateVisibility() honours it each frame.
+        this.labelsHidden = false;
 
         // Reusable scratch vector for updateVisibility() — pooled so the per-frame
         // visibility pass doesn't allocate a Vector3 every call.
@@ -259,7 +263,7 @@ export class LabelManager {
         this.labels.forEach(label => {
             // Default focus zoom for any label missing a classification.
             const focusZoom = label.userData.focusZoom || 1.28;
-            let shouldShow = !quizActive && cameraDistance <= focusZoom;
+            let shouldShow = !this.labelsHidden && !quizActive && cameraDistance <= focusZoom;
 
             if (shouldShow) {
                 const dotProduct = label.position.clone().normalize().dot(cameraDirection);
@@ -276,6 +280,16 @@ export class LabelManager {
             // Skip drawing labels that have fully faded out.
             label.visible = label.material.opacity > 0.01;
         });
+    }
+
+    /**
+     * Master show/hide for all country name labels (settings panel). Visibility
+     * is recomputed each frame in updateVisibility(); this just flips the flag it
+     * reads, so labels fade out/in on the next frames.
+     * @param {boolean} visible
+     */
+    setLabelsVisible(visible) {
+        this.labelsHidden = !visible;
     }
 
     /**
