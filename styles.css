@@ -4648,6 +4648,10 @@ button {
 .lp-body {
     margin: 0;
     min-height: 100vh;
+    /* Override the app's global `body { overflow: hidden }` (shared via
+       styles.css) so a content page actually scrolls. */
+    overflow-x: hidden;
+    overflow-y: auto;
     background: radial-gradient(120% 80% at 50% 8%, #102a44 0%, #0a1c30 42%, #06121f 100%);
     background-attachment: fixed;
     color: #e6edf5;
