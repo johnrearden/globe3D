@@ -84,6 +84,19 @@ first paint/LCP is untouched. New root files (`ads.txt`, `privacy/index.html`,
 manifest `<link>`, two imports, and two init calls. Landing-page ad slots documented in
 `docs/individual_landing_pages/plan.md`.
 
+**Bordering-countries SEO landing pages (2026-07-06):** a static, globe-free page per country at
+`/borders/<slug>` targeting the "what countries border X" query (implements
+`docs/individual_landing_pages/plan.md`; the content that makes the domain AdSense-approvable).
+Pipeline: `backend/quiz/data/border_quiz_targets.json` (28 curated cca3 targets) → the
+`export_border_quizzes` management command (reuses `_resolve_neighbours`/`nearest_countries`/
+`country_option`; sizes the grid itself so it copes with 2–14 land borders) → committed
+`landing/borders-data.json` → `build-landing.mjs` renders `landing/border-page.template.html` into
+`borders/<slug>/index.html` (**image-gated** on `img/borders/<slug>.png`; regenerates `sitemap.xml`;
+injects GA/AdSense tags only when `site-config.js` IDs are set) → `build-pages.mjs` stages them
+(`'borders'` added to INCLUDE). Runtime: `js/landing/border-quiz.js` reuses the daily-quiz
+`OptionsGrid` and computes the reveal client-side — no globe/Three.js/api-client. `build:pages` now
+runs `build-landing.mjs` first; generated `borders/` is git-ignored like `dist/`.
+
 **Beyond the staged plan** (polish + fixes surfaced during smoke testing): a runtime config
 cache-buster (`?v=` on the label/color/zoom JSON fetches), a per-quiz-module `cancel()` (restoring
 the desktop Start-Quiz panel), two fullscreen flag-quiz cancel-`×` fixes (`box-sizing:border-box`

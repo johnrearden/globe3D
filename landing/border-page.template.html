@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="__DESCRIPTION__">
+    <meta name="robots" content="index, follow">
+    <title>__TITLE__</title>
+    <link rel="canonical" href="__CANONICAL__">
+    <meta name="theme-color" content="#0a1c30">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Terragotcha">
+    <meta property="og:url" content="__CANONICAL__">
+    <meta property="og:title" content="__TITLE__">
+    <meta property="og:description" content="__DESCRIPTION__">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:image" content="__OG_IMAGE__">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="__IMG_ALT__">
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="__TITLE__">
+    <meta name="twitter:description" content="__DESCRIPTION__">
+    <meta name="twitter:image" content="__OG_IMAGE__">
+    <!-- Structured data -->
+    <script type="application/ld+json">
+__JSONLD__
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+__ANALYTICS_HEAD__
+</head>
+<body class="lp-body">
+    <main class="lp-main">
+        <header class="lp-header">
+            <a class="lp-brand" href="/"><span class="lp-brand-terra">Terra</span><span class="lp-brand-gotcha">gotcha</span></a>
+        </header>
+
+        <h1 class="lp-title">__H1__</h1>
+        <p class="lp-intro">__INTRO__</p>
+
+        <img class="lp-hero" src="/img/borders/__SLUG__.png" alt="__IMG_ALT__" width="1200" height="630">
+
+        <section class="lp-answer">
+            <h2>Countries that border __NAME__</h2>
+            <p>__ANSWER_SENTENCE__</p>
+            <ul class="lp-answer-list">
+__ANSWER_LIST__
+            </ul>
+        </section>
+
+        <section class="lp-quiz" aria-label="Border quiz">
+            <h2 class="lp-quiz-title">Test yourself</h2>
+            <p class="lp-quiz-sub">Tap every country that shares a land border with __NAME__, then check your answer.</p>
+            <div id="border-quiz"></div>
+        </section>
+__AD_SECTION__
+        <section class="lp-cta">
+            <p class="lp-cta-lead">Like map puzzles?</p>
+            <a class="lp-cta-btn" href="/">Explore the interactive 3D globe →</a>
+        </section>
+__RELATED_SECTION__
+        <footer class="lp-footer">
+            <a href="/privacy/">Privacy Policy</a>
+        </footer>
+    </main>
+
+    <script type="application/json" id="border-data">
+__QUIZ_JSON__
+    </script>
+    <script type="module" src="/js/landing/border-quiz.js"></script>
+</body>
+</html>

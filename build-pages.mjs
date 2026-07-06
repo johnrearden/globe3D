@@ -24,6 +24,7 @@ const INCLUDE = [
     'index.html',
     'styles.css',
     'js',
+    'borders',              // generated border-quiz landing pages (build-landing.mjs)
     'img',                  // small UI-shell images (e.g. the loading-splash globe)
     'label-config.json',
     'country-colors.json',

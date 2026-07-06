@@ -22,6 +22,10 @@ export const ADSENSE_CLIENT_ID = '';
 // serves nothing (harmless).
 export const ADSENSE_RAIL_SLOT = '';
 
+// Ad-unit slot id for the in-content unit on the /borders/<slug> landing pages
+// (read at build time by build-landing.mjs). Empty → no ad unit is emitted.
+export const ADSENSE_LANDING_SLOT = '';
+
 /**
  * True only on a genuine deployed (production/preview) host — never on
  * localhost / LAN dev. Mirrors the API/asset prod gate (isLocalDevHost, and the

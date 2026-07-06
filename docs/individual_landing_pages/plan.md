@@ -1,5 +1,14 @@
 # Plan: Lightweight "bordering countries" SEO landing pages
 
+> **Status: BUILT (2026-07-06).** Pipeline implemented — `backend/quiz/data/border_quiz_targets.json`
+> (28 curated targets, keyed by **cca3**), the `export_border_quizzes` management command →
+> `landing/borders-data.json`, `landing/border-page.template.html` + `build-landing.mjs` (image-gated,
+> regenerates `sitemap.xml`), and the globe-free `js/landing/border-quiz.js` reusing `OptionsGrid`.
+> Pages are **image-gated**: each goes live only once `img/borders/<slug>.png` (~1200×630) is captured.
+> `npm run build:pages` now runs `build-landing.mjs` first. Two corrections vs. the original text below:
+> the grid reveal classes are `.correct/.incorrect/.missed` (not `reveal-right/-wrong/-missed`), and the
+> targets file keys on **cca3** (the `Country` table has no slug field).
+
 ## Context
 
 Terragotcha is about to launch with a single page (the 3D globe app), which is a thin
