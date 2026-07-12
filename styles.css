@@ -4235,6 +4235,18 @@ body.dq-active #quiz-invite { display: none; }
     line-height: 1.25;
 }
 
+/* Sub-caption under the prompt on "Click X." (map-click) questions: tells the
+   player the globe can be rotated to line their answer up before tapping. */
+.dq-map-hint {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 500;
+    font-size: 12.5px;
+    letter-spacing: 0.01em;
+    color: #9fb0c8;
+    text-align: center;
+    margin: 2px 0 0;
+}
+
 /* Answer cells reuse the practice quizzes' .quiz-option markup + --qz-* tokens
    (defined in the shared answer-grid block). Scoped to .dq-grid so the practice
    #quiz-options rules are untouched; daily keeps variable columns (set inline) and

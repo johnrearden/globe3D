@@ -122,8 +122,12 @@ let distance = map.zoom;                                    // server value wins
 if (!distance && map.focusCountry) {
     distance = camera.framingDistanceFor(map.focusCountry, QUIZ_SUBJECT_SCREEN_FRACTION); // 0.20
 }
+// Map-click questions ("Click X.") ignore the server's lock so the player can
+// rotate their guess to the centre before tapping; grid-over-map questions keep it.
+const isMapClick = /^map-click-/.test(question.answer && question.answer.method);
 camera.frameView({ lat: map.center.lat, lng: map.center.lng, distance,
-                   focalAnchor: map.focalAnchor, lockRotation: !!map.lockRotation });
+                   focalAnchor: map.focalAnchor,
+                   lockRotation: isMapClick ? false : !!map.lockRotation });
 ```
 
 There are two sub-cases, determined by the backend generators in
@@ -149,6 +153,14 @@ There are two sub-cases, determined by the backend generators in
   This maps how spread-out the answers are onto a distance in the 1.3–6.0 range. The
   server also supplies a **`focalAnchor`** (e.g. `{x:0.5, y:0.30}`) that shifts the
   globe upward so it doesn't sit under the options grid, plus `lockRotation: true`.
+
+  The lock is honoured only for **grid-over-map** questions (e.g. "border X"), where
+  the highlighted subject must stay framed while the player picks grid cells. The
+  **`region-click`** question ("Click X.", `map-click-single`) is drawn over the same
+  kind of framed map but is answered *on the map*, so the presenter overrides the lock
+  to **`false`** — the player can rotate the globe to bring their intended country to
+  the least-distorted centre before tapping. A rotate-drag never registers as an answer
+  because pointer-controls only treats a sub-threshold tap (no drag) as a map click.
 
 Unlike standard quizzes, the daily path always goes through **`frameView`**
 (`js/core/camera-controls.js:246` — explicit lat/lng + focal-anchor offset + optional

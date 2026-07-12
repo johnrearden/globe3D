@@ -20,6 +20,19 @@ export class QuestionPresenter {
         this.grid = new OptionsGrid(this.els.gridHost);
         this._awaitingMapClick = false;
         this._submitHandler = null;
+
+        // A one-line affordance shown under the prompt on map-click questions
+        // ("Click X."): the globe used to be frozen here, so the fact that you
+        // can now rotate it to line your answer up face-on isn't discoverable
+        // otherwise. Created at runtime (no static markup in index.html) and
+        // slotted right after the prompt, where a map-click question has no grid.
+        this._hint = document.createElement('div');
+        this._hint.className = 'dq-map-hint';
+        this._hint.textContent = 'Drag to rotate • tap your answer';
+        this._hint.style.display = 'none';
+        if (this.els.prompt && this.els.prompt.insertAdjacentElement) {
+            this.els.prompt.insertAdjacentElement('afterend', this._hint);
+        }
     }
 
     /**
@@ -40,6 +53,7 @@ export class QuestionPresenter {
             const done = (answer) => {
                 const elapsedMs = Math.round(performance.now() - startedAt);
                 this._awaitingMapClick = false;
+                this._setHint(false);        // answer is in — the rotate hint is stale
                 this._hideSubmit();          // answer is in — the row keeps only Next
                 resolve({ answer, elapsedMs });
             };
@@ -48,6 +62,7 @@ export class QuestionPresenter {
             if (method === 'map-click-single' || method === 'map-click-multi') {
                 // No Submit button — clicking the map/single country is the submit.
                 this._awaitingMapClick = true;
+                this._setHint(true);         // globe is rotatable — tell the player
                 this._mapResolve = (name) => done(name);
             } else {
                 const multi = !!question.grid.multiSelect;
@@ -82,6 +97,11 @@ export class QuestionPresenter {
         if (!btn) return;
         btn.disabled = count === 0;
         btn.textContent = count ? `Submit (${count})` : 'Submit';
+    }
+
+    /** Show/hide the "drag to rotate" hint shown under the prompt on map clicks. */
+    _setHint(visible) {
+        if (this._hint) this._hint.style.display = visible ? '' : 'none';
     }
 
     /** Hide the Submit button and detach its handler. */
@@ -161,12 +181,22 @@ export class QuestionPresenter {
             distance = this.camera.framingDistanceFor(map.focusCountry, QUIZ_SUBJECT_SCREEN_FRACTION);
         }
 
+        // Map-click questions ("Click X.") let the player rotate the globe so they
+        // can bring their intended country to the least-distorted centre before
+        // tapping — the drag-vs-tap threshold in pointer-controls keeps a rotate
+        // from registering as an answer. The server lock is honoured only for
+        // grid questions drawn over a background map (e.g. "border X"), where the
+        // subject is highlighted and mustn't be spun out of frame.
+        const method = question.answer && question.answer.method;
+        const isMapClick = method === 'map-click-single' || method === 'map-click-multi';
+        const lockRotation = isMapClick ? false : !!map.lockRotation;
+
         this.camera.frameView({
             lat: map.center.lat,
             lng: map.center.lng,
             distance,
             focalAnchor: map.focalAnchor,
-            lockRotation: !!map.lockRotation,
+            lockRotation,
         });
 
         this.globe.showAll();
@@ -179,6 +209,7 @@ export class QuestionPresenter {
     _resetView() {
         this.grid.clear();
         this.els.flag.style.display = 'none';
+        this._setHint(false);
         this._hideSubmit();
     }
 
@@ -190,6 +221,7 @@ export class QuestionPresenter {
         this.globe.clearSelection();
         this.grid.clear();
         this.els.flag.style.display = 'none';
+        this._setHint(false);
         this._hideSubmit();
     }
 }
