@@ -72,11 +72,12 @@ In Cloudflare:
 3. Cloudflare will automatically provision SSL certificate
 4. Update DNS records as instructed
 
-#### Step 5: Add Environment Variables (for Analytics/AdSense)
-1. Go to **Settings** > **Environment variables**
-2. Add variables for production:
-   - `GA_MEASUREMENT_ID` - Your Google Analytics ID
-   - `ADSENSE_CLIENT_ID` - Your AdSense client ID
+#### Step 5: Analytics / AdSense IDs (no environment variables needed)
+Analytics and AdSense IDs are **not** Cloudflare environment variables. They live in the
+committed config file **`js/data/site-config.js`** (`GA_MEASUREMENT_ID`, `ADSENSE_CLIENT_ID`,
+`ADSENSE_RAIL_SLOT`, `ADSENSE_LANDING_SLOT`). These are public client-side identifiers, so
+committing them is fine; an empty value means that integration stays disabled. See Sections 3 & 4
+below for the exact steps.
 
 #### Step 6: Configure _headers File
 Create a `_headers` file in the root directory for optimal performance:
@@ -171,6 +172,13 @@ However, if you exceed 500 builds/month, you'll need the paid tier:
 
 ## 3. Google AdSense Integration
 
+> **Status (2026-07): the code is already implemented as modules** — see
+> `js/features/ads/adsense.js` (loader + `mountAd`), `js/features/ads/ad-rail.js` (desktop side
+> rail), `js/data/site-config.js` (IDs), `ads.txt`, and `privacy/index.html`. Do **not** paste the
+> inline snippets that older revisions of this guide described — that would double-integrate. The
+> only remaining work is external: get approved, fill in the IDs, and flip two dashboard settings
+> (below).
+
 ### Prerequisites
 1. Google account
 2. Approved AdSense account (application process takes 1-2 weeks)
@@ -189,69 +197,37 @@ After approval:
 3. Click **Get code**
 4. Copy your AdSense script tag
 
-### Step 3: Integrate into index.html
-Add the AdSense code to your `<head>` section:
+### Step 3: Fill in the IDs (once approved)
+The loader and ad slots are already coded — you only supply the IDs:
 
-```html
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D World Globe | Explore Countries</title>
+1. In **`js/data/site-config.js`**, set `ADSENSE_CLIENT_ID` to your `ca-pub-…` id.
+2. In the AdSense dashboard, create the display ad units, then set `ADSENSE_RAIL_SLOT` (desktop side
+   rail) and `ADSENSE_LANDING_SLOT` (the in-content unit on the `/borders/<slug>` landing pages) in
+   the same file.
+3. In **`ads.txt`**, replace `pub-XXXXXXXXXXXXXXXX` with your publisher id (the `ca-pub-…` digits).
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXX"
-         crossorigin="anonymous"></script>
+`js/features/ads/adsense.js` loads `adsbygoogle.js` (deferred, prod-gated) and `mountAd()` inserts
+each `<ins>` once. Empty IDs keep everything inert, so nothing serves until this step is done.
 
-    <!-- Rest of your head content -->
-</head>
-```
+### Step 4: Ad placements (already built — do NOT add inline `<ins>` tags)
+This is a WebGL SPA, so ads sit in the page chrome, never over the canvas:
 
-### Step 4: Add Ad Units
-**Option A: Auto Ads (Recommended for start)**
-Auto ads are already enabled with the script above. Google will automatically place ads.
+- **Desktop side rail** — `js/features/ads/ad-rail.js` mounts a responsive unit in the left margin.
+- **Mobile bottom anchor** — served by **Auto Ads set to Anchor-only** (AdSense dashboard →
+  Auto ads). Keep all other Auto-Ads formats **off** so nothing overlays the globe.
+- **Landing pages** — `build-landing.mjs` injects an in-content unit into each `/borders/<slug>`
+  page at build time, gated on the config IDs.
 
-**Option B: Manual Ad Placement**
-For WebGL apps, consider these placements:
+Do not follow the old "Auto Ads / manual banner" snippets — the app's own canvas is not a valid ad
+surface, and Auto Ads left fully on would overlay it (a policy risk).
 
-1. **Top Banner (728x90 or responsive)**
-```html
-<!-- Top of page, before #container -->
-<div style="text-align: center; padding: 10px;">
-    <ins class="adsbygoogle"
-         style="display:inline-block;width:728px;height:90px"
-         data-ad-client="ca-pub-XXXXXXXXXX"
-         data-ad-slot="YYYYYYYYYY"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
-</div>
-```
-
-2. **Side Banner (160x600)**
-```html
-<!-- Add to side of globe container -->
-<div style="position: absolute; right: 20px; top: 100px; z-index: 100;">
-    <ins class="adsbygoogle"
-         style="display:inline-block;width:160px;height:600px"
-         data-ad-client="ca-pub-XXXXXXXXXX"
-         data-ad-slot="ZZZZZZZZZZ"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
-</div>
-```
-
-### Step 5: Optimize for WebGL Performance
-Since your app is WebGL-intensive, avoid ads that:
-- Overlay the canvas
-- Use too much CPU/GPU
-- Block user interaction
-
-**Best practices**:
-- Place ads outside the main canvas area
-- Use responsive ad units
-- Limit to 2-3 ad units per page
-- Monitor frame rate impact
+### Step 5: Consent (required for EEA/UK) + verify
+1. In the AdSense dashboard, enable **Privacy & messaging → GDPR + US-states** (Google's certified
+   CMP). The code already emits **Consent Mode v2** defaults (denied) via
+   `js/features/analytics.js`, so ads/analytics honour the CMP automatically once it's on.
+2. Confirm `privacy/index.html` (linked from the app + landing pages) is live.
+3. After deploy: verify `https://terragotcha.com/ads.txt` resolves, and that ads render only in the
+   margins/anchor (never over the canvas, on the splash, or beside buttons).
 
 ### Expected Revenue
 **Estimates for educational/geography niche**:
@@ -266,6 +242,12 @@ Since your app is WebGL-intensive, avoid ads that:
 
 ## 4. Google Analytics Integration
 
+> **Status (2026-07): the code is already implemented as a module** — see
+> `js/features/analytics.js` (Consent Mode v2 + `gtag.js` loader + `track()`) and
+> `js/data/site-config.js` (`GA_MEASUREMENT_ID`). Do **not** paste the inline `gtag` snippet or
+> hand-write event functions that older revisions described — the events are already wired. The only
+> remaining work is to create the property and paste the Measurement ID.
+
 ### Step 1: Create Google Analytics Property
 1. Go to [Google Analytics](https://analytics.google.com/)
 2. Click **Admin** (bottom left)
@@ -274,66 +256,25 @@ Since your app is WebGL-intensive, avoid ads that:
 5. Enter your website URL
 6. Get your **Measurement ID** (format: G-XXXXXXXXXX)
 
-### Step 2: Install GA4 Tracking Code
-Add to your `<head>` section in index.html:
+### Step 2: Paste the Measurement ID
+Set `GA_MEASUREMENT_ID` in **`js/data/site-config.js`** to your `G-XXXXXXXXXX` id, then deploy.
+That's it — `js/features/analytics.js` sets Consent Mode v2 defaults, loads `gtag.js` (deferred
+behind the intro splash so LCP isn't taxed, and prod-gated so no hits fire from local dev), and
+sends `page_view` + custom events. Verify in **GA4 → Realtime / DebugView** (append `?ads=1` locally
+to force the prod path for a smoke test).
 
-```html
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+### Step 3: Custom events (already wired)
+Five events fire from the app already — no code to add:
 
-  gtag('config', 'G-XXXXXXXXXX', {
-    'send_page_view': true,
-    'cookie_flags': 'SameSite=None;Secure'
-  });
-</script>
-```
+| Event | Fires when | Where |
+|-------|-----------|-------|
+| `quiz_start` | a quiz begins (with `mode`) | `analytics.js` via `state.subscribe('quiz.active')` |
+| `quiz_complete` | a quiz finishes (`mode`, `score`, `total`) | `js/features/quiz/quiz-ui.js` |
+| `country_select` | a country is tapped on the globe | `js/features/pointer-controls.js` |
+| `daily_complete` | the Daily Challenge is finished (`score`) | `js/features/daily-quiz/daily-quiz.js` |
+| `share` | a result is shared/copied | `js/features/quiz/quiz-results-modal.js` |
 
-### Step 3: Set Up Custom Events
-Track user interactions with your globe:
-
-```javascript
-// Add to your main script section
-
-// Track country clicks
-function onCountryClick(countryName) {
-    gtag('event', 'country_click', {
-        'country_name': countryName,
-        'event_category': 'interaction',
-        'event_label': countryName
-    });
-}
-
-// Track globe rotation
-function onGlobeRotate() {
-    gtag('event', 'globe_rotate', {
-        'event_category': 'interaction',
-        'event_label': 'user_rotation'
-    });
-}
-
-// Track control usage (sea level, etc.)
-function onControlChange(controlName, value) {
-    gtag('event', 'control_change', {
-        'control_name': controlName,
-        'control_value': value,
-        'event_category': 'interaction'
-    });
-}
-
-// Track load time
-window.addEventListener('load', function() {
-    const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-    gtag('event', 'page_load', {
-        'event_category': 'performance',
-        'event_label': 'load_time',
-        'value': loadTime
-    });
-});
-```
+To add more, import `track` from `js/features/analytics.js` and call `track('name', {…})`.
 
 ### Step 4: Configure Enhanced Measurement
 In GA4 dashboard:
@@ -712,13 +653,14 @@ Implement additional schema types:
 - [ ] Verify SSL certificate
 
 ### Analytics & Monetization
-- [ ] Apply for Google AdSense
-- [ ] Create Google Analytics property
-- [ ] Install AdSense code
-- [ ] Install Analytics code
-- [ ] Set up custom events
-- [ ] Test ad placements
-- [ ] Monitor performance impact
+- [x] Install Analytics code — `js/features/analytics.js` (Consent Mode v2, deferred, prod-gated)
+- [x] Install AdSense code — `js/features/ads/adsense.js` + `ad-rail.js`; `ads.txt`, `privacy/`
+- [x] Set up custom events — quiz_start / quiz_complete / country_select / daily_complete / share
+- [ ] Create Google Analytics property → paste `GA_MEASUREMENT_ID` in `js/data/site-config.js`
+- [ ] Apply for Google AdSense (needs the live site to have content — the landing pages)
+- [ ] After approval: paste `ADSENSE_CLIENT_ID` + slot ids in `site-config.js`, pub id in `ads.txt`
+- [ ] Enable Google CMP (Privacy & messaging) + set Auto Ads → Anchor-only
+- [ ] Test ad placements (off-canvas) and monitor performance impact
 
 ### SEO
 - [ ] Submit sitemap to Google Search Console
