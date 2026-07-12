@@ -33,6 +33,9 @@ export class OptionsGrid {
      * @param {number} cfg.cols
      * @param {boolean} cfg.multiSelect
      * @param {string} [cfg.display]  'name' (default) — show label text
+     * @param {string} [cfg.missedGlyph]  svgIcon glyph for a correct-but-missed
+     *        cell's reveal mark ('check' default; the border-quiz landing passes
+     *        'plus' to match its handoff)
      * @param {(answer:string[])=>void} cfg.onSubmit  called with selected values
      * @param {(count:number)=>void} [cfg.onSelectionChange]  multi-select only:
      *        fired on every toggle so an external Submit button can enable itself
@@ -42,6 +45,7 @@ export class OptionsGrid {
         this._multi = !!cfg.multiSelect;
         this._onSubmit = cfg.onSubmit;
         this._onSelectionChange = cfg.onSelectionChange || null;
+        this._missedGlyph = cfg.missedGlyph || 'check';
         this._locked = false;
 
         const grid = document.createElement('div');
@@ -112,13 +116,29 @@ export class OptionsGrid {
             else if (missed.has(value)) { cell.classList.add('missed'); mark = 'missed'; }
             else cell.classList.add('dimmed');
             if (mark) {
-                const glyph = mark === 'wrong' ? 'x' : 'check';
+                const glyph = mark === 'wrong' ? 'x' : mark === 'missed' ? this._missedGlyph : 'check';
                 cell.insertAdjacentHTML(
                     'beforeend',
                     `<span class="qz-mark qz-mark-${mark}">${svgIcon(glyph, 16)}</span>`,
                 );
             }
         });
+    }
+
+    /**
+     * Revert a graded grid to its pre-check, pre-selection state so it can be
+     * replayed (the border-quiz landing's "Try again"): drops the reveal classes
+     * and their .qz-mark icons, clears the selection, and unlocks. The cells and
+     * their click handlers are left intact — no re-render needed.
+     */
+    reset() {
+        this._cells.forEach((cell) => {
+            cell.classList.remove('selected', 'correct', 'incorrect', 'missed', 'dimmed');
+            cell.querySelector('.qz-mark')?.remove();
+        });
+        this._selected.clear();
+        this._locked = false;
+        if (this._onSelectionChange) this._onSelectionChange(0);
     }
 
     clear() {

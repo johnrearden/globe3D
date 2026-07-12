@@ -41,14 +41,73 @@ __JSONLD__
 __ANALYTICS_HEAD__
 </head>
 <body class="lp-body">
-    <main class="lp-main">
-        <div class="lp-titlebar">
-            <h1 class="lp-title">__H1__</h1>
+    <main class="lp-shell">
+        <!-- Top bar: wordmark (left) + ghost "explore" pill (right). The pill is
+             desktop-only; on the mobile card the wordmark carries the brand. -->
+        <div class="lp-topbar">
             <a class="lp-brand" href="/"><span class="lp-brand-terra">Terra</span><span class="lp-brand-gotcha">gotcha</span></a>
+            <a class="lp-ghost-pill" href="/">
+                <svg class="lp-ico" viewBox="0 0 256 256" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.13,104.13,0,0,0,128,24ZM92,206.51a87.78,87.78,0,0,1-37.49-30.61l16.69-9.7a8,8,0,0,1,9.21.84l11.7,10.23a8,8,0,0,0,10.51,0l13.36-11.69a8,8,0,0,1,6.65-1.9l16.86,2.81a8,8,0,0,0,9-5.84l4.92-18.43a8,8,0,0,0-3.16-8.65l-17.78-12.46a8,8,0,0,1-2.91-9.65l3.81-9.13A8,8,0,0,1,144,98.36l13.13.94a8,8,0,0,0,8.5-6.69l1.66-10.07a8,8,0,0,1,4.07-5.69l13.62-7.48a88,88,0,0,1,8.5,99.06l-14.13-8.21a8,8,0,0,0-9.18.76l-13.36,11.69a8,8,0,0,1-6.65,1.9Z"/></svg>
+                Explore the 3D globe
+            </a>
         </div>
-        <p class="lp-intro">__INTRO__</p>
 
-        <img class="lp-hero" src="/img/borders/__SLUG__.png" alt="__IMG_ALT__" width="1200" height="630">
+        <div class="lp-hero-grid">
+            <!-- Head: eyebrow + the page's single H1 + description. On desktop it
+                 sits top-right beside the map; on mobile it stacks above the map. -->
+            <div class="lp-head">
+                <div class="lp-eyebrow">Border challenge</div>
+                <h1 class="lp-title">__H1__</h1>
+                <p class="lp-desc lp-desc-desk">Tap every country you think shares a land border with __NAME__ &mdash; then check how sharp your mental map really is.</p>
+                <p class="lp-desc lp-desc-mob">Covering __AREA__ in __REGION__. Can you name every country that borders __NAME__?</p>
+            </div>
+
+            <!-- Map hero: the country render fills the panel; a pulsing amber glow
+                 sits behind it and a bottom scrim carries the caption (desktop). -->
+            <div class="lp-maphero">
+                <div class="lp-maphero-glow" aria-hidden="true"></div>
+                <img class="lp-maphero-img" src="/img/borders/__SLUG__.png" alt="__IMG_ALT__" width="1200" height="630">
+                <div class="lp-maphero-caption">
+                    <div class="lp-cap-eyebrow">__REGION__</div>
+                    <div class="lp-cap-name">__NAME__</div>
+                    <div class="lp-cap-stats">
+                        <span class="lp-cap-stat"><svg class="lp-ico" viewBox="0 0 256 256" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l24-24,18.34,18.35a8,8,0,0,0,11.32-11.32L67.31,136,88,115.31l18.34,18.35a8,8,0,0,0,11.32-11.32L99.31,104,120,83.31l18.34,18.35a8,8,0,0,0,11.32-11.32L131.31,72,152,51.31l18.34,18.35a8,8,0,0,0,11.32-11.32L163.31,40l16.69-16.68L232.68,76Z"/></svg>__AREA__</span>
+                        <span class="lp-cap-stat"><svg class="lp-ico" viewBox="0 0 256 256" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z"/></svg>How many neighbours can you name?</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interaction: instruction + live counter, then the quiz grid and
+                 its action row (both built at runtime by border-quiz.js). -->
+            <div class="lp-interact">
+                <div class="lp-divider" aria-hidden="true"></div>
+                <div class="lp-instr">
+                    <div class="lp-instr-label">Select the neighbours</div>
+                    <div class="lp-counter" id="lp-counter">
+                        <span class="lp-counter-icon" id="lp-counter-icon"><svg class="qz-svg" viewBox="0 0 256 256" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z"/></svg></span>
+                        <span class="lp-counter-text" id="lp-counter-text">0 selected</span>
+                    </div>
+                </div>
+                <section class="lp-quiz" aria-label="Border quiz">
+                    <div id="border-quiz"></div>
+                </section>
+            </div>
+
+            <!-- CTA: hidden until the answer is revealed, then (after a 1.5s beat,
+                 handled by border-quiz.js) fades in over the map on desktop / as a
+                 band below the quiz on mobile. Lives in the grid so it can share
+                 the map's cell on desktop. -->
+            <section class="lp-cta is-collapsed">
+                <div class="lp-cta-copy">
+                    <p class="lp-cta-lead">Reclaim your brain.</p>
+                    <p class="lp-cta-sub">Beat your phone at geography &mdash; learn the whole world on an interactive 3D globe.</p>
+                </div>
+                <a class="lp-cta-btn" href="https://terragotcha.com/">
+                    <svg class="lp-ico" viewBox="0 0 256 256" width="19" height="19" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.13,104.13,0,0,0,128,24ZM92,206.51a87.78,87.78,0,0,1-37.49-30.61l16.69-9.7a8,8,0,0,1,9.21.84l11.7,10.23a8,8,0,0,0,10.51,0l13.36-11.69a8,8,0,0,1,6.65-1.9l16.86,2.81a8,8,0,0,0,9-5.84l4.92-18.43a8,8,0,0,0-3.16-8.65l-17.78-12.46a8,8,0,0,1-2.91-9.65l3.81-9.13A8,8,0,0,1,144,98.36l13.13.94a8,8,0,0,0,8.5-6.69l1.66-10.07a8,8,0,0,1,4.07-5.69l13.62-7.48a88,88,0,0,1,8.5,99.06l-14.13-8.21a8,8,0,0,0-9.18.76l-13.36,11.69a8,8,0,0,1-6.65,1.9Z"/></svg>
+                    Visit Terragotcha.com
+                </a>
+            </section>
+        </div>
 
         <!-- Answer kept in the server-rendered HTML for crawlers (the target SEO
              query) but visually hidden so it doesn't spoil the on-page quiz. -->
@@ -59,31 +118,12 @@ __ANALYTICS_HEAD__
 __ANSWER_LIST__
             </ul>
         </section>
-
-        <section class="lp-quiz" aria-label="Border quiz">
-            <p class="lp-quiz-instruction">Tap every country that borders __NAME__, then check your answer.</p>
-            <div id="border-quiz"></div>
-        </section>
-__RELATED_SECTION__
 __AD_SECTION__
-        <!-- Two same-size CTA panels on a sliding track. The "Reclaim Your Brain"
-             panel shows first; 1s after the quiz is answered the track slides
-             right so the "Like map puzzles?" panel scrolls in from the left and
-             the first panel scrolls off (border-quiz.js adds .is-swapped). -->
-        <div class="lp-cta-carousel">
-            <div class="lp-cta-track">
-                <section class="lp-cta">
-                    <p class="lp-cta-lead">Like map puzzles?</p>
-                    <a class="lp-cta-btn" href="/">Explore the interactive 3D globe →</a>
-                </section>
-                <section class="lp-cta">
-                    <p class="lp-cta-lead">Reclaim Your Brain</p>
-                    <a class="lp-cta-btn" href="https://terragotcha.com/">Visit Terragotcha.com</a>
-                </section>
-            </div>
-        </div>
+__RELATED_SECTION__
         <footer class="lp-footer">
             <a href="/privacy/">Privacy Policy</a>
+            <span aria-hidden="true">&middot;</span>
+            <span>&copy; 2026 Terragotcha</span>
         </footer>
     </main>
 

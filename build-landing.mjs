@@ -134,9 +134,10 @@ for (const e of data) {
 
     const title = `What countries border ${phrase(name)}? — Map quiz | Terragotcha`;
     const h1 = `Which countries border ${phrase(name)}?`;
-    const intro = `${phrase(name)} is a country in ${e.region}. It shares land borders with `
-        + `${e.borderCount} ${e.borderCount === 1 ? 'country' : 'countries'}`
-        + `${area ? `, covering ${area} km²` : ''}. Can you name them all?`;
+    // Visible copy deliberately omits the neighbour COUNT — revealing "8 countries"
+    // gives the quiz answer away (see the handoff's critical rule). The count lives
+    // only in the hidden SEO answer block + JSON-LD below.
+    const areaLabel = area ? `${area} km²` : '';
     const description = truncate(`Which countries border ${phrase(name)}? ${answerSentence} Take the quick map quiz.`);
     const imgAlt = e.imageAlt
         || `Map of ${e.region} with ${name} highlighted and its ${e.borderCount} bordering countries`;
@@ -176,7 +177,8 @@ ${related.map((r) => `                <li><a href="/borders/${r.slug}">Countries
         .replaceAll('__CANONICAL__', canonical)
         .replaceAll('__OG_IMAGE__', `${ORIGIN}/img/borders/${e.slug}.png`)
         .replaceAll('__IMG_ALT__', esc(imgAlt))
-        .replaceAll('__INTRO__', esc(intro))
+        .replaceAll('__REGION__', esc(e.region))
+        .replaceAll('__AREA__', esc(areaLabel))
         .replaceAll('__ANSWER_SENTENCE__', esc(answerSentence))
         .replaceAll('__ANSWER_LIST__', answerList)
         .replaceAll('__JSONLD__', jsonLd(e, name, canonical, answerSentence))
