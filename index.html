@@ -284,6 +284,7 @@
         import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
         import { QuizInvite } from './js/features/quiz/quiz-invite.js';
         import { WeakSpotsWidget } from './js/features/weak-spots-widget.js';
+        import { BackButtonGuard } from './js/features/back-button-guard.js';
         import { initMainCta } from './js/features/main-cta.js';
         import { initAnalytics } from './js/features/analytics.js';
         import { initAds } from './js/features/ads/adsense.js';
@@ -642,6 +643,28 @@
                     // prompt is resolved (listens for globe3d:daily-resolved).
                     quizInvite = new QuizInvite({ quizModePicker });
                     quizInvite.init();
+
+                    // Browser Back exits an open overlay (quiz / daily challenge /
+                    // results / leaderboard / picker / stats) to the bare globe —
+                    // same as tapping the in-app ×. Back from the globe navigates
+                    // away as normal. Reads overlay state from the classes/flags the
+                    // app already maintains; no quiz module needs to know about it.
+                    new BackButtonGuard({
+                        isOverlayOpen: () =>
+                            document.body.classList.contains('quiz-active') ||
+                            document.body.classList.contains('dq-active') ||
+                            document.body.classList.contains('celebration-active') ||
+                            quizModePicker.visible ||
+                            quizStats.visible,
+                        returnToGlobe: () => {
+                            if (quizResultsModal.visible) { quizResultsModal.hide(); restoreGlobeFromCelebration(); }
+                            cancelQuiz();                                              // no-op if no standard quiz active
+                            if (document.body.classList.contains('dq-active')) dailyQuiz.close();
+                            if (quizModePicker.visible) quizModePicker.hide();
+                            if (quizStats.visible) quizStats.hide();
+                        },
+                        watchTargets: [quizModePicker.container, quizStats.container]
+                    });
 
                     // ===== PHASE 9: Initialize Search System =====
                     searchManager = new SearchManager({
