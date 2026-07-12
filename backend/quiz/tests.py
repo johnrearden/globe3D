@@ -1,12 +1,14 @@
 import datetime
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from players.models import Player
-from quiz import services
-from quiz.models import Attempt, DailyQuiz, Question
+from quiz import regeneration, services
+from quiz.audit_auth import mint_token
+from quiz.models import AnswerRecord, Attempt, DailyQuiz, Question, QuestionFlag
 
 
 class GenerationTests(TestCase):
@@ -324,3 +326,223 @@ class LeaderboardTests(TestCase):
         self._attempt('slow', 8, 9000)
         self._attempt('low', 5, 1000)
         self.assertEqual(services.rank_of(a_fast), 1)
+
+
+class SubjectRecoveryTests(TestCase):
+    """The audit tool must be able to tell which countries a question consumed
+    (its "subjects") both for new quizzes (answer['subjects']) and for quizzes
+    generated before that key existed (per-type recovery from payload/answer)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('seed_countries')
+
+    def test_generated_questions_carry_subjects(self):
+        quiz = services.get_or_create_quiz(datetime.date(2026, 9, 1))
+        for q in quiz.questions.all():
+            self.assertIn('subjects', q.answer, q.type)
+            self.assertTrue(q.answer['subjects'], q.type)
+            # Subjects must never leak into the client-facing payload.
+            self.assertNotIn('subjects', str(q.payload))
+
+    def test_fallback_recovery_matches_stored_subjects(self):
+        # Several dates so every question type appears at least once.
+        seen_types = set()
+        for day in range(1, 10):
+            DailyQuiz.objects.all().delete()
+            quiz = services.get_or_create_quiz(datetime.date(2026, 9, day))
+            for q in quiz.questions.all():
+                stored = set(q.answer['subjects'])
+                q.answer = {k: v for k, v in q.answer.items() if k != 'subjects'}
+                self.assertEqual(
+                    regeneration.subject_pks_for_question(q), stored,
+                    f'{q.type} on {quiz.date} (index {q.index})',
+                )
+                seen_types.add(q.type)
+        self.assertLessEqual(
+            {'name-country', 'identify-flag', 'capital', 'region-click', 'bordering'},
+            seen_types,
+        )
+
+
+class RegenerationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command('seed_countries')
+
+    def setUp(self):
+        self.quiz = services.get_or_create_quiz(datetime.date(2026, 9, 15))
+
+    def test_replacement_preserves_slot_and_type(self):
+        q = self.quiz.questions.get(index=3)
+        old_pk, old_type, old_correct = q.pk, q.type, set(q.answer['correct'])
+        regeneration.regenerate_question(q, flag_count=0)
+        q.refresh_from_db()
+        self.assertEqual(q.pk, old_pk)
+        self.assertEqual(q.type, old_type)
+        self.assertEqual(q.payload['index'], 3)
+        self.assertNotEqual(set(q.answer['correct']), old_correct)
+
+    def test_replacement_subjects_disjoint_from_rest_of_quiz(self):
+        for index in range(self.quiz.questions.count()):
+            q = self.quiz.questions.get(index=index)
+            regeneration.regenerate_question(q, flag_count=0)
+            q.refresh_from_db()
+            others = set()
+            for other in self.quiz.questions.exclude(pk=q.pk):
+                others |= regeneration.subject_pks_for_question(other)
+            self.assertFalse(
+                set(q.answer['subjects']) & others,
+                f'index {index} ({q.type}) collided with another subject',
+            )
+
+    def test_regeneration_is_deterministic_per_flag_count(self):
+        q = self.quiz.questions.get(index=5)
+        original = (q.type, q.payload, q.answer, q.points)
+
+        regeneration.regenerate_question(q, flag_count=0)
+        q.refresh_from_db()
+        first = (q.payload, q.answer)
+
+        # Restore the original row and regenerate again with the same count.
+        q.type, q.payload, q.answer, q.points = original
+        q.save()
+        regeneration.regenerate_question(q, flag_count=0)
+        q.refresh_from_db()
+        self.assertEqual((q.payload, q.answer), first)
+
+        # A later flag on the same slot must produce a different replacement.
+        q.type, q.payload, q.answer, q.points = original
+        q.save()
+        regeneration.regenerate_question(q, flag_count=1)
+        q.refresh_from_db()
+        self.assertNotEqual((q.payload, q.answer), first)
+
+
+class AuditApiTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command('seed_countries')
+        User = get_user_model()
+        cls.superuser = User.objects.create_superuser('boss', 'boss@example.com', 'pw')
+        cls.mortal = User.objects.create_user('pleb', 'pleb@example.com', 'pw')
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def _headers(self, user=None):
+        return {'HTTP_X_AUDIT_TOKEN': mint_token(user or self.superuser)}
+
+    def test_requires_valid_superuser_token(self):
+        url = '/api/audit/daily/2026-10-01'
+        self.assertIn(self.client.get(url).status_code, (401, 403))
+        self.assertIn(
+            self.client.get(url, HTTP_X_AUDIT_TOKEN='garbage').status_code,
+            (401, 403),
+        )
+        self.assertIn(
+            self.client.get(url, **self._headers(self.mortal)).status_code,
+            (401, 403),
+        )
+        with self.settings(AUDIT_TOKEN_MAX_AGE=-1):  # every token already expired
+            self.assertIn(
+                self.client.get(url, **self._headers()).status_code, (401, 403),
+            )
+
+    def test_audit_daily_returns_answers_for_any_date(self):
+        for date in ('2020-01-15', '2030-12-31'):
+            resp = self.client.get(f'/api/audit/daily/{date}', **self._headers())
+            self.assertEqual(resp.status_code, 200, resp.content)
+            body = resp.json()
+            self.assertEqual(body['quizDate'], date)
+            self.assertEqual(len(body['questions']), body['questionCount'])
+            for q in body['questions']:
+                self.assertIn('correct', q['answer'])
+                self.assertTrue(q['answer']['correct'])
+
+    def test_flag_regenerates_and_snapshots(self):
+        date = '2026-10-05'
+        quiz_body = self.client.get(f'/api/audit/daily/{date}', **self._headers()).json()
+        old = quiz_body['questions'][2]
+
+        resp = self.client.post(
+            f'/api/audit/daily/{date}/flag',
+            {'index': 2, 'reason': 'bad borders data'},
+            format='json', **self._headers(),
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertTrue(body['flag']['regenerated'])
+        self.assertEqual(body['question']['type'], old['type'])
+        self.assertNotEqual(body['question']['answer']['correct'],
+                            old['answer']['correct'])
+
+        flag = QuestionFlag.objects.get()
+        self.assertEqual(flag.reason, 'bad borders data')
+        self.assertEqual(flag.flagged_by, 'boss')
+        self.assertEqual(flag.old_payload, old['payload'])
+        self.assertEqual(flag.old_answer, old['answer'])
+
+        # Auditing must never create player state.
+        self.assertEqual(Attempt.objects.count(), 0)
+        self.assertEqual(AnswerRecord.objects.count(), 0)
+
+    def test_flag_without_regenerate_keeps_question(self):
+        date = '2026-10-06'
+        old = self.client.get(f'/api/audit/daily/{date}', **self._headers()).json()['questions'][0]
+        resp = self.client.post(
+            f'/api/audit/daily/{date}/flag',
+            {'index': 0, 'reason': 'just noting', 'regenerate': False},
+            format='json', **self._headers(),
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertFalse(body['flag']['regenerated'])
+        self.assertEqual(body['question']['payload'], old['payload'])
+
+    def test_flag_on_played_quiz_requires_force(self):
+        date = '2026-10-07'
+        quiz = services.get_or_create_quiz(datetime.date(2026, 10, 7))
+        player = Player.objects.create(device_token='tok-x', nickname='X')
+        Attempt.objects.create(player=player, quiz=quiz)
+
+        resp = self.client.post(
+            f'/api/audit/daily/{date}/flag', {'index': 1},
+            format='json', **self._headers(),
+        )
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.json()['attemptCount'], 1)
+        self.assertEqual(QuestionFlag.objects.count(), 0)
+
+        resp = self.client.post(
+            f'/api/audit/daily/{date}/flag', {'index': 1, 'force': True},
+            format='json', **self._headers(),
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()['flag']['regenerated'])
+        # The attempt itself is untouched.
+        self.assertEqual(Attempt.objects.count(), 1)
+
+    def test_second_flag_gives_a_different_replacement(self):
+        date = '2026-10-08'
+        headers = self._headers()
+        first = self.client.post(f'/api/audit/daily/{date}/flag', {'index': 4},
+                                 format='json', **headers).json()
+        second = self.client.post(f'/api/audit/daily/{date}/flag', {'index': 4},
+                                  format='json', **headers).json()
+        self.assertNotEqual(first['question']['answer']['correct'],
+                            second['question']['answer']['correct'])
+        self.assertEqual(QuestionFlag.objects.filter(index=4).count(), 2)
+
+    def test_launch_page_superuser_only(self):
+        web = self.client
+        resp = web.get('/audit/launch')
+        self.assertEqual(resp.status_code, 302)  # anonymous -> admin login
+
+        web.force_login(self.mortal)
+        self.assertEqual(web.get('/audit/launch').status_code, 302)
+
+        web.force_login(self.superuser)
+        resp = web.get('/audit/launch')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '?audit=')

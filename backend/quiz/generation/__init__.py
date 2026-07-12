@@ -102,15 +102,20 @@ def generate_for_quiz(quiz):
     used = set()
     created = []
     for index, qtype in enumerate(sequence):
+        before = set(used)
         spec = REGISTRY[qtype](rng, pool, used)
         payload = dict(spec['payload'])
         payload['index'] = index
+        # Record which Country pks this question consumed from the shared `used`
+        # set (server-only, alongside the grading key) so a flagged question can
+        # later be regenerated without colliding with its neighbours' subjects.
+        answer = dict(spec['answer'], subjects=sorted(used - before))
         question = Question.objects.create(
             quiz=quiz,
             index=index,
             type=spec['type'],
             payload=payload,
-            answer=spec['answer'],
+            answer=answer,
             points=spec.get('points', 1),
         )
         created.append(question)

@@ -197,7 +197,7 @@ REST_FRAMEWORK = {
 # origins on any port, so the frontend's dev port (8001, 5500, …) and LAN access
 # (e.g. from a phone) just work without hardcoding the origin here.
 CORS_ALLOWED_ORIGINS = _env_list('CORS_ALLOWED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000')
-CORS_ALLOW_HEADERS = ('accept', 'content-type', 'x-device-token')
+CORS_ALLOW_HEADERS = ('accept', 'content-type', 'x-device-token', 'x-audit-token')
 if DEBUG:
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r'^http://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?$',
@@ -224,6 +224,14 @@ ANSWER_WALLCLOCK_MIN_RATIO = float(os.environ.get('ANSWER_WALLCLOCK_MIN_RATIO', 
 # Minimum land area (km²) for a country to be a target/clickable in map-click
 # (region-click) questions — smaller countries are too tiny to tap on the globe.
 QUIZ_MIN_CLICK_AREA_KM2 = float(os.environ.get('QUIZ_MIN_CLICK_AREA_KM2', '5000'))
+
+
+# --- Daily-quiz audit tool ---------------------------------------------------
+# Superuser-only audit mode: /audit/launch mints a signed token that the static
+# frontend sends back as X-Audit-Token (see quiz.audit_auth). The launch page
+# needs to know where the frontend lives to build the hand-off link.
+AUDIT_TOKEN_MAX_AGE = int(os.environ.get('AUDIT_TOKEN_MAX_AGE', '43200'))  # 12h
+AUDIT_FRONTEND_ORIGIN = os.environ.get('AUDIT_FRONTEND_ORIGIN', 'http://localhost:8001')
 
 
 # --- Caching ---------------------------------------------------------------

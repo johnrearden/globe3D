@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AnswerRecord, Attempt, DailyQuiz, Question
+from .models import AnswerRecord, Attempt, DailyQuiz, Question, QuestionFlag
 
 
 class QuestionInline(admin.TabularInline):
@@ -41,3 +41,17 @@ class AttemptAdmin(admin.ModelAdmin):
 class AnswerRecordAdmin(admin.ModelAdmin):
     list_display = ('attempt', 'question', 'correct', 'elapsed_ms', 'elapsed_ms_raw')
     list_filter = ('correct',)
+
+
+@admin.register(QuestionFlag)
+class QuestionFlagAdmin(admin.ModelAdmin):
+    list_display = ('quiz', 'index', 'old_type', 'flagged_by', 'regenerated', 'created')
+    list_filter = ('regenerated', 'old_type', 'quiz__date')
+    search_fields = ('reason',)
+    ordering = ('-created',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

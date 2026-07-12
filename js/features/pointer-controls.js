@@ -26,6 +26,9 @@ export class PointerControls {
         this.zoomEditor = deps.zoomEditor;
         this.clickQuiz = deps.clickQuiz;
         this.dailyQuiz = deps.dailyQuiz;
+        // Late-binding accessor: audit mode is dynamically imported after boot
+        // (superuser tool), so it may not exist yet when we're constructed.
+        this.getAuditMode = deps.getAuditMode || (() => null);
         this.rotateGlobeToCountry = deps.rotateGlobeToCountry || (() => {});
         this.resetIdleTimer = deps.resetIdleTimer || (() => {});
         this.onFlick = deps.onFlick || (() => {});       // (velX, velY) px/ms at release
@@ -200,6 +203,13 @@ export class PointerControls {
         // Daily Challenge map-click questions (e.g. "Click Zambia").
         if (this.dailyQuiz && this.dailyQuiz.isAwaitingMapClick()) {
             this.dailyQuiz.handleMapClick(pickedName);
+            return;
+        }
+
+        // Audit-mode walkthrough of a map-click question (superuser tool).
+        const auditMode = this.getAuditMode();
+        if (auditMode && auditMode.isAwaitingMapClick()) {
+            auditMode.handleMapClick(pickedName);
             return;
         }
 

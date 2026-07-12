@@ -280,7 +280,7 @@
         import { PointerControls } from './js/features/pointer-controls.js';
         import { animateFlagWave } from './js/features/flag-wave.js';
         import { SettingsPanel } from './js/features/settings-panel.js';
-        import { ApiClient } from './js/data/api-client.js';
+        import { ApiClient, AUDIT_TOKEN_KEY } from './js/data/api-client.js';
         import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
         import { QuizInvite } from './js/features/quiz/quiz-invite.js';
         import { WeakSpotsWidget } from './js/features/weak-spots-widget.js';
@@ -385,6 +385,22 @@
         let capitalCitiesQuiz = null;
         let apiClient = null;
         let dailyQuiz = null;
+        let auditMode = null;      // superuser audit tool, dynamically imported
+
+        // Superuser audit mode hand-off: the backend's /audit/launch page links
+        // here with ?audit=<signed token>. Stash it for the session and strip it
+        // from the URL immediately (so it never lingers in the address bar); the
+        // audit module itself is only imported once the globe is up (below).
+        {
+            const auditParam = new URLSearchParams(location.search).get('audit');
+            if (auditParam) {
+                try { sessionStorage.setItem(AUDIT_TOKEN_KEY, auditParam); } catch (_) { /* no-op */ }
+                const params = new URLSearchParams(location.search);
+                params.delete('audit');
+                const rest = params.toString();
+                history.replaceState(null, '', location.pathname + (rest ? `?${rest}` : ''));
+            }
+        }
         let quizInvite = null;
         let flagRenderer = null;
         let searchManager = null;
@@ -639,6 +655,22 @@
                         focusRegistry
                     });
 
+                    // Superuser audit mode — only fetched when a token is present
+                    // (players never download a byte of audit code).
+                    let hasAuditToken = false;
+                    try { hasAuditToken = !!sessionStorage.getItem(AUDIT_TOKEN_KEY); } catch (_) { /* no-op */ }
+                    if (hasAuditToken) {
+                        import('./js/features/audit/audit-mode.js').then(({ AuditMode }) => {
+                            auditMode = new AuditMode({
+                                apiClient,
+                                cameraController,
+                                globeManager,
+                                focusRegistry
+                            });
+                            auditMode.init();
+                        }).catch((e) => console.error('Audit mode failed to load', e));
+                    }
+
                     // Quiz reminder invite — takes the bottom slot after the daily
                     // prompt is resolved (listens for globe3d:daily-resolved).
                     quizInvite = new QuizInvite({ quizModePicker });
@@ -746,6 +778,7 @@
                         camera, controls, renderer,
                         globeManager, labelManager, flagRenderer, smallCountryIndicator,
                         labelEditor, colorEditor, zoomEditor, clickQuiz, dailyQuiz,
+                        getAuditMode: () => auditMode,
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         resetIdleTimer: () => cameraController.resetIdleTimer(),
                         onFlick: (vx, vy) => cameraController.flick(vx, vy),

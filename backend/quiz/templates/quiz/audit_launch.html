@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Terragotcha — Audit mode</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            display: flex;
+            min-height: 100vh;
+            margin: 0;
+            align-items: center;
+            justify-content: center;
+        }
+        main { max-width: 40rem; padding: 2rem; }
+        h1 { font-size: 1.4rem; }
+        a.launch {
+            display: inline-block;
+            background: #2ea043;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        a.launch:hover { background: #3fb950; }
+        code {
+            display: block;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 0.6rem;
+            margin-top: 1rem;
+            word-break: break-all;
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+        p.note { color: #8b949e; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Daily Challenge audit mode</h1>
+    <p>Opens the globe with the audit panel enabled: browse any date's quiz,
+       see questions with their answers, and flag faulty ones for regeneration.</p>
+    <a class="launch" href="{{ audit_url }}">Open Terragotcha in audit mode →</a>
+    <p class="note">The link carries a signed token valid for {{ hours }} hours.
+       You can also copy it to another browser or device:</p>
+    <code>{{ audit_url }}</code>
+</main>
+</body>
+</html>

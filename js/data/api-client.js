@@ -53,6 +53,9 @@ const API_BASE = resolveApiBase();
 
 const TOKEN_KEY = 'globe3d-device-token';
 
+/** sessionStorage key holding the signed audit token (set by index.html boot). */
+export const AUDIT_TOKEN_KEY = 'tg-audit-token';
+
 /** Persisted device token + cached profile. */
 class DeviceIdentity {
     constructor() {
@@ -136,8 +139,8 @@ export class ApiClient {
         return this.identity.profile;
     }
 
-    async _request(method, path, body) {
-        const headers = { 'X-Device-Token': this.identity.token };
+    async _request(method, path, body, extraHeaders) {
+        const headers = { 'X-Device-Token': this.identity.token, ...extraHeaders };
         if (body !== undefined) headers['Content-Type'] = 'application/json';
 
         let resp;
@@ -192,5 +195,27 @@ export class ApiClient {
     getLeaderboard(date) {
         const path = date ? `/daily/${date}/leaderboard` : '/daily/today/leaderboard';
         return this._request('GET', path);
+    }
+
+    // ---- superuser audit mode (see js/features/audit/) ----------------------
+    // The signed token is handed over by the backend's /audit/launch page and
+    // kept in sessionStorage; the backend re-verifies superuser status per call.
+
+    _auditHeaders() {
+        let token = null;
+        try { token = sessionStorage.getItem(AUDIT_TOKEN_KEY); } catch (_) { /* no-op */ }
+        return token ? { 'X-Audit-Token': token } : {};
+    }
+
+    /** Full quiz for a date (YYYY-MM-DD), answers included. Superuser only. */
+    getAuditQuiz(date) {
+        return this._request('GET', `/audit/daily/${date}`, undefined, this._auditHeaders());
+    }
+
+    /** Flag a question as faulty; the backend regenerates the slot. */
+    flagAuditQuestion(date, index, reason, force = false) {
+        return this._request('POST', `/audit/daily/${date}/flag`, {
+            index, reason, regenerate: true, force,
+        }, this._auditHeaders());
     }
 }

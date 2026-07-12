@@ -22,3 +22,10 @@ class AnswerInputSerializer(serializers.Serializer):
     # answer may be a single value or a list of values (multi-select)
     answer = serializers.JSONField()
     elapsedMs = serializers.IntegerField(min_value=0)
+
+
+class AuditFlagInputSerializer(serializers.Serializer):
+    index = serializers.IntegerField(min_value=0)
+    reason = serializers.CharField(allow_blank=True, default='', trim_whitespace=True)
+    regenerate = serializers.BooleanField(default=True)
+    force = serializers.BooleanField(default=False)

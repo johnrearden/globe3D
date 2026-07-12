@@ -79,6 +79,33 @@ class Attempt(models.Model):
         return f'{self.player.nickname} @ {self.quiz.date}: {self.score} in {self.total_time_ms}ms'
 
 
+class QuestionFlag(models.Model):
+    """Audit record: a superuser flagged a question as faulty/unsuitable.
+
+    Snapshots the question content at flag time — the Question row itself is
+    regenerated in place, so this is the only place the replaced content
+    survives (for later generator-improvement analysis).
+    """
+
+    question = models.ForeignKey(Question, related_name='flags', on_delete=models.CASCADE)
+    quiz = models.ForeignKey(DailyQuiz, related_name='flags', on_delete=models.CASCADE)
+    index = models.PositiveIntegerField()
+    reason = models.TextField(blank=True)
+    flagged_by = models.CharField(max_length=150)
+    old_type = models.CharField(max_length=32)
+    old_payload = models.JSONField()
+    old_answer = models.JSONField()
+    regenerated = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created']
+
+    def __str__(self):
+        state = 'regenerated' if self.regenerated else 'flag only'
+        return f'Flag Q{self.index} [{self.old_type}] of {self.quiz.date} ({state})'
+
+
 class AnswerRecord(models.Model):
     """Audit row for each submitted answer (also feeds owner stats / anti-cheat)."""
 

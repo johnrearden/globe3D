@@ -211,6 +211,10 @@ export class QuestionPresenter {
         this.els.flag.style.display = 'none';
         this._setHint(false);
         this._hideSubmit();
+        // Drop any map-click question left unanswered (e.g. abandoned mid-quiz)
+        // so its stale resolver can't swallow globe clicks on a later question.
+        this._awaitingMapClick = false;
+        this._mapResolve = null;
     }
 
     /** Full cleanup when the quiz ends. */
@@ -223,5 +227,7 @@ export class QuestionPresenter {
         this.els.flag.style.display = 'none';
         this._setHint(false);
         this._hideSubmit();
+        this._awaitingMapClick = false;
+        this._mapResolve = null;
     }
 }
