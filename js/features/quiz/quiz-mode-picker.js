@@ -5,14 +5,14 @@
  */
 
 // 8 balanced quiz regions (alphabetically sorted for UI)
+// North America + the Caribbean share one region (see js/data/country-regions.js).
 const REGIONS = [
     'Africa',
     'Asia',
-    'Caribbean',
+    'N. America & Caribbean',
     'Europe',
     'Latin America',
     'Middle East',
-    'North America',
     'Oceania'
 ];
 
@@ -43,7 +43,7 @@ const QUIZ_MODES = [
         id: 'find',
         icon: ICONS.mapPin,
         title: 'Find the country',
-        description: 'Tap the right country \u2014 10 in 45 seconds'
+        description: 'Tap the right country \u2014 10 to find, no clock'
     },
     {
         id: 'capital',

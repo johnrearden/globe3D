@@ -36,11 +36,15 @@ export class QuizQuestionChrome {
      *   takes over the screen) or 'floating' (Name-the-Country quiz, a panel that
      *   floats over the live globe). Only adds a marker class; the container
      *   geometry lives in styles.css under the owning body class.
+     * @param {number} [opts.total] - number of questions (denominator in "Q n/N"
+     *   and the progress-bar scale). Defaults to 10; the Find-the-country quiz
+     *   passes fewer when a small region can't supply 10 large countries.
      */
     constructor(opts = {}) {
         this.elements = opts.elements;
         this.onClose = opts.onClose || (() => {});
         this.variant = opts.variant || 'fullscreen';
+        this.total = opts.total || TOTAL_QUESTIONS;
         this.root = null; // wrapper holding all chrome rows
     }
 
@@ -66,7 +70,7 @@ export class QuizQuestionChrome {
             root.classList.add('qz-floating');
             root.innerHTML = `
                 <div class="qz-bar">
-                    <div class="qz-progress-label">Q<span id="qz-qnum">1</span>/${TOTAL_QUESTIONS}</div>
+                    <div class="qz-progress-label">Q<span id="qz-qnum">1</span>/<span id="qz-qtotal">${this.total}</span></div>
                     <span class="qz-stat">
                         <span class="qz-stat-icon">${svgIcon('checkCircle', 15)}</span>
                         <span id="qz-score">0</span><span class="qz-stat-sub">/<span id="qz-answered">0</span></span>
@@ -84,7 +88,7 @@ export class QuizQuestionChrome {
             // Fullscreen variant: roomy top bar + score/time stat chips.
             root.innerHTML = `
                 <div class="qz-topbar">
-                    <div class="qz-progress-label">QUESTION <span id="qz-qnum">1</span> OF ${TOTAL_QUESTIONS}</div>
+                    <div class="qz-progress-label">QUESTION <span id="qz-qnum">1</span> OF <span id="qz-qtotal">${this.total}</span></div>
                     <button type="button" class="qz-close" aria-label="Close quiz">${svgIcon('x', 15)}</button>
                 </div>
                 <div class="qz-chips">
@@ -119,13 +123,24 @@ export class QuizQuestionChrome {
         this.root = null;
     }
 
-    /** Update the "QUESTION n OF 10" label and the progress-bar fill. */
+    /**
+     * Set the question total (denominator in "Q n/N" + progress-bar scale).
+     * Call before setQuestion() when a quiz runs fewer than the default 10.
+     */
+    setTotal(total) {
+        this.total = total || TOTAL_QUESTIONS;
+        if (!this.root) return;
+        const t = this.root.querySelector('#qz-qtotal');
+        if (t) t.textContent = String(this.total);
+    }
+
+    /** Update the "QUESTION n OF N" label and the progress-bar fill. */
     setQuestion(n) {
         if (!this.root) return;
         const num = this.root.querySelector('#qz-qnum');
         const fill = this.root.querySelector('#qz-progress-fill');
         if (num) num.textContent = String(n);
-        if (fill) fill.style.width = `${(n / TOTAL_QUESTIONS) * 100}%`;
+        if (fill) fill.style.width = `${(n / this.total) * 100}%`;
     }
 
     /** Update the score chip ("score/answered"). */

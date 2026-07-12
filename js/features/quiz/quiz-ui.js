@@ -15,11 +15,11 @@ import { track } from '../analytics.js';
 // Score fraction at or below which the celebration shatters the globe.
 const SHATTER_THRESHOLD = 0.3;
 
-/** Clear quiz timers (auto-advance, click-quiz interval). Returns nulled ids. */
-export function clearQuizTimers(autoAdvanceTimer = null, clickQuizTimer = null) {
+/** Clear pending quiz timers (auto-advance timeout + a legacy interval). Returns nulled ids. */
+export function clearQuizTimers(autoAdvanceTimer = null, intervalTimer = null) {
     if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
-    if (clickQuizTimer) clearInterval(clickQuizTimer);
-    return { autoAdvanceTimer: null, clickQuizTimer: null };
+    if (intervalTimer) clearInterval(intervalTimer);
+    return { autoAdvanceTimer: null, intervalTimer: null };
 }
 
 /** Great-circle distance (radians) between two country centroids on the unit sphere. */
@@ -116,12 +116,5 @@ export class QuizUI {
 
     hideModeSelector() {
         hide(elements.get('quiz-mode-selector'));
-    }
-
-    closeClickQuizResults() {
-        hide(elements.get('click-quiz-results'));
-        // Show search and quiz button again.
-        show(elements.get('search-container'));
-        show(elements.get('take-quiz-btn'));
     }
 }

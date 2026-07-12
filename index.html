@@ -181,34 +181,9 @@
 
         <!-- Quiz Mode Picker: built dynamically by js/features/quiz/quiz-mode-picker.js -->
 
-        <!-- Click Quiz UI -->
-        <div id="click-quiz-container" style="display: none;">
-            <div id="click-quiz-header">
-                <div id="click-quiz-country-name"></div>
-                <div id="click-quiz-info">
-                    <span id="click-quiz-question-counter"></span>
-                    <span id="click-quiz-score-display"></span>
-                </div>
-            </div>
-            <div id="click-quiz-feedback"></div>
-            <button id="click-quiz-cancel-btn" title="Cancel Quiz">×</button>
-        </div>
-
-        <!-- Click Quiz Timer Bar -->
-        <div id="click-quiz-timer-bar-container" style="display: none;">
-            <div id="click-quiz-timer-fill"></div>
-        </div>
-
-        <!-- Click Quiz Results Modal -->
-        <div id="click-quiz-results" style="display: none;">
-            <div id="click-quiz-results-overlay"></div>
-            <div id="click-quiz-results-content">
-                <h2>Quiz Complete!</h2>
-                <div id="click-quiz-final-score"></div>
-                <div id="click-quiz-final-time"></div>
-                <button id="click-quiz-close-btn">Close</button>
-            </div>
-        </div>
+        <!-- The "Find the country" quiz reuses the shared floating quiz chrome
+             (#quiz-container + #qz-chrome), built at runtime by ClickQuiz — no
+             bespoke markup here. -->
 
         <!-- Label Editor Modal -->
         <div id="label-editor-modal" style="display: none;">
@@ -573,7 +548,8 @@
                         cameraController: cameraController,
                         elements: elements,
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
-                        clearQuizTimers: clearQuizTimers
+                        clearQuizTimers: clearQuizTimers,
+                        quizTimer: quizTimer
                     });
 
                     capitalCitiesQuiz = new CapitalCitiesQuiz({
@@ -940,13 +916,9 @@
             // Zoom out button
             elements.get('zoom-out-btn').addEventListener('click', () => cameraController.zoomOut());
 
-            // Quiz cancel buttons
+            // Quiz cancel button. The "Find the country" quiz cancels via its own
+            // floating-chrome close (✕), wired through ClickQuiz's onClose.
             elements.get('quiz-cancel-btn').addEventListener('click', cancelQuiz);
-            elements.get('click-quiz-cancel-btn').addEventListener('click', cancelQuiz);
-
-            // Click quiz buttons
-            elements.get('click-quiz-close-btn').addEventListener('click', () => quizUI.closeClickQuizResults());
-            elements.get('click-quiz-results-overlay').addEventListener('click', () => quizUI.closeClickQuizResults());
 
             // Edit mode keyboard shortcuts
             window.addEventListener('keydown', onKeyDown);
@@ -1052,7 +1024,7 @@
         // ============================================
 
         // calculateGreatCircleDistance, triggerConfetti, and the quiz mode-selector
-        // glue (show/hide/closeClickQuizResults) moved to js/features/quiz/quiz-ui.js.
+        // show/hide glue moved to js/features/quiz/quiz-ui.js.
 
         function cancelQuiz() {
             // End whichever quiz is active without showing its celebration.

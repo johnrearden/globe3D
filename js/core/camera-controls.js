@@ -198,6 +198,11 @@ export class CameraController {
         this.frameView({ lat, lng, distance, duration });
     }
 
+    /** Remove the small-country reveal overlay (white disc + arrow), if shown. */
+    clearSmallCountryIndicator() {
+        if (this.smallCountryIndicator) this.smallCountryIndicator.remove();
+    }
+
     /** Animate the camera back to the initial full-globe distance. */
     zoomOut() {
         this.cancelFlick();

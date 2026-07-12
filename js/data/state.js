@@ -42,18 +42,7 @@ export class StateManager {
                 score: 0,
                 questionsAnswered: 0,
                 usedCountries: [],
-                autoAdvanceTimer: null,
-
-                // Click quiz specific
-                clickQuiz: {
-                    active: false,
-                    countries: [],
-                    currentIndex: 0,
-                    score: 0,
-                    startTime: 0,
-                    timeRemaining: 45000,
-                    timerInterval: null
-                }
+                autoAdvanceTimer: null
             },
 
             // Labels
@@ -264,16 +253,6 @@ export class StateManager {
                 'quiz.questionsAnswered': 0,
                 'quiz.usedCountries': [],
                 'quiz.autoAdvanceTimer': null
-            });
-        } else if (section === 'clickQuiz') {
-            this.batchUpdate({
-                'quiz.clickQuiz.active': false,
-                'quiz.clickQuiz.countries': [],
-                'quiz.clickQuiz.currentIndex': 0,
-                'quiz.clickQuiz.score': 0,
-                'quiz.clickQuiz.startTime': 0,
-                'quiz.clickQuiz.timeRemaining': 45000,
-                'quiz.clickQuiz.timerInterval': null
             });
         } else if (section === 'labels') {
             this.set('labels.editMode', false);

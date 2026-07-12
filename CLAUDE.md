@@ -27,7 +27,7 @@ globe3d/
 │   ├── world-id.bin         # Equirectangular country-ID texture for picking (4096×2048, raw RG bytes)
 │   ├── world-border-lines.bin # Country-outline edges as u32 vertex-index pairs into world-mesh.bin (~2.7 MB raw / ~840 KB gzipped)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
-│   └── country-meta.json    # Country IDs, centroids, bboxes, name↔id maps
+│   └── country-meta.json    # Country IDs, centroids, bboxes, land areas (km²), name↔id maps
 ├── package.json             # Build dependencies
 ├── country-colors.json      # (Optional) Per-country color overrides
 └── label-config.json        # (Optional) Custom label positions/sizes
@@ -119,6 +119,7 @@ The globe assets are pre-built using `build-textures.js`:
    - Simplify polygons (`simplify-js`, tolerance 0.006)
    - Antimeridian unfolding (edges with |Δlng| > 180 are continued past ±180 to keep rings continuous)
    - Compute centroid + bbox from each country's largest ring
+   - Attach each country's land area (km², from the `world-countries` package via `area-data.js`) to its meta row — used at runtime to size-filter quiz targets (e.g. the "Find the country" quiz skips anything smaller than Guadeloupe). `node -e "require('./area-data').backfillMeta()"` re-derives it into the committed `country-meta.json` without a full mesh rebuild
    - Triangulate each unfolded ring with `earcut`; project each vertex to the unit sphere; accumulate into one merged vertex/index/country-id arrays for `world-mesh.bin`
    - Edge-function scanline rasterizer also fills the 4096×2048 ID buffer (used at runtime only for picking)
    - Connected-components cleanup drops tiny isolated fragments from the ID buffer (preserves each country's largest)

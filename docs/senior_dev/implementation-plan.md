@@ -127,7 +127,7 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 | Head / meta / external `<script>`s | 3–224 | confetti CDN (11), three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
 | Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
 | Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
-| Quiz container + mode-selector + click-quiz UI + results modals | ~107–187 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder. The end-of-quiz celebration overlay was **extracted** — now built at runtime by `js/features/quiz/quiz-results-modal.js` (the new "Quiz Results" design); only the `body.celebration-active` chrome-hiding CSS remains |
+| Quiz container + mode-selector | ~107–160 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder. The end-of-quiz celebration overlay was **extracted** — now built at runtime by `js/features/quiz/quiz-results-modal.js` (the new "Quiz Results" design); only the `body.celebration-active` chrome-hiding CSS remains. The old bespoke click-quiz DOM (container / countdown bar / results modal) was **removed** — "Find the country" now reuses the shared floating `#qz-chrome` like the other quizzes |
 | Label-editor modal | ~189–219 | sliders + buttons |
 | `<script type="module">` | 224–3089 | the JS reviewed in 1c |
 
@@ -508,14 +508,19 @@ colour tokens in `styles.css`). Built to serve all four quizzes; adopted so far 
 - **Name the country** (`name-flag-quiz.js`) — `variant: 'floating'`: the chrome floats
   over the **live globe** (`body.globe-quiz-active`) as a bottom-right card (desktop) /
   bottom sheet capped at `33vh` (mobile). Implements `design/name_country_quiz/`.
+- **Capital cities** (`capital-cities-quiz.js`) — `variant: 'floating'`, same globe-floating
+  card; `reverse` prompt layout naming the given country/capital.
+- **Find the country** (`click-quiz.js`) — `variant: 'floating'`, same globe-floating card.
+  No answer grid: the answer is a globe map-click. `reverse` prompt ("CLICK" / country name)
+  plus a reused `.dq-map-hint`; no timer pressure (count-up `QuizTimer` only, like its
+  siblings). Replaced the old bespoke `#click-quiz-*` DOM/CSS + 45s countdown.
 
 Shared pieces (no per-quiz duplication): the chrome markup/JS, `#quiz-options.qz-answers`
 (name-pick option grid: idle/hover/`.correct`/`.incorrect`/`.dimmed` states + the
 `.qz-mark` result badge), and the `--qz-correct-*` / `--qz-wrong-*` / `--qz-opt-*` tokens.
 Only **container geometry** is scoped by body class (`flag-quiz-active` vs
 `globe-quiz-active`). `setPrompt({layout, eyebrow, main, mainQuestion})` is copy-driven so
-each quiz supplies its own prompt. **Find the country** and **Capital cities** can adopt
-the same chrome later with no new CSS. *(CSS gotcha when editing the token comment: never
+each quiz supplies its own prompt. All four quizzes now use this chrome. *(CSS gotcha when editing the token comment: never
 write a literal `*/` — e.g. `--qz-correct-*/...` — inside a `/* */` block; it closes the
 comment early and silently drops the following `:root` rule.)*
 

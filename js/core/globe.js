@@ -526,6 +526,7 @@ export class GlobeManager {
                     name: c.name,
                     centroid,
                     bbox: c.bbox,
+                    area: (c.area !== undefined ? c.area : null), // land area km² (world-countries); null = unknown
                     fullBounds: c.fullBounds || null, // antimeridian-aware framing bounds (country map)
                     // Dependency-only fields (Greenland, Puerto Rico, …): own flag
                     // code, sovereign parent, and optional pop/area/lang.

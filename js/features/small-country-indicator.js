@@ -52,6 +52,11 @@ export class SmallCountryIndicator {
         this.globeManager.getGlobe().add(group);
     }
 
+    /** Whether the marker (disc + arrow) is currently shown. */
+    isShowing() {
+        return this.mesh !== null;
+    }
+
     /** Remove and dispose the current marker, if any. */
     remove() {
         if (this.mesh) {

@@ -1037,7 +1037,7 @@
             transform: scale(1.05);
         }
 
-        #quiz-cancel-btn, #click-quiz-cancel-btn {
+        #quiz-cancel-btn {
             width: 28px;
             height: 28px;
             padding: 0;
@@ -1060,15 +1060,10 @@
             justify-content: center;
         }
 
-        #quiz-cancel-btn:hover, #click-quiz-cancel-btn:hover {
+        #quiz-cancel-btn:hover {
             background-color: rgba(204, 0, 0, 0.9);
             border-color: rgba(255, 255, 255, 0.5);
             transform: scale(1.05);
-        }
-
-        #click-quiz-cancel-btn {
-            top: 10px;
-            right: 10px;
         }
 
         #quiz-result {
@@ -2052,157 +2047,6 @@
             .qsv--visible .qsv-sheet {
                 transform: translateX(-50%) translateY(0);
             }
-        }
-
-        /* Click Quiz Container Styles */
-        #click-quiz-container {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 150;
-            background-color: rgba(0, 0, 0, 0.85);
-            border-radius: 8px;
-            padding: 20px 30px;
-            border: 2px solid #FF8C00;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            min-width: 400px;
-        }
-
-        #click-quiz-country-name {
-            color: #FF8C00;
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        #click-quiz-info {
-            display: flex;
-            justify-content: space-between;
-            color: #e0e0e0;
-            font-size: 16px;
-        }
-
-        #click-quiz-feedback {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.9);
-            border: 3px solid;
-            border-radius: 8px;
-            padding: 20px 40px;
-            font-size: 24px;
-            font-weight: bold;
-            z-index: 200;
-            display: none;
-            animation: feedbackPulse 0.5s;
-        }
-
-        #click-quiz-feedback.correct {
-            color: #00ff00;
-            border-color: #00ff00;
-        }
-
-        #click-quiz-feedback.wrong {
-            color: #ff0000;
-            border-color: #ff0000;
-        }
-
-        @keyframes feedbackPulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-        }
-
-        /* Timer Bar Styles */
-        #click-quiz-timer-bar-container {
-            position: fixed;
-            right: 0;
-            top: 10%;
-            height: 80%;
-            width: 15px;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-left: 2px solid #FF8C00;
-            z-index: 140;
-        }
-
-        #click-quiz-timer-fill {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, #00ff00, #ffff00, #ff0000);
-            transition: height 0.1s linear;
-        }
-
-        /* Click Quiz Results Styles */
-        #click-quiz-results {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1000;
-        }
-
-        #click-quiz-results-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-        }
-
-        #click-quiz-results-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(10, 20, 35, 0.95);
-            border: 3px solid #FF8C00;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        #click-quiz-results-content h2 {
-            color: #FF8C00;
-            font-size: 32px;
-            margin-bottom: 20px;
-        }
-
-        #click-quiz-final-score {
-            color: #ffffff;
-            font-size: 48px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        #click-quiz-final-time {
-            color: #e0e0e0;
-            font-size: 18px;
-            margin-bottom: 30px;
-        }
-
-        #click-quiz-close-btn {
-            padding: 15px 40px;
-            background-color: #FF8C00;
-            border: none;
-            border-radius: 6px;
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        #click-quiz-close-btn:hover {
-            background-color: #FF6500;
-            transform: scale(1.05);
         }
 
         /* Label Editor Modal Styles */
@@ -3213,43 +3057,13 @@
                 margin: 2px 0;
             }
 
-            /* Click Quiz Mobile Styles */
-            #click-quiz-container {
-                top: 10px;
-                min-width: calc(100% - 40px);
-                padding: 15px 20px;
-            }
-
-            #click-quiz-country-name {
-                font-size: 24px;
-                margin-bottom: 10px;
-            }
-
-            #click-quiz-info {
-                font-size: 14px;
-            }
-
-            #click-quiz-feedback {
-                font-size: 20px;
-                padding: 15px 30px;
-            }
-
-            /* Small cancel buttons on mobile */
-            #quiz-cancel-btn, #click-quiz-cancel-btn {
+            /* Small cancel button on mobile */
+            #quiz-cancel-btn {
                 width: 32px;
                 height: 32px;
                 font-size: 22px;
                 top: 8px;
                 right: 8px;
-            }
-
-            #click-quiz-cancel-btn {
-                top: 8px;
-                right: 8px;
-            }
-
-            #click-quiz-timer-bar-container {
-                width: 8px;
             }
 
             #quiz-mode-options {
@@ -3267,22 +3081,6 @@
 
             .quiz-mode-option p {
                 font-size: 13px;
-            }
-
-            #click-quiz-results-content {
-                padding: 30px 20px;
-            }
-
-            #click-quiz-results-content h2 {
-                font-size: 24px;
-            }
-
-            #click-quiz-final-score {
-                font-size: 36px;
-            }
-
-            #click-quiz-final-time {
-                font-size: 16px;
             }
         }
 

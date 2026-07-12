@@ -4,6 +4,7 @@ const earcutModule = require('earcut');
 const earcut = earcutModule.default || earcutModule;
 const simplify = require('simplify-js');
 const { DEPENDENCIES, pointInBboxes } = require('./dependencies');
+const { areaForCountry } = require('./area-data');
 
 const COUNTRIES_DIR = './node_modules/world-geojson/countries/';
 const OUTPUT_PALETTE = './assets/country-palette.bin';
@@ -185,7 +186,10 @@ function buildMetaRow(id, name, accum, extra) {
         }
     }
 
-    return Object.assign({ id, name, centroid, bbox, fullBounds }, extra || {});
+    // Authoritative land area (km²) from world-countries, used at runtime to size-
+    // filter quiz targets (e.g. excluding tiny islands). null when unmatched.
+    const area = areaForCountry(name, extra && extra.iso);
+    return Object.assign({ id, name, centroid, bbox, fullBounds }, extra || {}, area != null ? { area } : {});
 }
 
 const COLOR_PALETTES = [
