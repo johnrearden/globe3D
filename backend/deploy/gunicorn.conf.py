@@ -10,6 +10,7 @@
 #   GUNICORN_THREADS threads per worker (default 2)
 
 import os
+import shutil
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,6 +20,38 @@ from dotenv import load_dotenv
 # in backend/deploy/) so the gunicorn-level tunables below resolve from the same
 # single source. Real env vars still win (override defaults to False).
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+
+# --- Prometheus multiprocess mode ------------------------------------------
+# prometheus_client decides single- vs multi-process mode when it is first
+# imported, based on this env var — so it must be in os.environ BEFORE any worker
+# forks and imports Django. Setting it here at the gunicorn master (top level)
+# guarantees that; systemd also sets it (authoritative) and this setdefault is the
+# fallback for running gunicorn by hand. It is deliberately kept OUT of .env so
+# `manage.py runserver`/tests stay single-process (no per-worker .db files, no
+# cleanup hooks). Uppercase name per prometheus_client >= 0.4. The dir lives under
+# /run/globe3d (tmpfs, created by the unit's RuntimeDirectory=globe3d).
+os.environ.setdefault('PROMETHEUS_MULTIPROC_DIR', '/run/globe3d/prometheus')
+
+
+def on_starting(server):
+    """Master, once, before any worker forks: start from a clean metrics dir.
+
+    Wipes stale *.db files an unclean prior shutdown/crash may have left, which
+    the MultiProcessCollector would otherwise sum into the aggregate.
+    """
+    d = os.environ['PROMETHEUS_MULTIPROC_DIR']
+    shutil.rmtree(d, ignore_errors=True)
+    os.makedirs(d, exist_ok=True)
+
+
+def child_exit(server, worker):
+    """Runs IN THE MASTER when a worker exits (incl. max_requests recycling).
+
+    Must be child_exit (receives `worker`), not worker_exit (runs in the dying
+    worker). Clears the dead pid's gauge live-files so gauges reflect live workers.
+    """
+    from prometheus_client import multiprocess
+    multiprocess.mark_process_dead(worker.pid)
 
 # Listen on a Unix socket that nginx proxies to. The socket lives inside
 # /run/globe3d (created by the unit's RuntimeDirectory=globe3d, owned john:john)

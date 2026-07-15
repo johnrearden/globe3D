@@ -231,6 +231,22 @@ group) or a dedicated one (`usermod -aG <user> www-data`). The `cloudflare-reali
 
 ---
 
+## 11. Monitoring — Prometheus / Grafana / GlitchTip
+The API exports Prometheus metrics (`django-prometheus`, multiprocess-aggregated across the
+gunicorn workers) plus a `/healthz` DB+Redis probe, and ships Django/gunicorn exceptions to
+**GlitchTip** (Sentry-compatible). Host/Postgres/Redis health come from `node_exporter`,
+`postgres_exporter`, `redis_exporter`. A **remote** Prometheus scrapes the VPS on
+IP-allowlisted ports (`:9100/9121/9187/9145`, opened by `ufw` only to the Prometheus IP — not
+through Cloudflare); `/metrics` + `/healthz` are denied on the public `:443` vhost. The static
+frontend reports console errors to a separate GlitchTip project via the Sentry browser SDK.
+
+Enable it by setting `GLITCHTIP_DSN` in `backend/.env` (backend errors) and the frontend
+project DSN in `js/data/site-config.js`. **Full step-by-step + all config files (exporter
+units, metrics vhost, ufw script, Prometheus scrape + alerts, Grafana dashboards):**
+**`deploy/monitoring/README.md`**.
+
+---
+
 ## Backups — see deploy/pg-backup.sh + the systemd timer
 Nightly rotated local `pg_dump`s plus an off-box scp copy. Install:
 ```bash

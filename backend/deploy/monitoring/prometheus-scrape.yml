@@ -1,0 +1,29 @@
+# Scrape config for the REMOTE Prometheus (add these jobs to its prometheus.yml
+# under `scrape_configs:` and reload). Targets are the VPS's public IP on the
+# ufw-allowlisted ports — reached directly, NOT through Cloudflare.
+#
+# Replace <VPS_PUBLIC_IP> with the origin's IP (the one you allowlisted in
+# ufw-metrics.sh). The `app: globe3d` label lets the alert rules and Grafana
+# filter everything for this service at once.
+
+scrape_configs:
+  - job_name: globe3d-node
+    static_configs:
+      - targets: ['<VPS_PUBLIC_IP>:9100']
+        labels: { app: globe3d }
+
+  - job_name: globe3d-postgres
+    static_configs:
+      - targets: ['<VPS_PUBLIC_IP>:9187']
+        labels: { app: globe3d }
+
+  - job_name: globe3d-redis
+    static_configs:
+      - targets: ['<VPS_PUBLIC_IP>:9121']
+        labels: { app: globe3d }
+
+  - job_name: globe3d-django
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['<VPS_PUBLIC_IP>:9145']
+        labels: { app: globe3d }

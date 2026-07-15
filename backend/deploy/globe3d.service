@@ -24,6 +24,11 @@ Group=john
 # GUNICORN_BIND in deploy/gunicorn.conf.py (unix:/run/globe3d/globe3d.sock).
 RuntimeDirectory=globe3d
 WorkingDirectory=/srv/globe3d/backend
+# prometheus_client multiprocess collector dir (workers each write metric .db
+# files here; /metrics aggregates across them). Lives under the tmpfs /run/globe3d
+# that RuntimeDirectory creates; the prometheus/ subdir is made by gunicorn's
+# on_starting hook. Authoritative here (mirrors gunicorn.conf.py's setdefault).
+Environment=PROMETHEUS_MULTIPROC_DIR=/run/globe3d/prometheus
 ExecStart=/srv/globe3d/backend/.venv/bin/gunicorn config.wsgi -c deploy/gunicorn.conf.py
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always

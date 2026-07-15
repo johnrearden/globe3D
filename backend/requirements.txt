@@ -11,6 +11,11 @@ django-redis==5.4.0           # Redis cache backend
 whitenoise==6.8.2             # serve admin/stats static from gunicorn
 python-dotenv==1.2.2          # autoload backend/.env into the environment
 
+# Monitoring (production; inert in dev until env is set — see deploy/monitoring/).
+django-prometheus==2.3.1      # app metrics + /metrics view + DB/middleware hooks
+prometheus-client==0.21.1     # pinned; multiprocess API used by the gunicorn hooks
+sentry-sdk==2.20.0            # GlitchTip (Sentry-compatible) error tracking; DjangoIntegration
+
 # Transitive (pinned for reproducibility)
 asgiref==3.11.1
 sqlparse==0.5.5

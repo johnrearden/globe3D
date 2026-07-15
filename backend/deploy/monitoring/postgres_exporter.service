@@ -1,0 +1,41 @@
+# prometheus-community postgres_exporter — Postgres health/perf on :9187.
+# Connections, cache hit ratio, deadlocks, tuple I/O, table/index sizes, etc.
+#
+# Install (Ubuntu 24.04):
+#   VER=0.15.0
+#   cd /tmp && curl -fsSLO https://github.com/prometheus-community/postgres_exporter/releases/download/v$VER/postgres_exporter-$VER.linux-amd64.tar.gz
+#   tar xzf postgres_exporter-$VER.linux-amd64.tar.gz
+#   sudo install -m 0755 postgres_exporter-$VER.linux-amd64/postgres_exporter /usr/local/bin/postgres_exporter
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin postgres_exporter || true
+#   # 1) create the least-priv DB role:
+#   sudo -u postgres psql -f backend/deploy/monitoring/create-monitoring-role.sql
+#   # 2) put the DSN in an env file (mode 0600, NOT world-readable — it holds the password):
+#   sudo install -d -m 0750 /etc/postgres_exporter
+#   sudo cp backend/deploy/monitoring/postgres_exporter.env.example /etc/postgres_exporter/postgres_exporter.env
+#   sudo chmod 0600 /etc/postgres_exporter/postgres_exporter.env    # then edit the password
+#   sudo cp backend/deploy/monitoring/postgres_exporter.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now postgres_exporter
+
+[Unit]
+Description=Prometheus postgres_exporter
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=postgres_exporter
+Group=postgres_exporter
+Type=simple
+# DATA_SOURCE_NAME lives in this 0600 env file, not the unit, so the password
+# never lands in `systemctl show` / journald.
+EnvironmentFile=/etc/postgres_exporter/postgres_exporter.env
+ExecStart=/usr/local/bin/postgres_exporter --web.listen-address=:9187
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

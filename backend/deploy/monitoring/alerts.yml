@@ -1,0 +1,103 @@
+# Starter Prometheus alerting rules for globe3d. Load on the REMOTE Prometheus
+# (rule_files: in prometheus.yml) alongside prometheus-scrape.yml. Tune the
+# thresholds/`for:` windows to taste. Django metric names are from django-prometheus;
+# node/postgres/redis names are the standard exporter names (they can vary slightly
+# by exporter version — verify against your /metrics output if an alert never fires).
+
+groups:
+  - name: globe3d
+    rules:
+      # --- Availability -------------------------------------------------------
+      - alert: Globe3dTargetDown
+        expr: up{app="globe3d"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "globe3d target {{ $labels.job }} is down"
+          description: "Prometheus can't scrape {{ $labels.job }} ({{ $labels.instance }}) for >2m."
+
+      # --- App error rate / latency ------------------------------------------
+      - alert: Globe3dHigh5xxRate
+        expr: |
+          sum(rate(django_http_responses_total_by_status_total{job="globe3d-django",status=~"5.."}[5m]))
+          / clamp_min(sum(rate(django_http_responses_total_by_status_total{job="globe3d-django"}[5m])), 1)
+          > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "globe3d 5xx rate >5%"
+          description: "More than 5% of responses are 5xx over the last 5m."
+
+      - alert: Globe3dHighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(django_http_requests_latency_including_middlewares_seconds_bucket{job="globe3d-django"}[5m]))
+          ) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "globe3d p99 request latency >1s"
+          description: "p99 end-to-end request latency has exceeded 1s for 10m."
+
+      # --- Postgres -----------------------------------------------------------
+      - alert: Globe3dPostgresConnectionsHigh
+        expr: |
+          sum(pg_stat_database_numbackends{job="globe3d-postgres"})
+          / on() max(pg_settings_max_connections{job="globe3d-postgres"})
+          > 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Postgres connections >80% of max_connections"
+          description: "Backend connection count is nearing max_connections; check for leaks or bump the pool sizing."
+
+      - alert: Globe3dPostgresLowCacheHitRatio
+        expr: |
+          sum(rate(pg_stat_database_blks_hit{job="globe3d-postgres"}[5m]))
+          / clamp_min(sum(rate(pg_stat_database_blks_hit{job="globe3d-postgres"}[5m])
+                        + rate(pg_stat_database_blks_read{job="globe3d-postgres"}[5m])), 1)
+          < 0.95
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Postgres cache hit ratio <95%"
+          description: "Shared-buffer cache hit ratio dropped below 95% for 15m (possible under-provisioned shared_buffers or a heavy scan)."
+
+      # --- Redis --------------------------------------------------------------
+      - alert: Globe3dRedisDown
+        expr: redis_up{job="globe3d-redis"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Redis is unreachable"
+          description: "redis_exporter reports Redis down for >2m (the leaderboard cache degrades to DB reads)."
+
+      - alert: Globe3dRedisEvictions
+        expr: increase(redis_evicted_keys_total{job="globe3d-redis"}[10m]) > 0
+        for: 0m
+        labels: { severity: warning }
+        annotations:
+          summary: "Redis is evicting keys"
+          description: "Redis evicted keys in the last 10m — it's at its memory limit; review maxmemory / cache sizing."
+
+      # --- Host ---------------------------------------------------------------
+      - alert: Globe3dDiskLow
+        expr: |
+          node_filesystem_avail_bytes{job="globe3d-node",fstype!~"tmpfs|overlay|squashfs"}
+          / node_filesystem_size_bytes{job="globe3d-node",fstype!~"tmpfs|overlay|squashfs"}
+          < 0.15
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Disk <15% free on {{ $labels.mountpoint }}"
+          description: "Watch the AnswerRecord table growth (see deploy/README.md) and pg backups."
+
+      - alert: Globe3dHostMemoryHigh
+        expr: |
+          (1 - node_memory_MemAvailable_bytes{job="globe3d-node"}
+             / node_memory_MemTotal_bytes{job="globe3d-node"}) > 0.9
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Host memory >90% used"
+          description: "Available memory below 10% for 10m."

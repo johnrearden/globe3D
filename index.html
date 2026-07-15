@@ -262,7 +262,12 @@
         import { BackButtonGuard } from './js/features/back-button-guard.js';
         import { initMainCta } from './js/features/main-cta.js';
         import { initAnalytics } from './js/features/analytics.js';
+        import { initErrorReporter } from './js/features/error-reporter.js';
         import { initAds } from './js/features/ads/adsense.js';
+
+        // Start frontend error reporting as early as possible (prod + configured
+        // DSN only; self-gated, never throws) so start-up errors are captured too.
+        initErrorReporter();
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/

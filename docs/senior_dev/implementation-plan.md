@@ -468,6 +468,38 @@ already forward-compatible (fields exist, unused).
 
 ---
 
+## Backend + frontend monitoring — ✅ Completed
+
+Observability for the Daily Challenge backend + static frontend, wired to an existing remote
+Prometheus / Grafana / GlitchTip box. Plan:
+`/home/john/.claude/plans/i-want-to-implement-optimized-ember.md`; runbook + all server-side
+config: `backend/deploy/monitoring/README.md`. Scrape transport is IP-allowlisted ports (ufw
+scoped to the Prometheus IP; not through Cloudflare); errors go to GlitchTip.
+
+**Backend (`backend/`):**
+- `django-prometheus` metrics at `/metrics` (request latency/counts, DB query counts/latency,
+  responses by status), **multiprocess-aggregated** across gunicorn workers via
+  `PROMETHEUS_MULTIPROC_DIR` (`deploy/gunicorn.conf.py` `on_starting`/`child_exit` hooks +
+  `globe3d.service` `Environment=`). Tuned `PROMETHEUS_LATENCY_BUCKETS`;
+  `PROMETHEUS_EXPORT_MIGRATIONS=False`.
+- `config/health.py` — `/healthz` (DB `SELECT 1` + Redis PING; JSON + 200/503).
+- `sentry-sdk` → GlitchTip, DSN-gated (`GLITCHTIP_DSN`), `send_default_pii=False`, device/audit
+  tokens scrubbed.
+- New `LOGGING` dict routes 500 tracebacks to stdout→journald (Django's default swallows them
+  with `DEBUG=False`).
+- `/metrics` + `/healthz` denied on the public `nginx-globe3d.conf`; served only via the
+  IP-allowlisted `deploy/monitoring/nginx-metrics.conf` (`:9145`).
+
+**Frontend:**
+- `js/features/error-reporter.js` — prod-gated (`isProdHost`) + DSN-gated (`GLITCHTIP_DSN` in
+  `js/data/site-config.js`) console-error reporter; lazily imports the Sentry browser SDK from
+  jsDelivr and installs global `error`/`unhandledrejection` capture. `index.html` gains only an
+  import + one `initErrorReporter()` call (run first, before the app, for start-up coverage).
+
+**Server-side (config committed, applied on the box):** `backend/deploy/monitoring/` —
+node/postgres/redis exporter units, `create-monitoring-role.sql`, `nginx-metrics.conf`,
+`ufw-metrics.sh`, `prometheus-scrape.yml`, `alerts.yml`, `grafana-dashboards.md`, runbook README.
+
 ## Quiz history & progress tracking — ✅ Done
 
 Local-first history for the four **practice** quizzes (the Daily Challenge already has server-side

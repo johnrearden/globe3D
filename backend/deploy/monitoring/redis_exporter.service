@@ -1,0 +1,37 @@
+# oliver006 redis_exporter — Redis health/perf on :9121.
+# Keyspace hits/misses, used/peak memory, evictions, connected clients, ops/sec.
+#
+# Install (Ubuntu 24.04):
+#   VER=1.66.0
+#   cd /tmp && curl -fsSLO https://github.com/oliver006/redis_exporter/releases/download/v$VER/redis_exporter-v$VER.linux-amd64.tar.gz
+#   tar xzf redis_exporter-v$VER.linux-amd64.tar.gz
+#   sudo install -m 0755 redis_exporter-v$VER.linux-amd64/redis_exporter /usr/local/bin/redis_exporter
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin redis_exporter || true
+#   sudo cp backend/deploy/monitoring/redis_exporter.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now redis_exporter
+#
+# Redis is bound to 127.0.0.1 with no auth (deploy/README.md); globe3d uses DB 0.
+# If you later set a Redis password, add `-redis.password-file <path>` (0600).
+
+[Unit]
+Description=Prometheus redis_exporter
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+User=redis_exporter
+Group=redis_exporter
+Type=simple
+ExecStart=/usr/local/bin/redis_exporter \
+    -redis.addr redis://127.0.0.1:6379 \
+    -web.listen-address :9121
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

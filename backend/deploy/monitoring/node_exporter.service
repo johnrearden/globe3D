@@ -1,0 +1,35 @@
+# Prometheus node_exporter — host CPU / memory / disk / network on :9100.
+# Scraped by the remote Prometheus over the IP-allowlisted port (see ufw-metrics.sh).
+#
+# Install (Ubuntu 24.04):
+#   VER=1.8.2
+#   cd /tmp && curl -fsSLO https://github.com/prometheus/node_exporter/releases/download/v$VER/node_exporter-$VER.linux-amd64.tar.gz
+#   tar xzf node_exporter-$VER.linux-amd64.tar.gz
+#   sudo install -m 0755 node_exporter-$VER.linux-amd64/node_exporter /usr/local/bin/node_exporter
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin node_exporter || true
+#   sudo cp backend/deploy/monitoring/node_exporter.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now node_exporter
+
+[Unit]
+Description=Prometheus node_exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+# Listens on all interfaces; ufw restricts :9100 to the Prometheus IP. To bind to
+# a specific address instead, set --web.listen-address=<addr>:9100.
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=:9100
+Restart=on-failure
+RestartSec=3
+
+# Hardening (node_exporter only reads /proc + /sys; writes nothing).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

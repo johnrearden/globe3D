@@ -14,6 +14,13 @@ import { isLocalDevHost } from './api-client.js';
 // GA4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Empty → analytics disabled.
 export const GA_MEASUREMENT_ID = '';
 
+// GlitchTip (Sentry-compatible) DSN for the FRONTEND project, e.g.
+// 'https://<publicKey>@glitchtip.example.com/<projectId>'. Browser DSNs are
+// public, client-side identifiers by design, so committing it is fine. Empty →
+// frontend error reporting disabled (js/features/error-reporter.js no-ops). This
+// is a DIFFERENT project/DSN from the Django backend's GLITCHTIP_DSN (in .env).
+export const GLITCHTIP_DSN = '';
+
 // AdSense publisher/client ID, e.g. 'ca-pub-1234567890123456'. Empty → ads disabled.
 export const ADSENSE_CLIENT_ID = '';
 

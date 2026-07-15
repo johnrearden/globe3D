@@ -58,6 +58,9 @@ if DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
+    # Metrics: registers the Prometheus collectors + model/migration hooks. First
+    # so its app-registry hooks are in place before the local apps load.
+    'django_prometheus',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -75,6 +78,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # Prometheus request timing: Before must be FIRST and After LAST so the
+    # `..._including_middlewares` latency histogram spans the whole stack below.
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # Serves collected static (admin + stats/ dashboards) straight from gunicorn
     # so DEBUG=False deployments don't need a separate static host. Immediately
@@ -87,6 +93,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -124,6 +131,20 @@ DATABASES = {
         conn_health_checks=True,
     )
 }
+
+# Swap the DB backend for django-prometheus's instrumented subclass so query and
+# connection counts/latency are exported. Keyed off whatever engine dj_database_url
+# picked (Postgres in prod, SQLite in dev), so it stays env-driven; an unrecognised
+# engine is left untouched rather than crashing. The wrappers subclass the stock
+# Django backends, so psycopg3 under Django 5.1 works unchanged.
+_PROM_DB_ENGINES = {
+    'django.db.backends.postgresql': 'django_prometheus.db.backends.postgresql',
+    'django.db.backends.postgresql_psycopg2': 'django_prometheus.db.backends.postgresql',
+    'django.db.backends.sqlite3': 'django_prometheus.db.backends.sqlite3',
+}
+_engine = DATABASES['default'].get('ENGINE')
+if _engine in _PROM_DB_ENGINES:
+    DATABASES['default']['ENGINE'] = _PROM_DB_ENGINES[_engine]
 
 
 # Password validation
@@ -275,3 +296,100 @@ if not DEBUG:
 # --- Stripe (later milestone; unused in v1) --------------------------------
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
+
+# --- Monitoring: Prometheus metrics ----------------------------------------
+# The remote Prometheus scrapes /metrics (via the IP-allowlisted metrics vhost —
+# see deploy/monitoring/). Multiprocess aggregation across gunicorn workers is set
+# up in deploy/gunicorn.conf.py + globe3d.service (PROMETHEUS_MULTIPROC_DIR).
+# Skip the boot-time migration-state DB query per worker (postgres_exporter + CI
+# cover migration drift); it would add a DB dependency to worker readiness.
+PROMETHEUS_EXPORT_MIGRATIONS = False
+# Latency histogram buckets tuned for a sub-second JSON API (the library default
+# runs out to 25/50/75s, wasting series and giving coarse low-end resolution).
+PROMETHEUS_LATENCY_BUCKETS = (
+    0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, float('inf'),
+)
+
+
+# --- Monitoring: logging ---------------------------------------------------
+# Django's default `console` handler is gated behind require_debug_true, so with
+# DEBUG=False unhandled-exception (500) tracebacks never reach stdout — they only
+# go to the (unconfigured) mail_admins handler and are effectively swallowed. This
+# routes ERROR tracebacks to stdout -> gunicorn (foreground) -> journald. GlitchTip
+# capture is handled independently by the Sentry SDK below (it hooks callHandlers,
+# so it is unaffected by these loggers' propagate=False), so there is no Sentry
+# handler here and no double-report.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {process:d}/{threadName} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        # 500 tracebacks land here at ERROR (see comment above).
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        # Never emit per-query SQL to journald.
+        'django.db.backends': {
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
+
+# --- Monitoring: error tracking (GlitchTip via the Sentry SDK) --------------
+# Enabled only when a DSN is present, so dev/tests (no DSN in .env) never phone
+# home. The DSN lives in backend/.env (gitignored), never in source. GlitchTip is
+# Sentry-ingest-compatible, so the standard sentry-sdk DjangoIntegration works.
+SENTRY_DSN = os.environ.get('GLITCHTIP_DSN') or os.environ.get('SENTRY_DSN', '')
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            # Group issues/transactions by URL *pattern* so dynamic segments
+            # (e.g. /api/daily/<date>/leaderboard) don't fan out.
+            DjangoIntegration(transaction_style='url'),
+        ],
+        # GlitchTip performance/tracing support is basic — off by default; bump
+        # via env if you actually use it. No profiling ingest in GlitchTip.
+        traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0.0')),
+        profiles_sample_rate=0.0,
+        # Players are identified only by an opaque X-Device-Token (no login), so
+        # keep IPs/cookies/user identifiers off the wire.
+        send_default_pii=False,
+        environment=os.environ.get('SENTRY_ENVIRONMENT', 'production'),
+        release=os.environ.get('SENTRY_RELEASE') or None,
+        max_request_body_size='small',
+        # Scrub this app's opaque tokens on top of Sentry's defaults (which already
+        # cover Authorization/Cookie/etc.).
+        event_scrubber=EventScrubber(
+            denylist=DEFAULT_DENYLIST + ['x-device-token', 'x-audit-token'],
+        ),
+    )
