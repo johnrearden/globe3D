@@ -4,10 +4,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotAuthenticated, ValidationError
 from rest_framework.response import Response
 
-from players.auth import get_player
+from players.auth import get_or_create_player, get_player
 
 from . import services
 from .models import AnswerRecord, Attempt, Question
@@ -22,10 +22,21 @@ def _attempt_status(attempt):
 
 @api_view(['GET'])
 def daily_today(request):
-    """Metadata about today's quiz and the player's standing with it."""
-    player = get_player(request)
+    """Metadata about today's quiz and the player's standing with it.
+
+    Tolerates an unknown/unregistered device: the frontend calls this on load for
+    everyone (to detect an already-completed attempt), so a token with no Player
+    row reports status 'none' rather than 401 — and does not mint a Player (only
+    daily_start does that, when play actually begins).
+    """
     quiz = services.get_or_create_quiz(services.today())
-    attempt = Attempt.objects.filter(player=player, quiz=quiz).first()
+    try:
+        player = get_player(request)
+    except NotAuthenticated:
+        player = None
+    attempt = (
+        Attempt.objects.filter(player=player, quiz=quiz).first() if player else None
+    )
     return Response({
         'quizDate': quiz.date.isoformat(),
         'questionCount': quiz.questions.count(),
@@ -39,8 +50,12 @@ def daily_today(request):
 
 @api_view(['POST'])
 def daily_start(request):
-    """Begin (or resume) today's attempt. 409 if already completed today."""
-    player = get_player(request)
+    """Begin (or resume) today's attempt. 409 if already completed today.
+
+    Creates a nameless Player for a first-time device — play happens before
+    registration, which is collected after the first completed run.
+    """
+    player = get_or_create_player(request)
     quiz = services.get_or_create_quiz(services.today())
     attempt = Attempt.objects.filter(player=player, quiz=quiz).first()
 
@@ -141,7 +156,9 @@ def _leaderboard_response(request, quiz):
     payload = {'quizDate': quiz.date.isoformat(),
                'entries': [leaderboard_entry(a, i + 1) for i, a in enumerate(entries)]}
 
-    if player:
+    # Only a *named* player gets a "you" row — a nameless (unregistered) finisher
+    # is off the board entirely, so highlighting a rank for them would mislead.
+    if player and player.nickname:
         mine = Attempt.objects.filter(player=player, quiz=quiz, completed=True).first()
         if mine:
             payload['you'] = leaderboard_entry(mine, services.rank_of(mine))

@@ -1,7 +1,9 @@
 /**
- * First-run onboarding for the Daily Challenge: collect a nickname and home
- * country. Self-contained modal; resolves with {nickname, country} or null if
- * cancelled. Country options are the globe's own country names.
+ * Post-run onboarding for the Daily Challenge: after a player finishes their
+ * first run (or from the leaderboard's "Add your name" CTA), collect a nickname
+ * and home country to save their result to the board. Self-contained modal;
+ * resolves with {nickname, country} or null if cancelled. Country options are the
+ * globe's own country names.
  */
 
 import { countryData } from '../../data/country-data.js';
@@ -55,8 +57,8 @@ export function showOnboarding(countryNames, existing = null) {
         const modal = document.createElement('div');
         modal.className = 'dq-modal';
         modal.innerHTML = `
-            <h2 class="dq-modal-title">Daily Challenge</h2>
-            <p class="dq-modal-sub">Pick a name and country to appear on the leaderboard.</p>
+            <h2 class="dq-modal-title">Join the leaderboard</h2>
+            <p class="dq-modal-sub">Pick a name and country to save your result to the leaderboard.</p>
             <label class="dq-field">
                 <span>Nickname</span>
                 <input type="text" class="dq-nick" maxlength="40" placeholder="e.g. GlobeTrotter" />
@@ -67,7 +69,7 @@ export function showOnboarding(countryNames, existing = null) {
             </label>
             <div class="dq-modal-actions">
                 <button type="button" class="dq-btn-secondary dq-cancel">Cancel</button>
-                <button type="button" class="dq-btn-primary dq-save">Start</button>
+                <button type="button" class="dq-btn-primary dq-save">Save</button>
             </div>
             <p class="dq-modal-err" hidden></p>
         `;

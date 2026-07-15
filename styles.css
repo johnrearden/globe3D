@@ -4207,6 +4207,32 @@ body.dq-active #quiz-invite { display: none; }
     gap: 7px;
 }
 
+/* "Add your name to the leaderboard" — the primary amber action shown when the
+   viewer finished anonymously; matches #dq-launch / the onboarding Save button so
+   it reads as the call to action, sitting above the outline "Back to globe". */
+.dq-lb-register {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 16px;
+    padding: 11px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f7a857, #f59440);
+    color: #311a06;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(245, 158, 75, 0.34);
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+.dq-lb-register:hover { filter: brightness(1.04); transform: translateY(-1px); }
+
+/* When the register CTA is present just above it, the dismiss pill tightens its
+   top gap so the two actions read as a pair. */
+.dq-lb-register + .dq-lb-dismiss { margin-top: 10px; }
+
 /* Dismiss the board — a wide outline pill, matching the practice quizzes'
    secondary action (the global button rule supplies the pill radius + font). */
 .dq-lb-dismiss {

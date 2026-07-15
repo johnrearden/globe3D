@@ -184,20 +184,29 @@ export class DailyQuiz {
         if (this._active) return;                 // already playing
         let played = false;
         try {
-            if (this.api.isRegistered) {
-                const today = await this.api.getToday();
-                played = !!(today.attempt && today.attempt.status === 'completed');
-            }
+            // Queried for every visitor now (the backend reports 'none' for an
+            // unregistered device) so we detect an already-completed run whether
+            // or not the player has picked a name.
+            const today = await this.api.getToday();
+            played = !!(today.attempt && today.attempt.status === 'completed');
         } catch (_) {
             played = false;                        // can't tell (server down) — still invite
         }
-        if (!played && !this._active) {
+        if (this._active) return;
+        if (!played) {
             this._showInvite();
-        } else {
-            // Already played today — no daily prompt — so the bottom slot is free
-            // for the quiz reminder right away.
-            this._emitDailyResolved();
+            return;
         }
+        // Already completed today. If they finished anonymously (never saved a
+        // name), keep the docked pill around so they can reopen the board and add
+        // their name — tapping it re-enters _begin → leaderboard + "Add name" CTA.
+        if (!this.api.isRegistered) {
+            this._dismissed = true;                // render collapsed, skip the morph
+            this._showInvite();
+        }
+        // Either way the daily prompt is resolved — the bottom slot is free for
+        // the practice-quiz reminder right away.
+        this._emitDailyResolved();
     }
 
     /** Tell the quiz reminder the bottom-sheet slot is free (see quiz-invite.js). */
@@ -262,14 +271,12 @@ export class DailyQuiz {
 
     // --------------------------- flow ---------------------------------------
     async launch() {
+        // Play first — the nickname/country prompt now comes after the first
+        // completed run (see _play → _promptRegistrationIfNeeded), so launching
+        // drops straight into the challenge with no upfront form.
         this._hideInvite();
         this.launchBtn.disabled = true;
         try {
-            if (!this.api.isRegistered) {
-                const info = await showOnboarding(this.globe.getCountryNames(), this.api.profile);
-                if (!info) { this.launchBtn.disabled = false; return; }
-                await this.api.registerPlayer(info.nickname, info.country);
-            }
             await this._begin();
         } catch (e) {
             this._openPanel();
@@ -292,6 +299,26 @@ export class DailyQuiz {
         this._openPanel();
         this._enterQuizMode();
         await this._play(startResp);
+    }
+
+    /**
+     * Collect a nickname + country and register — unless the player already has a
+     * name. Called after a completed run and from the board's "Add your name" CTA.
+     * The completed attempt is already tied to this device's (anonymous) player
+     * row, so registering simply names it and it joins the board. Cancelling is
+     * fine: nothing is saved and the board keeps offering the CTA.
+     */
+    async _promptRegistrationIfNeeded() {
+        if (this.api.isRegistered) return;
+        const info = await showOnboarding(this.globe.getCountryNames(), this.api.profile);
+        if (!info) return;
+        try {
+            await this.api.registerPlayer(info.nickname, info.country);
+            track('daily_registered', { country: info.country });
+        } catch (_) {
+            // Registration failed — leave them unregistered so the board CTA lets
+            // them retry; the leaderboard still renders (without their row).
+        }
     }
 
     async _play(startResp) {
@@ -328,6 +355,9 @@ export class DailyQuiz {
             if (res.done) {
                 this._doneForToday = true;
                 track('daily_complete', { score: res.runningScore });
+                // Now — after they've actually played — ask for a name + country
+                // so their run joins the leaderboard.
+                await this._promptRegistrationIfNeeded();
                 await this._showLeaderboard();   // the table speaks for itself
                 return;
             }
@@ -370,7 +400,15 @@ export class DailyQuiz {
         this.el.message.textContent = message || '';
         try {
             const data = await this.api.getLeaderboard();
-            renderLeaderboard(this.el.leaderboard, data, () => this.close());
+            renderLeaderboard(this.el.leaderboard, data, () => this.close(), {
+                // Not registered yet (cancelled the prompt, or reopened an
+                // anonymous run) — offer a way onto the board without leaving it.
+                canRegister: !this.api.isRegistered,
+                onRegister: async () => {
+                    await this._promptRegistrationIfNeeded();
+                    await this._showLeaderboard(message);   // re-render with their row
+                },
+            });
         } catch (e) {
             this.el.leaderboard.textContent = this._errText(e);
         }

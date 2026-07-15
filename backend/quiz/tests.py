@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management import call_command
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -300,11 +301,81 @@ class ApiFlowTests(TestCase):
         self.assertIn(resp.status_code, (401, 403))
 
 
+class AnonymousPlayTests(TestCase):
+    """Play-first flow: a device begins and finishes the daily with no prior
+    registration; the nickname/country are collected afterwards and the completed
+    run then joins the board. (Onboarding moved from before → after the run.)"""
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('seed_countries')
+
+    def setUp(self):
+        cache.clear()   # LocMemCache persists across tests — start each clean
+        self.client = APIClient()
+        self.token = 'anon-token-1'
+
+    def _auth(self):
+        return {'HTTP_X_DEVICE_TOKEN': self.token}
+
+    def _play_to_completion(self):
+        start = self.client.post('/api/daily/today/start', **self._auth())
+        self.assertEqual(start.status_code, 200, start.content)
+        body = start.json()
+        for i in range(body['questionCount']):
+            resp = self.client.post('/api/daily/today/answer', {
+                'attemptId': body['attemptId'], 'index': i, 'answer': [], 'elapsedMs': 3000,
+            }, format='json', **self._auth())
+            self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json().get('done'))
+
+    def test_unregistered_device_can_start(self):
+        # Previously this 401'd (get_player); now daily_start mints a nameless row.
+        start = self.client.post('/api/daily/today/start', **self._auth())
+        self.assertEqual(start.status_code, 200)
+        self.assertEqual(Player.objects.get(device_token=self.token).nickname, '')
+
+    def test_today_tolerates_unknown_device(self):
+        resp = self.client.get('/api/daily/today', **self._auth())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['attempt']['status'], 'none')
+        # A bare metadata GET must not mint a Player row (only daily_start does).
+        self.assertFalse(Player.objects.filter(device_token=self.token).exists())
+
+    def test_play_then_register_joins_board(self):
+        self._play_to_completion()
+
+        # Finished but still nameless: off the board, and no misleading "you" row.
+        pre = self.client.get('/api/daily/today/leaderboard', **self._auth()).json()
+        self.assertEqual(pre['entries'], [])
+        self.assertNotIn('you', pre)
+
+        # Register after the fact — upserts the same device row and invalidates
+        # today's cached board so the now-named run shows immediately.
+        reg = self.client.post('/api/players', {
+            'deviceToken': self.token, 'nickname': 'Latecomer', 'country': 'fr',
+        }, format='json')
+        self.assertEqual(reg.status_code, 200)
+
+        post = self.client.get('/api/daily/today/leaderboard', **self._auth()).json()
+        self.assertEqual([e['nickname'] for e in post['entries']], ['Latecomer'])
+        self.assertIn('you', post)
+        self.assertEqual(post['you']['rank'], 1)
+
+    def test_one_attempt_per_day_for_anonymous_play(self):
+        self._play_to_completion()
+        again = self.client.post('/api/daily/today/start', **self._auth())
+        self.assertEqual(again.status_code, 409)
+
+
 class LeaderboardTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         call_command('seed_countries')
         cls.quiz = services.get_or_create_quiz(datetime.date(2026, 3, 3))
+
+    def setUp(self):
+        cache.clear()   # LocMemCache persists across tests — avoid stale boards
 
     def _attempt(self, nick, score, time_ms):
         p = Player.objects.create(device_token=f'tok-{nick}', nickname=nick)
@@ -326,6 +397,19 @@ class LeaderboardTests(TestCase):
         self._attempt('slow', 8, 9000)
         self._attempt('low', 5, 1000)
         self.assertEqual(services.rank_of(a_fast), 1)
+
+    def test_nameless_attempt_excluded(self):
+        # A completed-but-nameless run (played anonymously, never registered) must
+        # never surface on the board, and must not outrank named players.
+        named = self._attempt('named', 8, 2000)
+        anon = Player.objects.create(device_token='tok-anon', nickname='')
+        Attempt.objects.create(
+            player=anon, quiz=self.quiz, score=10, total_time_ms=1000, completed=True,
+            finished=datetime.datetime(2026, 3, 3, tzinfo=datetime.timezone.utc),
+        )
+        board = services.leaderboard(self.quiz)
+        self.assertEqual([a.player.nickname for a in board], ['named'])
+        self.assertEqual(services.rank_of(named), 1)
 
 
 class SubjectRecoveryTests(TestCase):

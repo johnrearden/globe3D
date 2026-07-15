@@ -1,6 +1,9 @@
 /**
  * Render the daily leaderboard into a container element.
  * Highlights the current player's row (matched by the `you` entry's rank).
+ * `opts` (optional): { canRegister, onRegister } — when the viewer hasn't picked
+ * a name yet, shows an "Add your name to the leaderboard" button wired to
+ * `onRegister` so they can join without leaving the board.
  */
 
 import { countryData, countryToISO } from '../../data/country-data.js';
@@ -40,7 +43,7 @@ function fmtQuizDate(iso) {
     return `${parseInt(m[3], 10)} ${MONTH_NAMES[parseInt(m[2], 10) - 1]} ${m[1].slice(2)}`;
 }
 
-export function renderLeaderboard(container, data, onDismiss) {
+export function renderLeaderboard(container, data, onDismiss, opts = {}) {
     container.innerHTML = '';
 
     const heading = document.createElement('div');
@@ -89,6 +92,18 @@ export function renderLeaderboard(container, data, onDismiss) {
         // app-controlled numbers/labels (no user input), the flag iso is safe.
         you.innerHTML = `${flagHtml(data.you.country)}<span>You: #${data.you.rank} · ${data.you.score} pts · ${fmtTime(data.you.timeMs)}</span>`;
         container.appendChild(you);
+    }
+
+    // "Add your name" CTA — shown when the player finished but hasn't registered
+    // yet (cancelled the prompt, or reopened an anonymous run). Opens the
+    // name/country prompt so they can still claim their spot on today's board.
+    if (opts.canRegister && opts.onRegister) {
+        const join = document.createElement('button');
+        join.type = 'button';
+        join.className = 'dq-lb-register';
+        join.textContent = 'Add your name to the leaderboard';
+        join.addEventListener('click', opts.onRegister);
+        container.appendChild(join);
     }
 
     // Dismiss button at the foot of the board (the × top-right still closes too).

@@ -90,6 +90,10 @@ def leaderboard(quiz, limit=50):
     Cached for LEADERBOARD_TTL seconds per (quiz date, limit); the board is the
     same for everyone, so this collapses repeated reads onto one query. An empty
     board is a valid cached value, hence the explicit `is not None` check.
+
+    Nameless attempts are excluded: a device plays anonymously and only picks a
+    nickname after finishing, so an un-registered (or cancelled) finisher has an
+    empty nickname and must not surface as a blank row.
     """
     key = _leaderboard_key(quiz, limit)
     cached = cache.get(key)
@@ -97,6 +101,7 @@ def leaderboard(quiz, limit=50):
         return cached
     qs = (
         Attempt.objects.filter(quiz=quiz, completed=True)
+        .exclude(player__nickname='')
         .select_related('player')
         .order_by('-score', 'total_time_ms', 'finished')
     )
@@ -110,13 +115,26 @@ def invalidate_leaderboard(quiz, limit=50):
     cache.delete(_leaderboard_key(quiz, limit))
 
 
+def invalidate_leaderboard_for_date(d, limit=50):
+    """Drop the cached board for a date without needing a DailyQuiz row.
+
+    Used when a player registers (adds a nickname) after finishing: their now-named
+    attempt must appear on the very next board read, even if a concurrent viewer
+    just re-cached the nameless-excluded board.
+    """
+    cache.delete(f'lb:{d.isoformat()}:{limit}')
+
+
 def rank_of(attempt):
     """1-based rank of a completed attempt within its quiz (None if not done)."""
     if not attempt.completed:
         return None
-    better = Attempt.objects.filter(quiz=attempt.quiz, completed=True).filter(
-        models_q_better(attempt)
-    ).count()
+    better = (
+        Attempt.objects.filter(quiz=attempt.quiz, completed=True)
+        .exclude(player__nickname='')
+        .filter(models_q_better(attempt))
+        .count()
+    )
     return better + 1
 
 

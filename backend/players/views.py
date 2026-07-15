@@ -22,4 +22,12 @@ def register_player(request):
         device_token=data['deviceToken'],
         defaults={'nickname': data['nickname'], 'country': data.get('country', '')},
     )
+
+    # A player registering right after finishing today's challenge must appear on
+    # the board immediately — their attempt was excluded while nameless. Drop the
+    # cached board so the next read rebuilds it with their now-named row. Imported
+    # locally to avoid any players<->quiz import-order coupling at module load.
+    from quiz import services
+    services.invalidate_leaderboard_for_date(services.today())
+
     return Response(PlayerProfileSerializer(player).data, status=status.HTTP_200_OK)
