@@ -4,6 +4,7 @@
  */
 
 import { state } from '../data/state.js';
+import { canvasFont, onThemeChange } from '../utils/theme.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -43,6 +44,11 @@ export class LabelManager {
         // exactly at the settle distance, so per-frame jitter at rest flips it
         // on/off (thrashing). 1.06 keeps the label comfortably on once focused.
         this.LABEL_APPEAR_MARGIN = 1.06;
+
+        // Re-bake label textures when the UI theme changes so the country names
+        // pick up the new font. Textures are white + tinted, so only the font
+        // (not colour) needs re-rendering. repaintAllLabels() no-ops until labels exist.
+        onThemeChange(() => this.repaintAllLabels());
     }
 
     /**
@@ -178,10 +184,12 @@ export class LabelManager {
         // Explicit clear so the texture upload never sees garbage in transparent regions.
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        context.font = '32px Arial';
+        context.font = canvasFont(32);
         context.textAlign = 'center';
         context.textBaseline = 'middle';
 
+        // Drawn white on purpose: the displayed colour is produced at runtime by
+        // tinting through material.color, so this stays white regardless of theme.
         context.fillStyle = '#FFFFFF';
         context.fillText(text, canvas.width / 2, canvas.height / 2);
 

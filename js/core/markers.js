@@ -7,6 +7,8 @@
  * General-purpose; the capitals quiz uses it to mark a capital's location.
  */
 
+import { canvasFont } from '../utils/theme.js';
+
 const THREE = window.THREE;
 
 // Drop the dot just above the country mesh (radius 1.0008) so it never sinks
@@ -170,7 +172,7 @@ export class MarkerLayer {
         const ctx = canvas.getContext('2d');
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '32px Arial';
+        ctx.font = canvasFont(32);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#FFFFFF';

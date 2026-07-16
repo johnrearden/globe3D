@@ -218,4 +218,32 @@ export class ApiClient {
             index, reason, regenerate: true, force,
         }, this._auditHeaders());
     }
+
+    // ---- themes (see js/features/theme-switcher.js + theme-editor.js) --------
+    // Public read (published themes); superuser-gated writes reuse the audit token.
+
+    /** Public: published themes for the settings-gear selector. */
+    listThemes() {
+        return this._request('GET', '/themes');
+    }
+
+    /** Superuser: all themes incl. drafts. */
+    listAllThemes() {
+        return this._request('GET', '/admin/themes', undefined, this._auditHeaders());
+    }
+
+    /** Superuser: create a theme. */
+    createTheme(theme) {
+        return this._request('POST', '/admin/themes', theme, this._auditHeaders());
+    }
+
+    /** Superuser: update a theme. */
+    updateTheme(id, theme) {
+        return this._request('PUT', `/admin/themes/${id}`, theme, this._auditHeaders());
+    }
+
+    /** Superuser: delete a theme. */
+    deleteTheme(id) {
+        return this._request('DELETE', `/admin/themes/${id}`, undefined, this._auditHeaders());
+    }
 }

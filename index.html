@@ -255,6 +255,7 @@
         import { PointerControls } from './js/features/pointer-controls.js';
         import { animateFlagWave } from './js/features/flag-wave.js';
         import { SettingsPanel } from './js/features/settings-panel.js';
+        import { initTheme, initRemoteThemes } from './js/features/theme-switcher.js';
         import { ApiClient, AUDIT_TOKEN_KEY } from './js/data/api-client.js';
         import { DailyQuiz } from './js/features/daily-quiz/daily-quiz.js';
         import { QuizInvite } from './js/features/quiz/quiz-invite.js';
@@ -268,6 +269,9 @@
         // Start frontend error reporting as early as possible (prod + configured
         // DSN only; self-gated, never throws) so start-up errors are captured too.
         initErrorReporter();
+
+        // Apply the persisted UI theme before first paint (no default-look flash).
+        initTheme();
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -629,6 +633,11 @@
                     // ===== Daily Challenge (backend-driven once-a-day quiz) =====
                     // Self-contained: builds its own launch button + panel DOM.
                     apiClient = new ApiClient();
+
+                    // Load admin-authored themes into the settings-gear selector
+                    // (published only; fire-and-forget — built-ins work regardless).
+                    initRemoteThemes(apiClient);
+
                     dailyQuiz = new DailyQuiz({
                         apiClient,
                         cameraController,

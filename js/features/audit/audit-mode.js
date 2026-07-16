@@ -346,54 +346,54 @@ export class AuditMode {
         style.textContent = `
 #audit-panel {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;
-    background: rgba(14, 23, 38, 0.97); color: #e6edf6;
-    border-top: 1px solid #25324a; border-radius: 14px 14px 0 0;
+    background: var(--bg-overlay); color: var(--text-heading);
+    border-top: 1px solid var(--border-subtle); border-radius: var(--radius-panel) var(--radius-panel) 0 0;
     box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
     padding: 10px 14px 18px; overflow: hidden;
-    font-family: system-ui, sans-serif;
+    font-family: var(--font-ui);
     transition: transform 0.25s ease; will-change: transform;
 }
 #audit-panel.dq-dragging { transition: none; }
 @media (min-width: 760px) {
     #audit-panel {
         left: auto; right: 16px; bottom: 16px; width: 400px;
-        border-radius: 14px; border: 1px solid #25324a;
+        border-radius: var(--radius-panel); border: 1px solid var(--border-subtle);
     }
 }
 #audit-panel .audit-title {
     display: inline-flex; align-items: center; gap: 6px;
-    font-weight: 700; color: #ffca5f;
+    font-weight: var(--weight-bold); color: var(--accent);
 }
-#audit-panel .audit-meta { font-size: 12px; color: #9fb0c8; flex: 1; text-align: center; }
+#audit-panel .audit-meta { font-size: 12px; color: var(--text-soft); flex: 1; text-align: center; }
 .audit-nav { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 10px 0; }
 .audit-date {
-    background: #101a2c; color: #e6edf6; border: 1px solid #25324a;
-    border-radius: 7px; padding: 6px 10px; font: inherit;
+    background: var(--bg-deep); color: var(--text-heading); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-btn); padding: 6px 10px; font: inherit;
     color-scheme: dark;
 }
 .audit-btn {
-    background: transparent; color: #9fb0c8; border: 1px solid #25324a;
-    border-radius: 7px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px;
+    background: transparent; color: var(--text-soft); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-btn); padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px;
 }
-.audit-btn:hover { color: #e6edf6; border-color: #3a4a68; }
+.audit-btn:hover { color: var(--text-heading); border-color: #3a4a68; }
 .audit-list { max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-.audit-row { border: 1px solid #25324a; border-radius: 10px; padding: 8px 10px; }
-.audit-row-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #9fb0c8; }
-.audit-row-type { font-weight: 700; letter-spacing: 0.02em; }
-.audit-flagged { color: #ffca5f; font-weight: 700; }
+.audit-row { border: 1px solid var(--border-subtle); border-radius: var(--radius-panel); padding: 8px 10px; }
+.audit-row-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-soft); }
+.audit-row-type { font-weight: var(--weight-bold); letter-spacing: 0.02em; }
+.audit-flagged { color: var(--accent); font-weight: var(--weight-bold); }
 .audit-row-prompt { margin-top: 4px; font-size: 14px; }
-.audit-row-answer { margin-top: 2px; font-size: 13px; color: #7ee2a8; }
+.audit-row-answer { margin-top: 2px; font-size: 13px; color: var(--success); }
 .audit-row-actions { display: flex; gap: 8px; margin-top: 8px; }
-.audit-message { text-align: center; color: #9fb0c8; padding: 6px 0; }
+.audit-message { text-align: center; color: var(--text-soft); padding: 6px 0; }
 .audit-qnav { display: flex; gap: 8px; align-items: center; margin: 8px 0 2px; }
-.audit-qcounter { flex: 1; text-align: center; font-size: 13px; color: #9fb0c8; }
-.audit-reveal { color: #ffca5f; border-color: #5a4a24; }
-.audit-flag-btn { color: #ff8a8a; border-color: #5a2a2a; }
+.audit-qcounter { flex: 1; text-align: center; font-size: 13px; color: var(--text-soft); }
+.audit-reveal { color: var(--accent); border-color: #5a4a24; }
+.audit-flag-btn { color: var(--danger); border-color: #5a2a2a; }
 #audit-toggle {
     position: fixed; top: 12px; left: 12px; z-index: 290;
-    background: rgba(20, 30, 50, 0.85); color: #ffca5f;
-    border: 1px solid #3a4a68; border-radius: 999px;
-    padding: 8px 14px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700;
+    background: var(--bg-overlay); color: var(--accent);
+    border: 1px solid #3a4a68; border-radius: var(--radius-pill);
+    padding: 8px 14px; cursor: pointer; font: inherit; font-size: 13px; font-weight: var(--weight-bold);
 }
 body.audit-active #dq-invite,
 body.audit-active #quiz-invite,

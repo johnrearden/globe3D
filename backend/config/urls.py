@@ -20,6 +20,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('players.urls')),
     path('api/', include('quiz.urls')),
+    path('api/', include('themes.urls')),
     path('stats/', include('stats.urls')),
     path('audit/launch', audit_launch, name='audit-launch'),
     path('healthz', healthz, name='healthz'),

@@ -10,6 +10,8 @@
 
 import { settingsStore } from '../data/settings-store.js';
 import { SCHEMES, applyScheme } from './color-schemes.js';
+import { getAvailableThemes, getSelection, applyTheme, onThemesChanged } from './theme-switcher.js';
+import { AUDIT_TOKEN_KEY } from '../data/api-client.js';
 
 // Post-fade lighting targets (the values the globe settles on after load).
 const LIGHT_DEFAULTS = { ambient: 0.7, diffuse: 0.8, specStrength: 0.18, shininess: 12, oceanSpecBoost: 1.7 };
@@ -39,6 +41,7 @@ export class SettingsPanel {
         this.panel = null;
         this.gear = null;
         this._schemeButtons = new Map();
+        this._themeButtons = new Map();
     }
 
     /** Build the gear + panel, wire controls, and apply persisted preferences. */
@@ -154,6 +157,22 @@ export class SettingsPanel {
         const sec = this._section('Appearance');
         const saved = settingsStore.get();
 
+        // UI theme picker — swaps the whole design-token set (fonts, radii,
+        // colours) live. Built-in presets flip <html data-theme>; admin-authored
+        // remote themes (fetched from the backend) apply inline token overrides.
+        // See theme-switcher.js + the :root[data-theme] blocks in styles.css.
+        const themeRow = this._row(sec, 'UI theme');
+        this._themeGroupEl = document.createElement('div');
+        this._themeGroupEl.className = 'settings-segmented';
+        themeRow.appendChild(this._themeGroupEl);
+        this._renderThemeButtons();
+        // Remote themes load async — rebuild the control when they arrive/change.
+        onThemesChanged(() => this._renderThemeButtons());
+
+        // Admin-only: open the live theme editor. Gated on the audit token being
+        // present (mirrors how audit mode is gated); test users never see it.
+        this._maybeAddThemeEditorButton(sec);
+
         // Color scheme picker.
         const schemeRow = this._row(sec, 'Color scheme');
         const group = document.createElement('div');
@@ -223,6 +242,48 @@ export class SettingsPanel {
         for (const [k, btn] of this._schemeButtons) {
             btn.classList.toggle('active', k === key);
         }
+    }
+
+    /** (Re)build the theme segmented control from built-ins + remote themes. */
+    _renderThemeButtons() {
+        const group = this._themeGroupEl;
+        if (!group) return;
+        group.innerHTML = '';
+        this._themeButtons.clear();
+        const current = getSelection();
+        for (const t of getAvailableThemes()) {
+            const btn = document.createElement('button');
+            btn.className = 'settings-seg-btn';
+            btn.textContent = t.label;
+            if (t.sel === current) btn.classList.add('active');
+            btn.addEventListener('click', () => this._selectTheme(t.sel));
+            group.appendChild(btn);
+            this._themeButtons.set(t.sel, btn);
+        }
+    }
+
+    _selectTheme(sel) {
+        applyTheme(sel);
+        for (const [k, btn] of this._themeButtons) {
+            btn.classList.toggle('active', k === sel);
+        }
+    }
+
+    /** Admin-only "Edit themes…" launcher (lazy-loads the editor module). */
+    _maybeAddThemeEditorButton(sec) {
+        let hasToken = false;
+        try { hasToken = !!sessionStorage.getItem(AUDIT_TOKEN_KEY); } catch (_) { /* no-op */ }
+        if (!hasToken) return;
+
+        const row = this._row(sec, null);
+        const btn = document.createElement('button');
+        btn.className = 'settings-btn';
+        btn.textContent = 'Edit themes…';
+        btn.addEventListener('click', async () => {
+            const { openThemeEditor } = await import('./theme-editor.js');
+            openThemeEditor({ onSaved: () => this._renderThemeButtons() });
+        });
+        row.appendChild(btn);
     }
 
     /**
@@ -338,6 +399,12 @@ export class SettingsPanel {
 
     _applyPersisted() {
         const saved = settingsStore.get();
+
+        // UI theme — reflect the persisted choice in the segmented control only.
+        // The attribute itself is applied earlier (initTheme, before first paint),
+        // so we must not re-dispatch/re-persist here.
+        const themeSel = getSelection();
+        for (const [k, btn] of this._themeButtons) btn.classList.toggle('active', k === themeSel);
 
         // Color scheme + highlight (paletteOriginal exists by now).
         this._selectScheme(saved.scheme || 'vibrant');

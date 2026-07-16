@@ -151,6 +151,15 @@ of CSS live in `styles.css`. Two small residual items remain (checklist):
   with a `.hidden` utility class in `styles.css` so JS toggles a class (via the `dom.js`
   helpers) instead of writing inline style. Low priority, do opportunistically during Stage 4.
 
+**Design-token layer (`styles.css` now ~5,280 lines).** The top of `styles.css` is a `:root`
+control panel: a two-tier token set — **primitives** (family ramps `--amber-*`/`--navy-*`/
+`--steel-*`/… plus a radius scale, weight scale, and font families) and **semantic aliases**
+(`--accent`, `--bg-app/-panel/-overlay`, `--text-heading/-body/-muted`, `--radius-btn/-panel/-pill`,
+`--weight-*`, `--font-base/-ui/-display`). Every colour / radius / weight / font-family literal in
+the file was mechanically swept onto `var(--…)` references (846 declarations) with **resolved-value
+equivalence** verified, so the default look is pixel-identical. See the **UI theming** entry under
+Stage 7 for the live switcher built on top.
+
 ### 1c. JavaScript — three extraction buckets
 
 **Already modularized.** The imports (lines 226–242) pull in `state`, `SceneManager`,
@@ -383,6 +392,52 @@ These aren't required by the review but are natural follow-ups now that the code
 - **Country borders.** ✅ **Done.** Drawn as a line that shares the fill mesh's *exact* vertices, so it sits on the fills with no gap and — critically — **no parallax**. `extractBorderEdges()` in `build-textures.js` pulls the merged mesh's boundary edges (edges used by exactly one triangle = each country's outline + coastlines, since countries don't share vertices) and writes them as u32 vertex-index pairs to `assets/world-border-lines.bin` (~2.7 MB / ~840 KB gzipped, 354k edges). At runtime (`js/core/globe.js`) `_buildBorderLines()` builds a `THREE.LineSegments` that reuses the country mesh's `position` attribute + these indices, added as a child of the country mesh (inherits scale/animation). A flat depth-biased shader nudges it toward the camera in clip space (`BORDER_DEPTH_BIAS`) to avoid z-fighting **without a radial lift** — the earlier approaches put the line at a larger radius, which drifted off its boundary near the globe's limb. Constant 1px (WebGL line-width cap = same width at every zoom). Runtime control via `globeManager.setBorderVisible/Opacity/Color`; the settings gear's checkbox + opacity slider drive these (persisted keys `borders`/`borderOpacity`).
 
   History: this replaced two rejected attempts — (1) a runtime vector `LineSegments` overlay from `countries.geojson` (raised radius → parallax; coarser simplification), and (2) a baked equirectangular distance field sampled in the shader (resolution-limited, soft/imprecise at closest zoom). The current line is exact because it *is* the fill outline. `tests/border-edges.test.js` covers the extraction.
+- **UI theming (design tokens + live theme switcher).** ✅ **Done.** To let the team iterate on
+  appearance from one place, `styles.css` gained a `:root` design-token layer (primitives +
+  semantic aliases; see §1b) and every literal was swept onto tokens — the sweep was a property-aware
+  postcss transform whose self-check proves resolved-value equivalence, so the default is
+  pixel-identical (confirmed by a headless-Chrome before/after diff: differences confined to the
+  animated globe, UI chrome zero-diff). On top of that, `js/features/theme-switcher.js`
+  (`applyTheme`/`getTheme`/`initTheme`) flips `<html data-theme>` to swap the whole token set live
+  via `:root[data-theme="soft"|"sharp"|"mono"]` override blocks; the choice persists through
+  `settings-store.js` and `initTheme()` applies it before first paint (no default-look flash). The
+  settings gear (`settings-panel.js` `_buildAppearance`) exposes it as a "UI theme" segmented
+  control mirroring the colour-scheme picker. Surfaces outside CSS follow via `js/utils/theme.js`:
+  the canvas globe labels/markers (`labels.js`/`markers.js`) read the UI font through `canvasFont()`
+  and re-bake on the `globe3d:theme-changed` event (`repaintAllLabels`); the audit panel's injected
+  `<style>` and the search dropdown's data-driven inline colours reference tokens. `index.html` gains
+  only the import + one `initTheme()` call. Adding a theme = one `THEMES` entry + one
+  `:root[data-theme]` block. **Note:** `dist/` is a build artifact — run `npm run build:pages` to
+  sync the tokenized `styles.css` (and rebuilt pages) into `dist/` before deploy.
+- **Backend-persisted themes + admin live editor.** ✅ **Done.** So an admin can author shared themes
+  that test users switch between (localStorage can't share across users). New Django app
+  `backend/themes/` — `Theme { name, base (built-in preset), tokens (JSONField {"--var":"value"}),
+  is_published, created_by }`. API mirrors the `/api/audit/*` split: public `GET /api/themes`
+  (published only, like `daily_leaderboard`) + superuser-gated `GET/POST/PUT/DELETE /api/admin/themes`
+  reusing `quiz.audit_auth.require_audit` (the signed `X-Audit-Token`; already re-checks superuser per
+  request). `themes/tokens.py` allow-lists writes to the ~26 curated knobs and constrains values (an
+  injection guard — no `url()`/selector break-out). Registered in Django admin as a fallback CRUD
+  surface. Frontend: `ApiClient` gains `listThemes`/`listAllThemes`/`create|update|deleteTheme`;
+  `theme-switcher.js` now handles **remote** themes (a `{base, tokens}` applied as the base preset's
+  `data-theme` attr + inline `--token` overrides, cleared/re-applied on switch, cached in
+  `settings-store` `themeInline` for pre-paint apply) alongside built-ins; the settings-gear selector
+  lists built-ins + published remote themes (`getAvailableThemes`, rebuilt on `onThemesChanged`).
+  `js/data/theme-tokens.js` is the frontend mirror of the backend allow-list (drives editor rows +
+  inline-clearing; kept at 44). The **live editor** `js/features/theme-editor.js` is a right-anchored
+  sheet (no scrim, so the app stays visible and re-themes as you edit) with a preview strip and typed
+  rows (color swatch+alpha, radius range, weight select, font text+datalist); it previews via inline
+  `setProperty` (debounced `THEME_EVENT` only on font change) and saves through the audit-gated API.
+  It is lazy-loaded from a settings button gated on `sessionStorage[AUDIT_TOKEN_KEY]` (mirrors audit
+  mode), so players never download it. `index.html` gains one `initRemoteThemes(apiClient)` call.
+  **Deploy:** ship the migration (`manage.py migrate` on the API host) alongside the frontend.
+- **Token consolidation (radii).** ✅ **Done.** Reduced the 20 radius tokens to **2 editable knobs**
+  — `--radius-btn` (buttons + all controls), `--radius-panel` (containers) — plus **2 fixed shapes**
+  (`--radius-pill` 999px, `--radius-circle` 50%, not editable). Every `var(--radius-*)` reference was
+  swept by element role (postcss `radius-remap.mjs`); the global `button` rule now points at
+  `--radius-btn` so button roundness is real and uniform, with `!important` shape-exceptions for the
+  `<button>`s that must stay round/pill (`.flag-close`/`.qz-close`/`.qsv-close`/`.settings-swatch`
+  circles, `.qmp-segment` pill). Theme blocks + `theme-tokens.js` + `backend/themes/tokens.py` updated
+  (editable knobs 44 → 26). First of a series — colours/weights are candidates for the same treatment.
 - **Search index.** Replace the linear `Array.filter` in `search.js` with a small trigram index or a sorted prefix array for O(log n) lookups. Not urgent at ~250 countries.
 - **Multi-language labels.** Listed in `CLAUDE.md`'s future ideas; the label pipeline is now isolated enough to support this cleanly.
 - **Browser Back → exit overlay to globe.** ✅ **Done.** `js/features/back-button-guard.js` — the app's first and only use of the History API. Pressing Back while any overlay "screen" is open (a practice quiz, the daily challenge, the results modal, the daily leaderboard, the quiz mode picker, or the stats sheet) returns to the bare globe, equivalent to the in-app ×; Back from the globe navigates away normally. Model: while an overlay is open, exactly one guard entry (`history.state.g3dGuard`) is kept pushed *above* the app's own entry, so the first Back pops the guard (never the real page); a `popstate` handler then closes the overlay. Reconciliation is **lazy** — the guard is pushed when an overlay opens but not eagerly removed on in-app close; the harmless stale guard is self-consumed by the next real Back (avoids a programmatic-`history.back()`/suppress-flag race). Overlay state is read from signals the app already maintains — body classes `quiz-active`/`dq-active`/`celebration-active` plus `quizModePicker.visible`/`quizStats.visible` — so no quiz module was touched; a `MutationObserver` on `document.body` + the picker/stats containers drives reconciliation, and its microtask batching makes the synchronous quiz→results and results→play-again class swaps a no-op (no guard flicker). `_initFromHistory()` (at construction + on `pageshow`/bfcache) re-adopts a guard entry that survives a reload. `index.html` gains only the import + one `new BackButtonGuard({...})` near the daily-quiz init (~line 648).

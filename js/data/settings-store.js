@@ -10,6 +10,10 @@
 const STORAGE_KEY = 'globe3d-settings';
 
 const DEFAULTS = {
+    theme: 'default',
+    // Cached {base, tokens} of the selected *remote* theme, so it can be applied
+    // before first paint on reload (no default-look flash). null for built-ins.
+    themeInline: null,
     scheme: 'browns',
     showCountries: true,
     showLabels: true,

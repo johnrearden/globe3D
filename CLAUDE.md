@@ -220,6 +220,21 @@ Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
 minimize what they add to `index.html`:**
 
 - **No new CSS in `index.html`** — put all new rules in the external `styles.css`.
+- **Use design tokens, not literals.** `styles.css` opens with a `:root` control panel of design
+  tokens (semantic: `--accent`, `--bg-app/-panel/-overlay`, `--text-heading/-body/-muted`,
+  `--radius-btn/-panel/-pill`, `--weight-*`, `--font-base/-ui/-display`; plus primitive family
+  ramps). New rules must reference `var(--…)` for colours, radii, weights, and font-families —
+  never hardcode a hex/rgba/px-radius/weight/family — so the UI theme switcher
+  (`js/features/theme-switcher.js`, `<html data-theme>`) keeps working. Canvas surfaces read tokens
+  via `js/utils/theme.js` (`cssToken`/`canvasFont`) and re-bake on the `globe3d:theme-changed` event.
+  Beyond the built-in presets, admins author **remote themes** (backend `themes` app; superuser-gated
+  CRUD via the audit token) that test users pick from the settings selector; the ~26 editable "knob"
+  tokens are listed in `js/data/theme-tokens.js` (frontend mirror of `backend/themes/tokens.py` — keep
+  the two in sync). The in-app live editor is `js/features/theme-editor.js`. Roundness is two editable
+  knobs — `--radius-btn` (all buttons + controls) and `--radius-panel` (containers); `--radius-pill`
+  (999px) and `--radius-circle` (50%) are fixed shapes. A global `button { border-radius:
+  var(--radius-btn) !important }` rule unifies button roundness — round/pill `<button>`s (close/swatch
+  icons, the segmented control) re-assert their shape with a `!important` override.
 - **No new inline `<script>` logic** — all new JS goes in separate ES modules under `js/`
   (e.g. `js/features/<feature>.js`), imported from the main module block.
 - **Prefer self-contained feature modules** that create their own DOM and attach their own
@@ -245,7 +260,7 @@ update that document accordingly in the same change.
 - `index.html` is bootstrap + glue + (shrinking) inline UI logic; core systems live in modules under `js/` (scene, globe, labels, camera, quiz, flags, search, animations). See `docs/senior_dev/implementation-plan.md` for the modularization roadmap.
 - Country borders are a 1px line sharing the fill mesh's exact vertices (`world-border-lines.bin` = boundary-edge index pairs), co-radial with the fills with a clip-space depth bias to avoid z-fighting (no radial lift → no parallax). Toggle/opacity/color via `globeManager.setBorder*` and the settings gear. WebGL caps line width at 1px, so thickness isn't adjustable without a fat-line implementation.
 - No search index (linear search through country names)
-- Label font is fixed (Arial, gray text)
+- Country name labels are canvas-rendered white textures tinted at runtime via `material.color`; the font follows the `--font-base` token (re-baked on theme change), but per-label colour/font styling beyond the tint isn't exposed.
 - Per-country mesh manipulation (e.g., scale or move a single country) is no longer supported — the globe is one mesh.
 
 ## Future Enhancement Ideas

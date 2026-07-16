@@ -75,7 +75,7 @@ export class SearchManager {
 
         // Display results
         if (matchingCountries.length === 0) {
-            resultsContainer.innerHTML = '<div style="color: #e0e0e0; padding: 8px;">No countries found</div>';
+            resultsContainer.innerHTML = '<div style="color: var(--text-soft); padding: 8px;">No countries found</div>';
         } else {
             // Rows are click-handled via the delegated listener set up in init().
             resultsContainer.innerHTML = matchingCountries
@@ -144,7 +144,7 @@ export class SearchManager {
     updateSearchSelection(resultItems) {
         resultItems.forEach((item, index) => {
             if (index === this.currentSearchIndex) {
-                item.style.backgroundColor = 'rgba(255, 140, 0, 0.2)';
+                item.style.backgroundColor = 'var(--accent-soft)';
                 item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                 // Update input value with selected country
                 this.elements.get('country-search').value = item.getAttribute('data-country');

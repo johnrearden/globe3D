@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'players',
     'quiz',
     'stats',
+    'themes',
 ]
 
 MIDDLEWARE = [
