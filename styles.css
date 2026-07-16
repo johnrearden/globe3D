@@ -2028,17 +2028,14 @@
             flex: none;
             width: 21px;
             height: 21px;
-            border-radius: var(--radius-btn);
-            background: var(--amber-14);
-            border: 1px solid var(--amber-12);
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--amber-1);
         }
         .qmp-card-icon svg {
-            width: 11px;
-            height: 11px;
+            width: 100%;
+            height: 100%;
         }
 
         .qmp-card-text {
@@ -3988,11 +3985,9 @@ body.flag-quiz-active #settings-panel {
     flex: none;
     width: 44px;
     height: 44px;
-    border-radius: var(--radius-circle);
-    background: var(--amber-30);
     color: var(--amber-31);
 }
-.qb-icon svg { width: 25px; height: 25px; display: block; }
+.qb-icon svg { width: 100%; height: 100%; display: block; }
 
 .qb-text { display: flex; flex-direction: column; line-height: 1; text-align: left; }
 .qb-title {
