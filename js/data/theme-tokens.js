@@ -4,18 +4,17 @@
  * theme switcher's inline-override clearing. Keep in sync with the styles.css :root
  * semantic tokens and the backend allow-list.
  *
- * `type` selects the editor widget: 'font' (text + datalist), 'weight' (select),
- * 'length' (range/number), 'color' (swatch + alpha + text).
+ * `type` selects the editor widget: 'font' (dropdown of bundled + device fonts,
+ * see FONT_OPTIONS in theme-editor.js), 'weight' (select), 'length' (range/number),
+ * 'color' (swatch + alpha + text).
  */
 
 export const TOKEN_GROUPS = [
     {
         title: 'Typography',
         tokens: [
-            { name: '--font-base', label: 'Base font', type: 'font' },
-            { name: '--font-ui', label: 'UI font', type: 'font' },
             { name: '--font-display', label: 'Display font', type: 'font' },
-            { name: '--font-mono', label: 'Mono font', type: 'font' },
+            { name: '--font-ui', label: 'UI / body font', type: 'font' },
             { name: '--weight-normal', label: 'Weight · normal', type: 'weight' },
             { name: '--weight-medium', label: 'Weight · medium', type: 'weight' },
             { name: '--weight-semibold', label: 'Weight · semibold', type: 'weight' },
@@ -35,12 +34,11 @@ export const TOKEN_GROUPS = [
         title: 'Colors',
         tokens: [
             { name: '--accent', label: 'Accent', type: 'color' },
-            { name: '--accent-amber', label: 'Accent (amber)', type: 'color' },
-            { name: '--accent-soft', label: 'Accent (soft)', type: 'color' },
-            { name: '--bg-app', label: 'App background', type: 'color' },
-            { name: '--bg-deep', label: 'Background (deep)', type: 'color' },
-            { name: '--bg-raised', label: 'Background (raised)', type: 'color' },
-            { name: '--bg-overlay', label: 'Overlay panel', type: 'color' },
+            { name: '--on-accent', label: 'On accent (text)', type: 'color' },
+            { name: '--bg-app', label: 'Background · app', type: 'color' },
+            { name: '--bg-panel', label: 'Background · panel', type: 'color' },
+            { name: '--bg-elevated', label: 'Background · elevated', type: 'color' },
+            { name: '--scrim', label: 'Modal scrim', type: 'color' },
             { name: '--border-subtle', label: 'Border (subtle)', type: 'color' },
             { name: '--text-heading', label: 'Text · heading', type: 'color' },
             { name: '--text-mid', label: 'Text · mid', type: 'color' },

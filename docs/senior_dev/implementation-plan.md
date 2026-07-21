@@ -154,7 +154,7 @@ of CSS live in `styles.css`. Two small residual items remain (checklist):
 **Design-token layer (`styles.css` now ~5,280 lines).** The top of `styles.css` is a `:root`
 control panel: a two-tier token set — **primitives** (family ramps `--amber-*`/`--navy-*`/
 `--steel-*`/… plus a radius scale, weight scale, and font families) and **semantic aliases**
-(`--accent`, `--bg-app/-panel/-overlay`, `--text-heading/-body/-muted`, `--radius-btn/-panel/-pill`,
+(`--accent`, `--bg-app/-panel/-elevated` + `--scrim`, `--text-heading/-body/-muted`, `--radius-btn/-panel/-pill`,
 `--weight-*`, `--font-base/-ui/-display`). Every colour / radius / weight / font-family literal in
 the file was mechanically swept onto `var(--…)` references (846 declarations) with **resolved-value
 equivalence** verified, so the default look is pixel-identical. See the **UI theming** entry under
@@ -415,7 +415,7 @@ These aren't required by the review but are natural follow-ups now that the code
   is_published, created_by }`. API mirrors the `/api/audit/*` split: public `GET /api/themes`
   (published only, like `daily_leaderboard`) + superuser-gated `GET/POST/PUT/DELETE /api/admin/themes`
   reusing `quiz.audit_auth.require_audit` (the signed `X-Audit-Token`; already re-checks superuser per
-  request). `themes/tokens.py` allow-lists writes to the ~26 curated knobs and constrains values (an
+  request). `themes/tokens.py` allow-lists writes to the ~23 curated knobs and constrains values (an
   injection guard — no `url()`/selector break-out). Registered in Django admin as a fallback CRUD
   surface. Frontend: `ApiClient` gains `listThemes`/`listAllThemes`/`create|update|deleteTheme`;
   `theme-switcher.js` now handles **remote** themes (a `{base, tokens}` applied as the base preset's
@@ -438,6 +438,46 @@ These aren't required by the review but are natural follow-ups now that the code
   `<button>`s that must stay round/pill (`.flag-close`/`.qz-close`/`.qsv-close`/`.settings-swatch`
   circles, `.qmp-segment` pill). Theme blocks + `theme-tokens.js` + `backend/themes/tokens.py` updated
   (editable knobs 44 → 26). First of a series — colours/weights are candidates for the same treatment.
+- **Token consolidation (backgrounds).** ✅ **Done.** Collapsed the ~29 navy surface backgrounds into
+  a **3-tier surface system** — `--bg-app` (base backdrop + recessed inputs), `--bg-panel` (the bulk of
+  floating panels/sheets/cards, translucent), `--bg-elevated` (raised/prominent surfaces: results card,
+  modals) — plus `--scrim` (modal dim). Every `var(--bg-*/--navy-*)` background reference was swept by
+  value+role (postcss `bg-remap.mjs`); state tints (correct/wrong), accents, and non-surface neutrals
+  were kept distinct per the brief. This retired `--bg-deep/-raised/-overlay` and **all 25 `--navy-*`
+  primitives** (`--navy-18` folded into `--border-subtle`, same value). Theme blocks + `theme-tokens.js`
+  + `backend/themes/tokens.py` updated; editable knobs stay 26 (3 surfaces + scrim swap in for the old
+  4 bg tokens).
+- **Token consolidation (accent).** ✅ **Done.** The prominent oranges (CTA, "Whole globe" segment,
+  mode icons) were painted with raw `--amber-*` primitives the editor couldn't touch. Collapsed the
+  **42 `--amber-*` tokens** onto a single editable **`--accent`** (+ `--on-accent` for dark text on it);
+  everything orange now *derives* from `--accent` via `color-mix` — solid fills `var(--accent)`, glows
+  `color-mix(in srgb, var(--accent) N%, transparent)`, gradient tops `color-mix(…, white N%)` — so one
+  knob recolors it all (postcss `accent-remap.mjs`, 134 refs). `--accent-amber` removed; `--accent-soft`
+  redefined as a derived alias. Per the brief, gold/markers/progress fold into `--accent` too. Also
+  fixed the one JS-embedded amber (the results-ring SVG gradient in `quiz-results-modal.js` → `var(--accent)`).
+  Editable knobs 26 → **25** (accent family 3 → 2).
+- **Token consolidation (fonts).** ✅ **Done.** Collapsed the 4 font tokens to **2 editable knobs** —
+  `--font-display` (headings/wordmark) and `--font-ui` (everything else / body). `--font-base` (Arial
+  body default) folded into `--font-ui`; `--font-mono`'s one usage became a literal `monospace`. Both
+  knobs are now a **dropdown** in the editor (`FONT_OPTIONS` in `theme-editor.js`) offering the two
+  bundled webfonts (Fredoka, Archivo — loaded in `index.html`) + a device sans-serif + a device
+  monospace. `canvasFont()` (globe labels) now reads `--font-ui`. Weights stay at 4. Editable knobs
+  25 → **23**.
+- **Token consolidation (shadows/glows).** ✅ **Done.** ~40 ad-hoc `box-shadow`/glow declarations —
+  each re-typing its own offset/blur/spread, with no shared recipe — collapsed onto a **6-token fixed
+  set** in `:root`: a `--shadow-low/-mid/-high` elevation scale (thumbnails / controls / modals+
+  containers), `--shadow-dock` (bottom-docked sheets, same weight cast upward), `--glow-cta` (one recipe
+  for every primary accent CTA — the worst-drifting family: blur 14→38px & accent 30→50% before), and
+  `--glow-accent` (the pulsing radial halos). Each references a themed colour token (`--neutral-13`/
+  `--accent`), so the whole shadow system adapts per theme with **no** per-theme redefinition. Also
+  retired the two hardcoded `rgba()` shadows (`.theme-editor`; the injected `#audit-panel` in
+  `audit-mode.js` → `var(--shadow-dock)`) and the blue-vs-black container-shadow mismatch. Tokens are
+  **fixed** (like `--radius-pill/-circle`, not editable knobs), so `theme-tokens.js`/`tokens.py` and the
+  23-knob count are unchanged. Left as-is: feedback state rings (`0 0 0 3px`) and the `.level-btn`/
+  `.swatch` selection glows (state indicators, not elevation). **Both glow tokens are currently
+  disabled** at source (`--glow-cta: none`, `--glow-accent: transparent`) per request — glow is off
+  app-wide, tokens + all `var(--glow-*)` usage sites retained, reversible by restoring the `was:`
+  values; the `--shadow-*` elevation tokens are unaffected.
 - **Search index.** Replace the linear `Array.filter` in `search.js` with a small trigram index or a sorted prefix array for O(log n) lookups. Not urgent at ~250 countries.
 - **Multi-language labels.** Listed in `CLAUDE.md`'s future ideas; the label pipeline is now isolated enough to support this cleanly.
 - **Browser Back → exit overlay to globe.** ✅ **Done.** `js/features/back-button-guard.js` — the app's first and only use of the History API. Pressing Back while any overlay "screen" is open (a practice quiz, the daily challenge, the results modal, the daily leaderboard, the quiz mode picker, or the stats sheet) returns to the bare globe, equivalent to the in-app ×; Back from the globe navigates away normally. Model: while an overlay is open, exactly one guard entry (`history.state.g3dGuard`) is kept pushed *above* the app's own entry, so the first Back pops the guard (never the real page); a `popstate` handler then closes the overlay. Reconciliation is **lazy** — the guard is pushed when an overlay opens but not eagerly removed on in-app close; the harmless stale guard is self-consumed by the next real Back (avoids a programmatic-`history.back()`/suppress-flag race). Overlay state is read from signals the app already maintains — body classes `quiz-active`/`dq-active`/`celebration-active` plus `quizModePicker.visible`/`quizStats.visible` — so no quiz module was touched; a `MutationObserver` on `document.body` + the picker/stats containers drives reconciliation, and its microtask batching makes the synchronous quiz→results and results→play-again class swaps a no-op (no guard flicker). `_initFromHistory()` (at construction + on `pageshow`/bfcache) re-adopts a guard entry that survives a reload. `index.html` gains only the import + one `new BackButtonGuard({...})` near the daily-quiz init (~line 648).

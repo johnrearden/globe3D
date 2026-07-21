@@ -10,12 +10,17 @@ from .tokens import TokenValidationError, validate_tokens
 class TokenValidationTests(TestCase):
     def test_accepts_known_tokens(self):
         cleaned = validate_tokens({'--accent': '#3b82f6', '--radius-btn': '10px',
-                                   '--font-base': "'Inter', sans-serif"})
+                                   '--font-ui': "'Archivo', system-ui, sans-serif"})
         self.assertEqual(cleaned['--accent'], '#3b82f6')
 
+    def test_rejects_a_retired_font_token(self):
+        # Fonts collapsed to --font-display/--font-ui; base/mono are gone.
+        with self.assertRaises(TokenValidationError):
+            validate_tokens({'--font-base': 'Arial, sans-serif'})
+
     def test_accepts_rgba(self):
-        cleaned = validate_tokens({'--accent-soft': 'rgba(255, 140, 0, 0.2)'})
-        self.assertEqual(cleaned['--accent-soft'], 'rgba(255, 140, 0, 0.2)')
+        cleaned = validate_tokens({'--scrim': 'rgba(0, 0, 0, 0.6)'})
+        self.assertEqual(cleaned['--scrim'], 'rgba(0, 0, 0, 0.6)')
 
     def test_rejects_unknown_key(self):
         with self.assertRaises(TokenValidationError):
@@ -29,6 +34,25 @@ class TokenValidationTests(TestCase):
         # Radii were collapsed to --radius-btn/--radius-panel; the old ones are gone.
         with self.assertRaises(TokenValidationError):
             validate_tokens({'--radius-modal': '16px'})
+
+    def test_accepts_surface_and_scrim_tokens(self):
+        cleaned = validate_tokens({'--bg-panel': 'rgba(14, 23, 38, 0.9)',
+                                   '--bg-elevated': '#16283c', '--scrim': 'rgba(0, 0, 0, 0.6)'})
+        self.assertIn('--bg-panel', cleaned)
+
+    def test_rejects_a_retired_surface_token(self):
+        # Surfaces collapsed to app/panel/elevated; bg-deep/raised/overlay are gone.
+        with self.assertRaises(TokenValidationError):
+            validate_tokens({'--bg-overlay': '#000'})
+
+    def test_accepts_accent_and_on_accent(self):
+        cleaned = validate_tokens({'--accent': '#3b82f6', '--on-accent': '#08131f'})
+        self.assertEqual(cleaned['--accent'], '#3b82f6')
+
+    def test_rejects_a_retired_accent_token(self):
+        # Accent collapsed to --accent (+ --on-accent); accent-amber/soft are gone.
+        with self.assertRaises(TokenValidationError):
+            validate_tokens({'--accent-amber': '#f59e4b'})
 
     def test_rejects_selector_breakout(self):
         with self.assertRaises(TokenValidationError):

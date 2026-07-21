@@ -79,8 +79,8 @@ export class QuizResultsModal {
                     <svg class="qr-ring-svg" width="148" height="148" viewBox="0 0 148 148">
                         <defs>
                             <linearGradient id="qr-arc-gradient" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0" stop-color="#ffd9a8"></stop>
-                                <stop offset="1" stop-color="#f59440"></stop>
+                                <stop offset="0" style="stop-color: color-mix(in srgb, var(--accent), white 35%)"></stop>
+                                <stop offset="1" style="stop-color: var(--accent)"></stop>
                             </linearGradient>
                         </defs>
                         <circle class="qr-ring-track" cx="74" cy="74" r="62"></circle>

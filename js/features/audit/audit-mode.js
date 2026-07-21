@@ -346,9 +346,9 @@ export class AuditMode {
         style.textContent = `
 #audit-panel {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;
-    background: var(--bg-overlay); color: var(--text-heading);
+    background: var(--bg-panel); color: var(--text-heading);
     border-top: 1px solid var(--border-subtle); border-radius: var(--radius-panel) var(--radius-panel) 0 0;
-    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--shadow-dock);
     padding: 10px 14px 18px; overflow: hidden;
     font-family: var(--font-ui);
     transition: transform 0.25s ease; will-change: transform;
@@ -367,7 +367,7 @@ export class AuditMode {
 #audit-panel .audit-meta { font-size: 12px; color: var(--text-soft); flex: 1; text-align: center; }
 .audit-nav { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 10px 0; }
 .audit-date {
-    background: var(--bg-deep); color: var(--text-heading); border: 1px solid var(--border-subtle);
+    background: var(--bg-app); color: var(--text-heading); border: 1px solid var(--border-subtle);
     border-radius: var(--radius-btn); padding: 6px 10px; font: inherit;
     color-scheme: dark;
 }
@@ -391,7 +391,7 @@ export class AuditMode {
 .audit-flag-btn { color: var(--danger); border-color: #5a2a2a; }
 #audit-toggle {
     position: fixed; top: 12px; left: 12px; z-index: 290;
-    background: var(--bg-overlay); color: var(--accent);
+    background: var(--bg-panel); color: var(--accent);
     border: 1px solid #3a4a68; border-radius: var(--radius-pill);
     padding: 8px 14px; cursor: pointer; font: inherit; font-size: 13px; font-weight: var(--weight-bold);
 }

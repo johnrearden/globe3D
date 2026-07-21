@@ -14,15 +14,16 @@ import re
 # Built-in presets a theme can layer on (js/features/theme-switcher.js THEMES).
 BASE_THEMES = ('default', 'soft', 'sharp', 'mono')
 
-FONT_TOKENS = ('--font-base', '--font-ui', '--font-display', '--font-mono')
+FONT_TOKENS = ('--font-display', '--font-ui')
 WEIGHT_TOKENS = ('--weight-normal', '--weight-medium', '--weight-semibold', '--weight-bold')
 # Two editable roundness knobs. --radius-pill / --radius-circle are fixed shapes,
 # deliberately NOT editable (a theme can't change them).
 RADIUS_TOKENS = ('--radius-btn', '--radius-panel')
 COLOR_TOKENS = (
-    '--accent', '--accent-amber', '--bg-app', '--bg-deep', '--bg-raised', '--white', '--black',
+    '--accent', '--on-accent',
+    '--bg-app', '--bg-panel', '--bg-elevated', '--scrim',
+    '--border-subtle', '--white', '--black',
     '--text-heading', '--text-mid', '--text-low', '--text-soft', '--ok', '--bad',
-    '--accent-soft', '--bg-overlay', '--border-subtle',
 )
 EDITABLE_TOKENS = frozenset(FONT_TOKENS + WEIGHT_TOKENS + RADIUS_TOKENS + COLOR_TOKENS)
 

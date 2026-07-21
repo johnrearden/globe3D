@@ -25,7 +25,7 @@ export function cssToken(name, fallback = '') {
  * @returns {string}
  */
 export function canvasFont(px) {
-    return `${px}px ${cssToken('--font-base', 'Arial, sans-serif')}`;
+    return `${px}px ${cssToken('--font-ui', 'system-ui, sans-serif')}`;
 }
 
 /**

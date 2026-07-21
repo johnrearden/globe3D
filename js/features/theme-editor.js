@@ -17,10 +17,15 @@ import {
 } from './theme-switcher.js';
 import { parseColor, toHex, formatColor } from '../utils/color.js';
 
-const FONT_SUGGESTIONS = [
-    'system-ui, sans-serif', 'Arial, sans-serif', 'Georgia, serif',
-    "'Times New Roman', serif", "'Courier New', monospace", 'ui-monospace, monospace',
-    "'Inter', system-ui, sans-serif", "'Archivo', sans-serif", "'Fredoka', system-ui, sans-serif",
+// Font choices: the two bundled webfonts (index.html loads Fredoka + Archivo)
+// plus a device-default sans-serif and a device-default monospace. `value` is the
+// exact stack written to the token (must match the :root default so the dropdown
+// pre-selects); `label` is what the admin sees.
+const FONT_OPTIONS = [
+    { value: "'Fredoka', system-ui, sans-serif", label: 'Fredoka (bundled)' },
+    { value: "'Archivo', system-ui, sans-serif", label: 'Archivo (bundled)' },
+    { value: 'system-ui, -apple-system, sans-serif', label: 'System sans-serif' },
+    { value: 'ui-monospace, SFMono-Regular, Menlo, monospace', label: 'System monospace' },
 ];
 const WEIGHTS = ['300', '400', '500', '600', '700', '800', '900'];
 
@@ -186,25 +191,26 @@ class ThemeEditor {
             select.addEventListener('change', () => this._set(tok, select.value));
             ctrl.append(select);
             refresh = (value) => { select.value = String(parseInt(value, 10) || 400); };
-        } else { // font
-            const text = el('input', 'te-val te-val-wide', { type: 'text' });
-            text.setAttribute('list', 'te-font-list');  // `list` is a read-only property
-            text.addEventListener('change', () => this._set(tok, text.value.trim()));
-            ctrl.append(text);
-            refresh = (value) => { text.value = value; };
+        } else { // font — a dropdown of the bundled + device fonts
+            const select = el('select', 'te-select te-select-wide');
+            for (const o of FONT_OPTIONS) select.appendChild(el('option', null, { value: o.value, textContent: o.label }));
+            select.addEventListener('change', () => this._set(tok, select.value));
+            ctrl.append(select);
+            refresh = (value) => {
+                const v = (value || '').trim();
+                if (FONT_OPTIONS.some(o => o.value === v)) { select.value = v; return; }
+                // Value isn't one of the presets — surface it as a one-off option.
+                let custom = select.querySelector('option[data-custom]');
+                if (!custom) { custom = el('option', null, {}); custom.setAttribute('data-custom', ''); select.insertBefore(custom, select.firstChild); }
+                custom.value = v; custom.textContent = v ? `Custom: ${v}` : '(unset)';
+                select.value = v;
+            };
         }
 
         const reset = el('button', 'te-reset', { textContent: '↺', title: 'Reset to base', type: 'button' });
         reset.addEventListener('click', () => this._resetToken(tok));
         ctrl.appendChild(reset);
         row.appendChild(ctrl);
-
-        // One shared font datalist.
-        if (tok.type === 'font' && !document.getElementById('te-font-list')) {
-            const dl = el('datalist', null, { id: 'te-font-list' });
-            for (const f of FONT_SUGGESTIONS) dl.appendChild(el('option', null, { value: f }));
-            this.root.appendChild(dl);
-        }
 
         this.rows.set(tok.name, { refresh, mark: () => row.classList.toggle('te-row--set', tok.name in this.working) });
         return row;

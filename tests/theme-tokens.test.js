@@ -4,13 +4,33 @@ import {
 } from '../js/data/theme-tokens.js';
 
 describe('theme-tokens (frontend mirror of backend/themes/tokens.py)', () => {
-    it('exposes the 26 curated knobs (radii collapsed to button + panel)', () => {
-        expect(EDITABLE_TOKEN_NAMES).toHaveLength(26);
+    it('exposes the 23 curated knobs', () => {
+        expect(EDITABLE_TOKEN_NAMES).toHaveLength(23);
+    });
+
+    it('exposes exactly the two font knobs (display + UI/body)', () => {
+        const fonts = EDITABLE_TOKEN_NAMES.filter(n => n.startsWith('--font-'));
+        expect(fonts).toEqual(['--font-display', '--font-ui']);
+        expect(EDITABLE_TOKEN_NAMES).not.toContain('--font-base');
+        expect(EDITABLE_TOKEN_NAMES).not.toContain('--font-mono');
+    });
+
+    it('exposes exactly the two accent knobs', () => {
+        const accents = EDITABLE_TOKEN_NAMES.filter(n => n === '--accent' || n === '--on-accent');
+        expect(accents).toEqual(['--accent', '--on-accent']);
+        expect(EDITABLE_TOKEN_NAMES).not.toContain('--accent-amber');
+        expect(EDITABLE_TOKEN_NAMES).not.toContain('--accent-soft');
     });
 
     it('exposes exactly the two editable radius knobs', () => {
         const radii = EDITABLE_TOKEN_NAMES.filter(n => n.startsWith('--radius-'));
         expect(radii).toEqual(['--radius-btn', '--radius-panel']);
+    });
+
+    it('exposes exactly the three surface backgrounds (+ scrim)', () => {
+        const bg = EDITABLE_TOKEN_NAMES.filter(n => n.startsWith('--bg-'));
+        expect(bg).toEqual(['--bg-app', '--bg-panel', '--bg-elevated']);
+        expect(EDITABLE_TOKEN_NAMES).toContain('--scrim');
     });
 
     it('every token is a CSS custom property with a known widget type', () => {
@@ -25,8 +45,8 @@ describe('theme-tokens (frontend mirror of backend/themes/tokens.py)', () => {
         expect(new Set(EDITABLE_TOKEN_NAMES).size).toBe(EDITABLE_TOKEN_NAMES.length);
     });
 
-    it('has exactly 4 font tokens (need canvas re-bake on change)', () => {
-        expect(FONT_TOKEN_NAMES.size).toBe(4);
+    it('has exactly 2 font tokens (need canvas re-bake on change)', () => {
+        expect(FONT_TOKEN_NAMES.size).toBe(2);
     });
 
     it('the flat lists are derived from the groups', () => {
