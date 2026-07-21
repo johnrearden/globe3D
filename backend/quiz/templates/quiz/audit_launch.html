@@ -49,7 +49,7 @@
     <p>Opens the globe with the audit panel enabled: browse any date's quiz,
        see questions with their answers, and flag faulty ones for regeneration.</p>
     <a class="launch" href="{{ audit_url }}">Open Terragotcha in audit mode →</a>
-    <p class="note">The link carries a signed token valid for {{ hours }} hours.
+    <p class="note">The link carries a signed token valid for {{ hours }} hour{{ hours|pluralize }}.
        You can also copy it to another browser or device:</p>
     <code>{{ audit_url }}</code>
 </main>

@@ -128,6 +128,10 @@ DATABASE_URL=postgres://globe3d:REPLACE_GLOBE_PW@127.0.0.1:5432/globe3d
 REDIS_URL=redis://127.0.0.1:6379/0
 CORS_ALLOWED_ORIGINS=https://terragotcha.com,https://www.terragotcha.com
 CSRF_TRUSTED_ORIGINS=https://api.terragotcha.com
+# Superuser audit launch (/audit/launch → frontend). Origin defaults to the first
+# CORS_ALLOWED_ORIGINS entry if unset; token lifetime in seconds (3600 = 1h).
+AUDIT_FRONTEND_ORIGIN=https://terragotcha.com
+AUDIT_TOKEN_MAX_AGE=3600
 # WEB_CONCURRENCY=3   # gunicorn workers; bump to 2*vCPU+1 after a resize
 ```
 

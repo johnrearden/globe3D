@@ -252,8 +252,15 @@ QUIZ_MIN_CLICK_AREA_KM2 = float(os.environ.get('QUIZ_MIN_CLICK_AREA_KM2', '5000'
 # Superuser-only audit mode: /audit/launch mints a signed token that the static
 # frontend sends back as X-Audit-Token (see quiz.audit_auth). The launch page
 # needs to know where the frontend lives to build the hand-off link.
-AUDIT_TOKEN_MAX_AGE = int(os.environ.get('AUDIT_TOKEN_MAX_AGE', '43200'))  # 12h
-AUDIT_FRONTEND_ORIGIN = os.environ.get('AUDIT_FRONTEND_ORIGIN', 'http://localhost:8001')
+AUDIT_TOKEN_MAX_AGE = int(os.environ.get('AUDIT_TOKEN_MAX_AGE', '3600'))  # 1h
+# Where the launch page sends the freshly minted token. Explicit env var wins;
+# otherwise in production fall back to the canonical frontend origin (the first
+# CORS-allowed origin the operator already configures) rather than the dev
+# default, so a missing AUDIT_FRONTEND_ORIGIN can't hand out a localhost link.
+_default_audit_origin = (
+    CORS_ALLOWED_ORIGINS[0] if (not DEBUG and CORS_ALLOWED_ORIGINS) else 'http://localhost:8001'
+)
+AUDIT_FRONTEND_ORIGIN = os.environ.get('AUDIT_FRONTEND_ORIGIN', _default_audit_origin)
 
 
 # --- Caching ---------------------------------------------------------------
