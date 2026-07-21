@@ -700,6 +700,18 @@ export class GlobeManager {
     }
 
     /**
+     * Set the ocean/water color — the uOceanColor uniform, visible wherever no
+     * country fill is drawn. Read every frame, so no needsUpdate is required.
+     * Accepts a hex (0xRRGGBB / '#rrggbb' / CSS string) or a THREE.Color.
+     * Admin-themeable via js/features/scene-appearance.js.
+     * @param {string|number|THREE.Color} color
+     */
+    setOceanColor(color) {
+        if (!this.material) return;
+        this.material.uniforms.uOceanColor.value.set(color);
+    }
+
+    /**
      * Country borders — a line that shares the fill mesh's vertices (built in
      * _buildBorderLines). These drive its visibility/opacity/color; all are
      * safe no-ops before the line is built or if the asset is missing.

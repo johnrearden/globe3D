@@ -38,6 +38,8 @@ def admin_theme_list(request):
     theme = Theme.objects.create(
         name=v['name'], base=v['base'], tokens=v['tokens'],
         is_published=v['is_published'], created_by=request.audit_user.username,
+        scene_bg=v['scene_bg'], ocean_color=v['ocean_color'],
+        country_scheme=v['country_scheme'],
     )
     return Response(ThemeSerializer(theme).data, status=status.HTTP_201_CREATED)
 
@@ -61,5 +63,8 @@ def admin_theme_detail(request, pk):
     theme.base = v['base']
     theme.tokens = v['tokens']
     theme.is_published = v['is_published']
+    theme.scene_bg = v['scene_bg']
+    theme.ocean_color = v['ocean_color']
+    theme.country_scheme = v['country_scheme']
     theme.save()
     return Response(ThemeSerializer(theme).data)

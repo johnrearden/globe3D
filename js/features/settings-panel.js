@@ -11,6 +11,8 @@
 import { settingsStore } from '../data/settings-store.js';
 import { SCHEMES, applyScheme } from './color-schemes.js';
 import { getAvailableThemes, getSelection, applyTheme, onThemesChanged } from './theme-switcher.js';
+import { resolveActiveScheme } from './scene-appearance.js';
+import { onThemeChange } from '../utils/theme.js';
 import { AUDIT_TOKEN_KEY } from '../data/api-client.js';
 
 // Post-fade lighting targets (the values the globe settles on after load).
@@ -186,6 +188,11 @@ export class SettingsPanel {
             this._schemeButtons.set(s.key, btn);
         }
         schemeRow.appendChild(group);
+        // When a theme change re-pins the effective scheme, reflect it here.
+        onThemeChange((e) => {
+            if (e && e.detail && e.detail.preview) return;
+            this._highlightScheme(resolveActiveScheme());
+        });
 
         // Show / hide the country fills (vs the bare ocean sphere). Drives the
         // uShowCountries shader uniform (globeManager.setShowCountries).
@@ -236,12 +243,29 @@ export class SettingsPanel {
         }
     }
 
-    _selectScheme(key) {
-        if (this.globeManager) applyScheme(this.globeManager, key);
-        settingsStore.save({ scheme: key });
+    /** Highlight the active scheme button (no globe/persist side effects). */
+    _highlightScheme(key) {
         for (const [k, btn] of this._schemeButtons) {
             btn.classList.toggle('active', k === key);
         }
+    }
+
+    /** Manual user pick — applies + persists as the user's scheme choice. */
+    _selectScheme(key) {
+        if (this.globeManager) applyScheme(this.globeManager, key);
+        settingsStore.save({ scheme: key });
+        this._highlightScheme(key);
+    }
+
+    /**
+     * Apply the *effective* scheme without persisting: a theme-pinned
+     * countryScheme wins, else the user's stored pick. Used on load and on theme
+     * change so a pinned scheme never clobbers the user's saved preference.
+     */
+    _applyActiveScheme() {
+        const key = resolveActiveScheme();
+        if (this.globeManager) applyScheme(this.globeManager, key);
+        this._highlightScheme(key);
     }
 
     /** (Re)build the theme segmented control from built-ins + remote themes. */
@@ -293,7 +317,7 @@ export class SettingsPanel {
      * reverted. Re-deriving from paletteOriginal restores a consistent scheme.
      */
     reapplyPersistedScheme() {
-        this._selectScheme(settingsStore.get().scheme || 'vibrant');
+        this._applyActiveScheme();
     }
 
     _buildLighting() {
@@ -406,8 +430,10 @@ export class SettingsPanel {
         const themeSel = getSelection();
         for (const [k, btn] of this._themeButtons) btn.classList.toggle('active', k === themeSel);
 
-        // Color scheme + highlight (paletteOriginal exists by now).
-        this._selectScheme(saved.scheme || 'vibrant');
+        // Color scheme (paletteOriginal exists by now). A theme-pinned scheme
+        // wins over the stored pick; applied without persisting so it can't
+        // clobber the user's saved scheme. See scene-appearance.js.
+        this._applyActiveScheme();
 
         // Country fills + borders (opacity set first so enabling uses the saved strength).
         if (this.globeManager) {

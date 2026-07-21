@@ -55,6 +55,25 @@ export function getAvailableThemes() {
 export function getRemoteThemes() { return _remoteThemes.slice(); }
 export function getApi() { return _api; }
 
+/**
+ * The 3D scene-appearance block for the active selection:
+ * `{ sceneBg, oceanColor, countryScheme }`. Remote themes carry it; built-ins
+ * (and unknown/deleted remotes) return all-null → the app defaults. Consumed
+ * imperatively by js/features/scene-appearance.js (canvas can't read CSS tokens).
+ */
+export function getActiveSceneAppearance() {
+    const sel = getSelection();
+    if (sel.startsWith('remote:')) {
+        const t = remoteById(sel.slice(7));
+        if (t) return {
+            sceneBg: t.sceneBg || null,
+            oceanColor: t.oceanColor || null,
+            countryScheme: t.countryScheme || null,
+        };
+    }
+    return { sceneBg: null, oceanColor: null, countryScheme: null };
+}
+
 export function onThemesChanged(cb) {
     _listeners.add(cb);
     return () => _listeners.delete(cb);
@@ -107,7 +126,15 @@ export function applyTheme(sel) {
         if (theme) {
             const base = setBaseAttr(theme.base);
             applyTokenMap(theme.tokens);
-            settingsStore.save({ theme: sel, themeInline: { base, tokens: theme.tokens } });
+            settingsStore.save({
+                theme: sel,
+                themeInline: { base, tokens: theme.tokens },
+                themeScene: {
+                    sceneBg: theme.sceneBg || null,
+                    oceanColor: theme.oceanColor || null,
+                    countryScheme: theme.countryScheme || null,
+                },
+            });
             document.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { theme: sel } }));
             return;
         }
@@ -116,7 +143,7 @@ export function applyTheme(sel) {
 
     if (!BUILTIN_KEYS.has(sel)) sel = 'default';
     setBaseAttr(sel);
-    settingsStore.save({ theme: sel, themeInline: null });
+    settingsStore.save({ theme: sel, themeInline: null, themeScene: null });
     document.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { theme: sel } }));
 }
 

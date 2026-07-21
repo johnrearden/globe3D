@@ -430,6 +430,22 @@ These aren't required by the review but are natural follow-ups now that the code
   It is lazy-loaded from a settings button gated on `sessionStorage[AUDIT_TOKEN_KEY]` (mirrors audit
   mode), so players never download it. `index.html` gains one `initRemoteThemes(apiClient)` call.
   **Deploy:** ship the migration (`manage.py migrate` on the API host) alongside the frontend.
+- **Admin-themeable 3D scene appearance.** ✅ **Done.** The CSS theme pipeline can't reach the
+  Three.js scene, so a theme now also carries a scene look applied **imperatively**: `Theme` gains
+  `scene_bg` / `ocean_color` / `country_scheme` fields (backend migration `0002`; validated by
+  `tokens.validate_color` + a `COUNTRY_SCHEMES` allow-list that mirrors `SCHEMES` in
+  `js/features/color-schemes.js`), surfaced camelCase (`sceneBg`/`oceanColor`/`countryScheme`) by the
+  serializers. New applier `js/features/scene-appearance.js` (`initSceneAppearance`,
+  `applySceneAppearance`, `resolveActiveScheme`) captures the app-default bg/ocean at init, applies
+  the active theme's block, and re-applies on every non-preview `THEME_EVENT`; `theme-switcher.js`
+  exposes `getActiveSceneAppearance()` and caches the block in `settings-store` `themeScene` for a
+  no-flash pre-fetch apply. Setters added: `SceneManager.setBackground`, `GlobeManager.setOceanColor`.
+  `color-schemes.js` gained three hue-family presets (`blues`/`purples`/`greys`; `applyScheme` now
+  keys off `FAMILIES[key]` generically) — they auto-populate both the settings-gear picker and the
+  editor's new "Scene" group. A theme-pinned `countryScheme` wins over the gear picker via
+  `resolveActiveScheme()` (the picker is a live, non-clobbering override); `settings-panel.js`
+  applies it without persisting. `index.html` gains one `initSceneAppearance({sceneManager, globeManager})`
+  call after the settings panel. **Deploy:** ship migration `0002` with the frontend.
 - **Token consolidation (radii).** ✅ **Done.** Reduced the 20 radius tokens to **2 editable knobs**
   — `--radius-btn` (buttons + all controls), `--radius-panel` (containers) — plus **2 fixed shapes**
   (`--radius-pill` 999px, `--radius-circle` 50%, not editable). Every `var(--radius-*)` reference was

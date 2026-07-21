@@ -4,7 +4,8 @@ from django.test import TestCase
 from quiz.audit_auth import mint_token
 
 from .models import Theme
-from .tokens import TokenValidationError, validate_tokens
+from .tokens import (ColorValidationError, TokenValidationError,
+                     validate_color, validate_tokens)
 
 
 class TokenValidationTests(TestCase):
@@ -63,6 +64,30 @@ class TokenValidationTests(TestCase):
             validate_tokens({'--bg-app': 'url(http://evil/x)'})
 
 
+class ColorValidationTests(TestCase):
+    def test_accepts_hex(self):
+        self.assertEqual(validate_color('#0a1c30'), '#0a1c30')
+        self.assertEqual(validate_color('#abc'), '#abc')
+
+    def test_accepts_rgb_and_rgba(self):
+        self.assertEqual(validate_color('rgb(8, 30, 57)'), 'rgb(8, 30, 57)')
+        self.assertEqual(validate_color('rgba(8, 30, 57, 0.5)'), 'rgba(8, 30, 57, 0.5)')
+
+    def test_empty_means_inherit(self):
+        self.assertEqual(validate_color(''), '')
+        self.assertEqual(validate_color(None), '')
+
+    def test_rejects_url_and_breakout(self):
+        with self.assertRaises(ColorValidationError):
+            validate_color('url(http://evil/x)')
+        with self.assertRaises(ColorValidationError):
+            validate_color('#000; } body{display:none}')
+
+    def test_rejects_overlong(self):
+        with self.assertRaises(ColorValidationError):
+            validate_color('#' + 'a' * 64)
+
+
 class ThemeApiTests(TestCase):
     def setUp(self):
         User = get_user_model()
@@ -116,6 +141,54 @@ class ThemeApiTests(TestCase):
     def test_create_rejects_duplicate_name(self):
         res = self.client.post('/api/admin/themes',
                                data={'name': 'Published One', 'tokens': {}},
+                               content_type='application/json', **self._hdr())
+        self.assertEqual(res.status_code, 400)
+
+    def test_create_round_trips_scene_appearance(self):
+        res = self.client.post(
+            '/api/admin/themes',
+            data={'name': 'Sepia', 'tokens': {},
+                  'sceneBg': '#101820', 'oceanColor': 'rgb(8, 30, 57)',
+                  'countryScheme': 'browns'},
+            content_type='application/json', **self._hdr())
+        self.assertEqual(res.status_code, 201)
+        body = res.json()
+        self.assertEqual(body['sceneBg'], '#101820')
+        self.assertEqual(body['oceanColor'], 'rgb(8, 30, 57)')
+        self.assertEqual(body['countryScheme'], 'browns')
+        theme = Theme.objects.get(name='Sepia')
+        self.assertEqual(theme.scene_bg, '#101820')
+        self.assertEqual(theme.country_scheme, 'browns')
+
+    def test_scene_fields_are_optional(self):
+        res = self.client.post('/api/admin/themes',
+                               data={'name': 'Plain', 'tokens': {}},
+                               content_type='application/json', **self._hdr())
+        self.assertEqual(res.status_code, 201)
+        body = res.json()
+        self.assertEqual(body['sceneBg'], '')
+        self.assertEqual(body['countryScheme'], '')
+
+    def test_public_list_exposes_scene_fields(self):
+        Theme.objects.create(name='Blue World', scene_bg='#001133',
+                             country_scheme='blues')
+        res = self.client.get('/api/themes')
+        row = next(t for t in res.json() if t['name'] == 'Blue World')
+        self.assertEqual(row['sceneBg'], '#001133')
+        self.assertEqual(row['countryScheme'], 'blues')
+
+    def test_create_rejects_bad_scene_color(self):
+        res = self.client.post('/api/admin/themes',
+                               data={'name': 'Evil', 'tokens': {},
+                                     'sceneBg': 'url(http://evil/x)'},
+                               content_type='application/json', **self._hdr())
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(Theme.objects.filter(name='Evil').exists())
+
+    def test_create_rejects_unknown_scheme(self):
+        res = self.client.post('/api/admin/themes',
+                               data={'name': 'Weird', 'tokens': {},
+                                     'countryScheme': 'rainbow'},
                                content_type='application/json', **self._hdr())
         self.assertEqual(res.status_code, 400)
 

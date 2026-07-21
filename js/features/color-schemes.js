@@ -12,18 +12,25 @@
 const PALETTE_W = 256;
 
 // Picker options, in display order. `vibrant` restores the exact build palette.
+// Keys mirror COUNTRY_SCHEMES in backend/themes/tokens.py (themes can pin one).
 export const SCHEMES = [
     { key: 'vibrant', label: 'Vibrant' },
     { key: 'greens', label: 'Greens' },
     { key: 'browns', label: 'Browns' },
-    { key: 'uniform', label: 'Uniform' }
+    { key: 'uniform', label: 'Uniform' },
+    { key: 'blues', label: 'Blues' },
+    { key: 'purples', label: 'Purples' },
+    { key: 'greys', label: 'Greys' }
 ];
 
 // Hue family (degrees) + base saturation for each derived scheme. Kept low for
-// a muted, washed-out look.
+// a muted, washed-out look. Any key here is handled generically by applyScheme.
 const FAMILIES = {
     greens: { hue: 120, sat: 0.24 },
-    browns: { hue: 30, sat: 0.28 }
+    browns: { hue: 30, sat: 0.28 },
+    blues: { hue: 210, sat: 0.26 },
+    purples: { hue: 275, sat: 0.24 },
+    greys: { hue: 0, sat: 0 } // near-desaturated; tiny per-id jitter keeps neighbours distinct
 };
 
 // The single land color used by the Uniform scheme (muted khaki/sand).
@@ -35,7 +42,10 @@ const HIGHLIGHT = {
     vibrant: 0xffffff,
     greens: 0xffc107, // amber pops on green
     browns: 0xfff2cc, // warm cream pops on brown
-    uniform: 0xff5722 // deep orange pops on khaki
+    uniform: 0xff5722, // deep orange pops on khaki
+    blues: 0xffb300, // amber pops on blue
+    purples: 0xffd54f, // gold pops on purple
+    greys: 0xff5252 // red pops on grey
 };
 
 /** Deterministic small jitter from a country id, in [-1, 1]. */
@@ -80,7 +90,9 @@ export function deriveShade(family, r, g, b, id) {
     const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     // Darker, low band so countries stay distinct but muted and earthy.
     const lightness = 0.20 + lum * 0.26;            // 0.20 … 0.46
-    const sat = Math.max(0.08, Math.min(0.38, fam.sat + idJitter(id) * 0.06));
+    // Floor at 0 (not 0.08) so a sat-0 family like `greys` reads as true grey;
+    // the saturated families sit well above the floor anyway.
+    const sat = Math.max(0, Math.min(0.38, fam.sat + idJitter(id) * 0.06));
     const hue = fam.hue + idJitter(id + 97) * 8;    // ±8° hue wander within family
     return hslToRgb(hue, sat, lightness);
 }
@@ -97,7 +109,7 @@ export function applyScheme(globeManager, key) {
     for (let id = 1; id < PALETTE_W; id++) {
         const off = id * 4;
         const r = orig[off], g = orig[off + 1], b = orig[off + 2];
-        if (key === 'greens' || key === 'browns') {
+        if (FAMILIES[key]) {
             rgbById[id] = deriveShade(key, r, g, b, id);
         } else if (key === 'uniform') {
             rgbById[id] = UNIFORM_RGB;

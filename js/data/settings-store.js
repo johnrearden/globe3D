@@ -14,6 +14,10 @@ const DEFAULTS = {
     // Cached {base, tokens} of the selected *remote* theme, so it can be applied
     // before first paint on reload (no default-look flash). null for built-ins.
     themeInline: null,
+    // Cached {sceneBg, oceanColor, countryScheme} of the selected remote theme,
+    // applied by scene-appearance.js before the async theme fetch resolves (no
+    // scene flash). null for built-ins. See js/features/scene-appearance.js.
+    themeScene: null,
     scheme: 'browns',
     showCountries: true,
     showLabels: true,

@@ -16,6 +16,8 @@ import {
     refreshRemoteThemes, applyTheme,
 } from './theme-switcher.js';
 import { parseColor, toHex, formatColor } from '../utils/color.js';
+import { SCHEMES } from './color-schemes.js';
+import { applySceneAppearance } from './scene-appearance.js';
 
 // Font choices: the two bundled webfonts (index.html loads Fredoka + Archivo)
 // plus a device-default sans-serif and a device-default monospace. `value` is the
@@ -49,6 +51,9 @@ class ThemeEditor {
         this.working = {};       // token -> value (only tokens the admin touched)
         this.baseValues = {};    // token -> base preset value (untouched rows show this)
         this.rows = new Map();   // token -> { refresh() }
+        // 3D scene appearance (outside CSS): '' on a field = inherit the default.
+        this.workingScene = { sceneBg: '', oceanColor: '', countryScheme: '' };
+        this._sceneRows = {};    // field -> { refresh() }
         this.editingId = null;
         this.prevSelection = null;
         this.onSaved = null;
@@ -101,6 +106,9 @@ class ThemeEditor {
             for (const tok of group.tokens) g.appendChild(this._buildRow(tok));
             body.appendChild(g);
         }
+
+        // Scene group — the 3D-globe look (not CSS tokens; applied imperatively).
+        body.appendChild(this._buildSceneGroup());
 
         this.root.appendChild(body);
 
@@ -216,6 +224,71 @@ class ThemeEditor {
         return row;
     }
 
+    // ---- scene appearance (3D globe, outside CSS) ----------------------------
+
+    /** Build the "Scene" group: space bg + ocean color pickers + scheme select. */
+    _buildSceneGroup() {
+        const g = el('div', 'te-group');
+        g.appendChild(el('div', 'te-group-title', { textContent: 'Scene (3D globe)' }));
+        g.appendChild(this._buildSceneColorRow('sceneBg', 'Space background'));
+        g.appendChild(this._buildSceneColorRow('oceanColor', 'Ocean / water'));
+        g.appendChild(this._buildSchemeRow());
+        return g;
+    }
+
+    /** A swatch + text row for an opaque scene color; '' resets to the default. */
+    _buildSceneColorRow(field, label) {
+        const row = el('div', 'te-row');
+        row.appendChild(el('span', 'te-row-label', { textContent: label }));
+        const ctrl = el('div', 'te-row-ctrl');
+        const swatch = el('input', 'te-swatch', { type: 'color' });
+        const text = el('input', 'te-val', { type: 'text', placeholder: 'inherit' });
+        const push = (v) => { this.workingScene[field] = v; applySceneAppearance(this.workingScene); };
+        swatch.addEventListener('input', () => { text.value = swatch.value; push(swatch.value); });
+        text.addEventListener('change', () => {
+            const c = parseColor(text.value);
+            if (c) swatch.value = toHex(c);
+            push(text.value.trim());
+        });
+        const reset = el('button', 'te-reset', { textContent: '↺', title: 'Inherit default', type: 'button' });
+        reset.addEventListener('click', () => { push(''); this._sceneRows[field].refresh(''); });
+        ctrl.append(swatch, text, reset);
+        row.appendChild(ctrl);
+        this._sceneRows[field] = {
+            refresh: (v) => {
+                text.value = v || '';
+                const c = parseColor(v);
+                if (c) swatch.value = toHex(c);
+            },
+        };
+        return row;
+    }
+
+    /** A dropdown of the country color schemes; '(inherit)' = use the default. */
+    _buildSchemeRow() {
+        const row = el('div', 'te-row');
+        row.appendChild(el('span', 'te-row-label', { textContent: 'Country colors' }));
+        const ctrl = el('div', 'te-row-ctrl');
+        const select = el('select', 'te-select te-select-wide');
+        select.appendChild(el('option', null, { value: '', textContent: '(inherit)' }));
+        for (const s of SCHEMES) select.appendChild(el('option', null, { value: s.key, textContent: s.label }));
+        select.addEventListener('change', () => {
+            this.workingScene.countryScheme = select.value;
+            applySceneAppearance(this.workingScene);
+        });
+        ctrl.appendChild(select);
+        row.appendChild(ctrl);
+        this._sceneRows.countryScheme = { refresh: (v) => { select.value = v || ''; } };
+        return row;
+    }
+
+    /** Reflect workingScene in the three scene-row widgets. */
+    _refreshSceneRows() {
+        for (const field of Object.keys(this._sceneRows)) {
+            this._sceneRows[field].refresh(this.workingScene[field]);
+        }
+    }
+
     // ---- token edits ---------------------------------------------------------
 
     _set(tok, value) {
@@ -267,7 +340,14 @@ class ThemeEditor {
         this.baseSelect.value = (theme && theme.base) || this._selectionBase();
         this.publishedInput.checked = theme ? theme.isPublished !== false : true;
         this.working = theme ? { ...(theme.tokens || {}) } : {};
+        this.workingScene = {
+            sceneBg: (theme && theme.sceneBg) || '',
+            oceanColor: (theme && theme.oceanColor) || '',
+            countryScheme: (theme && theme.countryScheme) || '',
+        };
         this._recomputeBase();
+        this._refreshSceneRows();
+        applySceneAppearance(this.workingScene); // live-preview the loaded scene
         this._syncFooter();
     }
 
@@ -328,12 +408,19 @@ class ThemeEditor {
     }
 
     _revert() {
-        // Drop edits back to the loaded theme's saved tokens (or empty for New).
-        const saved = this.editingId != null
-            ? (this._allThemes.find(t => t.id === this.editingId) || {}).tokens || {}
+        // Drop edits back to the loaded theme's saved tokens + scene (or empty for New).
+        const savedTheme = this.editingId != null
+            ? (this._allThemes.find(t => t.id === this.editingId) || {})
             : {};
-        this.working = { ...saved };
+        this.working = { ...(savedTheme.tokens || {}) };
+        this.workingScene = {
+            sceneBg: savedTheme.sceneBg || '',
+            oceanColor: savedTheme.oceanColor || '',
+            countryScheme: savedTheme.countryScheme || '',
+        };
         this._recomputeBase();
+        this._refreshSceneRows();
+        applySceneAppearance(this.workingScene);
         this._flash('Reverted');
     }
 
@@ -345,6 +432,9 @@ class ThemeEditor {
             base: this._currentBase(),
             tokens: this.working,
             isPublished: this.publishedInput.checked,
+            sceneBg: this.workingScene.sceneBg || '',
+            oceanColor: this.workingScene.oceanColor || '',
+            countryScheme: this.workingScene.countryScheme || '',
         };
     }
 

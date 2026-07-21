@@ -8,9 +8,9 @@ const SAMPLES = [
 ];
 
 describe('color schemes', () => {
-    it('offers vibrant + three spartan schemes', () => {
+    it('offers vibrant + the derived/uniform + hue-family schemes', () => {
         const keys = SCHEMES.map(s => s.key);
-        expect(keys).toEqual(['vibrant', 'greens', 'browns', 'uniform']);
+        expect(keys).toEqual(['vibrant', 'greens', 'browns', 'uniform', 'blues', 'purples', 'greys']);
     });
 
     it('derivation is deterministic', () => {
@@ -49,5 +49,32 @@ describe('color schemes', () => {
         const light = deriveShade('greens', 240, 240, 240, 5); // same id → same hue/sat jitter
         const lum = ([r, g, b]) => 0.299 * r + 0.587 * g + 0.114 * b;
         expect(lum(light)).toBeGreaterThan(lum(dark));
+    });
+
+    it('blues stay cool (blue is the dominant channel)', () => {
+        for (let id = 1; id < 60; id++) {
+            const [r, g, b] = SAMPLES[id % SAMPLES.length];
+            const [or, og, ob] = deriveShade('blues', r, g, b, id);
+            expect(ob).toBeGreaterThanOrEqual(or);
+            expect(ob).toBeGreaterThanOrEqual(og);
+        }
+    });
+
+    it('purples keep red and blue above green', () => {
+        for (let id = 1; id < 60; id++) {
+            const [r, g, b] = SAMPLES[id % SAMPLES.length];
+            const [or, og, ob] = deriveShade('purples', r, g, b, id);
+            expect(or).toBeGreaterThanOrEqual(og);
+            expect(ob).toBeGreaterThanOrEqual(og);
+        }
+    });
+
+    it('greys are near-desaturated (channels within a narrow spread)', () => {
+        for (let id = 1; id < 60; id++) {
+            const [r, g, b] = SAMPLES[id % SAMPLES.length];
+            const [or, og, ob] = deriveShade('greys', r, g, b, id);
+            const spread = Math.max(or, og, ob) - Math.min(or, og, ob);
+            expect(spread).toBeLessThan(25);
+        }
     });
 });

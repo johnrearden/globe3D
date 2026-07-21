@@ -383,6 +383,21 @@ export class SceneManager {
     }
 
     /**
+     * Set the scene background — the "space" color behind the globe. Accepts a
+     * CSS color string, a hex int, or a THREE.Color. Admin-themeable via
+     * js/features/scene-appearance.js (canvas can't read CSS tokens).
+     * @param {string|number|THREE.Color} color
+     */
+    setBackground(color) {
+        if (!this.scene) return;
+        if (this.scene.background && this.scene.background.isColor) {
+            this.scene.background.set(color);
+        } else {
+            this.scene.background = new THREE.Color(color);
+        }
+    }
+
+    /**
      * Get scene objects
      */
     getScene() {

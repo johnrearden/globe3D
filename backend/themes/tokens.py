@@ -14,6 +14,10 @@ import re
 # Built-in presets a theme can layer on (js/features/theme-switcher.js THEMES).
 BASE_THEMES = ('default', 'soft', 'sharp', 'mono')
 
+# Country color schemes a theme can pin for the 3D globe. MUST mirror the SCHEMES
+# keys in js/features/color-schemes.js (both are the source of the picker options).
+COUNTRY_SCHEMES = ('vibrant', 'greens', 'browns', 'uniform', 'blues', 'purples', 'greys')
+
 FONT_TOKENS = ('--font-display', '--font-ui')
 WEIGHT_TOKENS = ('--weight-normal', '--weight-medium', '--weight-semibold', '--weight-bold')
 # Two editable roundness knobs. --radius-pill / --radius-circle are fixed shapes,
@@ -37,6 +41,33 @@ _VALUE_RE = re.compile(r"""^[A-Za-z0-9#().,%'"\s-]+$""")
 
 class TokenValidationError(ValueError):
     """Raised when a token map has a disallowed key or unsafe value."""
+
+
+class ColorValidationError(ValueError):
+    """Raised when a scene color string (background/ocean) is malformed."""
+
+
+# A scene color: a hex (#rgb … #rrggbbaa) or an rgb()/rgba() string. Applied
+# imperatively to the Three.js scene (js/features/scene-appearance.js), so unlike
+# CSS tokens it never lands in a stylesheet — but we still constrain it to a safe,
+# parseable shape (and reuse the length cap) for hygiene.
+_COLOR_RE = re.compile(r"""^#[0-9A-Fa-f]{3,8}$|^rgba?\([\d.,%\s]+\)$""")
+
+
+def validate_color(value):
+    """Validate an optional scene color string; '' means 'inherit the app default'.
+
+    Returns the cleaned value or raises ColorValidationError."""
+    if value in (None, ''):
+        return ''
+    if not isinstance(value, str):
+        raise ColorValidationError('color must be a string.')
+    v = value.strip()
+    if not v:
+        return ''
+    if len(v) > MAX_VALUE_LEN or not _COLOR_RE.match(v):
+        raise ColorValidationError('color must be a hex or rgb()/rgba() value.')
+    return v
 
 
 def validate_tokens(tokens):
