@@ -19,7 +19,7 @@ export const GA_MEASUREMENT_ID = '';
 // public, client-side identifiers by design, so committing it is fine. Empty →
 // frontend error reporting disabled (js/features/error-reporter.js no-ops). This
 // is a DIFFERENT project/DSN from the Django backend's GLITCHTIP_DSN (in .env).
-export const GLITCHTIP_DSN = '';
+export const GLITCHTIP_DSN = 'https://f811995f24554362b951806c94e6df4e@glitchtip.intricatech.com/5';
 
 // AdSense publisher/client ID, e.g. 'ca-pub-1234567890123456'. Empty → ads disabled.
 export const ADSENSE_CLIENT_ID = '';
