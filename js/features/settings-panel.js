@@ -75,6 +75,11 @@ export class SettingsPanel {
 
     // ---- section scaffolding ------------------------------------------------
 
+    /** True when a superuser arrived via /audit/launch (signed audit token in sessionStorage). */
+    _hasAuditToken() {
+        try { return !!sessionStorage.getItem(AUDIT_TOKEN_KEY); } catch (_) { return false; }
+    }
+
     _section(title) {
         const sec = document.createElement('div');
         sec.className = 'settings-section';
@@ -295,9 +300,7 @@ export class SettingsPanel {
 
     /** Admin-only "Edit themes…" launcher (lazy-loads the editor module). */
     _maybeAddThemeEditorButton(sec) {
-        let hasToken = false;
-        try { hasToken = !!sessionStorage.getItem(AUDIT_TOKEN_KEY); } catch (_) { /* no-op */ }
-        if (!hasToken) return;
+        if (!this._hasAuditToken()) return;
 
         const row = this._row(sec, null);
         const btn = document.createElement('button');
@@ -321,6 +324,9 @@ export class SettingsPanel {
     }
 
     _buildLighting() {
+        // Superuser-only (arrived via /audit/launch). Persisted lighting is still
+        // applied by _applyPersisted, so hiding the controls doesn't change the globe.
+        if (!this._hasAuditToken()) return;
         const sec = this._section('Lighting');
         const U = this.globeManager && this.globeManager.material && this.globeManager.material.uniforms;
         if (!U) return;
@@ -393,6 +399,10 @@ export class SettingsPanel {
     }
 
     _buildDeveloper() {
+        // Superuser-only (arrived via /audit/launch). Skipping the reparent leaves the
+        // dev buttons in #container, where they stay display:none by default (styles.css)
+        // — only the #settings-panel #… rule reveals them, and only once reparented.
+        if (!this._hasAuditToken()) return;
         const sec = this._section('Developer / Editing');
         const tools = document.createElement('div');
         tools.className = 'settings-dev-tools';
