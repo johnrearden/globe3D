@@ -20,18 +20,29 @@ const SPHERE_SEGMENTS = 96;
 const PALETTE_W = 256;
 // Country borders are drawn as a line that shares the fill mesh's exact vertices
 // (assets/world-border-lines.bin = boundary-edge index pairs). It sits at the
-// same radius as the fills, so to avoid z-fighting we nudge it toward the camera
-// in clip space by a tiny depth bias — NOT a radial lift, which would reintroduce
-// the parallax that made the previous raised line drift off its boundary near the
-// globe's limb. The XY position is identical to the fill edge → zero parallax.
+// same radius as the fills. We keep it from z-fighting the fills WITHOUT a radial
+// lift (which reintroduces the parallax that drifted the old raised line off its
+// boundary near the limb): the line renders with depthTest OFF so the fills can
+// never occlude it, and the far hemisphere is removed analytically by a horizon
+// cull in the shader (the globe is a convex sphere centered at the origin, so the
+// outward normal is normalize(worldPos)). A small clip-space nudge toward the
+// camera is kept as belt-and-braces; the XY position stays identical to the fill
+// edge → zero parallax.
+// NOTE: an earlier version relied on depthTest + this constant nudge alone. That
+// lost the depth race to the fill's slope-scaled polygonOffset at grazing angles,
+// so borders faded to nothing toward the limb — the horizon cull replaces it.
 const BORDER_DEPTH_BIAS = 0.00015;
 
-// Flat, depth-biased line shader (constant 1px width in WebGL, i.e. the same
-// width at every zoom). Color/opacity are settable; depthTest keeps the far
-// hemisphere's borders hidden behind the globe.
+// Flat line shader (constant 1px width in WebGL — the same width at every zoom).
+// Color/opacity are settable; a per-vertex facing term horizon-culls the far
+// hemisphere in the fragment shader.
 const BORDER_VERTEX_SHADER = /* glsl */`
 uniform float uDepthBias;
+varying float vFacing;
 void main() {
+    vec4 world = modelMatrix * vec4(position, 1.0);
+    // Globe is centered at the origin → the outward normal is the normalized world pos.
+    vFacing = dot(normalize(world.xyz), normalize(cameraPosition - world.xyz));
     vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     clip.z -= uDepthBias * clip.w; // toward camera in NDC; no XY change → no parallax
     gl_Position = clip;
@@ -41,7 +52,9 @@ const BORDER_FRAGMENT_SHADER = /* glsl */`
 precision highp float;
 uniform vec3 uColor;
 uniform float uOpacity;
+varying float vFacing;
 void main() {
+    if (vFacing < 0.0) discard; // hide borders on the globe's far hemisphere
     gl_FragColor = vec4(uColor, uOpacity);
 }
 `;
@@ -339,7 +352,10 @@ export class GlobeManager {
             vertexShader: BORDER_VERTEX_SHADER,
             fragmentShader: BORDER_FRAGMENT_SHADER,
             transparent: true,
-            depthTest: true,
+            // depthTest OFF: the fill's slope-scaled polygonOffset would otherwise win
+            // the depth race at grazing angles and occlude the border near the limb.
+            // The far hemisphere is instead removed by the shader's horizon cull.
+            depthTest: false,
             depthWrite: false
         });
 
