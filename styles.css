@@ -3854,7 +3854,7 @@ body.flag-quiz-active #settings-panel {
 }
 
 /* ============================================================
-   Main CTA cluster — the primary "Give me a quiz" button (amber)
+   Main CTA cluster — the primary "Quizzes" button (amber)
    per design/main_buttons. The secondary Daily Challenge pill
    (#dq-today, violet) lands in the same cluster slot but is owned
    by the Daily Challenge section below. Desktop: top-left. Mobile:

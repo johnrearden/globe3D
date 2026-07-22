@@ -1,5 +1,5 @@
 /**
- * Main CTA cluster — the primary "Give me a quiz" button (amber) plus, beside it,
+ * Main CTA cluster — the primary "Quizzes" button (amber) plus, beside it,
  * the secondary Daily Challenge pill (purple, owned by daily-quiz.js and only shown
  * after "Maybe later"). Per design/main_buttons: desktop top-left, mobile bottom-right.
  *
@@ -15,12 +15,12 @@
 // Phosphor fill `globe-hemisphere-west` (viewBox 0 0 256 256), filled with currentColor.
 const GLOBE_FILL = '<path d="M128,24A104,104,0,1,0,232,128,104.13,104.13,0,0,0,128,24ZM92,206.51a87.78,87.78,0,0,1-37.49-30.61l16.69-9.7a8,8,0,0,1,9.21.84l11.7,10.23a8,8,0,0,0,10.51,0l13.36-11.69a8,8,0,0,1,6.65-1.9l16.86,2.81a8,8,0,0,0,9-5.84l4.92-18.43a8,8,0,0,0-3.16-8.65l-17.78-12.46a8,8,0,0,1-2.91-9.65l3.81-9.13A8,8,0,0,1,144,98.36l13.13.94a8,8,0,0,0,8.5-6.69l1.66-10.07a8,8,0,0,1,4.07-5.69l13.62-7.48a88,88,0,0,1,8.5,99.06l-14.13-8.21a8,8,0,0,0-9.18.76l-13.36,11.69a8,8,0,0,1-6.65,1.9Z"/>';
 
-// `Give me a quiz` icon badge + two-line label, injected into the existing button.
+// `Quizzes` icon badge + two-line label, injected into the existing button.
 function quizButtonInner() {
     return `
         <span class="qb-icon" aria-hidden="true"><svg viewBox="0 0 256 256" width="25" height="25" fill="currentColor">${GLOBE_FILL}</svg></span>
         <span class="qb-text">
-            <span class="qb-title">Give me a quiz</span>
+            <span class="qb-title">Quizzes</span>
             <span class="qb-sub">Countries &middot; Flags &middot; Capitals</span>
         </span>
     `;
