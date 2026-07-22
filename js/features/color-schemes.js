@@ -45,7 +45,7 @@ const HIGHLIGHT = {
     uniform: 0xff5722, // deep orange pops on khaki
     blues: 0xffb300, // amber pops on blue
     purples: 0xffd54f, // gold pops on purple
-    greys: 0xff5252 // red pops on grey
+    greys: 0xffffff // white highlight (app default)
 };
 
 /** Deterministic small jitter from a country id, in [-1, 1]. */

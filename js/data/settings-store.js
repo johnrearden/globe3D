@@ -18,12 +18,12 @@ const DEFAULTS = {
     // applied by scene-appearance.js before the async theme fetch resolves (no
     // scene flash). null for built-ins. See js/features/scene-appearance.js.
     themeScene: null,
-    scheme: 'browns',
+    scheme: 'greys',
     showCountries: true,
     showLabels: true,
     showInfoPanel: true,
     borders: true,
-    borderOpacity: 0.1,
+    borderOpacity: 0.2,
     // lighting is null until the user touches a slider, so we don't override the
     // build-time fade-in targets unless they've been deliberately changed.
     lighting: null, // { ambient, diffuse, specStrength, shininess, oceanSpecBoost }
