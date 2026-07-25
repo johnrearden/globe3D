@@ -12,7 +12,7 @@
 import { isLocalDevHost } from './api-client.js';
 
 // GA4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Empty → analytics disabled.
-export const GA_MEASUREMENT_ID = '';
+export const GA_MEASUREMENT_ID = 'G-1WMGGVNMC7';
 
 // GlitchTip (Sentry-compatible) DSN for the FRONTEND project, e.g.
 // 'https://<publicKey>@glitchtip.example.com/<projectId>'. Browser DSNs are
