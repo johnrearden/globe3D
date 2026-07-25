@@ -377,9 +377,17 @@ if SENTRY_DSN:
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
+    from django.core.exceptions import DisallowedHost
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
+        # Bots probe the origin's raw IP with a bogus Host header, so CommonMiddleware
+        # raises DisallowedHost and returns 400 — the allow-list doing its job, not an
+        # app fault. Without this, the Django integration reports every such probe to
+        # GlitchTip as an error. Drop it (and only it) at the SDK. Do NOT "fix" this by
+        # adding the IP to DJANGO_ALLOWED_HOSTS — that would serve the app on the bare
+        # IP, which is exactly what the allow-list is there to prevent.
+        ignore_errors=[DisallowedHost],
         integrations=[
             # Group issues/transactions by URL *pattern* so dynamic segments
             # (e.g. /api/daily/<date>/leaderboard) don't fan out.
