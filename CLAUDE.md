@@ -143,7 +143,7 @@ Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
 - `selectedLabel` - Currently selected label mesh
 - `labelConfig` - Custom positions/scales (persisted)
 - `labelDefaults` - Original positions (for reset)
-- `globeManager` - Owns the textured-sphere mesh, coastline overlay, ID buffer, palette texture, and country lookups (`pick`, `setSelectedCountry`, `flashCountry`, `setCountryColor`, `resetCountryColor`, `showOnly`, `showAll`, `hideCountry`, `fadeOthers`, `getCountryByName`, `getCountryNames`, `getCentroids`)
+- `globeManager` - Owns the textured-sphere mesh, coastline overlay, ID buffer, palette texture, and country lookups (`pick`, `setSelectedCountry`, `flashCountry`, `setHighlightColor`, `setSelectionGradient`, `setCountryColor`, `resetCountryColor`, `showOnly`, `showAll`, `hideCountry`, `fadeOthers`, `getCountryByName`, `getCountryNames`, `getCentroids`)
 - `countryLabels[]` - Array of label meshes
 
 ### Event Flow
@@ -191,6 +191,7 @@ Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
 - **Vector polygon fills** — country edges are mathematical polygon edges, sharp at any zoom. No rasterization staircase, no bulk color texture.
 - **O(1) picking** via CPU-side ID buffer lookup (the GPU never sees the ID texture in this build)
 - **Highlighting / subgroup display via 1-byte palette mutation** — `setCountryColor`, `showOnly`, `fadeOthers` all rewrite a few bytes of the 1 KB palette texture and flip `needsUpdate`. No frame cost, no shader recompile.
+- **Selection highlight is a flat fill (`uSelectedId`/`uSelectedColor`) with one opt-in embellishment** applied to the selected country only, driven by uniforms in the fill shader (no geometry): **gradient** (`setSelectionGradient`, `uSelGradient` — a radial tonal ramp, bright centre → shaded edge, `color *= mix(1.12, 0.28, gradT)` (mostly edge-darkening, so it doesn't blow out into a hotspot under the globe's lighting), using `uSelectedCentroid`/`uSelectedRadius` set on select). On by default (`selGradient` in `settings-store.js`), toggled by a settings-panel checkbox. It modulates around the per-scheme highlight colour (`setHighlightColor`); the default greys-scheme highlight + the settings swatch are a **mid-gray** (`0x9e9e9e`, not white) so the gradient has headroom to *brighten* the centre as well as darken the edges (a white highlight can only darken). The green quiz `flashCountry` overlay is a separate, unaffected path.
 - **Polygon offset** on the country material prevents flicker where neighboring countries share borders.
 - **Selective rendering:** Labels hidden when not facing camera
 - **Deferred loading:** ID buffer, palette, mesh, and meta JSON fetched in parallel

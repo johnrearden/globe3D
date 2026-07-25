@@ -79,9 +79,11 @@ attribute float aCountryId;
 varying float vCountryId;
 varying vec3 vViewPos;
 varying vec3 vViewNormal;
+varying vec3 vLocalPos;
 
 void main() {
     vCountryId = aCountryId;
+    vLocalPos = position; // unit-sphere local position (selection gradient distance)
     // Both meshes are unit-sphere geometry, so the surface normal is the
     // normalized local position. This avoids relying on SphereGeometry's
     // baked normal attribute and works for the merged country mesh too.
@@ -103,6 +105,9 @@ uniform sampler2D uPaletteTex;
 uniform float uPaletteW;
 uniform float uSelectedId;
 uniform vec3 uSelectedColor;   // tint applied to the selected country
+uniform float uSelGradient;    // 0/1 — radial tonal gradient on the selected country
+uniform vec3 uSelectedCentroid;// selected country's centroid (local unit-sphere)
+uniform float uSelectedRadius; // selected country's chord radius (gradient falloff)
 uniform float uFlashId;
 uniform vec3 uFlashColor;
 uniform float uFlashAlpha;
@@ -119,6 +124,7 @@ uniform float uOceanSpecBoost; // extra gloss on the ocean (water glint)
 varying float vCountryId;
 varying vec3 vViewPos;
 varying vec3 vViewNormal;
+varying vec3 vLocalPos;
 
 void main() {
     float id = vCountryId;
@@ -136,9 +142,14 @@ void main() {
     }
 
     // Selection tints to uSelectedColor (white by default; settable per scheme).
-    if (id > 0.5 && uSelectedId > 0.5 && abs(id - uSelectedId) < 0.5) {
-        color = uSelectedColor;
-    }
+    float sel = (id > 0.5 && uSelectedId > 0.5 && abs(id - uSelectedId) < 0.5) ? 1.0 : 0.0;
+    color = mix(color, uSelectedColor, sel);
+
+    // Optional radial gradient across the selected fill: bright centre → shaded edge.
+    float gradT = clamp(distance(vLocalPos, uSelectedCentroid) / (max(uSelectedRadius, 0.03) * 0.82), 0.0, 1.0);
+    // Strengthen mainly by darkening the edges (lots of headroom); keep only a slight
+    // centre lift so it doesn't blow out into a hotspot under the globe's lighting.
+    color *= mix(1.0, mix(1.12, 0.28, gradT), sel * uSelGradient);
 
     // Quiz flash overlay.
     if (id > 0.5 && uFlashId > 0.5 && abs(id - uFlashId) < 0.5) {
@@ -184,6 +195,10 @@ export class GlobeManager {
         this._borderColor = 0x222831; // border ink color
         this._borderOpacity = 0.85;   // line opacity; applied when borders are visible
         this._borderVisible = false;
+
+        // Optional selection-fill gradient (opt-in via settings), applied to the
+        // selected country only. Off by default → plain flat fill.
+        this._selGradient = false; // radial tonal gradient on the selected country
 
         this.idBytes = null;        // Uint8Array, packed [idHi, idLo, ...]
         this.idW = 0;
@@ -476,6 +491,9 @@ export class GlobeManager {
                     uPaletteW: { value: PALETTE_W },
                     uSelectedId: { value: 0 },
                     uSelectedColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
+                    uSelGradient: { value: this._selGradient ? 1 : 0 },
+                    uSelectedCentroid: { value: new THREE.Vector3(0, 0, 0) },
+                    uSelectedRadius: { value: 1.0 },
                     uFlashId: { value: 0 },
                     uFlashColor: { value: new THREE.Color(0, 1, 0) },
                     uFlashAlpha: { value: 0 },
@@ -627,11 +645,45 @@ export class GlobeManager {
         const id = this.nameToId[name];
         if (id === undefined) return;
         this.material.uniforms.uSelectedId.value = id;
+        // Centroid + chord radius drive the optional selection gradient falloff.
+        const rec = this.countriesById[id];
+        if (rec && rec.centroid) {
+            this.material.uniforms.uSelectedCentroid.value.copy(rec.centroid);
+            this.material.uniforms.uSelectedRadius.value = this._countryChordRadius(rec);
+        }
     }
 
     clearSelection() {
         if (!this.material) return;
         this.material.uniforms.uSelectedId.value = 0;
+    }
+
+    /**
+     * Rough chord radius (unit-sphere) of a country from its bbox corners — the
+     * falloff distance for the selection gradient. Floored so tiny countries still
+     * show a gradient.
+     */
+    _countryChordRadius(rec) {
+        const c = rec.centroid, bb = rec.bbox;
+        if (!c || !bb) return 0.2;
+        const corners = [
+            [bb.minLat, bb.minLng], [bb.minLat, bb.maxLng],
+            [bb.maxLat, bb.minLng], [bb.maxLat, bb.maxLng]
+        ];
+        let maxChord = 0;
+        for (const [lat, lng] of corners) {
+            const p = latLngToXYZ(lat, lng, 1);
+            const dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z;
+            const chord = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (chord > maxChord) maxChord = chord;
+        }
+        return Math.max(0.06, maxChord);
+    }
+
+    /** Toggle the radial tonal gradient on the selected country's fill. */
+    setSelectionGradient(on) {
+        this._selGradient = !!on;
+        if (this.material) this.material.uniforms.uSelGradient.value = this._selGradient ? 1 : 0;
     }
 
     /**

@@ -45,7 +45,7 @@ const HIGHLIGHT = {
     uniform: 0xff5722, // deep orange pops on khaki
     blues: 0xffb300, // amber pops on blue
     purples: 0xffd54f, // gold pops on purple
-    greys: 0xffffff // white highlight (app default)
+    greys: 0x9e9e9e // mid-gray highlight (contrasts the grey scheme; gradient headroom)
 };
 
 /** Deterministic small jitter from a country id, in [-1, 1]. */

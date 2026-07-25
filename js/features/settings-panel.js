@@ -20,7 +20,7 @@ const LIGHT_DEFAULTS = { ambient: 0.7, diffuse: 0.8, specStrength: 0.18, shinine
 
 // Selection-tint presets offered in the Appearance section.
 const HIGHLIGHT_SWATCHES = [
-    { label: 'White', hex: 0xffffff },
+    { label: 'Gray', hex: 0x9e9e9e },
     { label: 'Amber', hex: 0xffc107 },
     { label: 'Red', hex: 0xff5252 },
     { label: 'Cyan', hex: 0x4dd0e1 }
@@ -246,6 +246,12 @@ export class SettingsPanel {
             });
             hlRow.appendChild(dot);
         }
+
+        // Selection gradient (opt-in) — a tonal ramp across the selected country's fill.
+        this._checkbox(sec, 'Selection gradient', !!saved.selGradient, (checked) => {
+            if (this.globeManager) this.globeManager.setSelectionGradient(checked);
+            settingsStore.save({ selGradient: checked });
+        });
     }
 
     /** Highlight the active scheme button (no globe/persist side effects). */
@@ -450,6 +456,7 @@ export class SettingsPanel {
             this.globeManager.setShowCountries(saved.showCountries !== false);
             this.globeManager.setBorderOpacity(saved.borderOpacity);
             this.globeManager.setBorderVisible(!!saved.borders);
+            this.globeManager.setSelectionGradient(!!saved.selGradient);
         }
 
         // Country name labels + info panel master switches.
