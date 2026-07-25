@@ -4,6 +4,7 @@
  */
 
 import { state } from '../data/state.js';
+import { createWebGLRenderer } from '../utils/webgl-diagnostics.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -52,7 +53,7 @@ export class FlagRenderer {
         this.camera.position.z = 9.5; // Moved slightly back from 8
 
         // Create flag renderer (reduced by 40%)
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer = createWebGLRenderer({ antialias: true, alpha: true }, { label: 'flag' });
         this.renderer.setSize(180, 120);
         this.renderer.setClearColor(0x000000, 0); // Transparent
 

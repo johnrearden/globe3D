@@ -567,6 +567,26 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   fallback that `location.reload()`s if the browser never restores the context (the symptom when a
   tab is frozen/backgrounded). On restore it nudges app-managed textures via
   `globeManager.markTexturesForUpdate()` and resumes the loop. Scope is the main globe only.
+- `js/utils/webgl-diagnostics.js` — `createWebGLRenderer(options, { label })` wraps
+  `new THREE.WebGLRenderer(...)` so a *creation* failure (Three's bare `Error creating WebGL
+  context.`) logs an actionable console report instead of a mystery error: the browser's real
+  `webglcontextcreationerror` `statusMessage`, a per-type context probe (`webgl2`/`webgl`/
+  `experimental-webgl`) with unmasked GPU strings, the `WebGL(2)RenderingContext` constructor
+  presence, a session renderer-count (context-exhaustion tell), and UA/env. Console-only (no UI);
+  success path is identical to the raw constructor (it just pre-creates the `<canvas>` so the
+  error listener attaches before `getContext`). Routed through by all four renderer sites —
+  `scene.js` (`globe`), `flag-renderer.js` (`flag`), and `identify-flag-quiz.js` ×2 (`quiz-flag`).
+  Complements `context-recovery.js` (loss *after* creation); this covers creation itself.
+- `js/features/webgl-fallback.js` — `showWebGLFallback(error)` is the user-facing recovery for a
+  WebGL *creation* failure. The throw from `createWebGLRenderer` escapes the bare `init()` call
+  (first failure is the hover-flag renderer at `index.html:403`, before `loadGlobe`), which would
+  leave the opaque `#seo-content` splash frozen forever. Wired via a `try/catch` around `init()`
+  (`index.html`, one import + the wrap): on catch it hides the stuck splash directly (`elements`/
+  `hide` from `dom.js` — *not* `hideLoading()`, to avoid firing `globe3d:intro-dismissed` on a dead
+  app) and shows a full-viewport fallback card (`.webgl-fallback*` in `styles.css`, `z-index:10001`
+  above the app max, inline-SVG warning glyph, "3D graphics couldn't start" + Reload button). The
+  Stage-1 console diagnostics still fire underneath. Trio with `webgl-diagnostics.js` (why → console)
+  + `context-recovery.js` (loss after success) + this (creation failure → user recovery).
 
 **Remaining in this stage:** browser verification pass; wire `manage.py generate_daily` to cron if
 pre-warming is wanted (otherwise generation is lazy on first request).

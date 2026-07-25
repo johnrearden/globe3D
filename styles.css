@@ -4692,6 +4692,69 @@ button {
     transform: translateX(-50%) translateY(0);
 }
 
+/* Fatal fallback shown when the browser refuses to create a WebGL context and the
+   globe can't start at all (see js/features/webgl-fallback.js). Full-viewport, opaque,
+   above every other layer (app max is .qr at 10000). */
+.webgl-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: var(--bg-app);
+    color: var(--text-heading);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.webgl-fallback.is-visible {
+    opacity: 1;
+}
+
+.webgl-fallback-card {
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    padding: 28px 26px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg-elevated), var(--bg-panel));
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-high);
+}
+
+.webgl-fallback-icon {
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.webgl-fallback-title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: 20px;
+    color: var(--text-heading);
+}
+
+.webgl-fallback-body {
+    margin: 0 0 22px;
+    font-family: var(--font-ui);
+    font-weight: var(--weight-normal);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-body);
+}
+
+.webgl-fallback-reload {
+    padding: 10px 24px;
+    font-size: 15px;
+    color: var(--on-accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 8%), var(--accent));
+    border: none;
+    cursor: pointer;
+}
+
 /* ==========================================================================
    Ad side rail (Google AdSense) — js/features/ads/ad-rail.js
    A single responsive display unit in the empty LEFT margin (the zoom widget

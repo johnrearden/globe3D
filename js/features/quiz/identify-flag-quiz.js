@@ -6,6 +6,7 @@
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
+import { createWebGLRenderer } from '../../utils/webgl-diagnostics.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -76,7 +77,7 @@ export class IdentifyFlagQuiz {
         // camera would render a Z-only ripple as a motionless rectangle.
         this.gridCamera = new THREE.PerspectiveCamera(45, 1.5, 0.1, 100);
 
-        this.gridRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.gridRenderer = createWebGLRenderer({ antialias: true, alpha: true }, { label: 'quiz-flag' });
         // updateStyle=false: keep the drawing buffer square (2 cols × 3 rows of 3:2
         // cells → 1:1) but let CSS size the canvas element (else setSize writes inline
         // px and beats the stylesheet).
@@ -164,7 +165,7 @@ export class IdentifyFlagQuiz {
 
         // Create flag renderer for quiz. updateStyle=false so CSS controls the
         // display size (the stage panel caps it); inline px would fight the CSS.
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer = createWebGLRenderer({ antialias: true, alpha: true }, { label: 'quiz-flag' });
         this.renderer.setSize(560, 373, false);
         this.renderer.setClearColor(0x000000, 0); // Transparent
 

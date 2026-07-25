@@ -243,6 +243,7 @@
         import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
         import { updateZoomWidget, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
         import { hideLoading } from './js/features/loading.js';
+        import { showWebGLFallback } from './js/features/webgl-fallback.js';
         import { ColorEditor } from './js/features/color-editor.js';
         import { ZoomEditor } from './js/features/zoom-editor.js';
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
@@ -1077,8 +1078,15 @@
         // Old animate() function removed - now handled by SceneManager.onRender() callbacks
         // See init() function for render loop registration
 
-        // Start the application
-        init();
+        // Start the application. A synchronous startup failure — chiefly a WebGL context
+        // the browser refuses to create (see js/utils/webgl-diagnostics.js) — would
+        // otherwise throw out of init() and leave the opaque #seo-content splash frozen
+        // on screen. Catch it and show a fallback panel with a Reload action instead.
+        try {
+            init();
+        } catch (err) {
+            showWebGLFallback(err);
+        }
     </script>
 </body>
 </html>

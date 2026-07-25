@@ -4,6 +4,7 @@
  */
 
 import { state } from '../data/state.js';
+import { createWebGLRenderer } from '../utils/webgl-diagnostics.js';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -77,7 +78,7 @@ export class SceneManager {
         this.camera.position.set(0, verticalOffset, cameraDistance);
 
         // Create renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = createWebGLRenderer({ antialias: true }, { label: 'globe' });
         // Cap DPR at 2: high-DPI phones otherwise render blurry (DPR never applied)
         // while >2 wastes fill rate for no visible gain.
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
