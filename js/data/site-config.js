@@ -33,6 +33,15 @@ export const ADSENSE_RAIL_SLOT = '';
 // (read at build time by build-landing.mjs). Empty → no ad unit is emitted.
 export const ADSENSE_LANDING_SLOT = '';
 
+// Funding Choices / "Privacy & messaging" publisher id for Google's certified
+// consent management platform (CMP), e.g. 'pub-1234567890123456' — the AdSense
+// client id minus the 'ca-' prefix (ca-pub-… → pub-…). Empty → CMP disabled:
+// js/features/consent-cmp.js no-ops, exactly like the AdSense ids above.
+// Kept SEPARATE from ADSENSE_CLIENT_ID on purpose: setting this turns on the
+// consent banner (so EEA/UK visitors can grant, making analytics flow) while
+// leaving ADSENSE_CLIENT_ID empty keeps ad serving off until ads are approved.
+export const CMP_PUBLISHER_ID = 'pub-2820812359000429';
+
 /**
  * True only on a genuine deployed (production/preview) host — never on
  * localhost / LAN dev. Mirrors the API/asset prod gate (isLocalDevHost, and the

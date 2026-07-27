@@ -14,6 +14,8 @@ import { getAvailableThemes, getSelection, applyTheme, onThemesChanged } from '.
 import { resolveActiveScheme } from './scene-appearance.js';
 import { onThemeChange } from '../utils/theme.js';
 import { AUDIT_TOKEN_KEY } from '../data/api-client.js';
+import { CMP_PUBLISHER_ID } from '../data/site-config.js';
+import { manageConsent } from './consent-cmp.js';
 
 // Post-fade lighting targets (the values the globe settles on after load).
 const LIGHT_DEFAULTS = { ambient: 0.7, diffuse: 0.8, specStrength: 0.18, shininess: 12, oceanSpecBoost: 1.7 };
@@ -432,6 +434,20 @@ export class SettingsPanel {
         link.rel = 'noopener';
         link.textContent = 'Privacy Policy';
         footer.appendChild(link);
+
+        // "Manage consent choices" re-opens Google's CMP message. Shown only when
+        // the CMP is configured (CMP_PUBLISHER_ID set). Reuses the .settings-footer
+        // a styling — no new CSS; a middot text node separates the two links.
+        if (CMP_PUBLISHER_ID) {
+            footer.appendChild(document.createTextNode(' · '));
+            const consent = document.createElement('a');
+            consent.href = '#';
+            consent.rel = 'noopener';
+            consent.textContent = 'Manage consent choices';
+            consent.addEventListener('click', (e) => { e.preventDefault(); manageConsent(); });
+            footer.appendChild(consent);
+        }
+
         this.panel.appendChild(footer);
     }
 

@@ -84,6 +84,24 @@ first paint/LCP is untouched. New root files (`ads.txt`, `privacy/index.html`,
 manifest `<link>`, two imports, and two init calls. Landing-page ad slots documented in
 `docs/individual_landing_pages/plan.md`.
 
+**Consent Mode v2 + Google certified CMP (2026-07-25):** supersedes the "denied everywhere" consent
+model above. Consent defaults are now **region-scoped** and emitted **early** (no longer inside the
+deferred gtag load): a new exported `initConsentDefaults()` in `js/features/analytics.js` pushes two
+`gtag('consent','default',…)` calls — EEA/UK/CH (the `EEA_UK_CH` list) denied with `wait_for_update`,
+rest-of-world granted — called at `index.html` top-level right after `initTheme()`, so non-EEA
+analytics flows with no banner while EEA stays denied until consent. `loadGtag()` no longer sets
+defaults (just `js`/`config`/inject) and is guarded against double-set via `defaultsSet`. Google's
+certified CMP is loaded by the new self-contained module `js/features/consent-cmp.js` (`initConsentCmp()`
+— prod- + `CMP_PUBLISHER_ID`-gated, deferred via `afterIntro`; injects the Funding Choices loader + the
+`googlefcPresent` detection iframe in JS since inline `<script>` is barred from `index.html`; plus
+`manageConsent()` for re-consent). New `CMP_PUBLISHER_ID` in `site-config.js` (the AdSense pub id,
+`pub-…`) is kept SEPARATE from `ADSENSE_CLIENT_ID` so consent can be live while ad serving stays off.
+`settings-panel.js` `_buildFooter()` adds a "Manage consent choices" link (only when the CMP is
+configured; reuses `.settings-footer a`, no new CSS), and `privacy/index.html` documents it.
+`build-landing.mjs` `analyticsHead()` mirrors the same region-scoped defaults + CMP loader so the
+`/borders/<slug>` pages share one consent model. Net `index.html` cost: one extended import + one new
+import, an early `initConsentDefaults()` call, and `initConsentCmp()` beside `initAnalytics()/initAds()`.
+
 **Bordering-countries SEO landing pages (2026-07-06):** a static, globe-free page per country at
 `/borders/<slug>` targeting the "what countries border X" query (implements
 `docs/individual_landing_pages/plan.md`; the content that makes the domain AdSense-approvable).

@@ -6,6 +6,10 @@
     <meta name="description" content="Interactive 3D world globe with 195+ countries. Explore geography, take quizzes, and learn about the world with this free educational WebGL map powered by Three.js.">
     <meta name="keywords" content="3D world map, interactive globe, geography quiz, world atlas, educational map, Three.js globe, WebGL earth, geography learning">
     <meta name="robots" content="index, follow">
+    <!-- AdSense site-ownership verification ONLY — this does not serve ads (ads
+         stay off until ADSENSE_CLIENT_ID is set in js/data/site-config.js). The
+         account id mirrors CMP_PUBLISHER_ID there (pub-… → ca-pub-…). -->
+    <meta name="google-adsense-account" content="ca-pub-2820812359000429">
     <title>Interactive 3D World Globe Map | Free Geography Quiz & Educational Tool</title>
 
     <!-- Canonical: the app is also reachable on www. and *.pages.dev preview
@@ -264,7 +268,8 @@
         import { WeakSpotsWidget } from './js/features/weak-spots-widget.js';
         import { BackButtonGuard } from './js/features/back-button-guard.js';
         import { initMainCta } from './js/features/main-cta.js';
-        import { initAnalytics } from './js/features/analytics.js';
+        import { initAnalytics, initConsentDefaults } from './js/features/analytics.js';
+        import { initConsentCmp } from './js/features/consent-cmp.js';
         import { initErrorReporter } from './js/features/error-reporter.js';
         import { initAds } from './js/features/ads/adsense.js';
 
@@ -274,6 +279,10 @@
 
         // Apply the persisted UI theme before first paint (no default-look flash).
         initTheme();
+
+        // Emit region-scoped Consent Mode v2 defaults as early as possible (prod
+        // only) so consent state precedes any tag; gtag.js + the CMP load later.
+        initConsentDefaults();
 
         // ===== DOM UTILITIES (inline for compatibility) =====
         // DOM helpers (ElementCache `elements`, show/hide/showFlex/setText/
@@ -928,12 +937,14 @@
             elements.get('take-quiz-btn').addEventListener('click', () => quizModePicker.show());
             initMainCta();   // wrap the Quiz button into the amber CTA cluster (+ glow / label)
 
-            // Analytics (GA4) + AdSense. Both self-gate to production hosts and to
-            // configured IDs (js/data/site-config.js), and defer their heavy
-            // third-party scripts until after the intro splash so first paint /
-            // LCP is untouched. No-ops in local dev and until the IDs are set.
+            // Analytics (GA4) + AdSense + Google's consent CMP. All self-gate to
+            // production hosts and to configured IDs (js/data/site-config.js), and
+            // defer their heavy third-party scripts until after the intro splash so
+            // first paint / LCP is untouched. No-ops in local dev and until the IDs
+            // are set. (Consent Mode defaults were emitted early, above.)
             initAnalytics();
             initAds();
+            initConsentCmp();
 
             // Zoom out button
             elements.get('zoom-out-btn').addEventListener('click', () => cameraController.zoomOut());

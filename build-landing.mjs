@@ -35,6 +35,13 @@ const idOf = (name) => {
 const GA_ID = idOf('GA_MEASUREMENT_ID');
 const ADS_ID = idOf('ADSENSE_CLIENT_ID');
 const ADS_SLOT = idOf('ADSENSE_LANDING_SLOT');
+const CMP_ID = idOf('CMP_PUBLISHER_ID');
+
+// EEA + UK + Switzerland — MUST stay in sync with EEA_UK_CH in
+// js/features/analytics.js and the CMP message's geo-targeting. Consent Mode
+// denies these regions by default (Google's CMP grants per user); the rest of
+// the world is granted so analytics flows without a banner.
+const EEA_UK_CH = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'GB', 'CH'];
 
 // --- helpers ----------------------------------------------------------------
 const esc = (s) => String(s == null ? '' : s)
@@ -59,19 +66,39 @@ function truncate(s, max = 155) {
 }
 
 function analyticsHead() {
-    if (!GA_ID && !ADS_ID) return '';
+    if (!GA_ID && !ADS_ID && !CMP_ID) return '';
+    const region = JSON.stringify(EEA_UK_CH);
+    // AdSense site-ownership verification account (the ca-pub-… id). Derived from
+    // CMP_ID while the ad client is unset; present for verification ONLY — no ads
+    // serve until ADSENSE_CLIENT_ID is configured.
+    const adsenseAccount = ADS_ID || (CMP_ID ? `ca-${CMP_ID}` : '');
+    // Region-scoped Consent Mode v2 defaults: EEA/UK/CH denied (the CMP grants),
+    // rest of world granted. Google matches the visitor's region by IP. Mirrors
+    // js/features/analytics.js initConsentDefaults so the SPA and these landing
+    // pages share one consent model.
     const parts = [
-        '    <!-- Consent Mode v2 defaults (denied); Google CMP grants them. -->',
+        '    <!-- Consent Mode v2 region-scoped defaults (EEA/UK/CH denied, rest granted); Google CMP grants EEA. -->',
         "    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
-        + "gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',"
-        + "ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});</script>",
+        + `gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',region:${region},wait_for_update:500});`
+        + "gtag('consent','default',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});</script>",
     ];
+    if (adsenseAccount) {
+        // Verification only (no ads) — prepend so it sits high in <head>.
+        parts.unshift(`    <meta name="google-adsense-account" content="${adsenseAccount}">`);
+    }
     if (GA_ID) {
         parts.push(`    <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>`);
         parts.push(`    <script>gtag('js',new Date());gtag('config','${GA_ID}');</script>`);
     }
     if (ADS_ID) {
         parts.push(`    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS_ID}" crossorigin="anonymous"></script>`);
+    }
+    if (CMP_ID) {
+        // Google's certified CMP (Funding Choices). Two <script>s in Google's
+        // snippet: the loader + the `googlefcPresent` detection iframe (self-heals
+        // if <body> isn't parsed yet). Mirrors js/features/consent-cmp.js.
+        parts.push(`    <script async src="https://fundingchoicesmessages.google.com/i/${CMP_ID}?ers=1"></script>`);
+        parts.push('    <script>(function(){function s(){if(window.frames["googlefcPresent"])return;if(!document.body){setTimeout(s,0);return;}var i=document.createElement("iframe");i.style.cssText="width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;";i.style.display="none";i.name="googlefcPresent";document.body.appendChild(i);}s();})();</script>');
     }
     return parts.join('\n');
 }
