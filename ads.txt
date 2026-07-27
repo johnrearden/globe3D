@@ -1,4 +1,4 @@
 # Authorized Digital Sellers for terragotcha.com (IAB ads.txt).
-# Replace pub-XXXXXXXXXXXXXXXX with your AdSense publisher ID (the ca-pub-…
-# digits, without the "ca-" prefix) once the AdSense account is approved.
-google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+# Google AdSense publisher id — the ca-pub-… digits without the "ca-" prefix.
+# Mirrors CMP_PUBLISHER_ID in js/data/site-config.js.
+google.com, pub-2820812359000429, DIRECT, f08c47fec0942fa0
