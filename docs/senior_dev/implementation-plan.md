@@ -102,6 +102,37 @@ configured; reuses `.settings-footer a`, no new CSS), and `privacy/index.html` d
 `/borders/<slug>` pages share one consent model. Net `index.html` cost: one extended import + one new
 import, an early `initConsentDefaults()` call, and `initConsentCmp()` beside `initAnalytics()/initAds()`.
 
+**Ad serving switched on + crawler-visible loader (2026-08-05):** supersedes the "consent live while
+ad serving stays off" split noted above — `ADSENSE_CLIENT_ID` is now set (`ca-pub-2820812359000429`,
+the `ca-`-prefixed `CMP_PUBLISHER_ID`), because AdSense will not move a site past "Getting ready"
+without live ad code. Two problems were fixed at once. (1) **ads.txt** was serving the
+`pub-XXXXXXXXXXXXXXXX` placeholder in production — the real id was committed but unpushed; no code
+change, just a deploy. (2) **The loader was undiscoverable.** `adsbygoogle.js` was injected from
+`js/features/ads/adsense.js`, reached only via `initAds()` inside `setupEventListeners()`, itself
+reached only through `init()` — which is wrapped in a `try/catch` and builds a WebGL renderer first,
+so on a WebGL-less or non-executing crawler the ad code did not exist at all; on the happy path it
+was still deferred up to 6s behind `afterIntro`. **`index.html` now carries the AdSense loader as a
+static vendor `<script async src>` in `<head>`** (immediately after the `google-adsense-account`
+meta). This is a deliberate, documented exception to the "no new `<script>` in `index.html`" rule:
+the tag is vendor markup, not logic; `adsbygoogle.js` must self-bootstrap from `<head>` so ESM
+import is not an option; and the file already carries three such tags (three.js, OrbitControls,
+canvas-confetti). It duplicates the client id — the comment at both sites says to keep them in sync
+(the `/borders/*` pages stay synced automatically, `build-landing.mjs` regexes the value out of
+`site-config.js`). `adsense.js` keeps `loadAdsenseScript()` as a fallback that no-ops when the static
+tag is already present, so the page never carries two loaders. `initAds()` **stays** in
+`setupEventListeners()` on purpose: on a fatal WebGL failure the rail must not mount over the error
+panel. Ad *units* remain deferred behind the splash — the loader alone renders nothing.
+**Empty-slot guards** were added so the loader can ship before the slot ids exist: `AdRail.init()`
+returns early when `ADSENSE_RAIL_SLOT` is empty, `mountAd()` requires a non-empty slot, and
+`build-landing.mjs` `adSection()` now needs both `ADS_ID` and `ADS_SLOT`; without them a slot-less
+`<ins>` paints a blank box under an "Advertisement" label, itself an AdSense policy problem. The
+`<head>` loader emission in `analyticsHead()` stays keyed on `ADS_ID` alone — that is what review
+looks for. Net `index.html` cost: one vendor `<script>` tag + comment. **Known follow-up:** with the
+loader static in `<head>` it now runs ahead of `initConsentDefaults()` and the Funding Choices CMP
+(still behind `afterIntro`), so EEA/UK/CH ad requests fire with no `__tcfapi` present → little EEA
+fill. Not an approval blocker; fix by hoisting `initConsentCmp()` to the top-level module block
+and/or emitting the Funding Choices tag statically above the AdSense tag, as the landing pages do.
+
 **Bordering-countries SEO landing pages (2026-07-06):** a static, globe-free page per country at
 `/borders/<slug>` targeting the "what countries border X" query (implements
 `docs/individual_landing_pages/plan.md`; the content that makes the domain AdSense-approvable).

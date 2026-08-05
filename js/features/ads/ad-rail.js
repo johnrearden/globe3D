@@ -19,6 +19,11 @@ export class AdRail {
 
     init() {
         if (document.getElementById('ad-rail')) return;
+        // No ad unit configured yet → don't build the rail at all. The slot well
+        // reserves 600px and carries an "Advertisement" label, so mounting it
+        // without a real unit would paint a blank labelled box — which is itself
+        // an AdSense policy problem.
+        if (!this.slot) return;
         // Gate on the same breakpoint the CSS uses, so no ad is requested on the
         // narrow layouts where the rail would be hidden anyway.
         if (!window.matchMedia('(min-width: 1200px)').matches) return;

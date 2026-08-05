@@ -197,17 +197,29 @@ After approval:
 3. Click **Get code**
 4. Copy your AdSense script tag
 
-### Step 3: Fill in the IDs (once approved)
-The loader and ad slots are already coded — you only supply the IDs:
+### Step 3: Fill in the IDs
 
-1. In **`js/data/site-config.js`**, set `ADSENSE_CLIENT_ID` to your `ca-pub-…` id.
+> ✅ **Done (2026-08-05):** `ADSENSE_CLIENT_ID = 'ca-pub-2820812359000429'` and `ads.txt` carries the
+> real publisher id. Only the two **slot ids** remain (they need ad units to exist in the dashboard).
+
+1. ~~In **`js/data/site-config.js`**, set `ADSENSE_CLIENT_ID` to your `ca-pub-…` id.~~ Done. Note it
+   is duplicated in the static loader `<script>` in `index.html`'s `<head>` — **keep the two in
+   sync**. The `/borders/<slug>` pages need no edit: `build-landing.mjs` reads `site-config.js`.
 2. In the AdSense dashboard, create the display ad units, then set `ADSENSE_RAIL_SLOT` (desktop side
    rail) and `ADSENSE_LANDING_SLOT` (the in-content unit on the `/borders/<slug>` landing pages) in
-   the same file.
-3. In **`ads.txt`**, replace `pub-XXXXXXXXXXXXXXXX` with your publisher id (the `ca-pub-…` digits).
+   the same file. **Until these are set, no ad unit is mounted at all** — that is deliberate: a
+   slot-less `<ins>` paints a blank box under an "Advertisement" label, which is a policy problem.
+3. ~~In **`ads.txt`**, replace `pub-XXXXXXXXXXXXXXXX` with your publisher id.~~ Done.
 
-`js/features/ads/adsense.js` loads `adsbygoogle.js` (deferred, prod-gated) and `mountAd()` inserts
-each `<ins>` once. Empty IDs keep everything inert, so nothing serves until this step is done.
+**Where the loader lives.** `adsbygoogle.js` is a **static `<script async src>` in `index.html`'s
+`<head>`**, immediately after the `google-adsense-account` meta (and emitted into every
+`/borders/<slug>` page by `build-landing.mjs`). It has to be in the raw HTML: injecting it from
+`js/features/ads/adsense.js` put it behind `init()`'s WebGL `try/catch` and a 6s `afterIntro`
+deferral, so a WebGL-less or non-executing crawler saw **no ad code**, and AdSense review stalled at
+"Getting ready". This is a documented exception to the "no new `<script>` in `index.html`" rule in
+`CLAUDE.md` — vendor markup, not logic. `adsense.js` still owns the ad *units* (deferred behind the
+splash) and its `loadAdsenseScript()` no-ops when the static tag is present, so there is never a
+second loader.
 
 ### Step 4: Ad placements (already built — do NOT add inline `<ins>` tags)
 This is a WebGL SPA, so ads sit in the page chrome, never over the canvas:
@@ -228,6 +240,30 @@ surface, and Auto Ads left fully on would overlay it (a policy risk).
 2. Confirm `privacy/index.html` (linked from the app + landing pages) is live.
 3. After deploy: verify `https://terragotcha.com/ads.txt` resolves, and that ads render only in the
    margins/anchor (never over the canvas, on the splash, or beside buttons).
+
+> ⚠️ **Ordering caveat.** Because the AdSense loader is now static in `<head>`, it runs *before*
+> `initConsentDefaults()` and before the Funding Choices CMP (still deferred behind `afterIntro` in
+> `js/features/consent-cmp.js`). EEA/UK/CH ad requests therefore fire with no `__tcfapi` present →
+> little or no EEA fill. Not an approval blocker (a US reviewer is unaffected, and Consent Mode
+> grants everything outside EEA/UK/CH). Fix after approval by hoisting `initConsentCmp()` to the
+> top-level module block beside `initConsentDefaults()`, and/or emitting the Funding Choices tag
+> statically above the AdSense tag exactly as `build-landing.mjs` already does.
+
+### Step 6: Verify what a crawler sees
+Use `curl`, not the browser — `curl` shows the raw HTML, which is what AdSense's reviewer and ad
+crawler parse. (A browser would pass even if the loader were only reachable via JS.)
+
+```bash
+curl -s https://terragotcha.com/ads.txt                                        # → pub-2820812359000429
+curl -s https://terragotcha.com/ | grep -c googlesyndication                   # → 1
+curl -s https://terragotcha.com/borders/france | grep -c googlesyndication     # → 1
+curl -s https://terragotcha.com/borders/france | grep -c 'class="adsbygoogle"' # → 0 until slot ids are set
+```
+
+Locally, `npm run build:pages` then serve `dist/` and load `/?ads=1` (the `?ads` override in
+`site-config.js` forces prod behaviour): expect exactly one `adsbygoogle.js` tag, no `#ad-rail`, and
+**no blank "Advertisement" boxes** at any width. A `display:none` 0×0 `<ins>` with no
+`data-ad-client` may appear — that is Google's own Auto Ads probe, not one of ours.
 
 ### Expected Revenue
 **Estimates for educational/geography niche**:
@@ -654,12 +690,17 @@ Implement additional schema types:
 
 ### Analytics & Monetization
 - [x] Install Analytics code — `js/features/analytics.js` (Consent Mode v2, deferred, prod-gated)
-- [x] Install AdSense code — `js/features/ads/adsense.js` + `ad-rail.js`; `ads.txt`, `privacy/`
+- [x] Install AdSense code — static loader tag in `index.html <head>`; units in
+      `js/features/ads/adsense.js` + `ad-rail.js`; `ads.txt`, `privacy/`
 - [x] Set up custom events — quiz_start / quiz_complete / country_select / daily_complete / share
-- [ ] Create Google Analytics property → paste `GA_MEASUREMENT_ID` in `js/data/site-config.js`
-- [ ] Apply for Google AdSense (needs the live site to have content — the landing pages)
-- [ ] After approval: paste `ADSENSE_CLIENT_ID` + slot ids in `site-config.js`, pub id in `ads.txt`
+- [x] Create Google Analytics property → paste `GA_MEASUREMENT_ID` in `js/data/site-config.js`
+- [x] Apply for Google AdSense (needs the live site to have content — the landing pages)
+- [x] Paste `ADSENSE_CLIENT_ID` in `site-config.js` + `index.html`, pub id in `ads.txt`
+- [ ] Create the two ad units → paste `ADSENSE_RAIL_SLOT` + `ADSENSE_LANDING_SLOT` in `site-config.js`
+      (no unit mounts until these exist — see §3 Step 3)
+- [ ] Confirm ads.txt validates in the AdSense console (Google recrawls on its own schedule)
 - [ ] Enable Google CMP (Privacy & messaging) + set Auto Ads → Anchor-only
+- [ ] After approval: fix the EEA consent/loader ordering caveat in §3 Step 5
 - [ ] Test ad placements (off-canvas) and monitor performance impact
 
 ### SEO

@@ -68,9 +68,9 @@ function truncate(s, max = 155) {
 function analyticsHead() {
     if (!GA_ID && !ADS_ID && !CMP_ID) return '';
     const region = JSON.stringify(EEA_UK_CH);
-    // AdSense site-ownership verification account (the ca-pub-… id). Derived from
-    // CMP_ID while the ad client is unset; present for verification ONLY — no ads
-    // serve until ADSENSE_CLIENT_ID is configured.
+    // AdSense site-ownership verification account (the ca-pub-… id). Falls back
+    // to CMP_ID if the ad client is ever unset again, so verification survives
+    // independently of whether ads are switched on.
     const adsenseAccount = ADS_ID || (CMP_ID ? `ca-${CMP_ID}` : '');
     // Region-scoped Consent Mode v2 defaults: EEA/UK/CH denied (the CMP grants),
     // rest of world granted. Google matches the visitor's region by IP. Mirrors
@@ -83,7 +83,7 @@ function analyticsHead() {
         + "gtag('consent','default',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});</script>",
     ];
     if (adsenseAccount) {
-        // Verification only (no ads) — prepend so it sits high in <head>.
+        // Site-ownership verification — prepend so it sits high in <head>.
         parts.unshift(`    <meta name="google-adsense-account" content="${adsenseAccount}">`);
     }
     if (GA_ID) {
@@ -104,12 +104,15 @@ function analyticsHead() {
 }
 
 function adSection() {
-    if (!ADS_ID) return '';
-    const slotAttr = ADS_SLOT ? ` data-ad-slot="${ADS_SLOT}"` : '';
+    // Needs BOTH ids: a slot-less <ins> renders as a blank 100px-tall box under
+    // an "Advertisement" label (styles.css .lp-ad), which is itself an AdSense
+    // policy problem. The <head> loader (analyticsHead) is keyed on ADS_ID alone
+    // on purpose — that is what review looks for, and it renders nothing.
+    if (!ADS_ID || !ADS_SLOT) return '';
     return `        <section class="lp-ad">
             <div class="lp-ad-label">Advertisement</div>
             <ins class="adsbygoogle" style="display:block"
-                 data-ad-client="${ADS_ID}"${slotAttr}
+                 data-ad-client="${ADS_ID}" data-ad-slot="${ADS_SLOT}"
                  data-ad-format="auto" data-full-width-responsive="true"></ins>
             <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
         </section>
