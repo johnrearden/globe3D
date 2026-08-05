@@ -230,9 +230,15 @@ minimize what they add to `index.html`:**
   (`js/features/theme-switcher.js`, `<html data-theme>`) keeps working. Canvas surfaces read tokens
   via `js/utils/theme.js` (`cssToken`/`canvasFont`) and re-bake on the `globe3d:theme-changed` event.
   Beyond the built-in presets, admins author **remote themes** (backend `themes` app; superuser-gated
-  CRUD via the audit token) that test users pick from the settings selector; the ~23 editable "knob"
+  CRUD via the audit token) that test users pick from the settings selector; the ~24 editable "knob"
   tokens are listed in `js/data/theme-tokens.js` (frontend mirror of `backend/themes/tokens.py` — keep
-  the two in sync). The in-app live editor is `js/features/theme-editor.js`. Roundness is two editable
+  the two in sync; `tests/theme-tokens.test.js` asserts the count and shape). One of them is
+  `--accent-secondary`, the violet used only by the docked Daily Challenge pill (`#dq-today`); the
+  pill's `--violet-fill/-fill-hover/-border/-border-hover/-label/-icon` are **derived** from it via
+  `color-mix()` (same idiom as `--accent-soft`) and are deliberately not knobs, so one swatch
+  recolours the whole pill. Prefer that pattern — derive from a knob rather than adding knobs — the
+  editor is already busy. The in-app live editor is `js/features/theme-editor.js`,
+  which renders rows straight from `TOKEN_GROUPS` — adding a knob needs no editor change. Roundness is two editable
   knobs — `--radius-btn` (all buttons + controls) and `--radius-panel` (containers); `--radius-pill`
   (999px) and `--radius-circle` (50%) are fixed shapes. A global `button { border-radius:
   var(--radius-btn) !important }` rule unifies button roundness — round/pill `<button>`s (close/swatch

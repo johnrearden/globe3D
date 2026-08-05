@@ -4,8 +4,15 @@ import {
 } from '../js/data/theme-tokens.js';
 
 describe('theme-tokens (frontend mirror of backend/themes/tokens.py)', () => {
-    it('exposes the 23 curated knobs', () => {
-        expect(EDITABLE_TOKEN_NAMES).toHaveLength(23);
+    it('exposes the 24 curated knobs', () => {
+        expect(EDITABLE_TOKEN_NAMES).toHaveLength(24);
+    });
+
+    it('exposes --accent-secondary as the single Daily-pill knob', () => {
+        expect(EDITABLE_TOKEN_NAMES).toContain('--accent-secondary');
+        // The pill's fill/border/label/icon are color-mix()'d off it in
+        // styles.css — derived, deliberately not editable in their own right.
+        expect(EDITABLE_TOKEN_NAMES.filter(n => n.startsWith('--violet-'))).toEqual([]);
     });
 
     it('exposes exactly the two font knobs (display + UI/body)', () => {
@@ -15,9 +22,13 @@ describe('theme-tokens (frontend mirror of backend/themes/tokens.py)', () => {
         expect(EDITABLE_TOKEN_NAMES).not.toContain('--font-mono');
     });
 
-    it('exposes exactly the two accent knobs', () => {
-        const accents = EDITABLE_TOKEN_NAMES.filter(n => n === '--accent' || n === '--on-accent');
-        expect(accents).toEqual(['--accent', '--on-accent']);
+    it('exposes exactly the three accent knobs', () => {
+        const accents = EDITABLE_TOKEN_NAMES.filter(
+            n => n.startsWith('--accent') || n === '--on-accent',
+        );
+        expect(accents).toEqual(['--accent', '--on-accent', '--accent-secondary']);
+        // --accent-soft is derived from --accent via color-mix, and --accent-amber
+        // is a primitive; neither is editable.
         expect(EDITABLE_TOKEN_NAMES).not.toContain('--accent-amber');
         expect(EDITABLE_TOKEN_NAMES).not.toContain('--accent-soft');
     });

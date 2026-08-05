@@ -1,7 +1,7 @@
 """Allow-list + validation for theme token maps.
 
 A theme is a map of CSS custom-property overrides ({"--accent": "#3b82f6", ...})
-layered on a built-in base preset. Only the curated ~26 "knob" tokens the built-in
+layered on a built-in base preset. Only the curated ~24 "knob" tokens the built-in
 presets control may be set — this keeps stored themes to the intended surface and
 doubles as an injection guard (keys outside the list are rejected; values are
 constrained to a safe CSS charset, so no url()/selector break-out is possible).
@@ -28,6 +28,11 @@ COLOR_TOKENS = (
     '--bg-app', '--bg-panel', '--bg-elevated', '--scrim',
     '--border-subtle', '--white', '--black',
     '--text-heading', '--text-mid', '--text-low', '--text-soft', '--ok', '--bad',
+    # Secondary accent — the docked Daily Challenge pill (#dq-today) only. The
+    # pill's --violet-* fill/border/label/icon are color-mix()'d off this in
+    # styles.css, so this single swatch recolours the whole pill; the derived
+    # tokens are deliberately NOT editable.
+    '--accent-secondary',
 )
 EDITABLE_TOKENS = frozenset(FONT_TOKENS + WEIGHT_TOKENS + RADIUS_TOKENS + COLOR_TOKENS)
 

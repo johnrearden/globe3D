@@ -102,6 +102,39 @@ configured; reuses `.settings-footer a`, no new CSS), and `privacy/index.html` d
 `/borders/<slug>` pages share one consent model. Net `index.html` cost: one extended import + one new
 import, an early `initConsentDefaults()` call, and `initConsentCmp()` beside `initAnalytics()/initAds()`.
 
+**Theme coverage: quiz modals + Daily pill (2026-08-05):** two surfaces were bypassing the token
+system entirely. (1) The `.qmp-*` (quiz mode picker) and `.qsv-*` (quiz stats) blocks carried 14
+literal `font-family: sans-serif` declarations and three `color: var(--steel-9)` — both ported
+verbatim from `design/quiz_choice/design_handoff_quiz_mode/`, which hardcoded `#8ca0b4` and
+`'Archivo'`. `--steel-9` is a **primitive** ramp value defined once in the base `:root`; no
+`[data-theme]` block overrides the steel ramp, so the quiz-card detail text ("Find a highlighted
+country and pick its flag"), `.qsv-row-sub` and `.qsv-empty-text` rendered the identical grey in
+every theme, and the `--font-ui` knob did nothing to them. Now `var(--text-mid)` + `var(--font-ui)`,
+so both follow the theme (verified: `mono` shifts them to `#9aa0a6` / system-ui). Note this restores
+the handoff's intended Archivo, which the port had dropped. (2) The Daily Challenge pill's six
+violet tokens (`styles.css` second `:root`, ~line 3866) were likewise unthemeable. Fixed with **one
+knob, not six**: a new `--accent-secondary` (`#8c7cf0`, replacing the unused `--violet-400`) added to
+the Colors group beside `--accent`/`--on-accent`, with all six `--violet-*` now **derived** from it
+via `color-mix()` — the same idiom as `--accent-soft` (`styles.css:36`), which is already used ~70×
+in this file. Knob count 23 → 24. The six derived tokens keep their names, so the `#dq-today` rules
+are untouched and the derivation lives in one place. No editor change was needed —
+`theme-editor.js` iterates `TOKEN_GROUPS` (:103/:323/:330). Verified in-browser that setting the
+single knob to green repaints fill, border, label and icon together.
+
+The collapse to one hue is a **deliberate, measured trade** (six swatches for one button was
+disproportionate in an already-busy editor). Measured drift vs. the old hand-picked ramp:
+`--violet-border` is byte-identical; `--violet-label` and `--violet-icon` land within 3/255 per
+channel; `--violet-fill`/`-fill-hover` shift +16,+16,+8 and `--violet-border-hover` shifts
+−20,−20,−8, because the handoff used three neighbouring hues (`#7c6ce8` fill, `#8c7cf0` border,
+`#a090f8` border-hover) and everything now snaps to the middle one. Net visible effect: the fill
+reads a touch lighter, and the hover border thickens without also lightening. Note the label/icon
+mixes are toward `var(--white)`, so they assume a dark surface — a light theme should pick a darker
+`--accent-secondary`. Chrome serialises `color-mix()` results as `color(srgb …)` rather than
+`rgba()`; harmless here since no JS reads these tokens (checked) and nothing passes them to canvas.
+
+**Deliberately unchanged:** the `--steel-6/7/8/10` and `--neutral-*` primitives still used elsewhere
+in those two modals — a wider primitive→semantic sweep is a separate, riskier change.
+
 **Ad serving switched on + crawler-visible loader (2026-08-05):** supersedes the "consent live while
 ad serving stays off" split noted above — `ADSENSE_CLIENT_ID` is now set (`ca-pub-2820812359000429`,
 the `ca-`-prefixed `CMP_PUBLISHER_ID`), because AdSense will not move a site past "Getting ready"

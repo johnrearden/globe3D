@@ -35,6 +35,10 @@ export const TOKEN_GROUPS = [
         tokens: [
             { name: '--accent', label: 'Accent', type: 'color' },
             { name: '--on-accent', label: 'On accent (text)', type: 'color' },
+            // Secondary accent — the docked Daily Challenge pill (#dq-today) only.
+            // The pill's fill/border/label/icon are all color-mix()'d off this one
+            // swatch in styles.css, so it is the single knob for that surface.
+            { name: '--accent-secondary', label: 'Accent · secondary (Daily)', type: 'color' },
             { name: '--bg-app', label: 'Background · app', type: 'color' },
             { name: '--bg-panel', label: 'Background · panel', type: 'color' },
             { name: '--bg-elevated', label: 'Background · elevated', type: 'color' },

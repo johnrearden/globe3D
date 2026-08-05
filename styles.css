@@ -1816,7 +1816,7 @@
             color: var(--text-heading);
         }
         .qmp-subtitle {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-medium);
             font-size: 11px;
             letter-spacing: 0.2em;
@@ -1838,7 +1838,7 @@
             margin-bottom: 0;
         }
         .qmp-scope-label {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-semibold);
             font-size: 10.5px;
             letter-spacing: 0.16em;
@@ -1866,7 +1866,7 @@
             border-radius: var(--radius-pill);
             border: none;
             background: transparent;
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-size: 13px;
             font-weight: var(--weight-semibold);
             color: var(--steel-8);
@@ -1904,7 +1904,7 @@
         }
 
         .qmp-chip {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-size: 12.5px;
             font-weight: var(--weight-medium);
             padding: 8px 13px;
@@ -1986,11 +1986,11 @@
             letter-spacing: -0.01em;
         }
         .qmp-card-desc {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-normal);
             font-size: 12.5px;
             line-height: 1.4;
-            color: var(--steel-9);
+            color: var(--text-mid);
             margin-top: 2px;
         }
 
@@ -2017,7 +2017,7 @@
             background: transparent;
             border: 1px solid var(--neutral-20);
             color: var(--text-soft);
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-semibold);
             font-size: 14px;
             letter-spacing: 0.02em;
@@ -2038,7 +2038,7 @@
             background: none;
             border: none;
             color: color-mix(in srgb, var(--accent), white 14%);
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-semibold);
             font-size: 13px;
             letter-spacing: 0.02em;
@@ -2139,7 +2139,7 @@
             color: var(--text-heading);
         }
         .qsv-subtitle {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-medium);
             font-size: 11px;
             letter-spacing: 0.2em;
@@ -2179,7 +2179,7 @@
             margin-bottom: 18px;
         }
         .qsv-section-label {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-semibold);
             font-size: 10.5px;
             letter-spacing: 0.16em;
@@ -2208,9 +2208,9 @@
             color: var(--text-heading);
         }
         .qsv-row-sub {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-size: 12px;
-            color: var(--steel-9);
+            color: var(--text-mid);
             margin-top: 2px;
         }
         .qsv-row-metric {
@@ -2224,7 +2224,7 @@
             color: color-mix(in srgb, var(--accent), white 14%);
         }
         .qsv-row-best-label {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-size: 10.5px;
             text-transform: uppercase;
             letter-spacing: 0.08em;
@@ -2240,7 +2240,7 @@
             border-radius: var(--radius-panel);
             background: var(--neutral-34);
             margin-bottom: 5px;
-            font-family: sans-serif;
+            font-family: var(--font-ui);
         }
         .qsv-missed-name,
         .qsv-recent-mode {
@@ -2275,10 +2275,10 @@
             color: var(--steel-6);
         }
         .qsv-empty-text {
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-size: 13px;
             line-height: 1.5;
-            color: var(--steel-9);
+            color: var(--text-mid);
             margin-top: 8px;
         }
         .qsv-reset {
@@ -2291,7 +2291,7 @@
             background: transparent;
             border: 1px solid var(--neutral-20);
             color: var(--text-soft);
-            font-family: sans-serif;
+            font-family: var(--font-ui);
             font-weight: var(--weight-semibold);
             font-size: 13px;
             cursor: pointer;
@@ -3865,15 +3865,26 @@ body.flag-quiz-active #settings-panel {
    ============================================================ */
 :root {
     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
-    /* New secondary accent (violet) — see the design/main_buttons handoff.
-       Single-accent system otherwise; this differentiates the daily action. */
-    --violet-400: #8c7cf0;
-    --violet-fill: rgba(124, 108, 232, 0.16);
-    --violet-fill-hover: rgba(124, 108, 232, 0.26);
-    --violet-border: rgba(140, 124, 240, 0.42);
-    --violet-border-hover: rgba(160, 144, 248, 0.6);
-    --violet-icon: #b6a7f5;
-    --violet-label: #d8cffb;
+    /* Secondary accent — see the design/main_buttons handoff. The app is a
+       single-accent system otherwise; this differentiates the daily action.
+       --accent-secondary is the ONE editable knob (js/data/theme-tokens.js
+       Colors group + backend/themes/tokens.py), so a theme recolours the Daily
+       pill with a single swatch. The six --violet-* below are DERIVED, not
+       knobs: same color-mix idiom as --accent-soft, so they track the knob.
+       (The handoff's original ramp used three neighbouring hues — #7c6ce8 fill,
+       #8c7cf0 border, #a090f8 border-hover. Collapsing to one knob snaps them
+       all to the middle hue: the fill reads a touch lighter and the hover
+       border no longer lightens as well as thickening. Deliberate trade —
+       one swatch beats six in an already-busy editor.)
+       Note the label/icon mixes assume a dark surface; on a light theme a
+       theme author will want a darker --accent-secondary to keep contrast. */
+    --accent-secondary: #8c7cf0;
+    --violet-fill: color-mix(in srgb, var(--accent-secondary) 16%, transparent);
+    --violet-fill-hover: color-mix(in srgb, var(--accent-secondary) 26%, transparent);
+    --violet-border: color-mix(in srgb, var(--accent-secondary) 42%, transparent);
+    --violet-border-hover: color-mix(in srgb, var(--accent-secondary) 60%, transparent);
+    --violet-icon: color-mix(in srgb, var(--accent-secondary) 66%, var(--white));
+    --violet-label: color-mix(in srgb, var(--accent-secondary) 34%, var(--white));
 }
 
 #main-cta-cluster {
