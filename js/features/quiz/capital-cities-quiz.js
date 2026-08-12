@@ -10,7 +10,7 @@
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
-import { generateCapital, systemRng } from '@terragotcha/quiz-core';
+import { createSession, generateCapital, systemRng, toHistoryRecord } from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -28,10 +28,9 @@ export class CapitalCitiesQuiz {
         this.quizTimer = options.quizTimer;
 
         // Quiz state
-        this.score = 0;
-        this.questionsAnswered = 0;
-        this.usedCountries = [];
-        this.questionLog = []; // [{ country, correct }] for quiz-history recording
+        // Score / progress / used-countries / per-question log all live in the
+        // quiz-core session; only the view-side bits stay here.
+        this.session = null;
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
@@ -51,13 +50,23 @@ export class CapitalCitiesQuiz {
      * Start the quiz
      * @param {string} scope - 'globe' for all countries, or a region name
      */
+    /** Live score, read straight from the session so there's one source of truth. */
+    get score() { return this.session ? this.session.getState().score : 0; }
+
+    /** Questions answered so far. */
+    get questionsAnswered() { return this.session ? this.session.getState().answered : 0; }
+
     start(scope = 'globe') {
         this.active = true;
         this.scope = scope;
-        this.score = 0;
-        this.questionsAnswered = 0;
-        this.usedCountries = [];
-        this.questionLog = [];
+
+        this.session = createSession({
+            mode: 'capital',
+            scope,
+            countries: this.countryTable.all,
+            rng: systemRng,
+            nextQuestion: generateCapital
+        });
 
         // Update state
         state.set('quiz.active', true);
@@ -112,7 +121,8 @@ export class CapitalCitiesQuiz {
         this.quizTimer.start();
 
         // Load first question
-        this.nextQuestion();
+        this.session.begin();
+        this.renderQuestion();
     }
 
     /**
@@ -152,15 +162,9 @@ export class CapitalCitiesQuiz {
         // Stop the timer, persist the result, and show the celebration overlay
         // with score + total time + standing/new best.
         const elapsedMs = this.quizTimer.stop();
-        const summary = quizHistoryStore.record({
-            ts: Date.now(),
-            mode: 'capital',
-            scope: this.scope,
-            score: this.score,
-            total: this.questionsAnswered,
-            durationMs: elapsedMs,
-            questions: this.questionLog
-        });
+        const summary = quizHistoryStore.record(
+            toHistoryRecord(this.session.getState(), elapsedMs)
+        );
         // The results modal owns Play again (→ quiz chooser) / Share / Globe.
         this.showQuizCelebration({
             score: this.score,
@@ -176,45 +180,43 @@ export class CapitalCitiesQuiz {
      * Generate a quiz question with options.
      * @returns {Object|null} {direction, countryName, capital, options, correctAnswer, countryObj}
      */
-    generateQuestion() {
-        const result = generateCapital({
-            countries: this.countryTable.all,
-            scope: this.scope,
-            used: new Set(this.usedCountries),
-            rng: systemRng
-        });
-
-        if (!result) {
-            console.error('Not enough countries with capitals for quiz');
-            return null;
+    /**
+     * Advance past a revealed question: the session either produces the next one
+     * or reports the run is over.
+     */
+    nextQuestion() {
+        this.session.advance();
+        if (this.session.getState().status === 'complete') {
+            this.end();
+            return;
         }
-
-        const countryName = result.meta.country;
-        this.usedCountries.push(countryName);
-
-        // Adapt quiz-core's payload to the shape this mode's renderer already
-        // expects. The capital object comes from the globe so it keeps whatever
-        // extra fields the marker/label code reads.
-        return {
-            direction: result.meta.direction,
-            countryName,
-            capital: this.globeManager.getCapital(countryName),
-            options: result.payload.grid.options.map(o => o.value),
-            correctAnswer: result.answer.correct[0],
-            countryObj: this.countryTable.centroidObj(countryName)
-        };
+        this.renderQuestion();
     }
 
     /**
      * Load next question
      */
-    nextQuestion() {
-        this.currentQuestion = this.generateQuestion();
-
-        if (!this.currentQuestion) {
+    /** Render whatever question the session currently holds. */
+    renderQuestion() {
+        const live = this.session.getState().current;
+        if (!live) {
             console.error('Failed to generate quiz question');
+            this.end();
             return;
         }
+
+        // Adapt quiz-core's payload to the shape this mode's DOM code expects.
+        // The capital object comes from the globe so it keeps whatever extra
+        // fields the marker/label code reads.
+        const asked = live.meta.country;
+        this.currentQuestion = {
+            direction: live.meta.direction,
+            countryName: asked,
+            capital: this.globeManager.getCapital(asked),
+            options: live.payload.grid.options.map(o => o.value),
+            correctAnswer: live.answer.correct[0],
+            countryObj: this.countryTable.centroidObj(asked)
+        };
 
         // Hide result, next button
         this.elements.get('quiz-result').style.display = 'none';
@@ -283,18 +285,13 @@ export class CapitalCitiesQuiz {
      * @param {string} selectedAnswer - Text of the selected option
      */
     handleAnswer(selectedAnswer) {
-        const isCorrect = selectedAnswer === this.currentQuestion.correctAnswer;
+        // Scoring, the history log (keyed on the country, since either direction
+        // tests the same country↔capital pair) and used-country tracking all
+        // happen in the session; this method is now purely the reveal.
+        const { reveal } = this.session.answer(selectedAnswer);
+        const isCorrect = reveal.correct;
 
-        // Record this question for quiz history. Either direction tests the same
-        // country↔capital pair, so key it on the country.
-        this.questionLog.push({ country: this.currentQuestion.countryName, correct: isCorrect });
-
-        // Update score if correct
-        if (isCorrect) {
-            this.score++;
-            state.set('quiz.score', this.score);
-        }
-        this.questionsAnswered++;
+        state.set('quiz.score', this.score);
         state.set('quiz.questionsAnswered', this.questionsAnswered);
 
         this.updateScoreDisplay();

@@ -1,8 +1,16 @@
 /**
- * Client-side grading for audit mode — a faithful port of the backend's
- * services.grade() so an auditor can answer questions interactively without
- * any server round-trip (and therefore without creating Attempt rows).
- * The reveal shape matches what /api/daily/today/answer returns.
+ * Client-side grading — a faithful port of the backend's services.grade()
+ * (backend/quiz/services.py), kept in lockstep by tests/local-grade.test.js
+ * which mirrors backend/quiz/tests.py::GradingTests.
+ *
+ * Used in two places: audit mode, so an auditor can answer questions without a
+ * server round-trip (and therefore without creating Attempt rows), and the
+ * practice-quiz session reducer, which grades locally. The reveal shape matches
+ * what /api/daily/today/answer returns, so the daily challenge and practice
+ * quizzes present results through the same code.
+ *
+ * Set semantics (not positional) so multi-select question types grade
+ * correctly; single-choice is just the one-element case.
  */
 
 function normalizeGiven(given) {

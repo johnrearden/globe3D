@@ -10,6 +10,7 @@
     "world-geojson": "^3.3.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "pngjs": "^7.0.0",
     "protomaps-themes-base": "^4.5.0",
     "simplify-js": "^1.2.4",
@@ -21,7 +22,8 @@
     "build:geo-data": "node backend/data_build/build_countries_json.mjs && node backend/data_build/build_mesh_iso.mjs",
     "build:landing": "node build-landing.mjs",
     "build:pages": "node build-landing.mjs && node build-pages.mjs",
-    "test": "vitest run",
+    "check:syntax": "node check-syntax.mjs",
+    "test": "node check-syntax.mjs && vitest run",
     "test:watch": "vitest"
   }
 }

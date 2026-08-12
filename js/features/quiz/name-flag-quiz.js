@@ -6,7 +6,7 @@
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
-import { generateNameCountry, systemRng } from '@terragotcha/quiz-core';
+import { createSession, generateNameCountry, systemRng, toHistoryRecord } from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -23,11 +23,9 @@ export class NameFlagQuiz {
         this.labelManager = options.labelManager;
         this.quizTimer = options.quizTimer;
 
-        // Quiz state
-        this.score = 0;
-        this.questionsAnswered = 0;
-        this.usedCountries = [];
-        this.questionLog = []; // [{ country, correct }] for quiz-history recording
+        // Quiz state. Score / progress / used-countries / per-question log all
+        // live in the quiz-core session; only the view-side bits stay here.
+        this.session = null;
         this.currentQuestion = null;
         this.autoAdvanceTimer = null;
         this.active = false;
@@ -43,6 +41,12 @@ export class NameFlagQuiz {
         });
     }
 
+    /** Live score, read straight from the session so there's one source of truth. */
+    get score() { return this.session ? this.session.getState().score : 0; }
+
+    /** Questions answered so far. */
+    get questionsAnswered() { return this.session ? this.session.getState().answered : 0; }
+
     /**
      * Start the quiz
      * @param {string} scope - 'globe' for all countries, or a region name
@@ -50,10 +54,14 @@ export class NameFlagQuiz {
     start(scope = 'globe') {
         this.active = true;
         this.scope = scope;
-        this.score = 0;
-        this.questionsAnswered = 0;
-        this.usedCountries = [];
-        this.questionLog = [];
+
+        this.session = createSession({
+            mode: 'name-flag',
+            scope,
+            countries: this.countryTable.all,
+            rng: systemRng,
+            nextQuestion: generateNameCountry
+        });
 
         // Update state
         state.set('quiz.active', true);
@@ -107,7 +115,8 @@ export class NameFlagQuiz {
         this.quizTimer.start();
 
         // Load first question
-        this.nextQuestion();
+        this.session.begin();
+        this.renderQuestion();
     }
 
     /**
@@ -144,15 +153,9 @@ export class NameFlagQuiz {
         // Stop the timer, persist the result, and show the celebration overlay
         // with score + total time + standing/new best.
         const elapsedMs = this.quizTimer.stop();
-        const summary = quizHistoryStore.record({
-            ts: Date.now(),
-            mode: 'name-flag',
-            scope: this.scope,
-            score: this.score,
-            total: this.questionsAnswered,
-            durationMs: elapsedMs,
-            questions: this.questionLog
-        });
+        const summary = quizHistoryStore.record(
+            toHistoryRecord(this.session.getState(), elapsedMs)
+        );
         // The results modal owns Play again (→ quiz chooser) / Share / Globe.
         this.showQuizCelebration({
             score: this.score,
@@ -168,43 +171,37 @@ export class NameFlagQuiz {
      * Generate a quiz question with options
      * @returns {Object} Question with correctCountry, options, and countryObj
      */
-    generateQuestion() {
-        const result = generateNameCountry({
-            countries: this.countryTable.all,
-            scope: this.scope,
-            used: new Set(this.usedCountries),
-            rng: systemRng
-        });
-
-        if (!result) {
-            console.error('Not enough countries for a 6-option quiz');
-            return null;
+    /**
+     * Advance past a revealed question: the session either produces the next one
+     * or reports the run is over.
+     */
+    nextQuestion() {
+        this.session.advance();
+        if (this.session.getState().status === 'complete') {
+            this.end();
+            return;
         }
-
-        const correctCountry = result.answer.correct[0];
-        this.usedCountries.push(correctCountry);
-
-        // Adapt quiz-core's payload to the shape this mode's renderer already
-        // expects. The renderer keeps working untouched; only the selection
-        // logic has moved.
-        return {
-            correctCountry,
-            options: result.payload.grid.options.map(o => o.value),
-            countryObj: this.countryTable.centroidObj(correctCountry)
-        };
+        this.renderQuestion();
     }
 
     /**
-     * Load next question
+     * Render whatever question the session currently holds.
      */
-    nextQuestion() {
-        // Generate new question
-        this.currentQuestion = this.generateQuestion();
-
-        if (!this.currentQuestion) {
+    renderQuestion() {
+        const live = this.session.getState().current;
+        if (!live) {
             console.error('Failed to generate quiz question');
+            this.end();
             return;
         }
+
+        // Adapt quiz-core's payload to the shape this mode's DOM code expects.
+        const correctCountry = live.answer.correct[0];
+        this.currentQuestion = {
+            correctCountry,
+            options: live.payload.grid.options.map(o => o.value),
+            countryObj: this.countryTable.centroidObj(correctCountry)
+        };
 
         // Hide result and next button
         this.elements.get('quiz-result').style.display = 'none';
@@ -266,17 +263,12 @@ export class NameFlagQuiz {
      * @param {string} selectedCountry - Name of selected country
      */
     handleAnswer(selectedCountry) {
-        const isCorrect = selectedCountry === this.currentQuestion.correctCountry;
+        // Scoring, the history log and used-country tracking all happen in the
+        // session; this method is now purely the reveal animation.
+        const { reveal } = this.session.answer(selectedCountry);
+        const isCorrect = reveal.correct;
 
-        // Record this question for quiz history (the country shown is the answer).
-        this.questionLog.push({ country: this.currentQuestion.correctCountry, correct: isCorrect });
-
-        // Update score if correct
-        if (isCorrect) {
-            this.score++;
-            state.set('quiz.score', this.score);
-        }
-        this.questionsAnswered++;
+        state.set('quiz.score', this.score);
         state.set('quiz.questionsAnswered', this.questionsAnswered);
 
         // Update score display (legacy spans + the chrome score chip).

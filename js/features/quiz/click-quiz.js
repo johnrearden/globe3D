@@ -16,7 +16,9 @@
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome } from './quiz-question-chrome.js';
-import { generateClickCountrySession, systemRng } from '@terragotcha/quiz-core';
+import {
+    createSession, fromPlan, generateClickCountrySession, systemRng, toHistoryRecord
+} from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -36,11 +38,9 @@ export class ClickQuiz {
         // Quiz state
         this.active = false;
         this.scope = 'globe'; // Region filter: 'globe' or a region name
-        this.currentIndex = 0;
-        this.score = 0;
-        this.countries = []; // List of up to 10 random countries for this quiz
+        // Score / progress / per-question log live in the quiz-core session.
+        this.session = null;
         this.total = TOTAL_QUESTIONS; // actual question count (may be < 10 for a small region)
-        this.questionLog = []; // [{ country, correct }] for quiz-history recording
         this.answering = false; // Guards the reveal window so a second tap is ignored
         this.advanceTimer = null;
 
@@ -65,12 +65,15 @@ export class ClickQuiz {
      * Start the quiz
      * @param {string} scope - 'globe' for all countries, or a region name
      */
+    /** Live score, read straight from the session so there's one source of truth. */
+    get score() { return this.session ? this.session.getState().score : 0; }
+
+    /** 0-based index of the question on screen. */
+    get currentIndex() { return this.session ? this.session.getState().index : 0; }
+
     start(scope = 'globe') {
         this.active = true;
         this.scope = scope;
-        this.currentIndex = 0;
-        this.score = 0;
-        this.questionLog = [];
         this.answering = false;
 
         // Update state
@@ -79,15 +82,27 @@ export class ClickQuiz {
 
         // Pick up to 10 random countries from the chosen region. The area filter
         // (and its "N. America & Caribbean" exemption) now lives in quiz-core.
-        this.countries = generateClickCountrySession({
+        // This mode plans the whole session up front — there are no per-question
+        // options to build — so it feeds the session a plan rather than a
+        // generator.
+        const plan = generateClickCountrySession({
             countries: this.countryTable.all,
             scope: this.scope,
             count: TOTAL_QUESTIONS,
             rng: systemRng
-        }).map(q => q.meta.country);
+        });
         // A small region (e.g. Oceania after filtering) may yield fewer than 10 —
         // run exactly as many questions as we have targets.
-        this.total = this.countries.length;
+        this.total = plan.length;
+
+        this.session = createSession({
+            mode: 'click-country',
+            scope,
+            countries: this.countryTable.all,
+            rng: systemRng,
+            total: plan.length,
+            nextQuestion: fromPlan(plan)
+        });
 
         // Disable auto-rotation but keep manual rotation on — the player brings
         // their intended country face-on before tapping. Start from a neutral
@@ -126,6 +141,7 @@ export class ClickQuiz {
         this.quizTimer.start();
 
         // Show first question
+        this.session.begin();
         this.showQuestion();
     }
 
@@ -158,15 +174,9 @@ export class ClickQuiz {
         // Score is out of the actual number of questions asked (usually 10, fewer
         // for a small region).
         const elapsedMs = this.quizTimer.stop();
-        const summary = quizHistoryStore.record({
-            ts: Date.now(),
-            mode: 'click-country',
-            scope: this.scope,
-            score: this.score,
-            total: this.total,
-            durationMs: elapsedMs,
-            questions: this.questionLog
-        });
+        const summary = quizHistoryStore.record(
+            toHistoryRecord(this.session.getState(), elapsedMs)
+        );
         // The results modal owns Play again (→ quiz chooser) / Share / Globe.
         this.showQuizCelebration({
             score: this.score,
@@ -186,9 +196,11 @@ export class ClickQuiz {
         this.answering = false;
         this.globeManager.clearSelection();
 
-        const countryName = this.countries[this.currentIndex];
+        const live = this.session.getState().current;
+        if (!live) { this.end(); return; }
+
         this.chrome.setQuestion(this.currentIndex + 1);
-        this.chrome.setPrompt({ layout: 'reverse', eyebrow: 'CLICK', main: countryName });
+        this.chrome.setPrompt({ layout: 'reverse', eyebrow: 'CLICK', main: live.meta.country });
     }
 
     /**
@@ -200,12 +212,11 @@ export class ClickQuiz {
         if (this.answering) return;
         this.answering = true;
 
-        const correctCountryName = this.countries[this.currentIndex];
-        const isCorrect = clickedCountryName === correctCountryName;
+        const correctCountryName = this.session.getState().current.meta.country;
 
-        // Log the resolved question and update the score.
-        this.questionLog.push({ country: correctCountryName, correct: isCorrect });
-        if (isCorrect) this.score++;
+        // Scoring and the history log happen in the session.
+        const { reveal } = this.session.answer(clickedCountryName);
+        const isCorrect = reveal.correct;
         this.chrome.setScore(this.score, this.currentIndex + 1);
 
         // Reveal the correct country: highlight it (persistent tint) and flash it
@@ -228,8 +239,8 @@ export class ClickQuiz {
         this.advanceTimer = setTimeout(() => {
             this.advanceTimer = null;
             this.cameraController.clearSmallCountryIndicator();
-            this.currentIndex++;
-            if (this.currentIndex >= this.total) {
+            this.session.advance();
+            if (this.session.getState().status === 'complete') {
                 this.end();
             } else {
                 this.showQuestion();

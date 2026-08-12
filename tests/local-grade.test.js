@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gradeLocally, revealOnly } from '../js/features/audit/local-grade.js';
+import { gradeLocally, revealOnly } from '@terragotcha/quiz-core';
 
 // Mirrors backend/quiz/tests.py::GradingTests so audit mode's local grading
 // provably matches services.grade().

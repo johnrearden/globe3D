@@ -26,6 +26,15 @@ export {
     mapClickPayload,
     mapBlock
 } from './payload.js';
+export { gradeLocally, revealOnly } from './grade.js';
+export {
+    initialState,
+    reduce,
+    isComplete,
+    toHistoryRecord,
+    createSession,
+    fromPlan
+} from './session.js';
 export {
     MODES,
     QUESTIONS_PER_SESSION,
