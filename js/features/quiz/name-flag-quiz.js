@@ -6,6 +6,7 @@
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
+import { generateNameCountry, systemRng } from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -18,7 +19,7 @@ export class NameFlagQuiz {
         this.rotateGlobeToCountry = options.rotateGlobeToCountry;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
-        this.calculateGreatCircleDistance = options.calculateGreatCircleDistance;
+        this.countryTable = options.countryTable;
         this.labelManager = options.labelManager;
         this.quizTimer = options.quizTimer;
 
@@ -168,57 +169,28 @@ export class NameFlagQuiz {
      * @returns {Object} Question with correctCountry, options, and countryObj
      */
     generateQuestion() {
-        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
+        const result = generateNameCountry({
+            countries: this.countryTable.all,
+            scope: this.scope,
+            used: new Set(this.usedCountries),
+            rng: systemRng
+        });
 
-        // Exclude overseas territories / dependencies (Greenland, Pitcairn, …).
-        // They stay clickable on the globe, but are too obscure / numerous to be
-        // fair quiz targets — drop them as both answers and distractors.
-        const depNames = new Set(Object.keys(
-            this.globeManager.getDependencyData ? this.globeManager.getDependencyData() : {}
-        ));
-        const quizCentroids = centroids.filter(c => !depNames.has(c.name));
-
-        // Filter out countries already used in this quiz
-        const availableCountries = quizCentroids.filter(c => !this.usedCountries.includes(c.name));
-
-        if (availableCountries.length < 1 || quizCentroids.length < 6) {
+        if (!result) {
             console.error('Not enough countries for a 6-option quiz');
             return null;
         }
 
-        // Select random country from available countries as the correct answer
-        const correctIndex = Math.floor(Math.random() * availableCountries.length);
-        const correctCountry = availableCountries[correctIndex];
+        const correctCountry = result.answer.correct[0];
+        this.usedCountries.push(correctCountry);
 
-        // Mark this country as used
-        this.usedCountries.push(correctCountry.name);
-
-        // Calculate distances to all other countries (including used ones for distractors)
-        const distancesWithCountries = quizCentroids
-            .filter(country => country.name !== correctCountry.name)
-            .map(country => ({
-                country: country,
-                distance: this.calculateGreatCircleDistance(correctCountry, country)
-            }));
-
-        // Sort by distance (ascending - closest first)
-        distancesWithCountries.sort((a, b) => a.distance - b.distance);
-
-        // Select 5 closest countries as distractors (6 options total, per design)
-        const distractors = distancesWithCountries
-            .slice(0, 5)
-            .map(item => item.country.name);
-
-        // Combine correct answer with distractors
-        const allOptions = [correctCountry.name, ...distractors];
-
-        // Shuffle the options randomly
-        const shuffledOptions = allOptions.sort(() => Math.random() - 0.5);
-
+        // Adapt quiz-core's payload to the shape this mode's renderer already
+        // expects. The renderer keeps working untouched; only the selection
+        // logic has moved.
         return {
-            correctCountry: correctCountry.name,
-            options: shuffledOptions,
-            countryObj: correctCountry
+            correctCountry,
+            options: result.payload.grid.options.map(o => o.value),
+            countryObj: this.countryTable.centroidObj(correctCountry)
         };
     }
 

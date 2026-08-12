@@ -232,6 +232,19 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!--
+      Workspace packages are resolved by bare specifier so the same import
+      statements work here (buildless, native ES modules) and later under
+      Astro/Vite/Metro. Must precede any module script that uses them.
+    -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@terragotcha/quiz-core": "/packages/quiz-core/src/index.js",
+            "@terragotcha/quiz-core/": "/packages/quiz-core/src/"
+        }
+    }
+    </script>
     <script type="module">
         // ===== IMPORTS =====
         import { state } from './js/data/state.js';
@@ -259,7 +272,8 @@
         import { ColorEditor } from './js/features/color-editor.js';
         import { ZoomEditor } from './js/features/zoom-editor.js';
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
-        import { QuizUI, clearQuizTimers, calculateGreatCircleDistance } from './js/features/quiz/quiz-ui.js';
+        import { QuizUI, clearQuizTimers } from './js/features/quiz/quiz-ui.js';
+        import { createCountryTable } from './js/data/country-table.js';
         import { QuizTimer } from './js/features/quiz/quiz-timer.js';
         import { QuizModePicker } from './js/features/quiz/quiz-mode-picker.js';
         import { QuizResultsModal } from './js/features/quiz/quiz-results-modal.js';
@@ -554,6 +568,11 @@
                         elements: elements
                     });
 
+                    // Plain, serialisable country table for @terragotcha/quiz-core.
+                    // Built once here (the globe's data is loaded by this point)
+                    // and shared by every mode.
+                    const countryTable = createCountryTable({ globeManager, countryToISO });
+
                     // Initialize quiz modes
                     nameFlagQuiz = new NameFlagQuiz({
                         globeManager: globeManager,
@@ -562,7 +581,7 @@
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
-                        calculateGreatCircleDistance: calculateGreatCircleDistance,
+                        countryTable: countryTable,
                         labelManager: labelManager,
                         quizTimer: quizTimer
                     });
@@ -573,6 +592,7 @@
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
                         countryToISO: countryToISO,
+                        countryTable: countryTable,
                         animateFlagWave: animateFlagWave,
                         quizTimer: quizTimer
                     });
@@ -583,6 +603,7 @@
                         elements: elements,
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
+                        countryTable: countryTable,
                         quizTimer: quizTimer
                     });
 
@@ -593,7 +614,7 @@
                         rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
-                        calculateGreatCircleDistance: calculateGreatCircleDistance,
+                        countryTable: countryTable,
                         labelManager: labelManager,
                         quizTimer: quizTimer
                     });

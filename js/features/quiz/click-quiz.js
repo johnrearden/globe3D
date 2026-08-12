@@ -16,17 +16,12 @@
 import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome } from './quiz-question-chrome.js';
+import { generateClickCountrySession, systemRng } from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
 
 const TOTAL_QUESTIONS = 10;
-
-// Smallest country the "Find the country" quiz will ask for: Guadeloupe's land
-// area (km²). Anything smaller (tiny islands, micro-states) is too fiddly to hunt
-// for and click on the globe, so it's excluded. Countries with no baked area are
-// kept (treated as large) — see area-data.js.
-const MIN_AREA_KM2 = 1628;
 
 export class ClickQuiz {
     constructor(options = {}) {
@@ -35,6 +30,7 @@ export class ClickQuiz {
         this.elements = options.elements;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
+        this.countryTable = options.countryTable;
         this.quizTimer = options.quizTimer;
 
         // Quiz state
@@ -81,20 +77,14 @@ export class ClickQuiz {
         state.set('quiz.active', true);
         state.set('quiz.mode', 'click-country');
 
-        // Pick up to 10 random countries from the chosen region, excluding
-        // anything smaller than Guadeloupe (tiny islands are too hard to find and
-        // tap). "N. America & Caribbean" is exempt — it's mostly islands, so
-        // filtering them out would leave too few targets and defeat its point.
-        const applyAreaFilter = this.scope !== 'N. America & Caribbean';
-        const centroids = this.globeManager.getCentroidsByRegion(this.scope)
-            .filter(c => {
-                if (!applyAreaFilter) return true;
-                const rec = this.globeManager.getCountryByName(c.name);
-                const area = rec && rec.area;
-                return area == null || area >= MIN_AREA_KM2; // unknown → keep
-            });
-        const shuffled = [...centroids].sort(() => Math.random() - 0.5);
-        this.countries = shuffled.slice(0, TOTAL_QUESTIONS).map(c => c.name);
+        // Pick up to 10 random countries from the chosen region. The area filter
+        // (and its "N. America & Caribbean" exemption) now lives in quiz-core.
+        this.countries = generateClickCountrySession({
+            countries: this.countryTable.all,
+            scope: this.scope,
+            count: TOTAL_QUESTIONS,
+            rng: systemRng
+        }).map(q => q.meta.country);
         // A small region (e.g. Oceania after filtering) may yield fewer than 10 —
         // run exactly as many questions as we have targets.
         this.total = this.countries.length;

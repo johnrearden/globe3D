@@ -22,12 +22,9 @@ export function clearQuizTimers(autoAdvanceTimer = null, intervalTimer = null) {
     return { autoAdvanceTimer: null, intervalTimer: null };
 }
 
-/** Great-circle distance (radians) between two country centroids on the unit sphere. */
-export function calculateGreatCircleDistance(country1, country2) {
-    const dotProduct = country1.centroid.dot(country2.centroid);
-    const clampedDot = Math.max(-1, Math.min(1, dotProduct));
-    return Math.acos(clampedDot);
-}
+// calculateGreatCircleDistance moved to @terragotcha/quiz-core (src/geo.js),
+// where it operates on plain [x, y, z] arrays instead of THREE.Vector3 so the
+// quiz generators carry no Three.js dependency.
 
 // Confetti burst from both sides for a few seconds (canvas-confetti global).
 function triggerConfetti() {

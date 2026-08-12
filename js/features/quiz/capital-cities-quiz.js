@@ -8,9 +8,9 @@
  */
 
 import { state } from '../../data/state.js';
-import { capitalIsSelfEvident } from '../../utils/self-evident-capital.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
+import { generateCapital, systemRng } from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -23,7 +23,7 @@ export class CapitalCitiesQuiz {
         this.rotateGlobeToCountry = options.rotateGlobeToCountry;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
-        this.calculateGreatCircleDistance = options.calculateGreatCircleDistance;
+        this.countryTable = options.countryTable;
         this.labelManager = options.labelManager;
         this.quizTimer = options.quizTimer;
 
@@ -177,75 +177,31 @@ export class CapitalCitiesQuiz {
      * @returns {Object|null} {direction, countryName, capital, options, correctAnswer, countryObj}
      */
     generateQuestion() {
-        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
-        const capitals = this.globeManager.getCapitalsData();
+        const result = generateCapital({
+            countries: this.countryTable.all,
+            scope: this.scope,
+            used: new Set(this.usedCountries),
+            rng: systemRng
+        });
 
-        // Exclude overseas territories / dependencies — too obscure / numerous to be
-        // fair quiz targets — and restrict to countries that actually have a capital
-        // entry (sovereign countries only).
-        const depNames = new Set(Object.keys(
-            this.globeManager.getDependencyData ? this.globeManager.getDependencyData() : {}
-        ));
-        // Also drop pairs where the capital gives the country away (Mexico/Mexico
-        // City, Tunisia/Tunis, the city-states, …) so the answer isn't self-evident.
-        const quizCentroids = centroids.filter(c =>
-            !depNames.has(c.name) &&
-            capitals[c.name] &&
-            !capitalIsSelfEvident(c.name, capitals[c.name].name));
-
-        // Filter out countries already used in this quiz
-        const availableCountries = quizCentroids.filter(c => !this.usedCountries.includes(c.name));
-
-        if (availableCountries.length < 4) {
+        if (!result) {
             console.error('Not enough countries with capitals for quiz');
             return null;
         }
 
-        // Select random country as the correct answer
-        const correctIndex = Math.floor(Math.random() * availableCountries.length);
-        const correctCountry = availableCountries[correctIndex];
+        const countryName = result.meta.country;
+        this.usedCountries.push(countryName);
 
-        // Mark this country as used
-        this.usedCountries.push(correctCountry.name);
-
-        // Pick 3 geographically closest countries as distractors (same fairness
-        // approach as the name-the-country quiz).
-        const distractors = quizCentroids
-            .filter(country => country.name !== correctCountry.name)
-            .map(country => ({
-                country,
-                distance: this.calculateGreatCircleDistance(correctCountry, country)
-            }))
-            .sort((a, b) => a.distance - b.distance)
-            .slice(0, 3)
-            .map(item => item.country);
-
-        const allCountries = [correctCountry, ...distractors];
-
-        // Randomly choose the question direction.
-        const direction = Math.random() < 0.5 ? 'forward' : 'reverse';
-
-        let options, correctAnswer;
-        if (direction === 'forward') {
-            // Ask the capital — options are capital names.
-            options = allCountries.map(c => capitals[c.name].name);
-            correctAnswer = capitals[correctCountry.name].name;
-        } else {
-            // Ask the country — options are country names.
-            options = allCountries.map(c => c.name);
-            correctAnswer = correctCountry.name;
-        }
-
-        // Shuffle the options
-        const shuffledOptions = options.sort(() => Math.random() - 0.5);
-
+        // Adapt quiz-core's payload to the shape this mode's renderer already
+        // expects. The capital object comes from the globe so it keeps whatever
+        // extra fields the marker/label code reads.
         return {
-            direction,
-            countryName: correctCountry.name,
-            capital: capitals[correctCountry.name],
-            options: shuffledOptions,
-            correctAnswer,
-            countryObj: correctCountry
+            direction: result.meta.direction,
+            countryName,
+            capital: this.globeManager.getCapital(countryName),
+            options: result.payload.grid.options.map(o => o.value),
+            correctAnswer: result.answer.correct[0],
+            countryObj: this.countryTable.centroidObj(countryName)
         };
     }
 

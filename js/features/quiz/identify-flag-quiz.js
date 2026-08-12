@@ -7,6 +7,7 @@ import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
 import { createWebGLRenderer } from '../../utils/webgl-diagnostics.js';
+import { buildFlagDirectionSchedule, generateIdentifyFlag, systemRng } from '@terragotcha/quiz-core';
 
 // Access global THREE.js library
 const THREE = window.THREE;
@@ -18,6 +19,7 @@ export class IdentifyFlagQuiz {
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
         this.countryToISO = options.countryToISO;
+        this.countryTable = options.countryTable;
         this.animateFlagWave = options.animateFlagWave;
         this.quizTimer = options.quizTimer;
 
@@ -347,9 +349,7 @@ export class IdentifyFlagQuiz {
 
         // Balanced-random schedule: 5 forward (flag → name) + 5 reverse
         // (name → flags), shuffled. Consumed by index in generateQuestion().
-        this.questionTypes = ['forward', 'forward', 'forward', 'forward', 'forward',
-                              'reverse', 'reverse', 'reverse', 'reverse', 'reverse']
-            .sort(() => Math.random() - 0.5);
+        this.questionTypes = buildFlagDirectionSchedule(systemRng);
 
         // Update state
         state.set('quiz.active', true);
@@ -458,64 +458,34 @@ export class IdentifyFlagQuiz {
      * @returns {Object} Question with correctCountry, options, and countryObj
      */
     generateQuestion() {
-        const centroids = this.globeManager.getCentroidsByRegion(this.scope);
+        // Pull this question's direction from the pre-shuffled schedule. At
+        // generation time questionsAnswered equals the current question's
+        // 0-based index. quiz-core may downgrade reverse → forward when the
+        // region can't supply enough flaggable distractors.
+        const scheduled = this.questionTypes[this.questionsAnswered] || 'forward';
 
-        // Filter out countries already used in this quiz
-        const availableCountries = centroids.filter(c => !this.usedCountries.includes(c.name));
+        const result = generateIdentifyFlag({
+            countries: this.countryTable.all,
+            scope: this.scope,
+            used: new Set(this.usedCountries),
+            direction: scheduled,
+            rng: systemRng
+        });
 
-        if (availableCountries.length < 6) {
-            console.error('Not enough unused countries for quiz');
+        if (!result) {
+            console.error('Not enough unused countries with flags for quiz');
             return null;
         }
 
-        // The correct answer must have an ISO code so displayFlag (forward) or the
-        // correct flag tile (reverse) has art. Without this, a country missing from
-        // countryToISO leaves stale art / a broken image on screen.
-        const flaggable = availableCountries.filter(c => this.countryToISO[c.name]);
-        if (flaggable.length === 0) {
-            console.error('No remaining countries with flags available for quiz');
-            return null;
-        }
+        const correctCountry = result.answer.correct[0];
+        this.usedCountries.push(correctCountry);
 
-        // Pull this question's type from the pre-shuffled schedule. At generation
-        // time questionsAnswered equals the current question's 0-based index.
-        let type = this.questionTypes[this.questionsAnswered] || 'forward';
-
-        // Select random country from flaggable countries as the correct answer
-        const correctIndex = Math.floor(Math.random() * flaggable.length);
-        const correctCountry = flaggable[correctIndex];
-
-        // Mark this country as used
-        this.usedCountries.push(correctCountry.name);
-
-        // Reverse questions show 6 flag tiles, so every distractor needs an ISO
-        // code too. Forward questions show names, so any country works as a
-        // distractor. Fall back to forward if a small region lacks enough flags.
-        let distractorPool = centroids.filter(country => country.name !== correctCountry.name);
-        if (type === 'reverse') {
-            const flaggablePool = distractorPool.filter(c => this.countryToISO[c.name]);
-            if (flaggablePool.length < 5) {
-                type = 'forward';
-            } else {
-                distractorPool = flaggablePool;
-            }
-        }
-
-        // Select 5 random distractors (6 options total)
-        const shuffledOthers = distractorPool.sort(() => Math.random() - 0.5);
-        const distractors = shuffledOthers.slice(0, 5).map(c => c.name);
-
-        // Combine correct answer with distractors
-        const allOptions = [correctCountry.name, ...distractors];
-
-        // Shuffle the options randomly
-        const shuffledOptions = allOptions.sort(() => Math.random() - 0.5);
-
+        // Adapt quiz-core's payload to the shape this mode's renderer expects.
         return {
-            correctCountry: correctCountry.name,
-            options: shuffledOptions,
-            countryObj: correctCountry,
-            type
+            correctCountry,
+            options: result.payload.grid.options.map(o => o.value),
+            countryObj: this.countryTable.centroidObj(correctCountry),
+            type: result.meta.direction
         };
     }
 

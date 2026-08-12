@@ -10,7 +10,7 @@
  * An explicit allow-list (not a deny-list) guarantees nothing heavy or private
  * (backend/, node_modules/, docs/, .env, …) ever leaks into the Pages upload.
  */
-import { rmSync, mkdirSync, cpSync, existsSync } from 'node:fs';
+import { rmSync, mkdirSync, cpSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
@@ -24,6 +24,7 @@ const INCLUDE = [
     'index.html',
     'styles.css',
     'js',
+    'packages',             // workspace packages, resolved via index.html's import map
     'borders',              // generated border-quiz landing pages (build-landing.mjs)
     'img',                  // small UI-shell images (e.g. the loading-splash globe)
     'label-config.json',
@@ -62,6 +63,19 @@ for (const entry of INCLUDE) {
 if (existsSync(join(DIST, 'assets'))) {
     console.error('build:pages — assets/ leaked into dist/; aborting');
     process.exit(1);
+}
+
+// npm workspaces can materialise a nested node_modules inside a package when a
+// dependency can't be hoisted. Nothing under packages/ should have deps, so if
+// one appears it would silently bloat the upload — fail loudly instead.
+const distPackages = join(DIST, 'packages');
+if (existsSync(distPackages)) {
+    for (const pkg of readdirSync(distPackages)) {
+        if (existsSync(join(distPackages, pkg, 'node_modules'))) {
+            console.error(`build:pages — node_modules leaked into dist/packages/${pkg}/; aborting`);
+            process.exit(1);
+        }
+    }
 }
 
 console.log(`build:pages — staged ${copied} entries into dist/`);
