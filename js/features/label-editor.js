@@ -11,7 +11,7 @@
 
 import { elements, show, hide, addClass, removeClass, setText } from '../utils/dom.js';
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class LabelEditor {
     constructor({ scene, camera, controls, labelManager, updateLabelVisibility } = {}) {

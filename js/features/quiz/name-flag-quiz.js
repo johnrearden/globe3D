@@ -8,8 +8,7 @@ import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
 import { createSession, generateNameCountry, systemRng, toHistoryRecord } from '@terragotcha/quiz-core';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class NameFlagQuiz {
     constructor(options = {}) {

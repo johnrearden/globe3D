@@ -10,7 +10,7 @@
 
 import { track } from './analytics.js';
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class PointerControls {
     constructor(deps = {}) {

@@ -9,7 +9,7 @@
 
 import { canvasFont } from '../utils/theme.js';
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 // Drop the dot just above the country mesh (radius 1.0008) so it never sinks
 // into the fill. Values carried over from the previous inline capital marker.

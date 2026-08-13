@@ -6,8 +6,7 @@
 import { state } from '../data/state.js';
 import { createWebGLRenderer } from '../utils/webgl-diagnostics.js';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class SceneManager {
     constructor(containerElement) {

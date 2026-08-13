@@ -13,7 +13,7 @@ import { latLngToXYZ } from '../utils/coordinates.js';
 import { COUNTRY_REGIONS } from '../data/country-regions.js';
 import { MarkerLayer } from './markers.js';
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 const SPHERE_RADIUS = 1.0;
 const SPHERE_SEGMENTS = 96;

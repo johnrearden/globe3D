@@ -6,8 +6,7 @@
 import { state } from '../data/state.js';
 import { canvasFont, onThemeChange } from '../utils/theme.js';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class LabelManager {
     constructor(scene, camera, globeManager) {

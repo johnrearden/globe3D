@@ -20,8 +20,7 @@ import {
     createSession, fromPlan, generateClickCountrySession, systemRng, toHistoryRecord
 } from '@terragotcha/quiz-core';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 const TOTAL_QUESTIONS = 10;
 

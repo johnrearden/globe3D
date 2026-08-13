@@ -5,8 +5,7 @@
 
 import { state } from '../../data/state.js';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class QuizManager {
     constructor(options = {}) {

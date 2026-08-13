@@ -230,18 +230,22 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <!--
-      Workspace packages are resolved by bare specifier so the same import
-      statements work here (buildless, native ES modules) and later under
-      Astro/Vite/Metro. Must precede any module script that uses them.
+      Workspace packages and third-party libraries are resolved by bare specifier
+      so the same import statements work here (buildless, native ES modules) and
+      later under Astro/Vite/Metro. Must precede any module script that uses them.
+
+      `three` is pinned to the version in package.json — tests/three-version.test.js
+      fails the build if the two drift, since nothing else ties the CDN URL to the
+      dependency a bundler would install.
     -->
     <script type="importmap">
     {
         "imports": {
             "@terragotcha/quiz-core": "/packages/quiz-core/src/index.js",
-            "@terragotcha/quiz-core/": "/packages/quiz-core/src/"
+            "@terragotcha/quiz-core/": "/packages/quiz-core/src/",
+            "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+            "three/": "https://cdn.jsdelivr.net/npm/three@0.128.0/"
         }
     }
     </script>

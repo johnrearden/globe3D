@@ -148,8 +148,10 @@ was still deferred up to 6s behind `afterIntro`. **`index.html` now carries the 
 static vendor `<script async src>` in `<head>`** (immediately after the `google-adsense-account`
 meta). This is a deliberate, documented exception to the "no new `<script>` in `index.html`" rule:
 the tag is vendor markup, not logic; `adsbygoogle.js` must self-bootstrap from `<head>` so ESM
-import is not an option; and the file already carries three such tags (three.js, OrbitControls,
-canvas-confetti). It duplicates the client id — the comment at both sites says to keep them in sync
+import is not an option; and the file already carries such a tag (canvas-confetti). (It carried two
+more — three.js and OrbitControls — until stage A8 replaced them with an importmap-resolved ESM
+`import`; canvas-confetti is now the only remaining vendor `<script src>` besides AdSense.) It
+duplicates the client id — the comment at both sites says to keep them in sync
 (the `/borders/*` pages stay synced automatically, `build-landing.mjs` regexes the value out of
 `site-config.js`). `adsense.js` keeps `loadAdsenseScript()` as a fallback that no-ops when the static
 tag is already present, so the page never carries two loaders. `initAds()` **stays** in
@@ -206,7 +208,7 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 
 | Block | Lines (approx) | Notes |
 |-------|----------------|-------|
-| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), three.js (222), OrbitControls (223), Google Fonts (Fredoka/Archivo) for the splash |
+| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), the `<script type="importmap">` that resolves `three` + `@terragotcha/*` by bare specifier (three.js and OrbitControls were `<script src>` tags until stage A8), Google Fonts (Fredoka/Archivo) for the splash |
 | Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
 | Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
 | Quiz container + mode-selector | ~107–160 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder. The end-of-quiz celebration overlay was **extracted** — now built at runtime by `js/features/quiz/quiz-results-modal.js` (the new "Quiz Results" design); only the `body.celebration-active` chrome-hiding CSS remains. The old bespoke click-quiz DOM (container / countdown bar / results modal) was **removed** — "Find the country" now reuses the shared floating `#qz-chrome` like the other quizzes |

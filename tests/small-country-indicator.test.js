@@ -3,45 +3,14 @@
  * that update() only shows for countries in the small-country set (and clears any
  * previous marker first), and that remove() tears it down.
  *
- * The module reads `window.THREE` at import time and builds a small mesh graph, so
- * we install a minimal chainable THREE stub before importing. The stub does no real
- * geometry — the values don't affect isShowing(); we only need the calls not to throw.
+ * The module builds a small mesh graph (geometries, materials, a Group), which real
+ * three does happily in Node — none of it needs a WebGL context, since nothing is
+ * rendered. So this runs against the actual library rather than a hand-written stub,
+ * and would catch an API break on a three upgrade.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-
-class V3 {
-    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-    clone() { return new V3(this.x, this.y, this.z); }
-    normalize() { return this; }
-    multiplyScalar() { return this; }
-    add() { return this; }
-    sub() { return this; }
-    copy() { return this; }
-}
-class Quaternion { setFromUnitVectors() { return this; } copy() { return this; } }
-class Object3D {
-    constructor() { this.children = []; this.position = new V3(); this.quaternion = new Quaternion(); this.renderOrder = 0; }
-    add(c) { this.children.push(c); }
-    lookAt() {}
-    traverse(cb) { cb(this); for (const c of this.children) (c.traverse ? c.traverse(cb) : cb(c)); }
-}
-class Mesh extends Object3D { constructor(geometry, material) { super(); this.geometry = geometry; this.material = material; } }
-
-globalThis.window = {
-    THREE: {
-        Group: Object3D,
-        Mesh,
-        Vector3: V3,
-        Quaternion,
-        CircleGeometry: class { dispose() {} },
-        ConeGeometry: class { dispose() {} },
-        BoxGeometry: class { dispose() {} },
-        MeshBasicMaterial: class { constructor() {} dispose() {} },
-        DoubleSide: 2,
-    },
-};
-
-const { SmallCountryIndicator } = await import('../js/features/small-country-indicator.js');
+import { Vector3 } from 'three';
+import { SmallCountryIndicator } from '../js/features/small-country-indicator.js';
 
 function makeGlobe() {
     const children = [];
@@ -59,7 +28,7 @@ describe('SmallCountryIndicator', () => {
         const globeManager = {
             getGlobe: () => globe,
             getCountryByName: (name) =>
-                name === 'Tuvalu' ? { name, centroid: new V3(0, 1, 0) } : null,
+                name === 'Tuvalu' ? { name, centroid: new Vector3(0, 1, 0) } : null,
         };
         indicator = new SmallCountryIndicator({ globeManager, smallCountries: new Set(['Tuvalu', 'Nauru']) });
     });

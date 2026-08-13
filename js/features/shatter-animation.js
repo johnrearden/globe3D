@@ -31,7 +31,7 @@
  * actual pieces of the globe's surface flying apart.
  */
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 const SHARD_COUNT = 90;
 const SHARD_BASE_SIZE = 0.13;

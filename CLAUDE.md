@@ -6,7 +6,10 @@ Globe3D is an interactive 3D web application that displays a rotating globe with
 
 ## Technology Stack
 
-- **Three.js** (r128) - 3D rendering library
+- **Three.js** (r128, pinned in `package.json`) - 3D rendering library. Imported by bare specifier
+  (`import * as THREE from 'three'`), resolved by the `<script type="importmap">` in `index.html` to
+  a pinned CDN ESM build — not a `window.THREE` global. `tests/three-version.test.js` fails if the
+  importmap URL and the `package.json` pin drift apart.
 - **OrbitControls** - Camera control
 - **Custom ShaderMaterial** - Vector country fills driven by per-vertex country ID + palette texture
 - **Vanilla JavaScript** - No frameworks

@@ -12,8 +12,8 @@ import {
     QUIZ_SUBJECT_SCREEN_FRACTION,
 } from './focus-zoom.js';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export class CameraController {
     constructor(camera, renderer, scene) {
@@ -58,7 +58,7 @@ export class CameraController {
      */
     setupControls() {
         // Create OrbitControls
-        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
         // Enable damping for smooth movement. Lower dampingFactor → longer
         // inertia after the user releases the pointer; at 0.02 the angular
@@ -456,7 +456,7 @@ export class CameraController {
 
     /**
      * Get controls instance
-     * @returns {THREE.OrbitControls}
+     * @returns {OrbitControls}
      */
     getControls() {
         return this.controls;

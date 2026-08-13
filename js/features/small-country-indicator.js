@@ -4,7 +4,7 @@
  * spot at a grazing angle. Owns the marker mesh and its lifecycle.
  */
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 const SMALL_INDICATOR_RADIUS = 1.0045;
 

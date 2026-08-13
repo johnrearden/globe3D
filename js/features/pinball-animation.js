@@ -21,7 +21,7 @@
  * enough that this isn't worth the wiring.
  */
 
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 const BOUNCE_SPEED = 21.6;             // units/s, magnitude of velocity
 const GLOBE_RADIUS = 1.0008;           // matches country-mesh radius

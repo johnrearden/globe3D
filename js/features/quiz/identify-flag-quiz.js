@@ -11,8 +11,7 @@ import {
     buildFlagDirectionSchedule, createSession, generateIdentifyFlag, systemRng, toHistoryRecord
 } from '@terragotcha/quiz-core';
 
-// Access global THREE.js library
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 export class IdentifyFlagQuiz {
     constructor(options = {}) {

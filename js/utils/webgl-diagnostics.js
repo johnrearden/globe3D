@@ -19,8 +19,7 @@
  * creation failure.
  */
 
-// Access global THREE.js library (same pattern as scene.js / flag-renderer.js).
-const THREE = window.THREE;
+import * as THREE from 'three';
 
 // Context types probed (in preference order) when diagnosing a failure.
 const PROBE_TYPES = ['webgl2', 'webgl', 'experimental-webgl'];
