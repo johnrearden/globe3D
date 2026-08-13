@@ -1,5 +1,15 @@
 # Terragotcha — AdSense Remediation & React Migration Plan
 
+> **Status: partly superseded.** The problem statement below still holds; the
+> architecture, sequencing and UI sections have been overtaken by the shared-core
+> plan (extract `packages/quiz-core` from the vanilla app first, then Astro/React
+> web, then Expo). That plan is not yet in the repo — it should move here.
+>
+> Settled since this was written:
+> [`c0-expo-gl-spike.md`](./c0-expo-gl-spike.md) — the React Native app can render
+> the real 30 MB globe mesh through expo-gl at 60 fps, so the native globe is the
+> same globe, not a decimated stand-in.
+
 ## Context / Problem
 
 Terragotcha (terragotcha.com) is a geography quiz web app built around an interactive Three.js globe. It was **rejected by Google AdSense for "low quality content."**
