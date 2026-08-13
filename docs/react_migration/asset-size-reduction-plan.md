@@ -90,42 +90,59 @@ The true geometric floor — the simplified country outlines at the current 0.00
 
 ## Stage 0 — Serve Compressed
 
-**No code change. 51 MB → 12.4 MB.** The highest return in this document by a wide margin, and it
+**No code change. 51.3 MB → 12.3 MB.** The highest return in this document by a wide margin, and it
 should ship independently of everything else.
 
-First confirm the diagnosis. **This one is for a human to run** — per `CLAUDE.md` the assistant does
-not touch remote hosts, so the diagnosis stays unconfirmed in-session and the stage below is written
-as conditional on the result:
+> **Diagnosis confirmed, 2026-08-13.** The `curl` below returns **~31 MB** for `world-mesh.bin` — the
+> full raw size, no `content-encoding`. Visitors have been pulling the whole 51 MB. This stage is no
+> longer conditional.
+>
+> ```
+> curl -sI -H 'Accept-Encoding: br,gzip' https://assets.terragotcha.com/world-mesh.bin \
+>   | grep -i 'content-encoding\|content-length'
+> ```
+>
+> (Remote checks are a human's to run — per `CLAUDE.md` the assistant does not touch remote hosts.
+> Re-verify with a **GET** rather than a HEAD after deploying: a HEAD does not always reflect edge
+> compression, so it can only ever prove the *bad* case, which is what it did here.)
 
-```
-curl -sI -H 'Accept-Encoding: br,gzip' https://assets.terragotcha.com/world-mesh.bin \
-  | grep -i 'content-encoding\|content-length'
-```
+The tooling is in the repo: **`npm run build:assets`** (`compress-assets.mjs`) writes brotli -11
+copies of all six fetched assets into `dist-assets/` under their **original names**, so
+`js/data/asset-base.js` and `js/core/globe.js` need no edit. R2 stores object bytes verbatim and
+returns whatever metadata you set on them, and browsers decompress transparently.
 
-If no `content-encoding` comes back, pre-compress at upload time. R2 stores object bytes verbatim and
-returns whatever metadata you set on them, and browsers transparently decompress a response carrying
-`Content-Encoding` — so **nothing in `js/core/globe.js` changes**:
+Measured output (brotli -11, `BROTLI_PARAM_LGWIN: 24`; ~2 min, one-off):
 
-```
-# compress into a scratch dir, keeping the original file names
-for f in world-mesh world-border-lines world-id country-palette; do
-  brotli -q 11 -c assets/$f.bin > /tmp/r2/$f.bin
-done
-rclone copy /tmp/r2 r2:terragotcha-assets \
-  --header-upload "Cache-Control: public, max-age=86400" \
-  --header-upload "Content-Encoding: br"
-```
+| file | raw | brotli | saved |
+|---|---|---|---|
+| `world-mesh.bin` | 31,561,284 | 11,661,798 | 63.1% |
+| `world-id.bin` | 16,777,216 | 63,574 | 99.6% |
+| `world-border-lines.bin` | 2,838,040 | 537,801 | 81.1% |
+| `country-meta.json` | 150,179 | 24,852 | 83.5% |
+| `capitals.json` | 14,014 | 3,811 | 72.8% |
+| `country-palette.bin` | 1,024 | 383 | 62.6% |
+| **total** | **51,341,757** | **12,292,219** | **76.1%** |
 
-Two things to get right:
+Slightly better than the estimate in *Measured Baseline* (12.29 vs 12.39 MB) because of the 16 MB
+brotli window — the mesh has long-range structure the default 4 MB window cannot reach across.
 
-- **Keep the object keys unchanged** (`world-mesh.bin`, *not* `world-mesh.bin.br`), so
-  `js/data/asset-base.js` needs no edit.
+Three things to get right:
+
+- **Never set `Content-Encoding` on `planet-z9.pmtiles`.** It is read by **HTTP Range request** —
+  that is the entire point of the format, and `DEPLOYMENT_GUIDE.md` §6.7 verifies it with a `206`. A
+  ranged read of a brotli-encoded object returns a slice of the *compressed* stream, which no client
+  can decode: **the map would break completely while every status-code check still passed.** This is
+  the one way Stage 0 can go badly wrong, and the existing upload recipe — `rclone copy ./assets` for
+  the whole directory — is exactly the shape that would do it. Hence the two-pass upload now in the
+  guide. The globe's `.bin` files are always fetched whole, never ranged, which is what makes
+  compressing *them* safe.
+- **Keep the object keys unchanged** (`world-mesh.bin`, *not* `world-mesh.bin.br`).
 - **Brotli vs gzip.** Every browser that supports WebGL2 and ES modules supports `br` over HTTPS, so
-  brotli is safe here and buys ~30% over gzip. If that assumption ever needs relaxing, gzip is the
-  drop-in fallback.
+  brotli is safe here and buys ~30% over gzip. `npm run build:assets -- --gzip` is the drop-in
+  fallback.
 
-Purge the R2 cache afterwards per `DEPLOYMENT_GUIDE.md:836-846`, and update the upload recipe in that
-guide so the header isn't lost on the next deploy.
+Purge the R2 cache afterwards per `DEPLOYMENT_GUIDE.md`. The upload recipe there has been updated so
+the header isn't lost on the next deploy.
 
 ---
 
@@ -393,8 +410,9 @@ line numbers are unaffected.
 
 ## Summary of Decisions
 
-1. **Serve the R2 assets compressed** — one deploy-config change, 51 MB → 12.4 MB, ships first and
-   independently. Confirm with `curl -sI` before assuming it's broken.
+1. **Serve the R2 assets compressed** — one deploy-config change, 51.3 MB → 12.3 MB, ships first and
+   independently. **Confirmed broken 2026-08-13**; tooling is `npm run build:assets`. Upload in two
+   passes — brotli on the pmtiles would break the map's range requests silently.
 2. **Replace uniform subdivision with 4° graticule pre-clipping** — bounds chord sag by construction,
    removes a 10.4× triangle multiplier, and is visually lossless. Mesh 31.56 MB → 3.86 MB.
 3. **Weld vertices per country** as a hard requirement of (2), or grid cuts render as fake borders.
@@ -423,6 +441,11 @@ numbers all survived; what changed:
   be the lever on the native app's one unresolved risk, and to delete the lite-mesh workstream.
 - Stale line references were corrected and the verification section gained the screenshot-diffing
   lesson from A8.
+- **Stage 0's diagnosis was confirmed** (~31 MB, uncompressed) and the stage was implemented as far
+  as it can be locally: `compress-assets.mjs` / `npm run build:assets`, with measured output replacing
+  the estimate. Implementing it surfaced a hazard the plan had not: the existing upload recipe copies
+  all of `assets/` in one pass, and adding `Content-Encoding` to that command would silently break
+  the pmtiles map, which depends on range requests. The upload is now two passes.
 
 Nothing in Stages 0–3 was reordered or dropped. The priority ordering is unchanged, with one
 strengthening: Stage 1's case is now materially better than when it was written.

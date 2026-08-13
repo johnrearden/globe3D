@@ -21,6 +21,7 @@
   "scripts": {
     "build:globe": "node build-textures.js",
     "build:geo-data": "node backend/data_build/build_countries_json.mjs && node backend/data_build/build_mesh_iso.mjs",
+    "build:assets": "node compress-assets.mjs",
     "build:landing": "node build-landing.mjs",
     "build:pages": "node build-landing.mjs && node build-pages.mjs",
     "check:syntax": "node check-syntax.mjs",

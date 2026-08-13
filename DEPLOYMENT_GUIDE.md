@@ -815,12 +815,38 @@ secret_access_key = <R2_SECRET_ACCESS_KEY>
 endpoint = https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 acl = private
 ```
+The upload is **two passes**, and they must not be merged — see the warning below.
+
 ```bash
-# From the repo root. Uploads the CONTENTS of assets/ to the bucket root.
+# From the repo root.
+# Pass 1 — the pmtiles tileset (and anything else), stored verbatim.
 rclone copy ./assets r2:terragotcha-assets --progress \
+  --exclude "*.bin" --exclude "country-meta.json" --exclude "capitals.json" \
   --header-upload "Cache-Control: public, max-age=86400"
+
+# Pass 2 — the six globe assets, pre-compressed. Object keys are unchanged
+# (world-mesh.bin, NOT world-mesh.bin.br), so nothing in js/ needs editing.
+npm run build:assets                       # writes dist-assets/, ~2 min
+rclone copy ./dist-assets r2:terragotcha-assets --progress \
+  --header-upload "Cache-Control: public, max-age=86400" \
+  --header-upload "Content-Encoding: br"
+
 rclone ls r2:terragotcha-assets   # verify keys are at the root (no assets/ prefix)
 ```
+
+> **Never put `Content-Encoding` on the pmtiles.** `planet-z9.pmtiles` is read by
+> **HTTP Range request** — that is the whole point of the format, and §6.7 verifies it with a
+> `206`. A ranged read of an object declared `Content-Encoding: br` returns a slice of the
+> *compressed* stream, which the client cannot decode: the map would break completely while
+> every check that only looks at status codes still passed. Hence the two passes. The globe's
+> `.bin` files are fetched whole, never ranged, which is what makes compressing them safe.
+
+**Why pre-compress at all:** `_headers`' note that "compression is applied automatically by the
+platform" is true, but `_headers` governs **Pages**, not R2. The edge does not compress
+`application/octet-stream`, and nothing here set `Content-Encoding`, so visitors were pulling
+**51 MB raw where 12.3 MB would do** — brotli -11 takes `world-mesh.bin` alone from 31.6 MB to
+11.7 MB. R2 stores bytes verbatim and returns whatever metadata was set on them, and browsers
+decompress transparently, so this is purely an upload-side change.
 
 **Caching — why `max-age=86400` and not `immutable`:** these assets are **not** regenerated
 by a deploy — `npm run build:pages` only stages the shell and excludes `assets/`. They change

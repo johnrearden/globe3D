@@ -13,3 +13,6 @@ dist/
 img/sources/
 .venv/
 venv/
+
+# Pre-compressed asset upload staging (npm run build:assets)
+dist-assets/
