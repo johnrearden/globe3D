@@ -76,6 +76,13 @@ Note the indices alone are 18 MB — more than half the file.
 `world-id.bin` is a red herring for bandwidth: it compresses 192× (mostly constant runs) and costs
 64 KB brotli. It is a **memory and repo-weight** issue, not a wire issue.
 
+**The format costs nothing to decode.** Measured during the C0 spike
+([`c0-expo-gl-spike.md`](./c0-expo-gl-spike.md)): 974k vertices in **2 ms**, because the three arrays
+are `Float32Array`/`Uint8Array`/`Uint32Array` **views onto the fetched `ArrayBuffer`** — no copy, no
+parse loop. That is worth stating explicitly because it is the property every alternative here is
+implicitly trading away, and it is the reason the file is this big in the first place. It is a good
+trade at 30 MB; it will still be a good trade at 3.9 MB.
+
 The true geometric floor — the simplified country outlines at the current 0.006° tolerance — is only
 **170,443 vertices across 6,486 rings**. Everything above that number is subdivision.
 
@@ -86,7 +93,9 @@ The true geometric floor — the simplified country outlines at the current 0.00
 **No code change. 51 MB → 12.4 MB.** The highest return in this document by a wide margin, and it
 should ship independently of everything else.
 
-First confirm the diagnosis:
+First confirm the diagnosis. **This one is for a human to run** — per `CLAUDE.md` the assistant does
+not touch remote hosts, so the diagnosis stays unconfirmed in-session and the stage below is written
+as conditional on the result:
 
 ```
 curl -sI -H 'Accept-Encoding: br,gzip' https://assets.terragotcha.com/world-mesh.bin \
@@ -188,6 +197,12 @@ Russia alone goes from **363,276 triangles to ~10,055**.
    *unclipped* simplified ring, where triangles are already exact. `world-id.bin` comes out
    byte-identical, so **picking is completely unaffected** by this stage.
 
+   **Holes are a non-issue** — worth confirming rather than discovering mid-implementation. The build
+   calls `earcut(flat, null, 2)` (`:728`): the holes argument is always `null`, so every ring is
+   triangulated independently as a solid polygon and enclaves (Lesotho, Vatican, San Marino) are
+   resolved by draw order and the ID buffer, not by holes. Clipping ring-by-ring therefore cannot
+   desynchronise an outer ring from its holes, because there is no such relationship to break.
+
 6. **Keep per-country vertex contiguity** (rings are already appended in country order). Stage 2
    depends on it.
 
@@ -219,6 +234,12 @@ The wire format is **untouched** in this stage — still
    `[u32 baseVertex][u32 indexCount]` per country, ~1.9 KB total) and store base-relative `u16`
    indices, expanded to one `Uint32Array` at load. **4 B → 2 B per index**, halving the largest
    remaining section.
+
+   This is the one step that **gives up the zero-copy property** — the indices stop being a view and
+   become a fresh 1.9 MB allocation filled by a 472k-iteration loop. At post-Stage-1 sizes that is a
+   few milliseconds and ~2 MB, so it is affordable; it is called out because it is a real change in
+   kind, not degree, and because it is what would make a Draco/meshopt decoder no longer a
+   *categorical* regression if the mesh ever grew enough to justify one.
 
 3. **Add a format version field** to the header, and update `_buildCountryMesh`
    (`js/core/globe.js:313-338`) and `tests/world-mesh-format.test.js` in the same change.
@@ -268,9 +289,15 @@ require a visual review pass that Stages 0–3 do not. Since those stages alread
 without touching fidelity, this isn't worth spending. Revisit only against a hard budget.
 
 Also considered and rejected for now: **Draco / meshopt compression**. Both would beat hand-rolled
-quantisation, but they add a decoder dependency (the app currently parses raw binary directly, with
-Three r128 loaded as a plain CDN global) for a marginal gain over Stage 2's ~1.2 MB. Worth
-revisiting only if the mesh grows substantially.
+quantisation, but for a marginal gain over Stage 2's ~1.2 MB.
+
+The stated reason — *"they add a decoder dependency (the app currently parses raw binary directly,
+with Three r128 loaded as a plain CDN global)"* — **no longer holds** as of `bcc7c0f`. `three` is now
+imported by bare specifier through an importmap, so adding a decoder is one importmap entry and an
+`import`, not a new `<script>` tag. The rejection still stands, but on the remaining grounds alone:
+the gain is small, and a decoder costs main-thread time on a device that currently spends **2 ms**
+turning 30 MB into a mesh (see below). Those two facts pull in opposite directions from the ones
+originally cited, and the second is the stronger one.
 
 ---
 
@@ -284,6 +311,31 @@ Stage 2 touches ~25 lines of `_buildCountryMesh`. **Stage 0 should ship immediat
 The one genuine interaction: a persistent in-memory globe makes the first-load cost even more
 prominent, because it is paid exactly once and everything after it is instant. Getting it from ~51 MB
 to ~1 MB is what makes that architecture feel the way it is supposed to.
+
+## Relationship to the Expo app
+
+This document was written as a **bandwidth** plan, before the C0 spike ran. That spike changed what
+Stage 1 is worth, in two ways this section exists to record.
+
+**Stage 1 is now also the memory plan.** C0 established that expo-gl can render the real mesh, and
+left exactly one question open: memory. The globe added ~164 MB of PSS on an emulator against 63 MB
+predicted, confounded by the Expo Go dev client and the emulator's GL translator, and needing a
+release build on physical hardware to resolve. Stage 1 cuts vertices 83% and triangles 90% — so it
+takes the *predicted* native footprint from ~63 MB to ~8 MB and shrinks whatever the *unexplained*
+component turns out to be by roughly the same factor. **Stage 1 is the cheapest way to stop caring
+about the answer.** If the physical-device measurement comes back bad, this is the fix; doing it
+first means possibly never needing the measurement at all.
+
+**It removes the "lite mesh for mobile" branch entirely.** The migration plan reasoned that a
+decimated mesh was justified for mobile web regardless of the native outcome (~16 MB gzipped over
+cellular, paid by every visitor, on the exact pages AdSense judges). Stage 1 delivers a **larger**
+reduction than decimation would, **losslessly** — so there is no lite variant to build, no second
+asset to keep in sync, and no divergence between what a phone sees and what a desktop sees. That is a
+whole workstream deleted, and it is a stronger argument for Stage 1 than anything in the bandwidth
+case above.
+
+The native app also inherits Stage 3's `world-id.bin` halving directly: 8 MB of resident memory
+matters considerably more inside an Android app's budget than it does in a browser tab.
 
 ---
 
@@ -304,6 +356,15 @@ to ~1 MB is what makes that architecture feel the way it is supposed to.
    zoom (1.13) over Russia, Canada and Brazil** — the specific failure the old subdivision existed to
    prevent, and the thing most likely to regress; click/hover picking still resolves correct country
    names; selection highlight and gradient intact.
+
+   **Do not diff whole screenshots.** Learned the hard way while verifying `bcc7c0f`: the 1px borders
+   and graticule lines jitter sub-pixel between two runs of *identical* code under SwiftShader, giving
+   a **3.6% differing-pixel noise floor** that swamped the 2.1% signal being looked for. Fills do not
+   jitter. So sample fill colour at fixed points — background, two ocean points, several large country
+   interiors — and compare exact RGB; those came back byte-identical across runs. The diff image is
+   still worth generating, but read it for *where* the red is (line work vs. interiors), not for the
+   count. For this stage that discipline is doubly apt: ocean bleed-through and a leaked 4° border
+   lattice are both changes to fills and line work respectively, so the two signals stay separable.
 6. **Wire check** after redeploy — re-run the Stage 0 `curl -sI` and confirm `content-encoding: br`
    with a `content-length` in the low hundreds of KB.
 
@@ -314,11 +375,19 @@ to ~1 MB is what makes that architecture feel the way it is supposed to.
 Per `CLAUDE.md`, `docs/senior_dev/implementation-plan.md` is the single source of truth for
 refactor/deployment work and **must** be updated by any change that renders it stale:
 
-- `CLAUDE.md` — the asset size table (lines 130-134) and the Build Process / Performance sections
+- `CLAUDE.md` — the asset size table (lines 133-137) and the Build Process / Performance sections
   that describe subdivision
-- `docs/senior_dev/implementation-plan.md` — the Stage 5 gzip item (`:438`) and the "354k edges"
-  border note (`:474`)
+- `docs/senior_dev/implementation-plan.md` — the Stage 5 gzip item (`:440`) and the "354k edges"
+  border note (`:476`)
 - `DEPLOYMENT_GUIDE.md` — the R2 upload recipe gains `Content-Encoding`
+- `docs/react_migration/c0-expo-gl-spike.md` — its memory section is written against a 30 MB mesh;
+  Stage 1 changes the arithmetic it reasons from
+- The migration plan's "a lite mesh remains justified for mobile web" conclusion, which Stage 1
+  retires (see *Relationship to the Expo app*)
+
+Line references in this document were correct at `ba235bd`. `bcc7c0f` shifted `CLAUDE.md` by +3 and
+`implementation-plan.md` by +2 below their edit points; `build-textures.js` and `js/core/globe.js`
+line numbers are unaffected.
 
 ---
 
@@ -335,3 +404,25 @@ refactor/deployment work and **must** be updated by any change that renders it s
    bandwidth problem.
 6. **Do not loosen simplification tolerance** — it's the only lossy lever and isn't needed.
 7. Net target: **~51 MB → ~1.2 MB**, no visual change.
+8. **Stage 1 is also the native-memory fix and the reason no lite mesh is needed** — added after the
+   C0 spike; see *Relationship to the Expo app*.
+
+---
+
+## Revisions
+
+**2026-08-13**, after the A8 (`bcc7c0f`) and C0 (`f31f6c6`) work. The plan's structure, staging and
+numbers all survived; what changed:
+
+- One factual claim was falsified — three is no longer "a plain CDN global", which removes the stated
+  reason for rejecting Draco/meshopt. The rejection was re-argued on grounds that do hold.
+- Two new facts were folded in: the format decodes in 2 ms because it is zero-copy (which Stage 2
+  partially spends), and holes are never passed to `earcut`, which retires a risk Stage 1 would
+  otherwise have had to handle.
+- The plan gained a dimension it did not have: it was a bandwidth document, and Stage 1 turns out to
+  be the lever on the native app's one unresolved risk, and to delete the lite-mesh workstream.
+- Stale line references were corrected and the verification section gained the screenshot-diffing
+  lesson from A8.
+
+Nothing in Stages 0–3 was reordered or dropped. The priority ordering is unchanged, with one
+strengthening: Stage 1's case is now materially better than when it was written.

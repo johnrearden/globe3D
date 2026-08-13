@@ -138,6 +138,14 @@ flip those in the shader or in the source canvas on native.
 - **Remaining gate:** run the rig from a release build on a physical low-end
   Android device and record PSS and sustained fps here. Until then, treat the
   memory column as unmeasured, not as measured-and-fine.
-- A lite mesh is still justified for **mobile web** for the reasons in the plan
-  (~16 MB gzipped over cellular, paid per visitor, on the pages AdSense judges).
-  That is unaffected by this result.
+- **Or make the gate irrelevant.** Stage 1 of
+  [`asset-size-reduction-plan.md`](./asset-size-reduction-plan.md) — replacing
+  `build-textures.js`'s uniform subdivision with graticule pre-clipping — cuts the
+  mesh 83% in vertices and 90% in triangles, losslessly and at build time only. It
+  takes the predicted native footprint from ~63 MB to ~8 MB and shrinks the
+  unexplained component by about the same factor. Doing it first is cheaper than
+  measuring, and it also settles the frame-rate question (157k triangles instead of
+  1.57M). The same change removes the migration plan's separate "lite mesh for
+  mobile web" workstream, since it beats decimation without losing detail.
+- Every number above is against the **current** 30 MB mesh. Re-run the rig after
+  Stage 1 rather than scaling these figures by hand.
