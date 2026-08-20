@@ -7,6 +7,7 @@ import { state } from '../data/state.js';
 import { canvasFont, onThemeChange } from '../utils/theme.js';
 
 import * as THREE from 'three';
+import { quizStore } from '@terragotcha/quiz-core';
 
 export class LabelManager {
     constructor(scene, camera, globeManager) {
@@ -254,7 +255,7 @@ export class LabelManager {
      * and every closer zoom — and only while it sits within the center cone.
      */
     updateVisibility() {
-        const quizActive = state.get('quiz.active');
+        const quizActive = quizStore.isActive();
         const cameraDistance = this.camera.position.length();
 
         const cameraDirection = this._cameraDirection;

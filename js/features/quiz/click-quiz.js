@@ -13,11 +13,10 @@
  * difference is the answer is a globe map-click rather than a multiple-choice grid.
  */
 
-import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome } from './quiz-question-chrome.js';
 import {
-    createSession, fromPlan, generateClickCountrySession, systemRng, toHistoryRecord
+    createSession, fromPlan, generateClickCountrySession, quizStore, systemRng, toHistoryRecord
 } from '@terragotcha/quiz-core';
 
 import * as THREE from 'three';
@@ -75,9 +74,6 @@ export class ClickQuiz {
         this.scope = scope;
         this.answering = false;
 
-        // Update state
-        state.set('quiz.active', true);
-        state.set('quiz.mode', 'click-country');
 
         // Pick up to 10 random countries from the chosen region. The area filter
         // (and its "N. America & Caribbean" exemption) now lives in quiz-core.
@@ -102,6 +98,7 @@ export class ClickQuiz {
             total: plan.length,
             nextQuestion: fromPlan(plan)
         });
+        quizStore.startSession(this.session);
 
         // Disable auto-rotation but keep manual rotation on — the player brings
         // their intended country face-on before tapping. Start from a neutral
@@ -155,9 +152,7 @@ export class ClickQuiz {
             this.advanceTimer = null;
         }
 
-        // Update state
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
+        quizStore.end();
 
         // Tear down the floating chrome (and its hint) and body classes.
         this.chrome.hide();
@@ -264,8 +259,7 @@ export class ClickQuiz {
         this.quizTimer.cancel();
         this.active = false;
         this.answering = false;
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
+        quizStore.end();
 
         this.chrome.hide();
         if (this.hint.parentNode) this.hint.parentNode.removeChild(this.hint);

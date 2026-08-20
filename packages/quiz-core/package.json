@@ -2,7 +2,7 @@
   "name": "@terragotcha/quiz-core",
   "version": "0.0.0",
   "private": true,
-  "description": "Pure quiz domain logic: question generation, session state machine, grading. No DOM, no Three.js, no React.",
+  "description": "Pure quiz domain logic: question generation, session state machine, grading, and the observable quiz store. No DOM, no Three.js, no React.",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
@@ -12,5 +12,8 @@
   "files": [
     "src"
   ],
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "zustand": "5.0.15"
+  }
 }

@@ -248,6 +248,7 @@
             "@terragotcha/storage/": "/packages/storage/src/",
             "@terragotcha/api-client": "/packages/api-client/src/index.js",
             "@terragotcha/api-client/": "/packages/api-client/src/",
+            "zustand/vanilla": "https://cdn.jsdelivr.net/npm/zustand@5.0.15/esm/vanilla.mjs",
             "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
             "three/": "https://cdn.jsdelivr.net/npm/three@0.128.0/"
         }
@@ -846,7 +847,7 @@
                     // reproduces a globe country-click (highlight + fly-to + flag panel).
                     weakSpotsWidget = new WeakSpotsWidget({
                         globeManager, cameraController, flagRenderer, labelManager,
-                        countryData, countryToISO, state,
+                        countryData, countryToISO,
                         resetIdleTimer: () => cameraController.resetIdleTimer()
                     });
                     weakSpotsWidget.init();
@@ -1115,7 +1116,7 @@
         // Update label visibility based on camera distance and orientation
         function updateLabelVisibility() {
             // LabelManager.updateVisibility() already hides labels during quiz
-            // (it reads state.get('quiz.active')), so just delegate.
+            // (it reads quizStore.isActive()), so just delegate.
             if (labelManager) labelManager.updateVisibility();
         }
 

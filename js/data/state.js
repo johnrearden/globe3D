@@ -2,6 +2,19 @@
  * State Management Module
  * Centralized state store for Globe3D application
  * Provides reactive state updates and subscription system
+ *
+ * NOT the place for new application state. Everything here is a live Three.js
+ * object or a piece of editor/interaction bookkeeping that only the vanilla
+ * globe engine touches, and the whole module is destined to become internal to
+ * that engine.
+ *
+ * The `quiz.*` slice used to live here and was removed in stage A5. It had
+ * become write-only — every mode set `score` / `questionsAnswered` /
+ * `currentQuestion` / `usedCountries`, and nothing ever read them — while the
+ * two fields that WERE read, `active` and `mode`, were maintained by hand in
+ * eight places. Quiz state now lives in `quizStore` (@terragotcha/quiz-core),
+ * which is observable, has one writer per transition, and can be reached from
+ * separate React roots. Put new shared state there, not here.
  */
 
 export class StateManager {
@@ -32,17 +45,6 @@ export class StateManager {
                 raycaster: null, // THREE.Raycaster
                 downPos: null,   // THREE.Vector2
                 isDragging: false
-            },
-
-            // Quiz System
-            quiz: {
-                active: false,
-                mode: null, // 'name-flag', 'identify-flag', or 'find-country'
-                currentQuestion: null,
-                score: 0,
-                questionsAnswered: 0,
-                usedCountries: [],
-                autoAdvanceTimer: null
             },
 
             // Labels
@@ -110,7 +112,7 @@ export class StateManager {
 
     /**
      * Get value from state using dot notation path
-     * @param {string} path - Dot notation path (e.g., 'quiz.score')
+     * @param {string} path - Dot notation path (e.g., 'scene.camera')
      * @returns {*} The value at the path
      */
     get(path) {
@@ -197,7 +199,7 @@ export class StateManager {
             });
         }
 
-        // Notify parent path subscribers (e.g., 'quiz' when 'quiz.score' changes)
+        // Notify parent path subscribers (e.g., 'labels' when 'labels.editMode' changes)
         const pathParts = path.split('.');
         while (pathParts.length > 1) {
             pathParts.pop();
@@ -241,20 +243,10 @@ export class StateManager {
 
     /**
      * Reset specific section of state
-     * @param {string} section - Section to reset (e.g., 'quiz')
+     * @param {string} section - Section to reset (e.g., 'labels')
      */
     reset(section) {
-        if (section === 'quiz') {
-            this.batchUpdate({
-                'quiz.active': false,
-                'quiz.mode': null,
-                'quiz.currentQuestion': null,
-                'quiz.score': 0,
-                'quiz.questionsAnswered': 0,
-                'quiz.usedCountries': [],
-                'quiz.autoAdvanceTimer': null
-            });
-        } else if (section === 'labels') {
+        if (section === 'labels') {
             this.set('labels.editMode', false);
             this.set('labels.selected', null);
             this.set('labels.isDragging', false);
@@ -274,7 +266,6 @@ export class StateManager {
      */
     debug() {
         console.log('=== Globe3D State ===');
-        console.log('Quiz:', this.state.quiz);
         console.log('Labels:', this.state.labels);
         console.log('Countries:', this.state.countries.list.length, 'loaded');
         console.log('UI:', this.state.ui);

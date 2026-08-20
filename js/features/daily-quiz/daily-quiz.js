@@ -10,7 +10,7 @@
  * time is measured client-side (display -> answer) and sent with the answer.
  */
 
-import { state } from '../../data/state.js';
+import { FOREIGN_MODES, quizStore } from '@terragotcha/quiz-core';
 import { ApiError } from '../../data/api-client.js';
 import { QuestionPresenter } from './question-renderer.js';
 import { showOnboarding } from './onboarding.js';
@@ -424,14 +424,17 @@ export class DailyQuiz {
 
     _enterQuizMode() {
         this._active = true;
-        state.set('quiz.active', true);
+        // Not a quiz-core session — the Daily Challenge runs on backend-issued
+        // questions — but it still has to suppress hover flags, labels and
+        // auto-rotate, which is all any reader ever asked `quiz.active` for.
+        quizStore.startForeign(FOREIGN_MODES.DAILY);
         document.body.classList.add('dq-active');
         this.camera.setAutoRotateAllowed(false);
     }
 
     _exitQuizMode() {
         this._active = false;
-        state.set('quiz.active', false);
+        quizStore.end();
     }
 
     _showQuestionUi() {

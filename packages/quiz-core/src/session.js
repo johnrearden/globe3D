@@ -13,10 +13,12 @@
  *
  * `reduce` is pure and exported for testing. `createSession` is the thin
  * stateful wrapper the app uses; it owns the RNG and question source, which are
- * the only impure parts. In Phase A5 this becomes the Zustand store with no
- * change to the reducer.
+ * the only impure parts, and (since A5) a Zustand store so every dispatch is
+ * observable. The reducer itself is untouched by that — the store holds the
+ * state, `reduce` still computes it.
  */
 
+import { createStore } from 'zustand/vanilla';
 import { gradeLocally } from './grade.js';
 import { QUESTIONS_PER_SESSION } from './generators.js';
 
@@ -161,20 +163,40 @@ export function toHistoryRecord(state, durationMs, ts = Date.now()) {
  *        generated {payload, answer, meta}, or null when the pool is dry.
  */
 export function createSession({ mode, scope = 'globe', countries, rng, total, nextQuestion }) {
-    let state = reduce(initialState(), { type: 'start', mode, scope, total });
+    // Zustand rather than a plain closure variable so the session is observable:
+    // quizStore mirrors it, and React/React Native bind to it with `useStore`.
+    // `setState` is given a whole new object each time (the reducer already
+    // returns one), so Zustand's default Object.is comparison correctly sees
+    // every dispatch as a change.
+    const store = createStore(() => reduce(initialState(), { type: 'start', mode, scope, total }));
 
-    const generate = () => nextQuestion({
-        countries,
-        scope: state.scope,
-        used: new Set(state.used),
-        rng,
-        index: state.index
-    });
+    const generate = () => {
+        const state = store.getState();
+        return nextQuestion({
+            countries,
+            scope: state.scope,
+            used: new Set(state.used),
+            rng,
+            index: state.index
+        });
+    };
 
-    const dispatch = action => { state = reduce(state, action); return state; };
+    const dispatch = (action) => {
+        const next = reduce(store.getState(), action);
+        store.setState(next, true);   // replace, not merge — the reducer owns the shape
+        return next;
+    };
 
     return {
-        getState: () => state,
+        getState: store.getState,
+
+        /**
+         * Observe every dispatch. Used by quizStore; also what a React hook
+         * subscribes to.
+         * @param {(state: SessionState, prev: SessionState) => void} listener
+         * @returns {() => void} unsubscribe
+         */
+        subscribe: store.subscribe,
 
         /** Produce and install the first question. */
         begin() {
@@ -191,8 +213,8 @@ export function createSession({ mode, scope = 'globe', countries, rng, total, ne
          * session. One call per "Next", so modes no longer sequence this by hand.
          */
         advance() {
-            dispatch({ type: 'advance' });
-            if (state.status === 'complete') return state;
+            const afterAdvance = dispatch({ type: 'advance' });
+            if (afterAdvance.status === 'complete') return afterAdvance;
             return dispatch({ type: 'question', question: generate() });
         },
 

@@ -7,10 +7,11 @@
  * auto-advance, shared celebration overlay).
  */
 
-import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
-import { createSession, generateCapital, systemRng, toHistoryRecord } from '@terragotcha/quiz-core';
+import {
+    createSession, generateCapital, quizStore, systemRng, toHistoryRecord
+} from '@terragotcha/quiz-core';
 
 import * as THREE from 'three';
 
@@ -66,12 +67,7 @@ export class CapitalCitiesQuiz {
             rng: systemRng,
             nextQuestion: generateCapital
         });
-
-        // Update state
-        state.set('quiz.active', true);
-        state.set('quiz.mode', 'capital');
-        state.set('quiz.score', 0);
-        state.set('quiz.questionsAnswered', 0);
+        quizStore.startSession(this.session);
 
         // Disable auto-rotation during quiz
         const controls = this.cameraController.getControls();
@@ -136,9 +132,7 @@ export class CapitalCitiesQuiz {
             this.autoAdvanceTimer = null;
         }
 
-        // Update state
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
+        quizStore.end();
 
         // Tear down the floating chrome and its body classes.
         this.chrome.hide();
@@ -290,8 +284,6 @@ export class CapitalCitiesQuiz {
         const { reveal } = this.session.answer(selectedAnswer);
         const isCorrect = reveal.correct;
 
-        state.set('quiz.score', this.score);
-        state.set('quiz.questionsAnswered', this.questionsAnswered);
 
         this.updateScoreDisplay();
         this.chrome.setScore(this.score, this.questionsAnswered);
@@ -367,8 +359,7 @@ export class CapitalCitiesQuiz {
         }
         this.quizTimer.cancel();
         this.active = false;
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
+        quizStore.end();
 
         this.chrome.hide();
         document.body.classList.remove('quiz-active');

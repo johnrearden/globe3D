@@ -3,8 +3,6 @@
  * Coordinates different quiz modes and manages quiz state
  */
 
-import { state } from '../../data/state.js';
-
 import * as THREE from 'three';
 
 export class QuizManager {
@@ -47,11 +45,8 @@ export class QuizManager {
         this.currentMode = mode;
         this.active = true;
 
-        // Update state
-        state.set('quiz.active', true);
-        state.set('quiz.mode', mode);
-
-        // Delegate to mode handler
+        // The mode handler publishes to quizStore itself (it owns the session),
+        // so there is nothing to mirror here.
         this.modeHandlers[mode].start();
     }
 
@@ -70,10 +65,6 @@ export class QuizManager {
 
         this.active = false;
         this.currentMode = null;
-
-        // Update state
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
     }
 
     /**

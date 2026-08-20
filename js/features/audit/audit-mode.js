@@ -16,12 +16,11 @@
  * covers the audit chrome (panel shell, list rows, nav).
  */
 
-import { state } from '../../data/state.js';
 import { ApiError } from '../../data/api-client.js';
 import { QuestionPresenter } from '../daily-quiz/question-renderer.js';
 import { PanelSheet } from '../daily-quiz/panel-sheet.js';
 import { svgIcon } from '../quiz/quiz-question-chrome.js';
-import { gradeLocally, revealOnly } from '@terragotcha/quiz-core';
+import { FOREIGN_MODES, gradeLocally, quizStore, revealOnly } from '@terragotcha/quiz-core';
 
 /** Local (not UTC) calendar date as YYYY-MM-DD, matching the date input. */
 function localISODate(d = new Date()) {
@@ -265,13 +264,13 @@ export class AuditMode {
     }
 
     _enterQuestionMode() {
-        state.set('quiz.active', true);
+        quizStore.startForeign(FOREIGN_MODES.AUDIT);
         document.body.classList.add('audit-active');
         this.camera.setAutoRotateAllowed(false);
     }
 
     _exitQuestionMode() {
-        state.set('quiz.active', false);
+        quizStore.end();
         document.body.classList.remove('audit-active');
         this.camera.setAutoRotateAllowed(true);
     }

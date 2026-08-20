@@ -611,6 +611,9 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   one-attempt-per-day, leaderboard ordering, seed reconciliation guard). Run `manage.py test`.
 
 **Frontend (new modules — `index.html` touched only by an import + one instantiation):**
+- Quiz state lives in `quizStore` (`packages/quiz-core/src/store.js`, vanilla Zustand) as of stage
+  A5, not in `js/data/state.js` — whose `quiz.*` slice was removed. Six readers (analytics,
+  weak-spots, pointer-controls ×3, camera-controls, labels) now ask the store.
 - `js/data/api-client.js` — fetch wrappers + device-token identity. **Extracted to
   `packages/api-client` (stage A4);** this file is now a ~15-line web binding that supplies the
   `window`-sniffed API base and the localStorage/sessionStorage adapters. `ApiError`,

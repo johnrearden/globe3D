@@ -13,12 +13,12 @@
  *    "Privacy & messaging") flips the EEA set to granted via `consent update`;
  *    outside those regions analytics runs with no banner. Google matches the
  *    visitor's region by IP — we never detect it ourselves.
- *  - `track()` is exported for the few events that aren't derivable from state;
- *    the rest (quiz_start, country_select) are auto-wired here via the existing
- *    state subscription system so other modules stay untouched.
+ *  - `track()` is exported for the few events that aren't derivable from an
+ *    observable store; quiz_start is auto-wired here off quizStore, so no quiz
+ *    module needs to know analytics exists.
  */
 
-import { state } from '../data/state.js';
+import { quizStore } from '@terragotcha/quiz-core';
 import { GA_MEASUREMENT_ID, isProdHost } from '../data/site-config.js';
 import { afterIntro } from '../utils/after-intro.js';
 
@@ -103,14 +103,16 @@ function loadGtag() {
 }
 
 /**
- * Auto-wire the events that are already observable in central state — no edits
- * to the quiz/globe modules needed. Events that aren't in state (quiz_complete
- * with a score, share, daily_complete) are tracked from their own call-sites.
+ * Auto-wire the events that are already observable — no edits to the quiz/globe
+ * modules needed. Events the store doesn't carry (quiz_complete with a score,
+ * share, daily_complete) are tracked from their own call-sites.
  */
 function wireAutoEvents() {
-    // A quiz becoming active (mode is set alongside in each mode's start()).
-    state.subscribe('quiz.active', (active) => {
-        if (active) track('quiz_start', { mode: state.get('quiz.mode') || 'unknown' });
+    // One event per quiz start. onActiveChange rather than a raw subscribe: the
+    // store mirrors the session on every dispatch, so a plain subscription would
+    // fire an event per answered question.
+    quizStore.onActiveChange((active, mode) => {
+        if (active) track('quiz_start', { mode: mode || 'unknown' });
     });
 }
 

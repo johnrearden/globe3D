@@ -14,6 +14,7 @@ import {
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { quizStore } from '@terragotcha/quiz-core';
 
 export class CameraController {
     constructor(camera, renderer, scene) {
@@ -408,7 +409,7 @@ export class CameraController {
     /** Resume auto-rotation after the idle delay (unless a quiz is active). */
     resumeAutoRotation() {
         if (!this.autoRotateAllowed) return;
-        if (state.get('quiz.active')) return;
+        if (quizStore.isActive()) return;
 
         this.autoRotateEnabled = true;
         this.controls.autoRotate = true;

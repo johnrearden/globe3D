@@ -11,6 +11,7 @@
 import { track } from './analytics.js';
 
 import * as THREE from 'three';
+import { quizStore } from '@terragotcha/quiz-core';
 
 export class PointerControls {
     constructor(deps = {}) {
@@ -185,7 +186,7 @@ export class PointerControls {
         if (!pickResult) {
             // A tap on the ocean or off the globe dismisses the country detail panel
             // (pick() returns null for ocean id 0 and for rays that miss the sphere).
-            if (!this.state.get('quiz.active') && this.flagRenderer && this.flagRenderer.isShowing()) {
+            if (!quizStore.isActive() && this.flagRenderer && this.flagRenderer.isShowing()) {
                 this.deselectCountry();
             }
             return;
@@ -213,7 +214,7 @@ export class PointerControls {
             return;
         }
 
-        if (!this.state.get('quiz.active')) {
+        if (!quizStore.isActive()) {
             this.smallCountryIndicator.remove();
 
             this.globeManager.clearSelection();
@@ -278,7 +279,7 @@ export class PointerControls {
         }
 
         // No hover effects during quiz or while dragging.
-        if (this.state.get('quiz.active') || this.isDragging) {
+        if (quizStore.isActive() || this.isDragging) {
             return;
         }
 

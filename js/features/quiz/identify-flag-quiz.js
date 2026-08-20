@@ -3,12 +3,12 @@
  * Displays a 3D waving flag and asks the player to identify which country it belongs to
  */
 
-import { state } from '../../data/state.js';
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
 import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
 import { createWebGLRenderer } from '../../utils/webgl-diagnostics.js';
 import {
-    buildFlagDirectionSchedule, createSession, generateIdentifyFlag, systemRng, toHistoryRecord
+    buildFlagDirectionSchedule, createSession, generateIdentifyFlag, quizStore, systemRng,
+    toHistoryRecord
 } from '@terragotcha/quiz-core';
 
 import * as THREE from 'three';
@@ -365,12 +365,7 @@ export class IdentifyFlagQuiz {
                 direction: this.questionTypes[ctx.index] || 'forward'
             })
         });
-
-        // Update state
-        state.set('quiz.active', true);
-        state.set('quiz.mode', 'identify-flag');
-        state.set('quiz.score', 0);
-        state.set('quiz.questionsAnswered', 0);
+        quizStore.startSession(this.session);
 
         // Add quiz-active and flag-quiz-active classes to body
         document.body.classList.add('quiz-active');
@@ -422,9 +417,7 @@ export class IdentifyFlagQuiz {
             this.autoAdvanceTimer = null;
         }
 
-        // Update state
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
+        quizStore.end();
 
         // Remove quiz-active and flag-quiz-active classes from body
         document.body.classList.remove('quiz-active');
@@ -582,8 +575,6 @@ export class IdentifyFlagQuiz {
         const { reveal } = this.session.answer(selectedCountry);
         const isCorrect = reveal.correct;
 
-        state.set('quiz.score', this.score);
-        state.set('quiz.questionsAnswered', this.questionsAnswered);
 
         // Update score display (legacy spans + the chrome chip).
         this.updateScoreDisplay();
@@ -662,8 +653,7 @@ export class IdentifyFlagQuiz {
         this.quizTimer.cancel();
         this.chrome.hide();
         this.active = false;
-        state.set('quiz.active', false);
-        state.set('quiz.mode', null);
+        quizStore.end();
 
         document.body.classList.remove('quiz-active');
         document.body.classList.remove('flag-quiz-active');

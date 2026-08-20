@@ -8,7 +8,7 @@ Globe3D is an interactive 3D web application that displays a rotating globe with
 
 - **Three.js** (r128, pinned in `package.json`) - 3D rendering library. Imported by bare specifier
   (`import * as THREE from 'three'`), resolved by the `<script type="importmap">` in `index.html` to
-  a pinned CDN ESM build — not a `window.THREE` global. `tests/three-version.test.js` fails if the
+  a pinned CDN ESM build — not a `window.THREE` global. `tests/cdn-pinning.test.js` fails if the
   importmap URL and the `package.json` pin drift apart.
 - **OrbitControls** - Camera control
 - **Custom ShaderMaterial** - Vector country fills driven by per-vertex country ID + palette texture
@@ -162,6 +162,29 @@ Run build: `node build-textures.js` (or `npm run build:globe`)
 Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
 
 ## State Management
+
+### Quiz state — `quizStore` (`@terragotcha/quiz-core`)
+
+The single observable answer to "is a quiz on screen, and which one". A module
+singleton, not an injected instance, because React Context cannot cross Astro
+islands — separate React roots can only share a module-level store.
+
+- `isActive()` / `getState()` → `{active, mode, scope, session}`. `session` is the
+  live reducer state, mirrored on every dispatch; null for the Daily Challenge and
+  audit mode, which are active quizzes without being reducer sessions
+  (`startForeign(FOREIGN_MODES.DAILY|AUDIT)`).
+- `onActiveChange(cb)` fires **only on the start/end flip**. Use it rather than
+  `subscribe` for anything per-quiz: the store changes ~30 times during one quiz,
+  so a raw subscription would fire an analytics event per answered question.
+- A quiz mode calls `quizStore.startSession(this.session)` after `createSession`
+  and `quizStore.end()` from both `end()` and `cancel()`. Nothing else writes it.
+
+`js/data/state.js` is **not** the place for new application state — it holds live
+Three.js references and editor bookkeeping, and is destined to become internal to
+the globe engine. The `quiz.*` slice was removed in stage A5.
+
+The `quiz-active` body class stays: it is a CSS hook (and the MutationObserver
+signal `BackButtonGuard` watches), i.e. presentation, not state.
 
 ### Global Variables
 - `editMode` - Whether label editing is active

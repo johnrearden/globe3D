@@ -11,6 +11,7 @@
  * pulls styling from `.weakspots-*` rules in styles.css. Wiring it up is an import
  * + one instantiation in index.html.
  */
+import { quizStore } from '@terragotcha/quiz-core';
 import { quizHistoryStore } from '../data/quiz-history-store.js';
 
 // Top-N worst offenders to surface; the viewport shows 5 at a time and scrolls.
@@ -28,7 +29,6 @@ export class WeakSpotsWidget {
         this.labelManager = options.labelManager;
         this.countryData = options.countryData;
         this.countryToISO = options.countryToISO;
-        this.state = options.state;
         this.resetIdleTimer = options.resetIdleTimer || (() => {});
 
         this.container = null;
@@ -40,17 +40,15 @@ export class WeakSpotsWidget {
         this._buildDom();
 
         // Hide while a quiz is running; refresh + re-show when it ends (tallies changed).
-        if (this.state) {
-            this._quizActive = !!this.state.get('quiz.active');
-            this.state.subscribe('quiz.active', (active) => {
-                this._quizActive = !!active;
-                if (active) {
-                    this._setVisible(false);
-                } else {
-                    this.refresh();
-                }
-            });
-        }
+        this._quizActive = quizStore.isActive();
+        quizStore.onActiveChange((active) => {
+            this._quizActive = active;
+            if (active) {
+                this._setVisible(false);
+            } else {
+                this.refresh();
+            }
+        });
 
         this.refresh();
     }

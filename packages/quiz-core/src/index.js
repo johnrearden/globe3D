@@ -27,6 +27,7 @@ export {
     mapBlock
 } from './payload.js';
 export { gradeLocally, revealOnly } from './grade.js';
+export { quizStore, createQuizStore, FOREIGN_MODES } from './store.js';
 export {
     initialState,
     reduce,
