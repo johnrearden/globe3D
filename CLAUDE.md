@@ -31,10 +31,32 @@ globe3d/
 │   ├── world-border-lines.bin # Country-outline edges as u32 vertex-index pairs into world-mesh.bin (~2.7 MB raw / ~840 KB gzipped)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
 │   └── country-meta.json    # Country IDs, centroids, bboxes, land areas (km²), name↔id maps
+├── packages/                # npm workspaces — platform-neutral code shared with the
+│   │                        #   coming Astro/React web app and Expo native app.
+│   │                        #   No DOM, no Three.js, no React; runs in Node, the
+│   │                        #   browser (via index.html's import map) and Metro.
+│   ├── quiz-core/           # Question generation, session reducer, grading. Zero deps
+│   ├── storage/             # StorageAdapter + the settings and quiz-history stores
+│   └── api-client/          # Quiz backend client (host + storage + fetch injected)
+├── spikes/expo-gl-mesh/     # Throwaway React Native rig proving expo-gl renders the
+│                            #   real mesh; outside the workspace globs on purpose
 ├── package.json             # Build dependencies
 ├── country-colors.json      # (Optional) Per-country color overrides
 └── label-config.json        # (Optional) Custom label positions/sizes
 ```
+
+**Workspace packages are imported by bare specifier** (`@terragotcha/quiz-core`,
+`@terragotcha/storage`, `@terragotcha/api-client`), resolved in the browser by the
+`<script type="importmap">` in `index.html` and in Node/vitest by the npm-workspace symlink — so the
+same import statement works buildless today and under Vite/Metro later. **Adding a package means
+adding an importmap entry**, or the browser gets a bare-specifier resolution error while `npm test`
+stays green.
+
+Anything platform-specific stays in `js/`, reduced to a thin binding: `js/data/storage.js` picks
+localStorage/sessionStorage, and `js/data/settings-store.js`, `js/data/quiz-history-store.js` and
+`js/data/api-client.js` are now ~15-line files that construct the shared implementation and
+re-export it, so no call site had to change. Follow that pattern rather than importing a package
+directly from a feature module.
 
 ## Key Features
 

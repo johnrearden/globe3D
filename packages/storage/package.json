@@ -1,0 +1,16 @@
+{
+  "name": "@terragotcha/storage",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sync key-value StorageAdapter plus the two persisted stores (settings, quiz history). No DOM, no React.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": false
+}

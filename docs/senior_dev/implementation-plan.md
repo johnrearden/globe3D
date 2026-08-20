@@ -611,7 +611,10 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   one-attempt-per-day, leaderboard ordering, seed reconciliation guard). Run `manage.py test`.
 
 **Frontend (new modules — `index.html` touched only by an import + one instantiation):**
-- `js/data/api-client.js` — fetch wrappers + device-token identity (localStorage).
+- `js/data/api-client.js` — fetch wrappers + device-token identity. **Extracted to
+  `packages/api-client` (stage A4);** this file is now a ~15-line web binding that supplies the
+  `window`-sniffed API base and the localStorage/sessionStorage adapters. `ApiError`,
+  `AUDIT_TOKEN_KEY` and `isLocalDevHost` are re-exported, so call sites are unchanged.
 - `js/features/daily-quiz/` — `daily-quiz.js` (orchestrator, builds its own launch button + panel),
   `question-renderer.js`, `options-grid.js` (reusable variable-dim grid), `onboarding.js`,
   `leaderboard.js`, `panel-sheet.js` (drag/tap the panel down to a "peek" top bar so the globe shows
@@ -722,7 +725,9 @@ scoring and is untouched). Per-quiz, per-question results persist to `localStora
 progress screen plus a best/new-best badge on the end-of-quiz results modal (`quiz-results-modal.js`).
 
 - `js/data/quiz-history-store.js` — singleton store (key `globe3d-quiz-history`), same
-  guarded-read/write shape as `settings-store.js`. Holds a pruned session log (last 200) of
+  guarded-read/write shape as `settings-store.js`. **Both stores were extracted to
+  `packages/storage` (stage A3)** and take an injected `StorageAdapter`; the `js/data/` files are now
+  thin bindings that construct them against localStorage. Holds a pruned session log (last 200) of
   `{ ts, mode, scope, score, total, durationMs, questions: [{country, correct}] }` plus a permanent
   per-country tally that survives pruning. API: `record()` (returns a best/new-best summary),
   `getSessions()`, `getModeStats()` (per mode×scope bests + best/avg time), `getCountryStats()`
