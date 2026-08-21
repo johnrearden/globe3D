@@ -1,4 +1,21 @@
 /**
+ * LEGACY — the 24-knob token list belonging to the current styles.css.
+ *
+ * **This is no longer the source of truth.** `@terragotcha/design-tokens` is
+ * (stage A7): 13 knobs, with the CSS, React Native and backend artefacts all
+ * generated from one definition.
+ *
+ * This file survives only because it is coupled to the *stylesheet*, not to the
+ * token system: its names (`--accent`, `--text-heading`, `--bg-elevated`) are the
+ * ones the current 5,481-line styles.css actually uses, and the live theme
+ * editor + backend allow-list are in step with them. Repointing the editor at
+ * the new knobs before the new stylesheet exists would give authors 13 controls
+ * that style nothing, and shrinking the backend allow-list first would reject
+ * every theme the editor can currently produce.
+ *
+ * Retired together with styles.css when the Phase B UI lands. Until then, do not
+ * add knobs here — add them to packages/design-tokens/src/tokens.js.
+ *
  * The editable design-token "knobs" a theme can override — the frontend mirror of
  * backend/themes/tokens.py EDITABLE_TOKENS. Drives the theme editor's rows and the
  * theme switcher's inline-override clearing. Keep in sync with the styles.css :root

@@ -1,0 +1,17 @@
+{
+  "name": "@terragotcha/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The design system's single source of truth: 13 authorable knobs, fixed scales, derived values, and generators for CSS / React Native / the backend allow-list.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "sideEffects": false
+}

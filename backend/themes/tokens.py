@@ -1,5 +1,26 @@
 """Allow-list + validation for theme token maps.
 
+LEGACY ALLOW-LIST. The design system's source of truth is now
+packages/design-tokens/src/tokens.js (13 knobs), which generates this file's
+allow-list into packages/design-tokens/dist/tokens.py.
+
+The cutover is deliberately NOT done yet: this list is in step with the current
+styles.css and the current theme editor, and shrinking it to the new 13 knobs
+before the Phase B stylesheet exists would reject every theme the editor can
+currently produce. When that UI lands:
+
+  1. Replace the token tuples below with the marked block from
+     packages/design-tokens/dist/tokens.py (spliceGeneratedBlock() does this).
+  2. Drop existing Theme rows in a data migration — they name tokens that no
+     longer exist. The feature is superuser-gated with test users only.
+  3. scene_bg / ocean_color become derived from the --bg-app / --ocean knobs
+     rather than separate model columns.
+
+The validation logic below the allow-list is hand-maintained and stays: the
+value charset and length cap are security-relevant and do not change when a knob
+is added.
+
+
 A theme is a map of CSS custom-property overrides ({"--accent": "#3b82f6", ...})
 layered on a built-in base preset. Only the curated ~24 "knob" tokens the built-in
 presets control may be set — this keeps stored themes to the intended surface and

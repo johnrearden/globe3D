@@ -38,7 +38,8 @@ globe3d/
 │   ├── quiz-core/           # Question generation, session reducer, grading, quizStore
 │   ├── storage/             # StorageAdapter + the settings and quiz-history stores
 │   ├── api-client/          # Quiz backend client (host + storage + fetch injected)
-│   └── globe-bridge/        # The globe interface + a test double. No rendering code
+│   ├── globe-bridge/        # The globe interface + a test double. No rendering code
+│   └── design-tokens/       # 13 knobs → CSS / React Native / backend allow-list
 ├── spikes/expo-gl-mesh/     # Throwaway React Native rig proving expo-gl renders the
 │                            #   real mesh; outside the workspace globs on purpose
 ├── package.json             # Build dependencies
@@ -80,6 +81,30 @@ native.
 Adding a method means adding it to `packages/globe-bridge/src/interface.js` (docs +
 `GLOBE_BRIDGE_METHODS`), to `js/data/globe-bridge.js`, and to the fake in
 `packages/globe-bridge/src/fake.js` — the fake is what lets quiz logic be tested without WebGL.
+
+### The design system — `@terragotcha/design-tokens`
+
+`packages/design-tokens/src/tokens.js` is the **single source of truth**, in three tiers:
+
+- **13 knobs** a theme author may set: `font-heading`, `font-body`; `bg-app` (which also drives the
+  Three.js scene background), `bg-panel`, `surface-raised`, `surface-inset`; `primary`, `on-primary`;
+  `text-primary`, `text-secondary`; `ocean`; `radius-btn`, `radius-panel`.
+- **Fixed**: the type scale (5 sizes), weights, the 6-step spacing scale, elevation,
+  `radius-pill`/`radius-circle`, and `status-correct`/`status-incorrect` — fixed because red/green is
+  the most common colour-vision deficiency and a theme must not be able to break comprehension.
+- **Derived in JS**, not `color-mix()`: borders, scrim, primary tints, disabled states, globe ink and
+  the selection highlight. JS because React Native resolves neither `var()` nor `color-mix()`, so a
+  CSS-first derivation could never be shared — every emitted value is concrete.
+
+**Adding a knob is a cost; a derivation is free. When in doubt, derive.** Add knobs to `tokens.js`,
+then run `npm run build:tokens`; the committed artefacts in `packages/design-tokens/dist/` are
+regenerated and `npm test` fails if they go stale.
+
+**Not yet live.** `styles.css`, `js/data/theme-tokens.js` (24 legacy knobs) and
+`backend/themes/tokens.py` still run the old system, because the legacy knob names are the ones the
+current stylesheet uses. Repointing the editor at the new knobs before the new stylesheet exists
+would give authors 13 controls that style nothing. The cutover happens with the Phase B UI; the steps
+are written at the top of `backend/themes/tokens.py`.
 
 ## Key Features
 

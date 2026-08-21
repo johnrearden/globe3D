@@ -1,0 +1,52 @@
+/* GENERATED — do not edit.
+   Source: packages/design-tokens/src/tokens.js
+   Rebuild: npm run build:tokens
+*/
+
+:root {
+  --font-heading: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Archivo', system-ui, sans-serif;
+  --bg-app: #0a1c30;
+  --bg-panel: #0e1726;
+  --surface-raised: #162a42;
+  --surface-inset: #08131f;
+  --primary: #f59e4b;
+  --on-primary: #321a06;
+  --text-primary: #eef2f6;
+  --text-secondary: #9fb2c6;
+  --ocean: #061a33;
+  --radius-btn: 10px;
+  --radius-panel: 14px;
+  --status-correct: #4CAF50;
+  --status-incorrect: #f44336;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+  --border-subtle: rgba(238, 242, 246, 0.12);
+  --border-strong: rgba(238, 242, 246, 0.24);
+  --scrim: rgba(10, 28, 48, 0.72);
+  --primary-soft: rgba(245, 158, 75, 0.2);
+  --primary-hover: #f4a860;
+  --surface-disabled: rgba(8, 19, 31, 0.6);
+  --text-disabled: rgba(159, 178, 198, 0.45);
+  --globe-label: #eef2f6;
+  --globe-border: rgba(238, 242, 246, 0.28);
+  --globe-selection: #a37142;
+  --shadow-low: 0 1px 3px rgba(10, 28, 48, 0.4);
+  --shadow-mid: 0 4px 12px rgba(10, 28, 48, 0.5);
+  --shadow-high: 0 12px 32px rgba(10, 28, 48, 0.6);
+  --shadow-dock: 0 -6px 24px rgba(10, 28, 48, 0.5);
+}

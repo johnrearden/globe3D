@@ -15,7 +15,7 @@ import {
     THEMES, getApi, getSelection, previewTheme, setToken, restoreSelection,
     refreshRemoteThemes, applyTheme,
 } from './theme-switcher.js';
-import { parseColor, toHex, formatColor } from '../utils/color.js';
+import { parseColor, toHex, formatColor } from '@terragotcha/design-tokens';
 import { SCHEMES } from './color-schemes.js';
 import { applySceneAppearance } from './scene-appearance.js';
 

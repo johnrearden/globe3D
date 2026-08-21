@@ -611,6 +611,11 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   one-attempt-per-day, leaderboard ordering, seed reconciliation guard). Run `manage.py test`.
 
 **Frontend (new modules — `index.html` touched only by an import + one instantiation):**
+- The design system's source of truth is `packages/design-tokens` as of stage A7 — 13 knobs
+  generating the CSS, React Native and backend-allow-list artefacts (`npm run build:tokens`, checked
+  for staleness by `npm test`). `styles.css`, `js/data/theme-tokens.js` and `backend/themes/tokens.py`
+  still run the legacy 24-knob system until the Phase B stylesheet lands; the cutover steps are at the
+  top of `backend/themes/tokens.py`.
 - The quiz layer reaches the globe only through `GlobeBridge` as of stage A6 — `js/features/quiz/`,
   `js/features/daily-quiz/` and `js/features/audit/` hold no reference to `globeManager` or
   `cameraController`. Interface + test double: `packages/globe-bridge`; web implementation:

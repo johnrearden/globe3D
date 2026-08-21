@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseColor, toHex, formatColor } from '../js/utils/color.js';
+import { parseColor, toHex, formatColor } from '../src/color.js';
 
 describe('parseColor', () => {
     it('parses 6-digit hex', () => expect(parseColor('#3b82f6')).toEqual({ r: 59, g: 130, b: 246, a: 1 }));

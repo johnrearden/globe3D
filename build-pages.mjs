@@ -66,8 +66,9 @@ if (existsSync(join(DIST, 'assets'))) {
 }
 
 // npm workspaces can materialise a nested node_modules inside a package when a
-// dependency can't be hoisted. Nothing under packages/ should have deps, so if
-// one appears it would silently bloat the upload — fail loudly instead.
+// dependency can't be hoisted. quiz-core depends on zustand, which hoists to the
+// root today — but a version conflict would nest it here and silently bloat the
+// upload (and ship a copy the import map never resolves). Fail loudly instead.
 const distPackages = join(DIST, 'packages');
 if (existsSync(distPackages)) {
     for (const pkg of readdirSync(distPackages)) {
