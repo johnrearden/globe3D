@@ -25,8 +25,7 @@ const TOTAL_QUESTIONS = 10;
 
 export class ClickQuiz {
     constructor(options = {}) {
-        this.globeManager = options.globeManager;
-        this.cameraController = options.cameraController;
+        this.globe = options.globeBridge;
         this.elements = options.elements;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
@@ -103,10 +102,12 @@ export class ClickQuiz {
         // Disable auto-rotation but keep manual rotation on — the player brings
         // their intended country face-on before tapping. Start from a neutral
         // overview; the camera is never moved toward the answer after this.
-        const controls = this.cameraController.getControls();
-        controls.autoRotate = false;
-        controls.enableRotate = true;
-        this.cameraController.zoomOut();
+        // The player must be able to rotate (they hunt for the target), but the
+        // globe must not drift on its own — the two halves setAutoRotateAllowed
+        // and setInteractive keep separate.
+        this.globe.setAutoRotateAllowed(false);
+        this.globe.setInteractive(true);
+        this.globe.resetView();
 
         // globe-quiz-active turns #quiz-container into the floating panel that lets
         // the live globe (the question) show through behind it.
@@ -161,8 +162,9 @@ export class ClickQuiz {
         document.body.classList.remove('globe-quiz-active');
 
         // Reset globe highlighting and zoom back out.
-        this.globeManager.clearSelection();
-        this.cameraController.zoomOut();
+        this.globe.clearSelection();
+        this.globe.setAutoRotateAllowed(true);
+        this.globe.resetView();
 
         // Stop the timer, persist the result, and show the celebration overlay.
         // Score is out of the actual number of questions asked (usually 10, fewer
@@ -188,7 +190,7 @@ export class ClickQuiz {
      */
     showQuestion() {
         this.answering = false;
-        this.globeManager.clearSelection();
+        this.globe.clearSelection();
 
         const live = this.session.getState().current;
         if (!live) { this.end(); return; }
@@ -218,21 +220,21 @@ export class ClickQuiz {
         // player was hunting elsewhere), so the highlight alone gives no feedback —
         // rotate the globe to bring it into view. The longer flash keeps it lit
         // while the ~1s camera move lands; allow extra time before advancing.
-        this.globeManager.setSelectedCountry(correctCountryName);
-        this.globeManager.flashCountry(correctCountryName, 0x33dd66, isCorrect ? 1600 : 2400);
+        this.globe.highlight(correctCountryName);
+        this.globe.flash(correctCountryName, 0x33dd66, isCorrect ? 1600 : 2400);
 
         let delay = 1200;
         if (!isCorrect) {
-            this.cameraController.rotateToCountry(correctCountryName, true);
+            this.globe.focusCountry(correctCountryName, { quizFraming: true });
             delay = 2600;
         }
 
-        // Advance after the reveal delay. Clear the small-country reveal overlay
-        // (white disc + yellow arrow that rotateToCountry drops on a wrong answer)
-        // at the transition, so it never lingers into the next question.
+        // Advance after the reveal delay. showQuestion()'s clearSelection() drops
+        // the reveal overlay (including the small-country disc/arrow that
+        // focusCountry raises on a wrong answer), so it never lingers into the
+        // next question.
         this.advanceTimer = setTimeout(() => {
             this.advanceTimer = null;
-            this.cameraController.clearSmallCountryIndicator();
             this.session.advance();
             if (this.session.getState().status === 'complete') {
                 this.end();
@@ -267,8 +269,9 @@ export class ClickQuiz {
         document.body.classList.remove('globe-quiz-active');
 
         // Reset globe highlighting and zoom back out.
-        this.globeManager.clearSelection();
-        this.cameraController.zoomOut();
+        this.globe.clearSelection();
+        this.globe.setAutoRotateAllowed(true);
+        this.globe.resetView();
 
         this.elements.get('quiz-container').style.display = '';
         // Clear the take-quiz override so CSS restores it (hidden on desktop,

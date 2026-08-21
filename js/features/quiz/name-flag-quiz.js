@@ -13,10 +13,8 @@ import * as THREE from 'three';
 
 export class NameFlagQuiz {
     constructor(options = {}) {
-        this.globeManager = options.globeManager;
-        this.cameraController = options.cameraController;
+        this.globe = options.globeBridge;
         this.elements = options.elements;
-        this.rotateGlobeToCountry = options.rotateGlobeToCountry;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
         this.countryTable = options.countryTable;
@@ -65,8 +63,7 @@ export class NameFlagQuiz {
         quizStore.startSession(this.session);
 
         // Disable auto-rotation during quiz
-        const controls = this.cameraController.getControls();
-        controls.autoRotate = false;
+        this.globe.setAutoRotateAllowed(false);
 
         // Add quiz-active class to body for mobile styling. globe-quiz-active
         // turns #quiz-container into the floating panel that lets the live globe
@@ -141,7 +138,7 @@ export class NameFlagQuiz {
         this.elements.get('quiz-container').style.display = 'none';
 
         // Reset globe highlighting
-        this.globeManager.clearSelection();
+        this.globe.clearSelection();
 
         // Stop the timer, persist the result, and show the celebration overlay
         // with score + total time + standing/new best.
@@ -243,12 +240,10 @@ export class NameFlagQuiz {
      * @param {Object} countryObj - Country centroid object
      */
     highlightQuizCountry(countryObj) {
-        this.globeManager.setSelectedCountry(countryObj.name);
-
-        const record = this.globeManager.getCountryByName(countryObj.name);
-        if (record) {
-            this.rotateGlobeToCountry(record, true);
-        }
+        this.globe.highlight(countryObj.name);
+        // The bridge resolves the name to a centroid on the far side, so this
+        // mode never touches a THREE type.
+        this.globe.focusCountry(countryObj.name, { quizFraming: true });
     }
 
     /**
@@ -347,7 +342,7 @@ export class NameFlagQuiz {
         // the idle state — Start Quiz panel on desktop, Take Quiz on mobile.
         this.elements.get('quiz-container').style.display = '';
 
-        this.globeManager.clearSelection();
+        this.globe.clearSelection();
         if (this.labelManager) this.labelManager.setHighlight(null);
 
         this.elements.get('search-container').style.display = 'block';

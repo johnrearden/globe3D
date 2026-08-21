@@ -25,10 +25,10 @@ import { formatDuration } from '../quiz/quiz-timer.js';
 const CALENDAR_DOTS_FILL = '<path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM84,168a12,12,0,1,1,12-12A12,12,0,0,1,84,168Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,128,168Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,172,168Zm44-88H40V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h32Z"/>';
 
 export class DailyQuiz {
-    constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
+    constructor({ apiClient, globeBridge, countryTable, focusRegistry }) {
         this.api = apiClient;
-        this.camera = cameraController;
-        this.globe = globeManager;
+        this.globe = globeBridge;
+        this.countryTable = countryTable;
         this.focusRegistry = focusRegistry;
         this._active = false;
         this._doneForToday = false;   // finished/already-completed this session
@@ -157,8 +157,7 @@ export class DailyQuiz {
         });
 
         this.presenter = new QuestionPresenter({
-            cameraController: this.camera,
-            globeManager: this.globe,
+            globeBridge: this.globe,
             focusRegistry: this.focusRegistry,
             els: {
                 prompt: this.el.prompt,
@@ -310,7 +309,7 @@ export class DailyQuiz {
      */
     async _promptRegistrationIfNeeded() {
         if (this.api.isRegistered) return;
-        const info = await showOnboarding(this.globe.getCountryNames(), this.api.profile);
+        const info = await showOnboarding(this.countryTable.all.map(c => c.name), this.api.profile);
         if (!info) return;
         try {
             await this.api.registerPlayer(info.nickname, info.country);
@@ -429,7 +428,7 @@ export class DailyQuiz {
         // auto-rotate, which is all any reader ever asked `quiz.active` for.
         quizStore.startForeign(FOREIGN_MODES.DAILY);
         document.body.classList.add('dq-active');
-        this.camera.setAutoRotateAllowed(false);
+        this.globe.setAutoRotateAllowed(false);
     }
 
     _exitQuizMode() {
@@ -514,8 +513,8 @@ export class DailyQuiz {
         this.presenter.teardown();
         this._exitQuizMode();
         document.body.classList.remove('dq-active');
-        this.camera.setAutoRotateAllowed(true);
-        this.camera.zoomOut();
+        this.globe.setAutoRotateAllowed(true);
+        this.globe.resetView();
         // If they bailed before finishing, re-offer the invite so they can resume
         // (start/today resumes from the current question). Once done for the day,
         // it stays hidden until tomorrow.

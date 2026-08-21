@@ -35,10 +35,9 @@ function shiftISODate(iso, days) {
 }
 
 export class AuditMode {
-    constructor({ apiClient, cameraController, globeManager, focusRegistry }) {
+    constructor({ apiClient, globeBridge, focusRegistry }) {
         this.api = apiClient;
-        this.camera = cameraController;
-        this.globe = globeManager;
+        this.globe = globeBridge;
         this.focusRegistry = focusRegistry;
         this.date = localISODate();
         this.data = null;         // last /api/audit/daily/<date> response
@@ -157,8 +156,7 @@ export class AuditMode {
         });
 
         this.presenter = new QuestionPresenter({
-            cameraController: this.camera,
-            globeManager: this.globe,
+            globeBridge: this.globe,
             focusRegistry: this.focusRegistry,
             els: {
                 prompt: this.el.prompt,
@@ -260,19 +258,19 @@ export class AuditMode {
         this._exitQuestionMode();
         this.el.questionView.hidden = true;
         this.el.listView.hidden = false;
-        this.camera.zoomOut();
+        this.globe.resetView();
     }
 
     _enterQuestionMode() {
         quizStore.startForeign(FOREIGN_MODES.AUDIT);
         document.body.classList.add('audit-active');
-        this.camera.setAutoRotateAllowed(false);
+        this.globe.setAutoRotateAllowed(false);
     }
 
     _exitQuestionMode() {
         quizStore.end();
         document.body.classList.remove('audit-active');
-        this.camera.setAutoRotateAllowed(true);
+        this.globe.setAutoRotateAllowed(true);
     }
 
     // ------------------------------ flagging ---------------------------------

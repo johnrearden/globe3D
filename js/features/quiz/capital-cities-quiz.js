@@ -17,10 +17,8 @@ import * as THREE from 'three';
 
 export class CapitalCitiesQuiz {
     constructor(options = {}) {
-        this.globeManager = options.globeManager;
-        this.cameraController = options.cameraController;
+        this.globe = options.globeBridge;
         this.elements = options.elements;
-        this.rotateGlobeToCountry = options.rotateGlobeToCountry;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;
         this.countryTable = options.countryTable;
@@ -70,8 +68,7 @@ export class CapitalCitiesQuiz {
         quizStore.startSession(this.session);
 
         // Disable auto-rotation during quiz
-        const controls = this.cameraController.getControls();
-        controls.autoRotate = false;
+        this.globe.setAutoRotateAllowed(false);
 
         // Add quiz-active class to body for mobile styling. globe-quiz-active
         // turns #quiz-container into the floating panel that lets the live globe
@@ -148,9 +145,10 @@ export class CapitalCitiesQuiz {
         this.elements.get('quiz-container').style.display = 'none';
 
         // Reset globe highlighting + markers and zoom back out.
-        this.globeManager.clearSelection();
-        this.globeManager.markers.clear();
-        this.cameraController.zoomOut();
+        this.globe.clearSelection();
+        this.globe.markers.clear();
+        this.globe.setAutoRotateAllowed(true);
+        this.globe.resetView();
 
         // Stop the timer, persist the result, and show the celebration overlay
         // with score + total time + standing/new best.
@@ -199,13 +197,14 @@ export class CapitalCitiesQuiz {
         }
 
         // Adapt quiz-core's payload to the shape this mode's DOM code expects.
-        // The capital object comes from the globe so it keeps whatever extra
-        // fields the marker/label code reads.
+        // The capital comes from the country table, not the globe: {name, lat,
+        // lng} is all the marker and prompt code reads, and country data is not
+        // the renderer's job to serve (see globe-bridge's interface docs).
         const asked = live.meta.country;
         this.currentQuestion = {
             direction: live.meta.direction,
             countryName: asked,
-            capital: this.globeManager.getCapital(asked),
+            capital: this.countryTable.byName(asked).capital,
             options: live.payload.grid.options.map(o => o.value),
             correctAnswer: live.answer.correct[0],
             countryObj: this.countryTable.centroidObj(asked)
@@ -218,8 +217,8 @@ export class CapitalCitiesQuiz {
         const { direction, countryName, capital, countryObj } = this.currentQuestion;
 
         // Reset the previous marker, then drop a dot (no name) on the capital.
-        this.globeManager.markers.clear();
-        this.globeManager.markers.place(capital.lat, capital.lng);
+        this.globe.markers.clear();
+        this.globe.markers.place(capital.lat, capital.lng);
 
         // Drive the floating chrome prompt and frame the globe for each direction.
         // Both use the 'reverse' layout: a small uppercase eyebrow over the large
@@ -235,8 +234,12 @@ export class CapitalCitiesQuiz {
                 main: countryName,
                 mainQuestion: true
             });
-            const aimPoint = this.globeManager.latLngToVector3(capital.lat, capital.lng, 1.0, 0);
-            this.cameraController.rotateToCountry(countryObj, true, aimPoint);
+            // Aim at the capital rather than the country centroid. The bridge
+            // does the lat/lng → engine-coordinate conversion.
+            this.globe.focusCountry(countryObj.name, {
+                quizFraming: true,
+                aim: { lat: capital.lat, lng: capital.lng }
+            });
         } else {
             // "Y is the capital of which country?" — don't give the country away:
             // zoom way out so the globe fills ~25% of the screen width with the
@@ -247,7 +250,7 @@ export class CapitalCitiesQuiz {
                 main: capital.name,
                 mainQuestion: true
             });
-            this.cameraController.frameWholeGlobe({ lat: capital.lat, lng: capital.lng, widthFraction: 0.25 });
+            this.globe.frameGlobe({ lat: capital.lat, lng: capital.lng, widthFraction: 0.25 });
         }
 
         // Clear previous options completely
@@ -312,8 +315,8 @@ export class CapitalCitiesQuiz {
 
         // Reveal the capital's name at the marker (no camera move). The green/red
         // option buttons already convey correct/incorrect.
-        this.globeManager.markers.setLabel(this.currentQuestion.capital.name);
-        this.globeManager.markers.showLabel();
+        this.globe.markers.setLabel(this.currentQuestion.capital.name);
+        this.globe.markers.showLabel();
 
         if (this.questionsAnswered >= 10) {
             setTimeout(() => {
@@ -375,9 +378,10 @@ export class CapitalCitiesQuiz {
         this.elements.get('quiz-container').style.display = '';
 
         // Reset globe highlighting + markers and zoom back out.
-        this.globeManager.clearSelection();
-        this.globeManager.markers.clear();
-        this.cameraController.zoomOut();
+        this.globe.clearSelection();
+        this.globe.markers.clear();
+        this.globe.setAutoRotateAllowed(true);
+        this.globe.resetView();
         if (this.labelManager) this.labelManager.setHighlight(null);
 
         this.elements.get('search-container').style.display = 'block';

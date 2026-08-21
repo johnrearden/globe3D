@@ -248,6 +248,8 @@
             "@terragotcha/storage/": "/packages/storage/src/",
             "@terragotcha/api-client": "/packages/api-client/src/index.js",
             "@terragotcha/api-client/": "/packages/api-client/src/",
+            "@terragotcha/globe-bridge": "/packages/globe-bridge/src/index.js",
+            "@terragotcha/globe-bridge/": "/packages/globe-bridge/src/",
             "zustand/vanilla": "https://cdn.jsdelivr.net/npm/zustand@5.0.15/esm/vanilla.mjs",
             "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
             "three/": "https://cdn.jsdelivr.net/npm/three@0.128.0/"
@@ -283,6 +285,7 @@
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
         import { QuizUI, clearQuizTimers } from './js/features/quiz/quiz-ui.js';
         import { createCountryTable } from './js/data/country-table.js';
+        import { createWebGlobeBridge } from './js/data/globe-bridge.js';
         import { QuizTimer } from './js/features/quiz/quiz-timer.js';
         import { QuizModePicker } from './js/features/quiz/quiz-mode-picker.js';
         import { QuizResultsModal } from './js/features/quiz/quiz-results-modal.js';
@@ -405,6 +408,7 @@
         let labelManager = null;
         let cameraController = null;
         let quizManager = null;
+        let globeBridge = null;   // GlobeBridge over globeManager + cameraController
         let nameFlagQuiz = null;
         let identifyFlagQuiz = null;
         let clickQuiz = null;
@@ -571,23 +575,21 @@
                     // ===== PHASE 6: Initialize Quiz System =====
 
                     // Initialize QuizManager
-                    quizManager = new QuizManager({
-                        globeManager: globeManager,
-                        cameraController: cameraController,
-                        elements: elements
-                    });
+                    quizManager = new QuizManager({ elements });
 
                     // Plain, serialisable country table for @terragotcha/quiz-core.
                     // Built once here (the globe's data is loaded by this point)
                     // and shared by every mode.
                     const countryTable = createCountryTable({ globeManager, countryToISO });
+                    // Everything quiz-side talks to the globe through this, not
+                    // through globeManager/cameraController. See
+                    // packages/globe-bridge for what it may and may not carry.
+                    globeBridge = createWebGlobeBridge({ globeManager, cameraController });
 
                     // Initialize quiz modes
                     nameFlagQuiz = new NameFlagQuiz({
-                        globeManager: globeManager,
-                        cameraController: cameraController,
+                        globeBridge: globeBridge,
                         elements: elements,
-                        rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
                         countryTable: countryTable,
@@ -596,7 +598,6 @@
                     });
 
                     identifyFlagQuiz = new IdentifyFlagQuiz({
-                        globeManager: globeManager,
                         elements: elements,
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
@@ -607,8 +608,7 @@
                     });
 
                     clickQuiz = new ClickQuiz({
-                        globeManager: globeManager,
-                        cameraController: cameraController,
+                        globeBridge: globeBridge,
                         elements: elements,
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
@@ -617,10 +617,8 @@
                     });
 
                     capitalCitiesQuiz = new CapitalCitiesQuiz({
-                        globeManager: globeManager,
-                        cameraController: cameraController,
+                        globeBridge: globeBridge,
                         elements: elements,
-                        rotateGlobeToCountry: (arg, q, a) => cameraController.rotateToCountry(arg, q, a),
                         showQuizCelebration: (opts) => quizUI.showCelebration(opts),
                         clearQuizTimers: clearQuizTimers,
                         countryTable: countryTable,
@@ -695,8 +693,8 @@
 
                     dailyQuiz = new DailyQuiz({
                         apiClient,
-                        cameraController,
-                        globeManager,
+                        globeBridge,
+                        countryTable,
                         focusRegistry
                     });
 
@@ -708,8 +706,7 @@
                         import('./js/features/audit/audit-mode.js').then(({ AuditMode }) => {
                             auditMode = new AuditMode({
                                 apiClient,
-                                cameraController,
-                                globeManager,
+                                globeBridge,
                                 focusRegistry
                             });
                             auditMode.init();

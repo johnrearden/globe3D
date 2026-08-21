@@ -15,7 +15,6 @@ import * as THREE from 'three';
 
 export class IdentifyFlagQuiz {
     constructor(options = {}) {
-        this.globeManager = options.globeManager;
         this.elements = options.elements;
         this.showQuizCelebration = options.showQuizCelebration;
         this.clearQuizTimers = options.clearQuizTimers;

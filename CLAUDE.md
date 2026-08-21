@@ -35,9 +35,10 @@ globe3d/
 │   │                        #   coming Astro/React web app and Expo native app.
 │   │                        #   No DOM, no Three.js, no React; runs in Node, the
 │   │                        #   browser (via index.html's import map) and Metro.
-│   ├── quiz-core/           # Question generation, session reducer, grading. Zero deps
+│   ├── quiz-core/           # Question generation, session reducer, grading, quizStore
 │   ├── storage/             # StorageAdapter + the settings and quiz-history stores
-│   └── api-client/          # Quiz backend client (host + storage + fetch injected)
+│   ├── api-client/          # Quiz backend client (host + storage + fetch injected)
+│   └── globe-bridge/        # The globe interface + a test double. No rendering code
 ├── spikes/expo-gl-mesh/     # Throwaway React Native rig proving expo-gl renders the
 │                            #   real mesh; outside the workspace globs on purpose
 ├── package.json             # Build dependencies
@@ -53,10 +54,32 @@ adding an importmap entry**, or the browser gets a bare-specifier resolution err
 stays green.
 
 Anything platform-specific stays in `js/`, reduced to a thin binding: `js/data/storage.js` picks
-localStorage/sessionStorage, and `js/data/settings-store.js`, `js/data/quiz-history-store.js` and
-`js/data/api-client.js` are now ~15-line files that construct the shared implementation and
-re-export it, so no call site had to change. Follow that pattern rather than importing a package
-directly from a feature module.
+localStorage/sessionStorage, `js/data/globe-bridge.js` wraps GlobeManager + CameraController, and
+`js/data/settings-store.js`, `js/data/quiz-history-store.js` and `js/data/api-client.js` are now
+~15-line files that construct the shared implementation and re-export it, so no call site had to
+change. Follow that pattern rather than importing a package directly from a feature module.
+
+### The globe boundary — `GlobeBridge`
+
+**No quiz code may touch `globeManager` or `cameraController` directly.** Everything under
+`js/features/quiz/`, `js/features/daily-quiz/` and `js/features/audit/` takes a single `globeBridge`
+dependency and calls `highlight` / `clearSelection` / `flash` / `showOnly` / `showAll` /
+`focusCountry` / `frameGlobe` / `frameView` / `framingDistanceFor` / `resetView` / `setInteractive` /
+`setAutoRotateAllowed` / `onPick` / `markers.*`. That list is `GLOBE_BRIDGE_METHODS`, and
+`missingBridgeMembers()` validates an implementation against it.
+
+The rule that gives the interface its shape: **nothing platform-specific crosses it** — no
+`THREE.Vector3`, no DOM node, no engine object, only names and plain values. Aiming the camera at a
+capital passes `{lat, lng}`, not a vector; focusing a country passes a name, not a centroid record.
+
+**Country data is not a globe concern.** `getCountryByName`, `getCapital` and the centroid list come
+from `createCountryTable()` (`js/data/country-table.js`), not from the bridge — a renderer that
+happens to hold a capitals map is an accident of the web implementation and must not be carried onto
+native.
+
+Adding a method means adding it to `packages/globe-bridge/src/interface.js` (docs +
+`GLOBE_BRIDGE_METHODS`), to `js/data/globe-bridge.js`, and to the fake in
+`packages/globe-bridge/src/fake.js` — the fake is what lets quiz logic be tested without WebGL.
 
 ## Key Features
 

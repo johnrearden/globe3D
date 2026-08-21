@@ -12,9 +12,8 @@ import { OptionsGrid } from './options-grid.js';
 import { QUIZ_SUBJECT_SCREEN_FRACTION } from '../../core/focus-zoom.js';
 
 export class QuestionPresenter {
-    constructor({ cameraController, globeManager, focusRegistry, els }) {
-        this.camera = cameraController;
-        this.globe = globeManager;
+    constructor({ globeBridge, focusRegistry, els }) {
+        this.globe = globeBridge;
         this.focusRegistry = focusRegistry;
         this.els = els;                       // {prompt, flag, gridHost, feedback, submit}
         this.grid = new OptionsGrid(this.els.gridHost);
@@ -123,7 +122,7 @@ export class QuestionPresenter {
 
     submitMapClick(name) {
         if (this._awaitingMapClick && this._mapResolve) {
-            this.globe.setSelectedCountry(name);
+            this.globe.highlight(name);
             this._mapResolve(name);
         }
     }
@@ -137,8 +136,8 @@ export class QuestionPresenter {
         } else if (reveal.correctOptions && reveal.correctOptions.length) {
             // Map question: flash the correct country green.
             const correct = reveal.correctOptions[0];
-            this.globe.flashCountry(correct, 0x33dd66, 1600);
-            this.globe.setSelectedCountry(correct);
+            this.globe.flash(correct, 0x33dd66, 1600);
+            this.globe.highlight(correct);
         }
         const ok = reveal.correct;
         // Keep the readout to ~2 lines so the reserved feedback space holds: for
@@ -166,10 +165,9 @@ export class QuestionPresenter {
         const map = question.map;
         if (!map) {
             // Text/flag-only question — neutral full globe behind the panel.
-            this.camera.clearViewOffset();
             this.globe.showAll();
             this.globe.clearSelection();
-            this.camera.zoomOut();
+            this.globe.resetView();
             return;
         }
 
@@ -178,7 +176,7 @@ export class QuestionPresenter {
         // neighbour context without revealing the answer.
         let distance = map.zoom;
         if (!distance && map.focusCountry) {
-            distance = this.camera.framingDistanceFor(map.focusCountry, QUIZ_SUBJECT_SCREEN_FRACTION);
+            distance = this.globe.framingDistanceFor(map.focusCountry, QUIZ_SUBJECT_SCREEN_FRACTION);
         }
 
         // Map-click questions ("Click X.") let the player rotate the globe so they
@@ -191,7 +189,7 @@ export class QuestionPresenter {
         const isMapClick = method === 'map-click-single' || method === 'map-click-multi';
         const lockRotation = isMapClick ? false : !!map.lockRotation;
 
-        this.camera.frameView({
+        this.globe.frameView({
             lat: map.center.lat,
             lng: map.center.lng,
             distance,
@@ -202,7 +200,7 @@ export class QuestionPresenter {
         this.globe.showAll();
         this.globe.clearSelection();
         if (map.highlight && map.highlight.length) {
-            this.globe.setSelectedCountry(map.highlight[0]);
+            this.globe.highlight(map.highlight[0]);
         }
     }
 
@@ -219,8 +217,8 @@ export class QuestionPresenter {
 
     /** Full cleanup when the quiz ends. */
     teardown() {
-        this.camera.clearViewOffset();
-        this.camera.getControls().enableRotate = true;
+        this.globe.resetView();
+        this.globe.setInteractive(true);
         this.globe.showAll();
         this.globe.clearSelection();
         this.grid.clear();

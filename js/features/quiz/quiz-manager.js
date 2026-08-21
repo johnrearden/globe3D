@@ -7,8 +7,6 @@ import * as THREE from 'three';
 
 export class QuizManager {
     constructor(options = {}) {
-        this.globeManager = options.globeManager;
-        this.cameraController = options.cameraController;
         this.elements = options.elements;
 
         // Quiz mode handlers (will be set by index.html)

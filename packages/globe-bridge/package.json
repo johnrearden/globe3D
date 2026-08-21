@@ -1,0 +1,16 @@
+{
+  "name": "@terragotcha/globe-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The narrow interface between quiz UI and a globe engine. Interface, docs and a test double — no rendering implementation.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": false
+}
