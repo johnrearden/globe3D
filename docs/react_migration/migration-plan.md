@@ -73,9 +73,10 @@ Stage 0 of the asset plan (`087d78f`) — R2 was confirmed serving all 51 MB unc
   `docs/react_migration/migration-plan.md`.
 
 **Revision to the plan below:** the "a lite mesh remains justified for mobile web" conclusion in
-Phase C is retired. Stage 1 of `docs/react_migration/asset-size-reduction-plan.md` (graticule
-pre-clipping) beats decimation losslessly — 83% fewer vertices, 90% fewer triangles — so there is no
-lite variant to build, and it is also the cheapest answer to C0's open memory question.
+Phase C is **retired**. Stage 1 of `asset-size-reduction-plan.md` (graticule pre-clipping) shipped on
+2026-08-23 and beats decimation losslessly — 83% fewer vertices, 90% fewer triangles, `world-mesh.bin`
+31.56 MB → 3.85 MB, total wire cost 12.29 MB → 1.73 MB. There is no lite variant to build, and C0's
+open memory question is largely answered by arithmetic rather than needing a physical device.
 
 ## Context
 

@@ -138,14 +138,16 @@ flip those in the shader or in the source canvas on native.
 - **Remaining gate:** run the rig from a release build on a physical low-end
   Android device and record PSS and sustained fps here. Until then, treat the
   memory column as unmeasured, not as measured-and-fine.
-- **Or make the gate irrelevant.** Stage 1 of
-  [`asset-size-reduction-plan.md`](./asset-size-reduction-plan.md) — replacing
-  `build-textures.js`'s uniform subdivision with graticule pre-clipping — cuts the
-  mesh 83% in vertices and 90% in triangles, losslessly and at build time only. It
-  takes the predicted native footprint from ~63 MB to ~8 MB and shrinks the
-  unexplained component by about the same factor. Doing it first is cheaper than
-  measuring, and it also settles the frame-rate question (157k triangles instead of
-  1.57M). The same change removes the migration plan's separate "lite mesh for
-  mobile web" workstream, since it beats decimation without losing detail.
-- Every number above is against the **current** 30 MB mesh. Re-run the rig after
-  Stage 1 rather than scaling these figures by hand.
+- **The gate is now largely moot.** Stage 1 of
+  [`asset-size-reduction-plan.md`](./asset-size-reduction-plan.md) **shipped on
+  2026-08-23**: graticule pre-clipping replaced uniform subdivision, cutting the
+  mesh from 974k vertices / 1.57M triangles to 166k / 157k — losslessly, at build
+  time only. The predicted native footprint drops from ~63 MB to ~8 MB, and the
+  unexplained component should shrink by roughly the same factor. It also settles
+  the frame-rate question by a wide margin. The same change retired the migration
+  plan's separate "lite mesh for mobile web" workstream.
+- **Every number in this document is against the old 30 MB mesh.** Re-run the rig
+  before quoting any of them — `world-mesh.bin` is now 3.85 MB, so the fetch,
+  upload and memory figures are all stale. The *conclusions* (WebGL2 is present,
+  the WebGL1 rejection is a false positive, the format is zero-copy, RN's fetch is
+  fine) are unaffected.
