@@ -59,7 +59,36 @@ Open <http://localhost:8001> (use `localhost` or `127.0.0.1`, not `0.0.0.0`) and
 |---------|---------|
 | `manage.py seed_countries` | Seed/refresh `Country` from the vendored snapshot (idempotent). |
 | `manage.py generate_daily [YYYY-MM-DD]` | Pre-build a daily quiz (otherwise generated lazily on first request). Wire to cron if you want it pre-warmed. |
+| `manage.py export_border_quizzes` | Bake `landing/borders-data.json` for the static `/borders/<slug>` pages. |
+| `manage.py export_country_content` | Bake `content/countries.json` for the static `/country/<slug>` pages. |
 | `manage.py test` | Run the test suite. |
+
+## Country page content
+
+The static `/country/<slug>` pages exist because AdSense rejected the site for "low
+quality content": the client-rendered shell has no substantive text in its initial
+HTML response. `geo.CountryContent` holds the editorial answer — a summary plus
+geography, history and literary-heritage prose per country — authored in Django admin.
+
+It is a **separate table from `Country` on purpose.** `Country` is *seeded*: wiped and
+rewritten by `seed_countries` from a vendored snapshot. `CountryContent` is *written*,
+slowly, by a person. Editorial work must not be destroyable by a reseed.
+
+Workflow: draft in admin → fill every section → the **Publish** action stamps the
+reviewer and timestamp, and refuses anything with an empty section. Then:
+
+```bash
+.venv/bin/python manage.py export_country_content
+```
+
+Only PUBLISHED, complete content is exported, and that is the point rather than a
+convenience — a half-filled page is exactly what the reviewer is looking for. A country
+without reviewed content simply has no page; its globe entry still works.
+
+Each entry carries a `related` block of bordering and same-region countries, resolved
+to slugs that are guaranteed to exist. That is load-bearing: a WebGL canvas is not
+crawlable, so without real `<a href>` links between them the pages are sitemap orphans.
+The command warns when a page has none yet.
 
 ## Regenerating the vendored country data
 

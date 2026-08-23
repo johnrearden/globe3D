@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "countries": [
+    {
+      "slug": "france",
+      "name": "France",
+      "cca2": "fr",
+      "cca3": "FRA",
+      "flagIso": "fr",
+      "region": "Europe",
+      "subregion": "Western Europe",
+      "capital": "Paris",
+      "areaKm2": 551695.0,
+      "summary": "France stretches from the chalk cliffs of the Channel to the Mediterranean, a country whose geography has shaped a literature preoccupied with the pull between province and capital.",
+      "sections": [
+        {
+          "id": "geography",
+          "heading": "Geography",
+          "paragraphs": [
+            "France is the largest country in the European Union by area, spanning roughly 551,000 square kilometres of the continent plus overseas departments in the Caribbean, South America and the Indian Ocean.",
+            "Its borders are unusually varied: the Pyrenees divide it from Spain, the Alps and Jura from Italy and Switzerland, and the Rhine marks part of the German frontier. Mont Blanc, on the Italian border, is the highest summit in western Europe at 4,806 metres."
+          ]
+        },
+        {
+          "id": "history",
+          "heading": "History",
+          "paragraphs": [
+            "The territory took shape as Gaul under Roman rule, then as the Frankish kingdoms whose division at Verdun in 843 produced the outline of a French state.",
+            "The Revolution of 1789 ended the Bourbon monarchy and exported the language of citizenship and rights across Europe. The two world wars of the twentieth century were fought substantially on French soil, and the Fifth Republic, founded in 1958, remains the current constitutional settlement."
+          ]
+        },
+        {
+          "id": "literature",
+          "heading": "Literary heritage",
+          "paragraphs": [
+            "French literature carries an unusual institutional weight: the Academie Francaise has adjudicated the language since 1635.",
+            "The nineteenth-century novel is its most exported form, from Hugo's Les Miserables to Flaubert's Madame Bovary, whose trial for offending public morals in 1857 became a landmark in the argument over what fiction is allowed to describe. In the twentieth century Proust's In Search of Lost Time reshaped what a novel could attempt, and Camus and Sartre made Paris the centre of a philosophical literature read worldwide."
+          ]
+        }
+      ],
+      "reviewedAt": "2026-08-23T15:46:52.324811+00:00",
+      "related": []
+    }
+  ]
+}
