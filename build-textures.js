@@ -374,8 +374,7 @@ function cleanupFragments(idBuf, idW, idH, idToName) {
         for (let x = 0; x < W; x++) {
             const i = y * W + x;
             if (labels[i] !== 0) continue;
-            const bi = i * 2;
-            const id = idBuf[bi] * 256 + idBuf[bi + 1];
+            const id = idBuf[i];
             if (id === 0) continue;
 
             const label = nextLabel++;
@@ -394,29 +393,25 @@ function cleanupFragments(idBuf, idW, idH, idToName) {
                 if (py > 0) {
                     const ni = pi - W;
                     if (labels[ni] === 0) {
-                        const nbi = ni * 2;
-                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                        if (idBuf[ni] === id) { labels[ni] = label; queue[qTail++] = ni; }
                     }
                 }
                 if (py < H - 1) {
                     const ni = pi + W;
                     if (labels[ni] === 0) {
-                        const nbi = ni * 2;
-                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                        if (idBuf[ni] === id) { labels[ni] = label; queue[qTail++] = ni; }
                     }
                 }
                 if (px > 0) {
                     const ni = pi - 1;
                     if (labels[ni] === 0) {
-                        const nbi = ni * 2;
-                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                        if (idBuf[ni] === id) { labels[ni] = label; queue[qTail++] = ni; }
                     }
                 }
                 if (px < W - 1) {
                     const ni = pi + 1;
                     if (labels[ni] === 0) {
-                        const nbi = ni * 2;
-                        if (idBuf[nbi] * 256 + idBuf[nbi + 1] === id) { labels[ni] = label; queue[qTail++] = ni; }
+                        if (idBuf[ni] === id) { labels[ni] = label; queue[qTail++] = ni; }
                     }
                 }
             }
@@ -473,9 +468,7 @@ function cleanupFragments(idBuf, idW, idH, idToName) {
             const i = y * W + x;
             const lbl = labels[i];
             if (lbl === 0 || !drop[lbl]) continue;
-            const bi = i * 2;
-            idBuf[bi] = 0;
-            idBuf[bi + 1] = 0;
+            idBuf[i] = 0;
         }
     }
 
@@ -488,17 +481,16 @@ function dilateIds(idBuf, idW, idH) {
     const src = new Uint8Array(idBuf);
     for (let y = 0; y < idH; y++) {
         for (let x = 0; x < idW; x++) {
-            const idx = (y * idW + x) * 2;
-            if (src[idx] !== 0 || src[idx + 1] !== 0) continue;
+            const idx = y * idW + x;
+            if (src[idx] !== 0) continue;
             const tries = [
                 [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
             ];
             for (const [tx, ty] of tries) {
                 if (tx < 0 || tx >= idW || ty < 0 || ty >= idH) continue;
-                const ti = (ty * idW + tx) * 2;
-                if (src[ti] !== 0 || src[ti + 1] !== 0) {
+                const ti = ty * idW + tx;
+                if (src[ti] !== 0) {
                     idBuf[idx] = src[ti];
-                    idBuf[idx + 1] = src[ti + 1];
                     break;
                 }
             }
@@ -560,7 +552,12 @@ function build() {
     console.log(`Found ${countryFiles.length} country files`);
 
     // Allocate buffers
-    const idBuf = new Uint8Array(ID_W * ID_H * 2);
+    // One byte per pixel. Ids are bounded by MAX_COUNTRIES (256) and
+    // `aCountryId` is already a u8 vertex attribute, so a second byte could only
+    // ever hold zero — see the guard below, which makes that implicit invariant
+    // explicit rather than leaving a future MAX_COUNTRIES bump to truncate ids
+    // silently.
+    const idBuf = new Uint8Array(ID_W * ID_H);
     // Country-color palette: index by id, RGBA. id=0 reserved for ocean (alpha=0).
     const palette = new Uint8Array(MAX_COUNTRIES * 4);
     // Merged country mesh accumulators. Vertex positions are unit-sphere xyz;
@@ -597,6 +594,20 @@ function build() {
         }
     }
     console.log(`Assigned ${DEPENDENCIES.length} dependency IDs (${depBaseId}..${depCursor - 1})`);
+
+    // world-id.bin stores one byte per pixel, so an id above 255 would be
+    // truncated into a DIFFERENT country's id — silently mis-attributing every
+    // pick in that territory. Fail the build instead. (Same ceiling the 256-entry
+    // palette and the u8 aCountryId attribute already impose; this just states it
+    // where a future MAX_COUNTRIES bump would trip over it.)
+    const highestId = depCursor - 1;
+    if (highestId > 255) {
+        console.error(
+            `\n  ✗ Highest country id is ${highestId}, above the 255 that one byte ` +
+            `per pixel can hold in ${OUTPUT_ID}. Widen the ID buffer (and the ` +
+            `runtime picker in js/core/globe.js) before raising MAX_COUNTRIES.`);
+        process.exit(1);
+    }
 
     for (const file of countryFiles) {
         const filePath = path.join(COUNTRIES_DIR, file);
@@ -674,12 +685,8 @@ function build() {
                         break;
                     }
                 }
-                const tHi = (targetId >> 8) & 0xff;
-                const tLo = targetId & 0xff;
                 const writeId = (px, py) => {
-                    const i = (py * ID_W + px) * 2;
-                    idBuf[i] = tHi;
-                    idBuf[i + 1] = tLo;
+                    idBuf[py * ID_W + px] = targetId;
                 };
 
                 // Largest-ring tracking, per target ID.
@@ -947,7 +954,15 @@ function build() {
         nameToId,
         idToName
     };
-    fs.writeFileSync(OUTPUT_META, JSON.stringify(meta, null, 2));
+    // Minified, with floats rounded to 6 decimals. The precision is far finer
+    // than the data warrants: 1e-6 on a unit-sphere centroid is ~6 m, and 1e-6
+    // of a degree is ~11 cm, against a 668 m simplification tolerance. Raw
+    // JSON.stringify emits 17 significant digits for every one of them.
+    const round6 = (_key, value) =>
+        typeof value === 'number' && !Number.isInteger(value)
+            ? Math.round(value * 1e6) / 1e6
+            : value;
+    fs.writeFileSync(OUTPUT_META, JSON.stringify(meta, round6));
 
     const paletteSize = fs.statSync(OUTPUT_PALETTE).size;
     const meshSize = fs.statSync(OUTPUT_MESH).size;

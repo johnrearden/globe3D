@@ -300,6 +300,20 @@ regression at the limb.
 
 Small or non-bandwidth wins, worth doing while the pipeline is open.
 
+> **Shipped 2026-08-23**, except the loading-progress item — see below.
+>
+> | | before | after |
+> |---|---|---|
+> | `world-id.bin` | 16,777,216 | **8,388,608** (−50%) |
+> | `country-meta.json` | 150,179 | **75,217** (−49.9%) |
+> | `country-meta.json` brotli | 24,852 | **15,942** (−35.9%) |
+>
+> The ID halving is **provably lossless**: reconstructing the old two-byte layout
+> from the new file matches the previous asset byte-for-byte, and all 8.4M high
+> bytes in the old file were zero. Total wire cost is now **~1.72 MB** — the ID
+> map barely moves it (53 KB → ~52 KB brotli), which was the point: this item is
+> an **8 MB resident-memory** win, not a bandwidth one.
+
 - **`world-id.bin` to 1 byte/pixel: 16.78 MB → 8.39 MB raw.** The high byte is *provably* always
   zero: `MAX_COUNTRIES = 256` and `aCountryId` is already a `u8` vertex attribute, so ids can never
   exceed 255 (current max is 237). Touches the writer (`build-textures.js:678-684`), the picker
@@ -308,10 +322,30 @@ Small or non-bandwidth wins, worth doing while the pipeline is open.
   memory** on every session and halves that file's contribution to the repo.
 - **`country-meta.json`**: drop the 2-space indent from `JSON.stringify(meta, null, 2)` (`:845`) and
   round coordinates. ~150 KB → ~100 KB.
-- **Real loading progress.** The bar jumps 5% → 70% with the entire download in between
-  (`js/core/globe.js:423` → `:459`). Much less pressing once assets are ~1 MB, but
-  `response.body.getReader()` would make it honest.
-- Fix the stale `~3.8 MB country mesh` comment at `js/core/globe.js:240`.
+- ~~**Real loading progress.**~~ **Moot — the bar this describes no longer exists.** The
+  splash was redesigned to the Terragotcha lockup at some point, and its `.tg-bar` is an
+  **indeterminate CSS keyframe sweep** (`tg-loadbar`, `styles.css:3485`), not a determinate
+  fill. Meanwhile `SceneManager.updateLoadingProgress()` still writes to
+  `loading-progress-fill` / `loading-progress-text` — **ids that are not in the DOM** — so
+  the whole `onProgress` chain from `loadGlobe` has been dead code since that redesign.
+  Nothing reads the percentages it computes.
+
+  Making progress real is therefore a **UI decision** (replace an intentionally
+  indeterminate sweep with a determinate bar), not an asset cleanup — and the UI is being
+  rebuilt from scratch in Phase B regardless. Two things to do there rather than here:
+  wire the new splash to real progress if wanted, and delete `updateLoadingProgress` and
+  its three call sites in `index.html` if not.
+
+  (An attempt at this landed and was reverted. Worth recording *why*: streaming via
+  `response.body.getReader()` means concatenating chunks into a new `ArrayBuffer` — an
+  extra full copy of the mesh — where `.arrayBuffer()` hands back one allocation the typed
+  arrays view directly. That zero-copy decode is why the mesh parses in ~2 ms, and it is
+  worth more than bar smoothness. Weighting by per-asset completion avoids the copy, but
+  the mesh is 83% of the transfer, so the bar stays mesh-dominated either way.)
+- ~~Fix the stale `~3.8 MB country mesh` comment at `js/core/globe.js:240`.~~ **No longer
+  stale.** It was written when the mesh really was ~3.8 MB, went wrong when the mesh grew to
+  31 MB, and Stage 1 has made it accurate again (3.85 MB). Left alone deliberately — do not
+  "fix" it from the old plan text.
 
 ---
 
@@ -445,7 +479,7 @@ line numbers are unaffected.
 4. **Quantise the wire format** — `int16` normalized positions and per-country `u16` indices — for a
    further halving to ~2 MB, at the cost of a small loader change.
 5. **Trim `world-id.bin` to one byte per pixel** for 8 MB of memory and repo weight; it is not a
-   bandwidth problem.
+   bandwidth problem. **Shipped**, and verified byte-for-byte lossless.
 6. **Do not loosen simplification tolerance** — it's the only lossy lever and isn't needed.
 7. Net target: **~51 MB → ~1.2 MB**, no visual change.
 8. **Stage 1 is also the native-memory fix and the reason no lite mesh is needed** — added after the

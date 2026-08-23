@@ -200,7 +200,7 @@ export class GlobeManager {
         // selected country only. Off by default → plain flat fill.
         this._selGradient = false; // radial tonal gradient on the selected country
 
-        this.idBytes = null;        // Uint8Array, packed [idHi, idLo, ...]
+        this.idBytes = null;        // Uint8Array, one country id per pixel
         this.idW = 0;
         this.idH = 0;
 
@@ -461,7 +461,10 @@ export class GlobeManager {
             this.idW = meta.idWidth;
             this.idH = meta.idHeight;
             this.idBytes = new Uint8Array(idBuffer);
-            const expected = this.idW * this.idH * 2;
+            // One byte per pixel: ids are capped at 255 by the build (MAX_COUNTRIES
+            // is 256 and aCountryId is a u8 attribute), so the second byte the
+            // format used to carry could only ever be zero.
+            const expected = this.idW * this.idH;
             if (this.idBytes.length !== expected) {
                 throw new Error(`world-id.bin size mismatch: got ${this.idBytes.length}, expected ${expected}`);
             }
@@ -625,8 +628,7 @@ export class GlobeManager {
         if (py < 0) py = 0;
         else if (py >= this.idH) py = this.idH - 1;
 
-        const idx = (py * this.idW + px) * 2;
-        const id = this.idBytes[idx] * 256 + this.idBytes[idx + 1];
+        const id = this.idBytes[py * this.idW + px];
         if (id === 0) return null;
         const name = this.idToName[id] || null;
         if (!name) return null;

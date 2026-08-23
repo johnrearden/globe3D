@@ -437,7 +437,7 @@ For each slice: move code module-by-module, run tests, eyeball the page, delete 
 
 1. **Tighten `_lookupIdLoose`** (`globe.js:487`). Replace the symmetric substring match with: exact match → normalized exact match → prefix match. Add a unit test that asserts "Niger" and "Nigeria" don't collide.
 2. **Decide override precedence.** Document (and enforce in code) which wins when both `country-colors.json` and `label-config.json` set conflicting values. Add a comment near the loader.
-3. **Confirm gzip in production.** (Cross-ref Stage 6.) Verify `Content-Encoding: gzip`/`br` on `.bin` files. The 16 MB raw `world-id.bin` shrinks to ~90 KB gzipped — without it, mobile users eat the full 16 MB.
+3. **Confirm gzip in production.** (Cross-ref Stage 6.) Verify `Content-Encoding: gzip`/`br` on `.bin` files. (Done — see `compress-assets.mjs` / `npm run build:assets`.) `world-id.bin` is now 8 MB raw and ~52 KB brotli.
 4. **Optional: drop `getCountries()`.** It returns `[]` with a deprecation comment. Grep for callers; if none, delete it.
 
 **Done when:** the cosmetic items above are cleaned and a perf-sanity pass on a low-end mobile (or DevTools CPU throttle 4×) holds 60 FPS during idle rotation.

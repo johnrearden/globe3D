@@ -27,7 +27,7 @@ globe3d/
 ├── build-textures.js        # Node.js script to bake GeoJSON → globe assets
 ├── assets/
 │   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~3.9 MB)
-│   ├── world-id.bin         # Equirectangular country-ID texture for picking (4096×2048, raw RG bytes)
+│   ├── world-id.bin         # Equirectangular country-ID map for picking (4096×2048, one byte per pixel)
 │   ├── world-border-lines.bin # Country-outline edges as u32 vertex-index pairs into world-mesh.bin (~1.3 MB raw / ~220 KB brotli)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
 │   └── country-meta.json    # Country IDs, centroids, bboxes, land areas (km²), name↔id maps
@@ -198,14 +198,15 @@ The globe assets are pre-built using `build-textures.js`:
    - Edge-function scanline rasterizer also fills the 4096×2048 ID buffer (used at runtime only for picking)
    - Connected-components cleanup drops tiny isolated fragments from the ID buffer (preserves each country's largest)
    - 1-pixel ID dilation eliminates seam ambiguity at country borders
+   - The ID map stores **one byte per pixel**: `MAX_COUNTRIES` is 256 and `aCountryId` is already a `u8` vertex attribute, so an id can never exceed 255. The build asserts this and fails rather than truncating an id into a different country's — widen the buffer and `js/core/globe.js`'s picker before raising `MAX_COUNTRIES`
    - Country-outline edges (`extractBorderEdges`) are extracted from the merged mesh: edges used by exactly one triangle are each country's boundary (outline + coastlines), since countries don't share vertices. Written as u32 vertex-index pairs into `world-border-lines.bin` for the runtime border line
    - Per-country chosen RGB (from `country-colors.json` or random palette) is written into a 256×1 RGBA palette
 3. **Output:**
    - `assets/world-mesh.bin` (~3.9 MB raw, ~1.4 MB brotli — vertex positions, per-vertex IDs, uint32 indices)
-   - `assets/world-id.bin` (~16 MB raw, ~90 KB gzipped — picking only)
+   - `assets/world-id.bin` (8 MB raw, ~52 KB brotli — picking only; one byte per pixel, since ids are capped at 255)
    - `assets/world-border-lines.bin` (~1.3 MB raw, ~220 KB brotli — boundary-edge index pairs for the border line)
    - `assets/country-palette.bin` (1 KB)
-   - `assets/country-meta.json` (~75 KB)
+   - `assets/country-meta.json` (~75 KB minified, floats rounded to 6 dp ≈ 6 m)
 
 The build asserts two Stage 1 invariants and exits non-zero on either: max chord sag stays under
 `MAX_CHORD_SAG` (a violation means ocean bleeding through country interiors at max zoom), and no
