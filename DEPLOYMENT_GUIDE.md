@@ -851,6 +851,24 @@ platform" is true, but `_headers` governs **Pages**, not R2. The edge does not c
 11.7 MB. R2 stores bytes verbatim and returns whatever metadata was set on them, and browsers
 decompress transparently, so this is purely an upload-side change.
 
+**Deploy the frontend BEFORE the assets, never after.** The code and the assets live on
+different hosts (Pages and R2) and are deployed by separate actions, so every asset format
+change has a window where one is new and the other is old. Only one order survives it:
+
+| | old asset | new asset |
+|---|---|---|
+| **old code** | fine | **breaks** |
+| **new code** | fine (compat path) | fine |
+
+New code is written to accept both layouts, so shipping code first is safe in both states.
+Shipping assets first puts old code in front of a new asset — the one broken cell — and the
+site goes down until the code catches up. That is exactly what happened on 2026-08-23 when
+`world-id.bin` halved: R2 was updated while Pages was still 17 commits behind, and every
+visitor got `world-id.bin size mismatch: got 8388608, expected 16777216`.
+
+Note the trap: **Pages deploys from `main`**, so "I committed it" is not "it is deployed".
+Check `git log origin/main -1` before uploading assets, not just your working branch.
+
 **Changing an asset's format:** `max-age=86400` means a returning visitor keeps the old
 object in their **browser** cache for up to a day, and purging Cloudflare cannot clear that.
 So new JS on Pages meets an old asset from cache. If the format changed, the loader must
