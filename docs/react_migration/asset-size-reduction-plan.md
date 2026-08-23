@@ -129,14 +129,13 @@ brotli window — the mesh has long-range structure the default 4 MB window cann
 
 Three things to get right:
 
-- **Never set `Content-Encoding` on `planet-z9.pmtiles`.** It is read by **HTTP Range request** —
-  that is the entire point of the format, and `DEPLOYMENT_GUIDE.md` §6.7 verifies it with a `206`. A
-  ranged read of a brotli-encoded object returns a slice of the *compressed* stream, which no client
-  can decode: **the map would break completely while every status-code check still passed.** This is
-  the one way Stage 0 can go badly wrong, and the existing upload recipe — `rclone copy ./assets` for
-  the whole directory — is exactly the shape that would do it. Hence the two-pass upload now in the
-  guide. The globe's `.bin` files are always fetched whole, never ranged, which is what makes
-  compressing *them* safe.
+- ~~**Never set `Content-Encoding` on `planet-z9.pmtiles`.**~~ **Moot since 2026-08-23** — the
+  tileset was deleted from R2, along with `countries.geojson` and `pmtiles-layers.json`, all three
+  orphaned when the 2D MapLibre map was removed in `f9187e9` (2026-06-25). The upload is one pass
+  again. The hazard is worth remembering if a range-read asset ever returns: a ranged read of a
+  brotli object yields a slice of the *compressed* stream, which no client can decode, so the map
+  would have broken while every status-code check still passed. The globe's `.bin` files are always
+  fetched whole, never ranged, which is what makes compressing them safe.
 - **Keep the object keys unchanged** (`world-mesh.bin`, *not* `world-mesh.bin.br`).
 - **Brotli vs gzip.** Every browser that supports WebGL2 and ES modules supports `br` over HTTPS, so
   brotli is safe here and buys ~30% over gzip. `npm run build:assets -- --gzip` is the drop-in

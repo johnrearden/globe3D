@@ -50,7 +50,11 @@ injection (with an `onEnter` seam for the mutually-exclusive edit modes).
 **2D map removed; capitals quiz moved to the globe (2026-06-25):** the full-screen 2D MapLibre
 country view (`js/features/country-map.js`, the `js/vendor/` MapLibre+PMTiles libs, and the
 `assets/planet-z9.pmtiles` / `countries.geojson` / `pmtiles-layers.json` assets) was deleted as
-out-of-scope for a casual learning experience. A new reusable `js/core/markers.js` (`MarkerLayer`,
+out-of-scope for a casual learning experience. **The three R2 objects outlived the code by two
+months** — they were still uploaded and still costing 1.44 GiB of the 10 GB free tier when spotted
+during the 2026-08-23 asset deploy, and were deleted then, along with the orphaned
+`build-pmtiles-layers.mjs` generator and its `protomaps-themes-base` devDependency. Deleting a
+feature is not finished until its deployed artefacts go too. A new reusable `js/core/markers.js` (`MarkerLayer`,
 owned by `GlobeManager` as `globeManager.markers`) plots dot markers — with optional name labels —
 at any lat/lng on the globe; it absorbs the old inline `showCapitalMarker`/`clearCapitalMarker`
 code. The Capital Cities quiz now runs on the 3D globe: forward questions pan/zoom to the country

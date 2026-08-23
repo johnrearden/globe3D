@@ -815,21 +815,11 @@ secret_access_key = <R2_SECRET_ACCESS_KEY>
 endpoint = https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 acl = private
 ```
-The upload is **two passes**, and they must not be merged — see the warning below.
+The upload is **one pass**: every object on R2 is a whole-file fetch, pre-compressed.
 
 ```bash
 # From the repo root.
-# Pass 1 — the pmtiles tileset (and anything else), stored verbatim.
-# SKIP THIS if assets/ holds only the six globe files: the tileset is gitignored
-# and usually absent locally, in which case this pass copies nothing. Running it
-# needlessly is the only way to get Content-Encoding onto the tileset by mistake.
-rclone copy ./assets r2:terragotcha-assets --progress \
-  --exclude "*.bin" --exclude "country-meta.json" --exclude "capitals.json" \
-  --header-upload "Cache-Control: public, max-age=86400"
-
-# Pass 2 — the six globe assets, pre-compressed. Object keys are unchanged
-# (world-mesh.bin, NOT world-mesh.bin.br), so nothing in js/ needs editing.
-npm run build:assets                       # writes dist-assets/, ~2 min
+npm run build:assets                       # writes dist-assets/, ~20s
 rclone copy ./dist-assets r2:terragotcha-assets --progress \
   --header-upload "Cache-Control: public, max-age=86400" \
   --header-upload "Content-Encoding: br"
@@ -837,12 +827,21 @@ rclone copy ./dist-assets r2:terragotcha-assets --progress \
 rclone ls r2:terragotcha-assets   # verify keys are at the root (no assets/ prefix)
 ```
 
-> **Never put `Content-Encoding` on the pmtiles.** `planet-z9.pmtiles` is read by
-> **HTTP Range request** — that is the whole point of the format, and §6.7 verifies it with a
-> `206`. A ranged read of an object declared `Content-Encoding: br` returns a slice of the
-> *compressed* stream, which the client cannot decode: the map would break completely while
-> every check that only looks at status codes still passed. Hence the two passes. The globe's
-> `.bin` files are fetched whole, never ranged, which is what makes compressing them safe.
+> **This was two passes until 2026-08-23.** The split existed to keep
+> `Content-Encoding` off `planet-z9.pmtiles`, which is read by HTTP Range request — a ranged
+> read of a brotli object returns a slice of the compressed stream, which no client can
+> decode, so the map would have broken while every status check still passed.
+>
+> That hazard is gone with the tileset: the 2D MapLibre map was removed in `f9187e9`
+> (2026-06-25) and its three R2 objects (`planet-z9.pmtiles`, `countries.geojson`,
+> `pmtiles-layers.json`) deleted. **If a range-read asset is ever added back, restore the
+> two-pass split** — do not add `Content-Encoding` to a directory containing one.
+
+> **rclone + R2 returns `501 NotImplemented` on the first attempt** and succeeds on the
+> retry (seen with rclone 1.60 against Cloudflare). The transfer summary is what counts; if
+> it reports 100%, the objects are up. But re-running the command later will **skip** files
+> whose size and mtime match, so a botched `--header-upload` cannot be fixed by repeating it
+> — use `--ignore-times` to force the metadata through.
 
 **Why pre-compress at all:** `_headers`' note that "compression is applied automatically by the
 platform" is true, but `_headers` governs **Pages**, not R2. The edge does not compress
@@ -935,7 +934,7 @@ Delete the Porkbun parking leftovers (apex `A` records, the `*` and `www` CNAMEs
 ### 6.9 Verify
 ```bash
 curl -I https://assets.terragotcha.com/world-mesh.bin                              # 200
-curl -r 0-1023 -s -o /dev/null -w "%{http_code}\n" https://assets.terragotcha.com/planet-z9.pmtiles   # 206
+# (The planet-z9.pmtiles range check was removed with the tileset — see §6.3.)
 curl -H "Origin: https://terragotcha.com" -I https://assets.terragotcha.com/country-meta.json | grep -i access-control-allow-origin
 ```
 Then in a browser: `terragotcha.com` → Access login → globe loads (mesh from R2), 2D map
