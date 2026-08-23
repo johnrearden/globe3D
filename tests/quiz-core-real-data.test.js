@@ -175,7 +175,10 @@ describe('dependency eligibility on real data', () => {
         }
     });
 
-    it('leaves the capital quiz excluding every dependency, pending a ruling', () => {
+    it('never asks for a dependency\'s capital, whatever its size', () => {
+        // Ruled separately from the name-country change: Nuuk is a far more
+        // obscure fact than a sovereign capital, so being large does not make a
+        // territory fair game here.
         const capitalAnswers = new Set();
         for (let seed = 0; seed < 200; seed++) {
             for (const q of playSession(generateCapital, 'globe', seed)) {

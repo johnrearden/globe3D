@@ -66,8 +66,9 @@ Stage 0 of the asset plan (`087d78f`) — R2 was confirmed serving all 51 MB unc
 - ~~The dependency-exclusion asymmetry~~ — **ruled on 2026-08-23**: "Name the country" now admits
   dependencies large enough to recognise on the globe (Greenland, French Guiana, the Falklands,
   Puerto Rico, …) while still excluding the long tail of specks, and sovereign states are never
-  size-filtered. The **capital** quiz still excludes every dependency; that is a separate question and
-  has not been ruled on.
+  size-filtered. The **capital** quiz excludes every dependency regardless of size — ruled separately
+  the same day, because a territory's administrative seat is a much more obscure fact than a
+  sovereign capital.
 - ~~This plan file lives outside the repo~~ — **moved 2026-08-23** to
   `docs/react_migration/migration-plan.md`.
 

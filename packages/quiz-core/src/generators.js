@@ -13,7 +13,10 @@
  *      and click-country did not, so Greenland could be a flag answer but never
  *      a "name the country" answer. "Name the country" now admits dependencies
  *      that are large enough to recognise (excludeMinorDependencies). `capital`
- *      still excludes them all — a separate question, not yet ruled on.
+ *      keeps excluding them all — a deliberate ruling, not an oversight: a
+ *      territory's administrative seat (Nuuk, Cayenne, Nouméa) is a different
+ *      and much more obscure kind of fact than a sovereign capital, and mixing
+ *      the two would make the mode harder without making it better.
  *   2. Distractors are drawn from the full in-scope pool including countries
  *      already used as answers, so a country can appear as a distractor after
  *      it has been the answer.

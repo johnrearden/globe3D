@@ -30,9 +30,13 @@ export function inScope(countries, scope) {
 }
 
 /**
- * Drop every overseas territory and dependency. Used where a territory is
- * unfair regardless of size — see `excludeMinorDependencies` for the softer
- * rule that "Name the country" uses instead.
+ * Drop every overseas territory and dependency, whatever its size.
+ *
+ * Still the right rule for the capital quiz: a territory's administrative seat
+ * (Nuuk, Cayenne, Nouméa) is a far more obscure fact than a sovereign capital,
+ * so size does not make it fair. "Name the country" uses the softer
+ * `excludeMinorDependencies` instead, because there the question is only
+ * whether the player can see the thing.
  */
 export function excludeDependencies(countries) {
     return countries.filter(c => !c.isDependency);
