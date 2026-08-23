@@ -23,28 +23,39 @@ import {
     generateNameCountry,
     mulberry32
 } from '@terragotcha/quiz-core';
-import { COUNTRY_REGIONS, REGIONS } from '../js/data/country-regions.js';
+import { REGIONS } from '../js/data/country-regions.js';
 import { countryToISO } from '../js/data/country-data.js';
+import { createCountryTable } from '../js/data/country-table.js';
 
 const read = rel => JSON.parse(readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8'));
 
 const meta = read('../assets/country-meta.json');
 const capitals = read('../assets/capitals.json');
 
-// Mirrors createCountryTable(): a dependency is any record the assets tagged
-// with its own ISO code (js/core/globe.js getDependencyData).
-const TABLE = meta.countries.map(c => {
-    const capital = capitals[c.name] || null;
-    return {
+/**
+ * The real `createCountryTable`, over a GlobeManager reduced to the four
+ * accessors it uses, each reproducing that method's actual logic on the real
+ * assets. Previously this file hand-mirrored the table's construction — which
+ * meant the mirror could drift from the thing it was standing in for, and the
+ * suite would keep passing. Driving the real builder closes that gap: an
+ * `isDependency` or `area` that doesn't survive the pipeline now fails here.
+ */
+const globeManagerStub = {
+    getCentroids: () => meta.countries.map(c => ({
         name: c.name,
-        centroid: c.centroid,
-        area: c.area != null ? c.area : null,
-        iso: countryToISO[c.name] || null,
-        region: COUNTRY_REGIONS[c.name] || null,
-        capital: capital ? { name: capital.name, lat: capital.lat, lng: capital.lng } : null,
-        isDependency: !!c.iso
-    };
-});
+        // The runtime hands out a THREE.Vector3; the table only reads x/y/z.
+        centroid: { x: c.centroid[0], y: c.centroid[1], z: c.centroid[2] },
+    })),
+    getCapitalsData: () => capitals,
+    getCountryByName: name => meta.countries.find(c => c.name === name) || null,
+    // js/core/globe.js getDependencyData(): every record carrying its own ISO
+    // code. Only the curated dependency rows get one (build-textures.js:784).
+    getDependencyData: () => Object.fromEntries(
+        meta.countries.filter(c => c.iso).map(c => [c.name, { iso: c.iso, parent: c.parent || null }])
+    ),
+};
+
+const TABLE = createCountryTable({ globeManager: globeManagerStub, countryToISO }).all;
 
 /** Play a full session of one mode, returning the questions produced. */
 function playSession(generate, scope, seed, extra = {}) {
@@ -119,6 +130,59 @@ describe.each(ALL_SCOPES)('scope: %s', scope => {
                 expect(rec.area == null || rec.area >= 1628).toBe(true);
             }
         }
+    });
+});
+
+describe('dependency eligibility on real data', () => {
+    const NAME_COUNTRY_SEEDS = 400;
+
+    /** Every distinct name-country answer across many seeded globe sessions. */
+    const answers = (() => {
+        const seen = new Set();
+        for (let seed = 0; seed < NAME_COUNTRY_SEEDS; seed++) {
+            for (const q of playSession(generateNameCountry, 'globe', seed)) {
+                seen.add(q.meta.country);
+            }
+        }
+        return seen;
+    })();
+
+    it('asks Greenland — the case this rule was changed for', () => {
+        expect(answers).toContain('Greenland');
+    });
+
+    it('asks the other substantial territories too', () => {
+        // Not an exhaustive list; these are the ones large enough that a player
+        // would reasonably expect to be asked about them.
+        for (const name of ['French Guiana', 'New Caledonia', 'Falkland Islands', 'Puerto Rico']) {
+            expect(answers, `expected ${name} to be askable`).toContain(name);
+        }
+    });
+
+    it('never asks about a speck', () => {
+        // These are real dependencies under the threshold; highlighting one on
+        // the globe and asking "which country is this?" is not a fair question.
+        for (const name of ['Gibraltar', 'Tokelau', 'Pitcairn Islands', 'Bermuda', 'Norfolk Island']) {
+            expect(answers, `${name} should be excluded`).not.toContain(name);
+        }
+    });
+
+    it('still asks small sovereign states, which are NOT size-filtered', () => {
+        // The rule gates dependencies only. Removing these would be a
+        // regression, not a side effect.
+        for (const name of ['Singapore', 'Malta', 'Barbados', 'Bahrain', 'Maldives']) {
+            expect(answers, `expected ${name} to remain askable`).toContain(name);
+        }
+    });
+
+    it('leaves the capital quiz excluding every dependency, pending a ruling', () => {
+        const capitalAnswers = new Set();
+        for (let seed = 0; seed < 200; seed++) {
+            for (const q of playSession(generateCapital, 'globe', seed)) {
+                capitalAnswers.add(q.meta.country);
+            }
+        }
+        expect(capitalAnswers).not.toContain('Greenland');
     });
 });
 

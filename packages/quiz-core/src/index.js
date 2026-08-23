@@ -13,6 +13,8 @@ export {
     AREA_FILTER_EXEMPT_REGION,
     inScope,
     excludeDependencies,
+    excludeMinorDependencies,
+    MIN_DEPENDENCY_AREA_KM2,
     excludeUsed,
     withFlag,
     withCapital,

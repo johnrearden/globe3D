@@ -362,6 +362,13 @@ minimize what they add to `index.html`:**
   avoids a webfont dependency. When recreating a design that specifies an icon font (e.g. Phosphor),
   port the individual glyphs to inline SVG.
 
+**Quiz answer eligibility.** "Name the country" admits dependencies large enough to recognise on the
+globe (≥1,628 km² — Greenland, French Guiana, the Falklands, Puerto Rico, …) and excludes the long
+tail of specks; sovereign states are **never** size-filtered, since 27 real ones are under that
+threshold (Singapore, Malta, Monaco) and all are expected answers. See
+`excludeMinorDependencies` in `packages/quiz-core/src/filters.js`. The **capital** quiz still excludes
+every dependency — a separate question, not yet ruled on.
+
 **`docs/senior_dev/implementation-plan.md` is the single source of truth** for the refactor and all
 prospective code-quality/modularization/deployment improvements (it includes an `index.html`
 anatomy review with per-chunk line ranges). Any change that renders it out of date — extracting a

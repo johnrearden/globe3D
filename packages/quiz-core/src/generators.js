@@ -5,14 +5,15 @@
  *   name-flag-quiz.js:170-223 · capital-cities-quiz.js:179-250
  *   identify-flag-quiz.js:460-520 · click-quiz.js:88-100
  *
- * Behaviour is preserved exactly, including two asymmetries that look like
- * oversights and are deliberately NOT fixed here (changing them would alter
- * gameplay under cover of a refactor). Both are exposed as options so they are
- * at least visible:
+ * The port preserved behaviour exactly, including two asymmetries that looked
+ * like oversights, so that nothing changed under cover of a refactor. The first
+ * has since been ruled on; the second stands:
  *
- *   1. name-flag and capital exclude dependencies; identify-flag and
- *      click-country do not, so Greenland can be a flag answer but never a
- *      "name the country" answer.
+ *   1. RESOLVED. name-flag and capital excluded dependencies while identify-flag
+ *      and click-country did not, so Greenland could be a flag answer but never
+ *      a "name the country" answer. "Name the country" now admits dependencies
+ *      that are large enough to recognise (excludeMinorDependencies). `capital`
+ *      still excludes them all — a separate question, not yet ruled on.
  *   2. Distractors are drawn from the full in-scope pool including countries
  *      already used as answers, so a country can appear as a distractor after
  *      it has been the answer.
@@ -29,6 +30,7 @@ import { pick, sample, shuffle } from './rng.js';
 import {
     clickable,
     excludeDependencies,
+    excludeMinorDependencies,
     excludeSelfEvidentCapital,
     excludeUsed,
     inScope,
@@ -65,7 +67,10 @@ export const QUESTIONS_PER_SESSION = 10;
  * @returns {{payload: object, answer: {correct: string[]}, meta: object}|null}
  */
 export function generateNameCountry({ countries, scope = 'globe', used = new Set(), rng, optionCount = 6 }) {
-    const pool = excludeDependencies(inScope(countries, scope));
+    // Dependencies are admitted when they are big enough to recognise on the
+    // globe — Greenland, French Guiana, the Falklands — but not the long tail of
+    // specks. Sovereign states are never size-filtered; see the filter's docs.
+    const pool = excludeMinorDependencies(inScope(countries, scope));
     const available = excludeUsed(pool, used);
     if (!available.length || pool.length < optionCount) return null;
 

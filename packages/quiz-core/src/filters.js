@@ -30,12 +30,48 @@ export function inScope(countries, scope) {
 }
 
 /**
- * Drop overseas territories and dependencies (Greenland, Pitcairn, …). They
- * stay clickable on the globe but are too obscure and too numerous to be fair
- * as either answers or distractors.
+ * Drop every overseas territory and dependency. Used where a territory is
+ * unfair regardless of size — see `excludeMinorDependencies` for the softer
+ * rule that "Name the country" uses instead.
  */
 export function excludeDependencies(countries) {
     return countries.filter(c => !c.isDependency);
+}
+
+/**
+ * Smallest land area (km²) at which a *dependency* is a fair quiz answer.
+ * Same value as MIN_CLICK_AREA_KM2 (Guadeloupe) and the same reasoning: below
+ * it, a territory is a speck on the globe.
+ */
+export const MIN_DEPENDENCY_AREA_KM2 = 1628;
+
+/**
+ * Admit dependencies large enough to be recognisable; drop the rest.
+ *
+ * The blanket `excludeDependencies` was too blunt for "Name the country": it
+ * ruled out Greenland — larger than every country bar seven, and unmistakable
+ * on a globe — for the same reason it ruled out Gibraltar (6 km²). Of the 38
+ * dependencies, 11 clear this bar: Greenland, French Guiana, New Caledonia, the
+ * Falklands, Puerto Rico, French Southern Territories, French Polynesia,
+ * S. Georgia & S. Sandwich Is., Réunion, Guadeloupe and Svalbard.
+ *
+ * **Sovereign states are never size-filtered here**, deliberately. 27 of them
+ * are under this threshold — Singapore, Malta, Barbados, Bahrain, the Maldives,
+ * Monaco, Vatican — and all are legitimate, expected quiz answers. The rule is
+ * that a *dependency* must earn its place by being large enough to see, because
+ * it comes from a long tail of wildly varying notability; the sovereign list is
+ * canonical and learnable, so membership alone qualifies.
+ *
+ * An unknown (null) area is KEPT, matching `clickable`'s convention for the same
+ * field. Svalbard is the only such record, and at ~61,000 km² it comfortably
+ * clears the bar anyway — so the lenient reading is also the correct one here.
+ *
+ * @param {CountryRecord[]} countries
+ * @param {number} [minAreaKm2]
+ */
+export function excludeMinorDependencies(countries, minAreaKm2 = MIN_DEPENDENCY_AREA_KM2) {
+    return countries.filter(c =>
+        !c.isDependency || c.area == null || c.area >= minAreaKm2);
 }
 
 /** Drop countries already used as an answer in this session. */

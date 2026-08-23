@@ -3,7 +3,8 @@
 > **Status: partly superseded.** The problem statement below still holds; the
 > architecture, sequencing and UI sections have been overtaken by the shared-core
 > plan (extract `packages/quiz-core` from the vanilla app first, then Astro/React
-> web, then Expo). That plan is not yet in the repo — it should move here.
+> web, then Expo) — now at [`migration-plan.md`](./migration-plan.md), where
+> Phase A is recorded as complete.
 >
 > Settled since this was written:
 > [`c0-expo-gl-spike.md`](./c0-expo-gl-spike.md) — the React Native app can render

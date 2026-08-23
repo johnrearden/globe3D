@@ -9,8 +9,8 @@ import {
     mulberry32
 } from '../src/index.js';
 import {
-    BASE, DEPENDENCY, FULL, NO_CAPITAL, NO_FLAG, OTHER_REGION,
-    SELF_EVIDENT, TINY, UNKNOWN_AREA, capitalOf, optionValues
+    BASE, DEPENDENCY, FULL, MINOR_DEPENDENCY, NO_CAPITAL, NO_FLAG, OTHER_REGION,
+    SELF_EVIDENT, TINY, UNKNOWN_AREA, UNKNOWN_AREA_DEPENDENCY, capitalOf, optionValues
 } from './fixtures.js';
 
 const seeded = (n = 1) => mulberry32(n);
@@ -34,12 +34,45 @@ describe('generateNameCountry', () => {
         );
     });
 
-    it('never answers with a dependency', () => {
-        for (let s = 0; s < 50; s++) {
+    it('answers with a dependency large enough to recognise (the Greenland case)', () => {
+        const answers = new Set();
+        for (let s = 0; s < 200; s++) {
             const r = generateNameCountry({ countries: FULL, scope: 'Testland', rng: seeded(s) });
-            expect(r.answer.correct[0]).not.toBe(DEPENDENCY.name);
-            expect(optionValues(r)).not.toContain(DEPENDENCY.name);
+            answers.add(r.answer.correct[0]);
         }
+        expect(answers).toContain(DEPENDENCY.name);
+    });
+
+    it('never answers with a dependency too small to pick out on the globe', () => {
+        for (let s = 0; s < 200; s++) {
+            const r = generateNameCountry({ countries: FULL, scope: 'Testland', rng: seeded(s) });
+            expect(r.answer.correct[0]).not.toBe(MINOR_DEPENDENCY.name);
+            // Nor as a distractor: an option the player could never have been
+            // shown is not a fair wrong answer.
+            expect(optionValues(r)).not.toContain(MINOR_DEPENDENCY.name);
+        }
+    });
+
+    it('keeps a dependency whose area is unknown', () => {
+        // Matches the click filter's treatment of a null area, and the only real
+        // record like this (Svalbard) is large.
+        const answers = new Set();
+        for (let s = 0; s < 200; s++) {
+            const r = generateNameCountry({ countries: FULL, scope: 'Testland', rng: seeded(s) });
+            answers.add(r.answer.correct[0]);
+        }
+        expect(answers).toContain(UNKNOWN_AREA_DEPENDENCY.name);
+    });
+
+    it('does not size-filter sovereign states', () => {
+        // 27 real sovereign states are under the dependency threshold —
+        // Singapore, Malta, Monaco — and all are legitimate answers.
+        const answers = new Set();
+        for (let s = 0; s < 200; s++) {
+            const r = generateNameCountry({ countries: FULL, scope: 'Testland', rng: seeded(s) });
+            answers.add(r.answer.correct[0]);
+        }
+        expect(answers).toContain(TINY.name);
     });
 
     it('honours region scope', () => {
@@ -80,13 +113,14 @@ describe('generateIdentifyFlag', () => {
         }
     });
 
-    it('allows dependencies, unlike name-country', () => {
+    it('allows even a tiny dependency — a flag is a flag at any size', () => {
         const names = new Set();
         for (let s = 0; s < 200; s++) {
             const r = generateIdentifyFlag({ countries: FULL, scope: 'Testland', rng: seeded(s) });
             names.add(r.answer.correct[0]);
         }
         expect(names).toContain(DEPENDENCY.name);
+        expect(names).toContain(MINOR_DEPENDENCY.name);
     });
 
     it('reverse direction excludes flagless distractors', () => {
