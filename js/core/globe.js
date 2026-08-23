@@ -460,13 +460,26 @@ export class GlobeManager {
 
             this.idW = meta.idWidth;
             this.idH = meta.idHeight;
-            this.idBytes = new Uint8Array(idBuffer);
             // One byte per pixel: ids are capped at 255 by the build (MAX_COUNTRIES
             // is 256 and aCountryId is a u8 attribute), so the second byte the
             // format used to carry could only ever be zero.
-            const expected = this.idW * this.idH;
-            if (this.idBytes.length !== expected) {
-                throw new Error(`world-id.bin size mismatch: got ${this.idBytes.length}, expected ${expected}`);
+            this.idBytes = new Uint8Array(idBuffer);
+            const pixels = this.idW * this.idH;
+            if (this.idBytes.length === pixels * 2) {
+                // Legacy two-byte [hi, lo] layout. Reachable for up to
+                // Cache-Control's max-age after the one-byte asset ships: a
+                // returning visitor gets fresh JS from Pages while still holding
+                // the old asset in their BROWSER cache, which purging the CDN
+                // cannot clear. Fold it down rather than failing the whole load
+                // — the high byte was always zero, so this is lossless.
+                const packed = new Uint8Array(pixels);
+                for (let i = 0; i < pixels; i++) packed[i] = this.idBytes[i * 2 + 1];
+                this.idBytes = packed;
+                console.warn('world-id.bin: legacy 2-byte layout (cached copy); folded to 1 byte.');
+            } else if (this.idBytes.length !== pixels) {
+                throw new Error(
+                    `world-id.bin size mismatch: got ${this.idBytes.length}, ` +
+                    `expected ${pixels} (1 byte/px) or ${pixels * 2} (legacy 2 byte/px)`);
             }
             // Note: idBytes stays CPU-side for O(1) picking. The GPU never sees the
             // ID buffer in this build — country IDs come from a per-vertex attribute

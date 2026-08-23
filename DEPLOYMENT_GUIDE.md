@@ -820,6 +820,9 @@ The upload is **two passes**, and they must not be merged — see the warning be
 ```bash
 # From the repo root.
 # Pass 1 — the pmtiles tileset (and anything else), stored verbatim.
+# SKIP THIS if assets/ holds only the six globe files: the tileset is gitignored
+# and usually absent locally, in which case this pass copies nothing. Running it
+# needlessly is the only way to get Content-Encoding onto the tileset by mistake.
 rclone copy ./assets r2:terragotcha-assets --progress \
   --exclude "*.bin" --exclude "country-meta.json" --exclude "capitals.json" \
   --header-upload "Cache-Control: public, max-age=86400"
@@ -847,6 +850,15 @@ platform" is true, but `_headers` governs **Pages**, not R2. The edge does not c
 **51 MB raw where 12.3 MB would do** — brotli -11 takes `world-mesh.bin` alone from 31.6 MB to
 11.7 MB. R2 stores bytes verbatim and returns whatever metadata was set on them, and browsers
 decompress transparently, so this is purely an upload-side change.
+
+**Changing an asset's format:** `max-age=86400` means a returning visitor keeps the old
+object in their **browser** cache for up to a day, and purging Cloudflare cannot clear that.
+So new JS on Pages meets an old asset from cache. If the format changed, the loader must
+accept both for that window or those visitors get a dead app — see the two-layout fold in
+`GlobeManager.loadGlobe()` (and `tests/id-buffer-compat.test.js`), added when `world-id.bin`
+went from 2 bytes per pixel to 1. Files that are index-paired (`world-mesh.bin` and
+`world-border-lines.bin`) are lower risk because they are fetched together and expire
+together, but a format change to either still needs the same consideration.
 
 **Caching — why `max-age=86400` and not `immutable`:** these assets are **not** regenerated
 by a deploy — `npm run build:pages` only stages the shell and excludes `assets/`. They change
