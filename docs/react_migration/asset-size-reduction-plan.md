@@ -54,6 +54,7 @@ with a huge earcut triangle — sits at 9,873 triangles / 9,828 vertices, a rati
 subdivided at all. That contrast is the whole diagnosis.
 
 **Target outcome:** ~51 MB → **~1.2–1.9 MB** over the wire, with **no visual change to the globe**.
+Stages 0 and 1 are shipped and reached **1.73 MB**; Stage 2 would take it to ~1.2 MB.
 
 ---
 
@@ -148,7 +149,22 @@ the header isn't lost on the next deploy.
 
 ## Stage 1 — Replace Uniform Subdivision With Graticule Clipping
 
-**Build-time only. Visually lossless. Mesh 31.56 MB → 3.86 MB.**
+**Build-time only. Visually lossless. Mesh 31.56 MB → 3.85 MB.**
+
+> **Shipped 2026-08-23.** Measured against the prototype's predictions, which held:
+>
+> | | predicted | actual |
+> |---|---|---|
+> | vertices | 166,250 | **165,646** |
+> | triangles | 157,334 | **156,732** |
+> | max chord sag | 1.08e-3 | **1.083e-3** |
+> | boundary edges | 165,214 | **164,610** |
+> | `world-mesh.bin` | 3.86 MB | **3.85 MB** |
+> | `world-border-lines.bin` | 1.26 MB | **1.26 MB** |
+>
+> Over the wire with Stage 0: **12.29 MB → 1.73 MB**. `world-id.bin` is
+> byte-identical (verified by sha256), so picking is provably unaffected. Build
+> time also fell to ~2s, since nothing iterates subdivision passes any more.
 
 Rather than subdividing *after* triangulation and fighting T-junctions, **clip each ring against a 4°
 lat/lng grid before `earcut`**. Every resulting piece is at most 4° across, so chord sag is bounded
@@ -193,7 +209,8 @@ Russia alone goes from **363,276 triangles to ~10,055**.
 
 3. **Delete `subdivideTriangles`** (`:309-364`) and its call site (`:745`). **Keep `MAX_CHORD_SAG`** —
    it stops being a subdivision trigger and becomes the documented sag budget that justifies the 4°
-   cell, asserted against at the end of the build.
+   cell, asserted against at the end of the build. *(Done. The assertion was verified by widening the
+   cell to 6°, which produced 2.434e-3 against the predicted 2.43e-3 and exited 1.)*
 
 4. **Weld vertices per country — this is required, not an optimisation.** Adjacent cells each emit
    their own copy of the shared cut edge. `extractBorderEdges` (`:517-548`) defines a border as *"an
@@ -205,6 +222,14 @@ Russia alone goes from **363,276 triangles to ~10,055**.
 
    Verified in the prototype: welded boundary edges came to **165,214** against a 170,443
    outline-vertex count — i.e. grid cuts are correctly excluded and only true outlines survive.
+
+   *In the shipped build this is asserted directly rather than by edge count, which only catches
+   gross failure. An unwelded cut leaves each adjacent cell holding its own copy of the shared edge,
+   and since each copy is then used by exactly one triangle, both register as boundaries — so the
+   build fails if any boundary edge is duplicated **within one country**. Duplication across
+   **different** countries is the opposite signal: that is a shared political border, correct
+   precisely because countries never share vertices (34,447 of them). Measured on the real build:
+   0 same-country duplicates. Verified by disabling the weld, which produced 3,889.*
 
    T-junctions between neighbouring cells are not a risk: Sutherland–Hodgman sets the cut coordinate
    *literally* to the boundary value and interpolates the other from the same edge with the same `t`,
@@ -230,7 +255,7 @@ The wire format is **untouched** in this stage — still
 `[u32 vertCount][u32 idxCount][f32 xyz][u8 ids][u32 indices]` — so `js/core/globe.js:313-338` and
 `tests/world-mesh-format.test.js` need no changes.
 
-**Cumulative after Stages 0+1: ≈1.9 MB brotli.**
+**Cumulative after Stages 0+1: 1.73 MB brotli** (measured, vs. the ≈1.9 MB estimated).
 
 ---
 
@@ -366,7 +391,8 @@ matters considerably more inside an Android app's budget than it does in a brows
    come to ~165k and **not** roughly double that; a jump means welding failed and grid cuts leaked
    into the border set. Confirm visually that no 4° lattice is visible across country interiors.
 4. **Picking unchanged** — `world-id.bin` should be byte-identical after Stage 1 (`sha256sum` before
-   and after). After Stage 3, the same ids at half the width.
+   and after). After Stage 3, the same ids at half the width. *(Confirmed byte-identical, and
+   search-select still resolves France / Brazil / Japan / Egypt / Greenland correctly in the app.)*
 5. **Browser check** — drive the real module in headless `google-chrome` via `puppeteer-core` from
    the scratchpad (no Playwright/jsdom in this project). Verify: globe renders; borders stay crisp
    all the way to the limb with no fade; **no ocean bleed-through through country interiors at max

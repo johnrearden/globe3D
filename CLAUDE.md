@@ -26,9 +26,9 @@ globe3d/
 ├── index.html               # Main application (all-in-one file)
 ├── build-textures.js        # Node.js script to bake GeoJSON → globe assets
 ├── assets/
-│   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~30 MB)
+│   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~3.9 MB)
 │   ├── world-id.bin         # Equirectangular country-ID texture for picking (4096×2048, raw RG bytes)
-│   ├── world-border-lines.bin # Country-outline edges as u32 vertex-index pairs into world-mesh.bin (~2.7 MB raw / ~840 KB gzipped)
+│   ├── world-border-lines.bin # Country-outline edges as u32 vertex-index pairs into world-mesh.bin (~1.3 MB raw / ~220 KB brotli)
 │   ├── country-palette.bin  # 256×1 RGBA palette indexed by country ID (1 KB)
 │   └── country-meta.json    # Country IDs, centroids, bboxes, land areas (km²), name↔id maps
 ├── packages/                # npm workspaces — platform-neutral code shared with the
@@ -193,18 +193,25 @@ The globe assets are pre-built using `build-textures.js`:
    - Antimeridian unfolding (edges with |Δlng| > 180 are continued past ±180 to keep rings continuous)
    - Compute centroid + bbox from each country's largest ring
    - Attach each country's land area (km², from the `world-countries` package via `area-data.js`) to its meta row — used at runtime to size-filter quiz targets (e.g. the "Find the country" quiz skips anything smaller than Guadeloupe). `node -e "require('./area-data').backfillMeta()"` re-derives it into the committed `country-meta.json` without a full mesh rebuild
-   - Triangulate each unfolded ring with `earcut`; project each vertex to the unit sphere; accumulate into one merged vertex/index/country-id arrays for `world-mesh.bin`
+   - **Clip each unfolded ring to a 4° lat/lng graticule** (`clipRingToCell`, Sutherland–Hodgman) before triangulating, so no triangle spans more than a cell and chord sag is bounded **by construction** (`GRATICULE_CELL_DEG`, budget `MAX_CHORD_SAG`). This replaced a uniform post-triangulation subdivision pass gated on each ring's single *worst* triangle, under which 54 of 5,936 rings dragged the whole mesh up 10.4× in triangles
+   - Triangulate each clipped piece with `earcut`; project each vertex to the unit sphere; accumulate into one merged vertex/index/country-id arrays for `world-mesh.bin`. Vertices are **welded per country ID** on rounded lng/lat — required, not an optimisation: adjacent cells each emit the shared cut edge, and `extractBorderEdges` treats an edge used by one triangle as a boundary, so without welding every grid cut would render as a fake border
    - Edge-function scanline rasterizer also fills the 4096×2048 ID buffer (used at runtime only for picking)
    - Connected-components cleanup drops tiny isolated fragments from the ID buffer (preserves each country's largest)
    - 1-pixel ID dilation eliminates seam ambiguity at country borders
    - Country-outline edges (`extractBorderEdges`) are extracted from the merged mesh: edges used by exactly one triangle are each country's boundary (outline + coastlines), since countries don't share vertices. Written as u32 vertex-index pairs into `world-border-lines.bin` for the runtime border line
    - Per-country chosen RGB (from `country-colors.json` or random palette) is written into a 256×1 RGBA palette
 3. **Output:**
-   - `assets/world-mesh.bin` (~30 MB raw, ~16 MB gzipped — vertex positions, per-vertex IDs, uint32 indices)
+   - `assets/world-mesh.bin` (~3.9 MB raw, ~1.4 MB brotli — vertex positions, per-vertex IDs, uint32 indices)
    - `assets/world-id.bin` (~16 MB raw, ~90 KB gzipped — picking only)
-   - `assets/world-border-lines.bin` (~2.7 MB raw, ~840 KB gzipped — boundary-edge index pairs for the border line)
+   - `assets/world-border-lines.bin` (~1.3 MB raw, ~220 KB brotli — boundary-edge index pairs for the border line)
    - `assets/country-palette.bin` (1 KB)
    - `assets/country-meta.json` (~75 KB)
+
+The build asserts two Stage 1 invariants and exits non-zero on either: max chord sag stays under
+`MAX_CHORD_SAG` (a violation means ocean bleeding through country interiors at max zoom), and no
+boundary edge is duplicated *within* one country (which would mean the weld failed and a 4° lattice
+of fake borders is about to appear). Duplicated edges across *different* countries are expected —
+that is a shared political border, and countries deliberately never share vertices.
 
 Run build: `node build-textures.js` (or `npm run build:globe`)
 Set `FRAGDEBUG=1` to log per-country fragment counts without erasing.
@@ -283,7 +290,7 @@ signal `BackButtonGuard` watches), i.e. presentation, not state.
 
 ## Performance Considerations
 
-- **Two draw calls** for the entire globe: ocean sphere + merged country mesh (vs. ~195 in the per-country mesh era). Mobile GL pain comes from per-draw-call setup, not vertex throughput; 150k triangles is well under any modern GPU's per-frame vertex budget.
+- **Two draw calls** for the entire globe: ocean sphere + merged country mesh (vs. ~195 in the per-country mesh era). Mobile GL pain comes from per-draw-call setup, not vertex throughput. The mesh is ~157k triangles / ~166k vertices since graticule clipping replaced uniform subdivision — an 83%/90% reduction with no visual change.
 - **Vector polygon fills** — country edges are mathematical polygon edges, sharp at any zoom. No rasterization staircase, no bulk color texture.
 - **O(1) picking** via CPU-side ID buffer lookup (the GPU never sees the ID texture in this build)
 - **Highlighting / subgroup display via 1-byte palette mutation** — `setCountryColor`, `showOnly`, `fadeOthers` all rewrite a few bytes of the 1 KB palette texture and flip `needsUpdate`. No frame cost, no shader recompile.

@@ -35,14 +35,27 @@ const SIMPLIFICATION_TOLERANCE = 0.006;
 const CLUSTER_GAP_DEG = 6;
 const OCEAN_COLOR = [0x08, 0x1E, 0x39]; // lightened ocean; original was [0x06, 0x1A, 0x33]
 
-// Maximum chord-vs-arc sag (depth that a flat triangle's interior dips below
-// the unit sphere). Anything above this gets recursively subdivided. The
-// runtime country mesh sits at scale ~1.002, so threshold 0.0015 keeps every
-// triangle's interior comfortably above the ocean sphere at radius 1.0.
+// Maximum chord-vs-arc sag: how far a flat triangle's interior dips below the
+// unit sphere. The runtime country mesh sits at scale ~1.002, so anything under
+// 0.0015 stays comfortably above the ocean sphere at radius 1.0 and no ocean
+// bleeds through a country's interior.
+//
+// This is no longer a subdivision trigger — it is the BUDGET that justifies the
+// graticule cell size below, asserted against at the end of the build.
 const MAX_CHORD_SAG = 0.0015;
 
-const VERY_LARGE_COUNTRIES_FILES = ['russia', 'canada'];
-const LARGE_COUNTRIES_FILES = ['china', 'usa', 'brazil', 'australia', 'india', 'argentina', 'kazakhstan', 'algeria'];
+// Rings are clipped to a lat/lng grid of this pitch before triangulation, so no
+// triangle can span more than this and chord sag is bounded by construction.
+//
+// Replaces a uniform post-triangulation subdivision pass that was gated on each
+// ring's single WORST triangle, so 54 of 5,936 rings (0.9%) dragged the whole
+// mesh up 10.4x in triangles. Measured max sag per cell size:
+//
+//     3 deg -> 6.09e-4   safe, but more triangles than needed
+//     4 deg -> 1.08e-3   chosen: comfortable margin under MAX_CHORD_SAG
+//     5 deg -> 1.69e-3   exceeds the budget
+//     6 deg -> 2.43e-3   exceeds the budget
+const GRATICULE_CELL_DEG = 4;
 
 // Match the existing build-globe.js convention exactly so saved label-config.json
 // positions remain on their countries. The runtime shader and CPU picker derive
@@ -294,73 +307,52 @@ function rasterizeRingToBuffer(ring, W, H, writePixel) {
     }
 }
 
-// Subdivide a single ring's triangulation until every triangle's chord-arc
-// sag is below `threshold`. Each iteration splits every triangle 1-to-4 using
-// great-circle midpoints on the three edges. Adjacent triangles share their
-// midpoints via memoization, so no T-junctions appear within a ring. Different
-// rings are independent (they don't share edges with other rings), so per-ring
-// uniform subdivision is enough — neighboring rings stay watertight by virtue
-// of having no shared geometry.
+// Sutherland–Hodgman polygon clip against an axis-aligned box, in the UNFOLDED
+// lng/lat plane produced by unfoldRing(). Clipping there (rather than in
+// wrapped [-180,180]) is what keeps antimeridian countries correct: Russia
+// continues past lng 180, so `Math.floor(lng / CELL)` buckets its eastern rings
+// contiguously instead of splitting them at the seam.
 //
-// We can't subdivide selectively: if one triangle splits and its neighbor
-// doesn't, the neighbor's straight chord edge and the subdivided triangle's
-// bulged sphere-midpoint edge diverge by ~chord-arc sag, leaving a visible
-// gap that exposes whatever's drawn behind. Uniform subdivision avoids this.
-function subdivideTriangles(positions, indices, threshold) {
-    let verts = positions.map(p => [p[0], p[1], p[2]]);
-    let inds = Array.from(indices);
+// Returns null for anything that degenerates to fewer than 3 points, or whose
+// absolute area falls under `minArea` — box clipping routinely produces
+// zero-width slivers at cell corners, and feeding those to earcut yields
+// degenerate triangles that contribute nothing but still cost vertices.
+function clipRingToCell(ring, x0, y0, x1, y1, minArea = 1e-12) {
+    // Each pass keeps the half-plane on the inside of one box edge. `inside`
+    // and `intersect` are paired per edge so the cut coordinate is set
+    // LITERALLY to the boundary value — that exactness is what makes two
+    // adjacent cells emit bit-identical points on their shared edge, which in
+    // turn is what lets the weld step below fuse them and stops a T-junction
+    // (or a fake border) appearing along every grid line.
+    const edges = [
+        { inside: p => p[0] >= x0, cut: (a, b) => [x0, a[1] + (b[1] - a[1]) * ((x0 - a[0]) / (b[0] - a[0]))] },
+        { inside: p => p[0] <= x1, cut: (a, b) => [x1, a[1] + (b[1] - a[1]) * ((x1 - a[0]) / (b[0] - a[0]))] },
+        { inside: p => p[1] >= y0, cut: (a, b) => [a[0] + (b[0] - a[0]) * ((y0 - a[1]) / (b[1] - a[1])), y0] },
+        { inside: p => p[1] <= y1, cut: (a, b) => [a[0] + (b[0] - a[0]) * ((y1 - a[1]) / (b[1] - a[1])), y1] },
+    ];
 
-    const sag = (a, b, c) => {
-        const cx = (a[0] + b[0] + c[0]) / 3;
-        const cy = (a[1] + b[1] + c[1]) / 3;
-        const cz = (a[2] + b[2] + c[2]) / 3;
-        return 1 - Math.sqrt(cx * cx + cy * cy + cz * cz);
-    };
-
-    const maxSag = () => {
-        let m = 0;
-        for (let i = 0; i < inds.length; i += 3) {
-            const s = sag(verts[inds[i]], verts[inds[i + 1]], verts[inds[i + 2]]);
-            if (s > m) m = s;
+    let poly = ring;
+    for (const { inside, cut } of edges) {
+        if (poly.length === 0) return null;
+        const out = [];
+        for (let i = 0; i < poly.length; i++) {
+            const cur = poly[i];
+            const prev = poly[(i + poly.length - 1) % poly.length];
+            const curIn = inside(cur);
+            const prevIn = inside(prev);
+            if (curIn) {
+                if (!prevIn) out.push(cut(prev, cur));
+                out.push(cur);
+            } else if (prevIn) {
+                out.push(cut(prev, cur));
+            }
         }
-        return m;
-    };
-
-    // Hard cap on subdivision passes — each pass quadruples the triangle count,
-    // so 5 passes = 1024×. In practice we converge in 0–3 passes.
-    let safety = 5;
-    while (safety-- > 0 && maxSag() > threshold) {
-        const next = [];
-        const midCache = new Map();
-        const getMid = (i, j) => {
-            const key = i < j ? `${i},${j}` : `${j},${i}`;
-            const cached = midCache.get(key);
-            if (cached !== undefined) return cached;
-            const a = verts[i], b = verts[j];
-            let mx = (a[0] + b[0]) * 0.5;
-            let my = (a[1] + b[1]) * 0.5;
-            let mz = (a[2] + b[2]) * 0.5;
-            const len = Math.sqrt(mx * mx + my * my + mz * mz);
-            mx /= len; my /= len; mz /= len;
-            verts.push([mx, my, mz]);
-            const idx = verts.length - 1;
-            midCache.set(key, idx);
-            return idx;
-        };
-        for (let i = 0; i < inds.length; i += 3) {
-            const a = inds[i], b = inds[i + 1], c = inds[i + 2];
-            const ab = getMid(a, b);
-            const bc = getMid(b, c);
-            const ca = getMid(c, a);
-            next.push(a, ab, ca);
-            next.push(ab, b, bc);
-            next.push(ca, bc, c);
-            next.push(ab, bc, ca);
-        }
-        inds = next;
+        poly = out;
     }
 
-    return { positions: verts, indices: inds };
+    if (poly.length < 3) return null;
+    if (Math.abs(ringSignedArea(poly)) < minArea) return null;
+    return poly;
 }
 
 // Two-pass connected-components cleanup. Pass 1 BFS-labels every same-id
@@ -643,6 +635,13 @@ function build() {
         // every entity gets a centroid/bbox from its OWN largest ring.
         const accumById = new Map();
 
+        // Weld maps, one per target ID. Adjacent graticule cells each emit their
+        // own copy of the shared cut edge; fusing them here is what keeps those
+        // cuts from registering as country boundaries. Scoped per target (parent
+        // and each hosted dependency get their own) so two entities never share
+        // a vertex and the real coastline between them survives.
+        const weldByTarget = new Map();
+
         let ringCount = 0;
         for (const feat of geo.features) {
             const polys = feat.geometry.type === 'Polygon'
@@ -716,46 +715,84 @@ function build() {
                 }
                 (acc.rings || (acc.rings = [])).push({ minLng: rMinLng, maxLng: rMaxLng, minLat: rMinLat, maxLat: rMaxLat, area });
 
-                // Triangulate (earcut, 2D lng/lat space) then project each
-                // vertex onto the unit sphere using the runtime's convention.
+                // Clip the ring against the graticule, then triangulate each
+                // piece. Because no piece exceeds GRATICULE_CELL_DEG across,
+                // chord sag is bounded BY CONSTRUCTION — which is what replaces
+                // the old post-triangulation subdivision pass. Coastal detail is
+                // untouched; only the vast empty interiors stop being
+                // carpet-bombed with triangles to satisfy one oversized earcut
+                // triangle somewhere else in the ring.
+                //
+                // Projection to the unit sphere uses the runtime's convention.
                 // Antimeridian wrapping is automatic: lng=185 and lng=-175 map
                 // to the same 3D point (sin/cos are periodic).
-                const flat = new Array(unfolded.length * 2);
-                for (let vi = 0; vi < unfolded.length; vi++) {
-                    flat[vi * 2] = unfolded[vi][0];
-                    flat[vi * 2 + 1] = unfolded[vi][1];
-                }
-                const triIdx = earcut(flat, null, 2);
-                if (triIdx.length > 0) {
-                    const ringPositions = new Array(unfolded.length);
-                    for (let vi = 0; vi < unfolded.length; vi++) {
-                        const lng = unfolded[vi][0];
-                        const lat = unfolded[vi][1];
-                        const phi = (90 - lat) * Math.PI / 180;
-                        const theta = -(lng + 180) * Math.PI / 180;
-                        const sphi = Math.sin(phi);
-                        ringPositions[vi] = [
-                            sphi * Math.cos(theta),
-                            Math.cos(phi),
-                            sphi * Math.sin(theta)
-                        ];
+                const weld = weldByTarget.get(targetId)
+                    || (weldByTarget.set(targetId, new Map()), weldByTarget.get(targetId));
+
+                // Vertex index for a lng/lat, creating and projecting it on first
+                // sight. The weld is what stops every grid cut becoming a fake
+                // border: extractBorderEdges() calls an edge used by exactly one
+                // triangle a boundary, so two cells each emitting their own copy
+                // of a shared cut edge would paint a lattice across the globe.
+                // Scoped per targetId so countries still never share vertices and
+                // real coastlines survive.
+                const vertexFor = (lng, lat) => {
+                    const key = `${Math.round(lng * 1e6)},${Math.round(lat * 1e6)}`;
+                    const hit = weld.get(key);
+                    if (hit !== undefined) return hit;
+                    const phi = (90 - lat) * Math.PI / 180;
+                    const theta = -(lng + 180) * Math.PI / 180;
+                    const sphi = Math.sin(phi);
+                    const idx = meshPositions.length / 3;
+                    meshPositions.push(sphi * Math.cos(theta));
+                    meshPositions.push(Math.cos(phi));
+                    meshPositions.push(sphi * Math.sin(theta));
+                    meshIds.push(targetId);
+                    weld.set(key, idx);
+                    return idx;
+                };
+
+                const rb = ringBbox(unfolded);
+                const cx0 = Math.floor(rb.minLng / GRATICULE_CELL_DEG);
+                const cx1 = Math.floor(rb.maxLng / GRATICULE_CELL_DEG);
+                const cy0 = Math.floor(rb.minLat / GRATICULE_CELL_DEG);
+                const cy1 = Math.floor(rb.maxLat / GRATICULE_CELL_DEG);
+
+                for (let cy = cy0; cy <= cy1; cy++) {
+                    for (let cx = cx0; cx <= cx1; cx++) {
+                        const piece = clipRingToCell(
+                            unfolded,
+                            cx * GRATICULE_CELL_DEG, cy * GRATICULE_CELL_DEG,
+                            (cx + 1) * GRATICULE_CELL_DEG, (cy + 1) * GRATICULE_CELL_DEG
+                        );
+                        if (!piece) continue;
+
+                        const flat = new Array(piece.length * 2);
+                        for (let vi = 0; vi < piece.length; vi++) {
+                            flat[vi * 2] = piece[vi][0];
+                            flat[vi * 2 + 1] = piece[vi][1];
+                        }
+                        const triIdx = earcut(flat, null, 2);
+                        if (triIdx.length === 0) continue;
+
+                        const local = piece.map(pt => vertexFor(pt[0], pt[1]));
+                        for (let ti = 0; ti < triIdx.length; ti += 3) {
+                            const a = local[triIdx[ti]];
+                            const b = local[triIdx[ti + 1]];
+                            const c = local[triIdx[ti + 2]];
+                            // The weld can collapse a sliver's corners onto one
+                            // another; drop the degenerate triangle rather than
+                            // emitting a zero-area face.
+                            if (a === b || b === c || c === a) continue;
+                            meshIndices.push(a, b, c);
+                            meshTriangles++;
+                        }
                     }
-                    // Subdivide oversized interior triangles so their centroids
-                    // clear the ocean sphere at radius 1.0 once scaled by 1.002.
-                    const sub = subdivideTriangles(ringPositions, Array.from(triIdx), MAX_CHORD_SAG);
-                    const baseVert = meshPositions.length / 3;
-                    for (const p of sub.positions) {
-                        meshPositions.push(p[0]);
-                        meshPositions.push(p[1]);
-                        meshPositions.push(p[2]);
-                        meshIds.push(targetId);
-                    }
-                    for (let ti = 0; ti < sub.indices.length; ti++) {
-                        meshIndices.push(baseVert + sub.indices[ti]);
-                    }
-                    meshTriangles += sub.indices.length / 3;
                 }
 
+                // The ID rasteriser works on the UNCLIPPED ring, in lng/lat,
+                // where triangles are already exact — so world-id.bin comes out
+                // byte-identical and picking is unaffected by this stage.
                 rasterizeRingToBuffer(unfolded, ID_W, ID_H, writeId);
                 ringCount++;
             }
@@ -826,8 +863,76 @@ function build() {
     console.log(`Writing ${OUTPUT_ID}...`);
     fs.writeFileSync(OUTPUT_ID, Buffer.from(idBuf.buffer));
 
+    // --- Stage 1 invariants ------------------------------------------------
+    // Graticule clipping bounds chord sag by construction rather than by
+    // iterating until it is small enough, so the build has to prove it rather
+    // than assume it. A regression here shows up in the app as ocean bleeding
+    // through country interiors at max zoom — the exact failure the old
+    // subdivision pass existed to prevent.
+    let worstSag = 0;
+    let worstAt = -1;
+    for (let t = 0; t < meshIndices.length; t += 3) {
+        const a = meshIndices[t] * 3, b = meshIndices[t + 1] * 3, c = meshIndices[t + 2] * 3;
+        const cx = (meshPositions[a] + meshPositions[b] + meshPositions[c]) / 3;
+        const cy = (meshPositions[a + 1] + meshPositions[b + 1] + meshPositions[c + 1]) / 3;
+        const cz = (meshPositions[a + 2] + meshPositions[b + 2] + meshPositions[c + 2]) / 3;
+        const sag = 1 - Math.sqrt(cx * cx + cy * cy + cz * cz);
+        if (sag > worstSag) { worstSag = sag; worstAt = t / 3; }
+    }
+    console.log(`Max chord sag: ${worstSag.toExponential(3)} (budget ${MAX_CHORD_SAG.toExponential(3)})`);
+    if (worstSag > MAX_CHORD_SAG) {
+        console.error(
+            `\n  ✗ Triangle ${worstAt} sags ${worstSag.toExponential(3)}, over the ` +
+            `${MAX_CHORD_SAG.toExponential(3)} budget. Lower GRATICULE_CELL_DEG ` +
+            `(currently ${GRATICULE_CELL_DEG}) and rebuild.`);
+        process.exit(1);
+    }
+
     console.log('Extracting border edges...');
     const borderEdges = extractBorderEdges(meshIndices, vertCount);
+
+    // The other Stage 1 invariant: grid cuts must NOT read as country borders.
+    //
+    // An unwelded cut leaves each adjacent cell holding its own copy of the
+    // shared edge, and since each copy is then used by exactly one triangle,
+    // BOTH register as boundaries — so a welding failure shows up as two
+    // coincident boundary edges belonging to the SAME country. Two coincident
+    // edges from DIFFERENT countries is the opposite: that is a shared
+    // political border, and it is correct precisely because countries never
+    // share vertices.
+    //
+    // Checked this way rather than by edge count, because a count-based bound
+    // only catches gross failure — a handful of unwelded vertices would slip
+    // through it and paint stray lines in the middle of a country.
+    const vkey = i => `${meshPositions[i * 3].toFixed(6)},${meshPositions[i * 3 + 1].toFixed(6)},${meshPositions[i * 3 + 2].toFixed(6)}`;
+    const edgeOwner = new Map();
+    let fakeBorders = 0;
+    let sharedBorders = 0;
+    let firstFake = null;
+    for (let e = 0; e < borderEdges.length; e += 2) {
+        const a = borderEdges[e], b = borderEdges[e + 1];
+        const ka = vkey(a), kb = vkey(b);
+        const ek = ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+        const prev = edgeOwner.get(ek);
+        if (prev === undefined) { edgeOwner.set(ek, meshIds[a]); continue; }
+        if (prev === meshIds[a]) {
+            fakeBorders++;
+            if (!firstFake) firstFake = idToName[meshIds[a]] || `id ${meshIds[a]}`;
+        } else {
+            sharedBorders++;
+        }
+    }
+    console.log(
+        `Boundary edges: ${borderEdges.length / 2} ` +
+        `(${sharedBorders} coincident across a shared border)`);
+    if (fakeBorders > 0) {
+        console.error(
+            `\n  ✗ ${fakeBorders} boundary edges are duplicated WITHIN one country ` +
+            `(first: ${firstFake}). Graticule cuts are leaking into the border set — ` +
+            `the per-target weld in the ring loop is not fusing them, and the globe ` +
+            `will show a ${GRATICULE_CELL_DEG}° lattice across country interiors.`);
+        process.exit(1);
+    }
     console.log(`Writing ${OUTPUT_BORDER_LINES}...`);
     fs.writeFileSync(OUTPUT_BORDER_LINES, Buffer.from(borderEdges.buffer));
 
