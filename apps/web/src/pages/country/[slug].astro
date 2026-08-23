@@ -1,0 +1,51 @@
+---
+/**
+ * One static page per published country.
+ *
+ * The composition matters more than it looks:
+ *
+ *   PanelSheet   client:idle    — hydrates, so the sheet can be dragged
+ *     CountryArticle            — NO client: directive, passed as a slot
+ *
+ * Astro renders slotted content to HTML and hands it to the island untouched, so
+ * the prose ships as static markup with zero JavaScript while the drag behaviour
+ * hydrates around it. That is what makes the text structurally safe from being
+ * wiped on hydration — the failure that got the site rejected by AdSense.
+ *
+ * The globe placeholder is markup in THIS file rather than inside a component,
+ * because a `client:only` island renders nothing at build time. B3 mounts the
+ * real globe behind it; `position: fixed` keeps it out of document flow so CLS
+ * stays at zero.
+ */
+import CountryLayout from '../../layouts/CountryLayout.astro';
+import CountryArticle from '../../components/CountryArticle';
+import PanelSheet from '../../components/PanelSheet';
+import { countries } from '../../lib/content';
+
+export function getStaticPaths() {
+    // One route per published country. Nothing is generated for a country
+    // without reviewed content — the exporter already refused to emit it.
+    return countries.map((country) => ({
+        params: { slug: country.slug },
+        props: { country },
+    }));
+}
+
+const { country } = Astro.props;
+const title = `${country.name} — geography, history and literature | Terragotcha`;
+---
+<CountryLayout
+    title={title}
+    description={country.summary}
+    canonicalPath={`/country/${country.slug}`}
+>
+    <div id="globe-placeholder" aria-hidden="true">
+        <p>Loading globe…</p>
+    </div>
+
+    <main>
+        <PanelSheet client:idle initial="expanded">
+            <CountryArticle country={country} />
+        </PanelSheet>
+    </main>
+</CountryLayout>

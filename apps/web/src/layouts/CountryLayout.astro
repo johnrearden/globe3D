@@ -1,0 +1,36 @@
+---
+/**
+ * The document shell for a country page.
+ *
+ * Everything here is emitted at build time. The head carries the canonical URL
+ * and description that an app-owned pushState navigation will later have to
+ * update by hand — B4's job — so the two must stay in step.
+ */
+interface Props {
+    title: string;
+    description: string;
+    canonicalPath: string;
+}
+const { title, description, canonicalPath } = Astro.props;
+const canonical = new URL(canonicalPath, Astro.site).href;
+---
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+</head>
+<body>
+    <slot />
+</body>
+</html>

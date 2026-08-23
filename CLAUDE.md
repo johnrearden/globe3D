@@ -40,6 +40,11 @@ globe3d/
 │   ├── api-client/          # Quiz backend client (host + storage + fetch injected)
 │   ├── globe-bridge/        # The globe interface + a test double. No rendering code
 │   └── design-tokens/       # 13 knobs → CSS / React Native / backend allow-list
+├── apps/web/                # Astro static site (Phase B): one crawlable page per
+│                            #   country. `npm run build:web`
+├── content/countries.json   # Published country page content, baked from Django by
+│                            #   `manage.py export_country_content`. Committed, so the
+│                            #   frontend build needs no database
 ├── spikes/expo-gl-mesh/     # Throwaway React Native rig proving expo-gl renders the
 │                            #   real mesh; outside the workspace globs on purpose
 ├── package.json             # Build dependencies
@@ -105,6 +110,33 @@ regenerated and `npm test` fails if they go stale.
 current stylesheet uses. Repointing the editor at the new knobs before the new stylesheet exists
 would give authors 13 controls that style nothing. The cutover happens with the Phase B UI; the steps
 are written at the top of `backend/themes/tokens.py`.
+
+## Static country pages (`apps/web`)
+
+The site was rejected by AdSense for "low quality content": the client-rendered shell has no
+substantive text in its initial HTML response. `apps/web` answers that with one static
+`/country/<slug>` page per published country, built by Astro from `content/countries.json`.
+
+**The composition is the whole point, and it is one word away from being undone:**
+
+```
+PanelSheet     client:idle   — hydrates, so the sheet can be dragged
+  CountryArticle             — NO client: directive, passed as a SLOT
+```
+
+`CountryArticle` is **React with no `client:` directive**, so Astro renders it to HTML at
+build time and ships zero JavaScript for it. Passing it to `PanelSheet` as a *slot* (not a
+prop) keeps it static markup that hydration cannot wipe — a prop would serialise the country
+into the island and re-render it client-side. Verified: the prose appears in `index.html` and
+in none of the JS bundles.
+
+It is React rather than `.astro` so the same component can also render client-side after an
+app-owned pushState navigation, without a second copy of the markup drifting from this one.
+Consequently it must stay free of hooks, handlers and browser globals — anything interactive
+belongs in a sibling island. `tests/country-page-static.test.js` enforces all of this.
+
+Astro is a **build-time generator only**; the runtime is a plain SPA with app-owned
+`pushState`, so `ClientRouter` is deliberately not enabled.
 
 ## Key Features
 

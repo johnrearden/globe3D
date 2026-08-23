@@ -20,3 +20,7 @@ venv/
 
 # Pre-compressed asset upload staging (npm run build:assets)
 dist-assets/
+
+# Astro build output + generated types (apps/web).
+apps/web/dist/
+apps/web/.astro/

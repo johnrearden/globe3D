@@ -1,0 +1,19 @@
+{
+  "name": "@terragotcha/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Astro static site: one crawlable page per country, with the globe mounted as an island.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.4",
+    "astro": "^7.2.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}
