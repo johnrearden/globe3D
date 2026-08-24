@@ -48,6 +48,13 @@ python3 -m http.server 8000
 3. Choose **Connect to Git** or **Direct Upload**
 
 #### Step 3: Git Integration (Recommended)
+
+> **Historical — see §6.6 for the current configuration.** The build settings below (empty
+> build command, output directory `/`) are the ones §6.6's troubleshooting note identifies as
+> the cause of the "Asset too large … workerd (119 MiB)" failure: they publish the repo root,
+> `node_modules` and all. The live project uses build command `npm run build:pages` and output
+> directory `dist`.
+
 ```bash
 # Ensure your repo is on GitHub/GitLab
 git remote -v  # Verify remote exists
@@ -914,6 +921,24 @@ own `assets/` at `/assets`, so it is same-origin and CORS never applies. Adding
 **None**, build command `npm run build:pages`, output dir `dist` → deploy. Then **Custom
 domains** → add `terragotcha.com` + `www.terragotcha.com`.
 **Direct:** `npm run build:pages && npx wrangler pages deploy dist --project-name terragotcha`.
+
+> **Node version.** `.node-version` at the repo root pins **22**, and `npm ci` will refuse to
+> install below it (`engines: node >=22.12.0`). Astro 7 in `apps/web` requires it, and because
+> `npm ci` installs every workspace the floor applies to the whole build — including the
+> vanilla app, which would otherwise still be deployable on an older Node. If Pages ever
+> ignores `.node-version`, set `NODE_VERSION=22` as a build environment variable.
+
+> **`npm run build:pages` spans both apps.** It runs `build-landing.mjs` (border pages +
+> `sitemap.xml` + `country-pages.json`), then the Astro build (`apps/web` → country pages),
+> then `build-pages.mjs`, which stages the allow-list and merges Astro's output in at the
+> root. That order is required: `build-pages.mjs` opens by wiping `dist/`, so anything written
+> there earlier is destroyed. It aborts if the Astro output is missing, because `sitemap.xml`
+> already advertises the `/country/` URLs and shipping without them would point crawlers at
+> 404s.
+>
+> To preview the whole deploy locally, use `npm run build:pages:local` — identical output but
+> with the globe assets served from the repo rather than R2, whose CORS policy allows only the
+> two production origins.
 
 > **If the build fails with “Asset too large … `node_modules/.../workerd` (119 MiB)”:** the
 > project is publishing the **repo root** (which contains `node_modules` after `npm install`),

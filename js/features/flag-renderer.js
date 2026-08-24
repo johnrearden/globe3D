@@ -4,6 +4,7 @@
  */
 
 import { state } from '../data/state.js';
+import { countryPageUrl, loadCountryPages } from '../data/country-pages.js';
 import { createWebGLRenderer } from '../utils/webgl-diagnostics.js';
 
 import * as THREE from 'three';
@@ -220,6 +221,7 @@ export class FlagRenderer {
             if (countryNameEl) {
                 countryNameEl.textContent = countryName;
             }
+            this._updateArticleLink(countryName);
             this.elements.get('info-population').textContent =
                 data && data.pop !== 'N/A' ? `${data.pop}M` : 'N/A';
             this.elements.get('info-area').textContent =
@@ -280,5 +282,46 @@ export class FlagRenderer {
      */
     isShowing() {
         return this.currentCountry !== null;
+    }
+
+    /**
+     * Show a "Read more" link when this country has a static article page.
+     *
+     * The panel opens exactly when someone has shown interest in a country, so
+     * it is the one place in the app where the article is worth offering. Gated
+     * on country-pages.json rather than linking optimistically: only a handful
+     * of the 237 countries are written, and linking to the rest would send
+     * readers and crawlers to 404s.
+     *
+     * Built at runtime rather than added to index.html's markup, per CLAUDE.md.
+     */
+    _updateArticleLink(countryName) {
+        const info = document.getElementById('flag-info');
+        if (!info) return;
+
+        let link = info.querySelector('.country-article-link');
+        if (!link) {
+            link = document.createElement('a');
+            link.className = 'country-article-link';
+            link.textContent = 'Read more';
+            info.appendChild(link);
+        }
+
+        const apply = () => {
+            // The panel may have moved on while the index was loading.
+            const current = info.querySelector('.country-name')?.textContent;
+            if (current !== countryName) return;
+            const href = countryPageUrl(countryName);
+            if (href) {
+                link.href = href;
+                link.style.display = '';
+            } else {
+                link.removeAttribute('href');
+                link.style.display = 'none';
+            }
+        };
+
+        apply();                       // instant if the index is already loaded
+        loadCountryPages().then(apply); // …otherwise once it arrives
     }
 }

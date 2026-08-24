@@ -356,3 +356,28 @@ body {
         transition: none;
     }
 }
+
+/* ── Route back into the globe app ────────────────────────────────────────── */
+.country-explore {
+    margin: var(--space-5) 0 0;
+}
+
+.country-explore a {
+    display: inline-block;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-btn);
+    background: var(--primary);
+    color: var(--on-primary);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    transition: background 150ms ease;
+}
+
+.country-explore a:hover {
+    background: var(--primary-hover);
+}
+
+.country-explore a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}

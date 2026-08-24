@@ -111,6 +111,22 @@ current stylesheet uses. Repointing the editor at the new knobs before the new s
 would give authors 13 controls that style nothing. The cutover happens with the Phase B UI; the steps
 are written at the top of `backend/themes/tokens.py`.
 
+## Deploy (`npm run build:pages`)
+
+One Cloudflare Pages project serves both apps: the vanilla globe at `/`, the Astro country
+pages at `/country/*`. `build:pages` runs `build-landing.mjs` → the Astro build →
+`build-pages.mjs`, and **that order is required** — `build-pages.mjs` opens by wiping `dist/`,
+so anything staged before it is destroyed. Astro's output is merged in at the **root** (not as
+an `INCLUDE` entry, which would nest it) because its URLs are root-absolute.
+
+It aborts if the Astro output is missing: `sitemap.xml` already lists the `/country/` URLs, so
+deploying without the pages points crawlers at 404s — worse than a failed build and invisible
+for weeks. `npm run build:pages:local` produces the same output with globe assets served from
+the repo instead of R2, for previewing locally.
+
+`.node-version` pins 22 for the Pages build image; Astro 7 needs ≥22.12 and `npm ci` installs
+every workspace, so the floor applies to the whole deploy.
+
 ## Static country pages (`apps/web`)
 
 The site was rejected by AdSense for "low quality content": the client-rendered shell has no

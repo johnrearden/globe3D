@@ -4,6 +4,9 @@
     "packages/*",
     "apps/*"
   ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "dependencies": {
     "earcut": "^3.0.2",
     "flag-icons": "^7.5.0",
@@ -23,7 +26,8 @@
     "build:assets": "node compress-assets.mjs",
     "build:tokens": "node packages/design-tokens/bin/build-tokens.mjs",
     "build:landing": "node build-landing.mjs",
-    "build:pages": "node build-landing.mjs && node build-pages.mjs",
+    "build:pages": "node build-landing.mjs && npm run build:web && node build-pages.mjs",
+    "build:pages:local": "node build-landing.mjs && npm --workspace @terragotcha/web run build:local && node build-pages.mjs && ln -sfn ../assets dist/assets",
     "build:web": "npm --workspace @terragotcha/web run build",
     "check:syntax": "node check-syntax.mjs",
     "test": "node check-syntax.mjs && node packages/design-tokens/bin/build-tokens.mjs --check && vitest run",

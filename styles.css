@@ -5479,3 +5479,37 @@ button {
     border-color: var(--accent); font-weight: var(--weight-semibold);
 }
 .te-btn-danger { color: var(--bad); }
+
+/* "Read more" — the route from the globe to a country's article page. Shown by
+   js/features/flag-renderer.js only when country-pages.json has that country, so
+   it never points at a page that was not written.
+
+   pointer-events:auto is required, not cosmetic: #flag-container is
+   pointer-events:none so the panel does not block dragging the globe behind it,
+   and children inherit that. Without this the link renders perfectly and is
+   simply not clickable — the canvas receives the click instead. Same opt-back-in
+   the .flag-close button uses. */
+.country-article-link {
+  display: inline-block;
+  pointer-events: auto;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.country-article-link:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.country-article-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

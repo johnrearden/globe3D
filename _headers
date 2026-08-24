@@ -21,3 +21,14 @@
   Cache-Control: public, max-age=0, must-revalidate
 /js/*
   Cache-Control: public, max-age=0, must-revalidate
+
+# Astro's bundles are content-hashed, so a change is a new URL — safe to cache
+# forever. Without this rule they fall through to /* and get no Cache-Control at
+# all, i.e. re-fetched every visit.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Country pages are the opposite: stable URLs whose content gets edited, so they
+# must revalidate like index.html. Covers the .json siblings the router fetches.
+/country/*
+  Cache-Control: public, max-age=0, must-revalidate

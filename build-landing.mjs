@@ -230,9 +230,14 @@ ${related.map((r) => `                <li><a href="/borders/${r.slug}">Countries
 // content/countries.json that build consumes — so a page and its sitemap entry
 // cannot exist independently.
 let countryPages = [];
+let countryIndex = [];
 try {
     const content = JSON.parse(readFileSync(join(ROOT, 'content', 'countries.json'), 'utf8'));
     countryPages = content.countries.map((c) => c.slug);
+    // Name → slug for the globe app, which knows countries by display name and
+    // must only link to pages that exist. Emitted from the same read as the
+    // sitemap so the two can never disagree about which pages were published.
+    countryIndex = content.countries.map((c) => ({ name: c.name, slug: c.slug }));
 } catch (err) {
     // Not fatal: the border pages are still worth a sitemap. But say so, because
     // silently dropping ~200 URLs is exactly the kind of SEO regression nobody
@@ -258,6 +263,11 @@ ${urls.map((u) => `  <url>
 </urlset>
 `;
 writeFileSync(join(ROOT, 'sitemap.xml'), sitemap);
+
+// Just {name, slug} — the globe app needs to know WHICH countries have a page,
+// not what is on them. ~10 KB at full coverage against ~700 KB for the content
+// itself, and it is fetched lazily by the flag panel.
+writeFileSync(join(ROOT, 'country-pages.json'), JSON.stringify(countryIndex));
 
 console.log(`build-landing — generated ${built.length} page(s): ${built.join(', ') || '(none)'}`);
 if (skipped.length) {

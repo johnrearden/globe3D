@@ -287,6 +287,7 @@
         import { SmallCountryIndicator } from './js/features/small-country-indicator.js';
         import { QuizUI, clearQuizTimers } from './js/features/quiz/quiz-ui.js';
         import { createCountryTable } from './js/data/country-table.js';
+        import { loadCountryPages } from './js/data/country-pages.js';
         import { createWebGlobeBridge } from './js/data/globe-bridge.js';
         import { QuizTimer } from './js/features/quiz/quiz-timer.js';
         import { QuizModePicker } from './js/features/quiz/quiz-mode-picker.js';
@@ -857,11 +858,22 @@
                     sceneManager.fadeInLights();
                     globeManager.fadeInLighting();
 
+                    // Deep link from a country article page: /?country=<slug>.
+                    // Resolved through country-pages.json (slug → display name)
+                    // rather than by slugifying names here, so the app and the
+                    // static pages agree on the mapping by construction.
+                    // Deliberately after the splash hides, so the camera move is
+                    // seen rather than happening behind an opaque overlay.
+                    const deepLink = new URLSearchParams(location.search).get('country');
+
                     // Complete loading. Hold the opaque splash through the globe's
                     // lighting fade-in (1500ms above) so it reveals a fully-lit globe,
                     // never a black/half-rendered frame.
                     sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
-                    setTimeout(() => hideLoading(), 1500);
+                    setTimeout(() => {
+                        hideLoading();
+                        if (deepLink) focusFromDeepLink(deepLink);
+                    }, 1500);
                 },
                 // Error callback
                 (error) => {
@@ -1095,6 +1107,23 @@
 
         // calculateGreatCircleDistance, triggerConfetti, and the quiz mode-selector
         // show/hide glue moved to js/features/quiz/quiz-ui.js.
+
+        /**
+         * Focus the globe on the country a /?country=<slug> link names.
+         *
+         * Fails silently on an unknown or unpublished slug: an article link is a
+         * suggestion, and a hand-edited URL should land on the normal globe
+         * rather than an error.
+         */
+        async function focusFromDeepLink(slug) {
+            try {
+                const index = await loadCountryPages();
+                const name = [...index.entries()].find(([, s]) => s === slug)?.[0];
+                if (name && searchManager) searchManager.focusOnCountryByName(name);
+            } catch (err) {
+                console.warn('Deep link could not be resolved:', slug, err);
+            }
+        }
 
         function cancelQuiz() {
             // End whichever quiz is active without showing its celebration.

@@ -88,6 +88,14 @@ export default function CountryArticle({ country }: { country: Country }) {
                     </section>
                 ))}
 
+            {/* The route back into the globe. A country page with no way through
+                to the app is a dead end for a reader, and the app is the reason
+                they are on the site. The vanilla app resolves ?country= against
+                the same country-pages.json this page's slug came from. */}
+            <p className="country-explore">
+                <a href={`/?country=${country.slug}`}>Explore {country.name} on the globe</a>
+            </p>
+
             {/* Real anchors, server-rendered. A WebGL canvas is not crawlable, so
                 without these the ~200 pages are sitemap orphans with no internal
                 link graph. Every href here is guaranteed by the exporter to point

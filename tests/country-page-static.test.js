@@ -145,3 +145,42 @@ describe('sitemap', () => {
         expect(sitemap).not.toMatch(/<loc>[^<]*\/country\/[a-z-]+\/<\/loc>/);
     });
 });
+
+describe('deploy integration', () => {
+    const buildPages = read('../build-pages.mjs');
+    const pkg = JSON.parse(read('../package.json'));
+
+    it('runs the Astro build before the staging step', () => {
+        // build-pages.mjs opens with rmSync(dist), so anything staged before it
+        // is destroyed. Order here is correctness, not preference.
+        const cmd = pkg.scripts['build:pages'];
+        expect(cmd.indexOf('build:web')).toBeGreaterThan(cmd.indexOf('build-landing'));
+        expect(cmd.indexOf('build-pages.mjs')).toBeGreaterThan(cmd.indexOf('build:web'));
+    });
+
+    it('refuses to stage without the Astro output', () => {
+        // sitemap.xml already advertises /country/<slug>, so a deploy missing
+        // those pages sends crawlers to 404s.
+        expect(buildPages).toContain('apps/web/dist');
+        expect(buildPages).toMatch(/process\.exit\(1\)/);
+    });
+
+    it('pins Node above Astro 7\'s floor for the Pages build image', () => {
+        expect(read('../.node-version').trim()).toBe('22');
+        expect(pkg.engines.node).toBe('>=22.12.0');
+    });
+
+    it('ships the published-pages index so the app links only to real pages', () => {
+        expect(buildPages).toContain('country-pages.json');
+        const index = JSON.parse(read('../country-pages.json'));
+        // Generated from the same content/countries.json as the pages themselves.
+        expect(index.map(e => e.slug).sort())
+            .toEqual(content.countries.map(c => c.slug).sort());
+    });
+
+    it('caches Astro bundles immutably and country pages not at all', () => {
+        const headers = read('../_headers');
+        expect(headers).toMatch(/\/_astro\/\*\s*\n\s*Cache-Control: public, max-age=31536000, immutable/);
+        expect(headers).toMatch(/\/country\/\*\s*\n\s*Cache-Control: public, max-age=0, must-revalidate/);
+    });
+});
