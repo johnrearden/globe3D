@@ -58,7 +58,7 @@ export default function PanelSheet({
         // travel is the panel height less the grip that stays on screen.
         const dy = e.clientY - d.startY;
         const dt = Math.max(1, performance.now() - d.startT);
-        const travel = Math.max(0, ref.current.offsetHeight - GRIP_PX);
+        const travel = Math.max(0, ref.current.offsetHeight - gripPx(ref.current));
         const offset = snap === 'collapsed' ? travel + dy : dy;
         setSnap(decideSnap(offset, travel, dy / dt) as SnapState);
     };
@@ -84,5 +84,18 @@ export default function PanelSheet({
     );
 }
 
-/** Height of the grip that stays visible when collapsed. Mirrors the CSS. */
-const GRIP_PX = 44;
+/**
+ * How much of the panel stays on screen when collapsed, read from the stylesheet
+ * rather than restated here.
+ *
+ * The CSS needs this number for its collapse transform and the drag maths needs
+ * the same one; two declarations would drift silently into a sheet that snaps to
+ * the wrong place. `--panel-grip` in country.css is the single source, and the
+ * fallback only matters if this component is ever mounted without that
+ * stylesheet.
+ */
+function gripPx(el: HTMLElement): number {
+    const raw = getComputedStyle(el).getPropertyValue('--panel-grip').trim();
+    const n = Number.parseFloat(raw);
+    return Number.isFinite(n) && n > 0 ? n : 44;
+}

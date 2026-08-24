@@ -149,6 +149,25 @@ describe('derivation', () => {
         // The dock shadow casts upward.
         expect(d['shadow-dock']).toContain('-6px');
     });
+
+    it('casts shadows in the darker knob, so a light theme still shows depth', () => {
+        // Deriving from bg-app alone put a light shadow on a light surface,
+        // which is invisible. Only a light theme exposed it.
+        const light = { ...t, 'bg-app': '#f4f6f8', 'text-primary': '#111827' };
+        expect(derive(light)['shadow-high']).toContain('rgba(17, 24, 39');
+        // …and a dark theme is unchanged.
+        expect(derive(t)['shadow-high']).toContain('rgba(10, 28, 48');
+    });
+
+    it('never casts a shadow lighter than the surface it falls on', () => {
+        for (const [bg, ink] of [['#0a1c30', '#eef2f6'], ['#ffffff', '#000000'], ['#808080', '#7f7f7f']]) {
+            const d = derive({ ...t, 'bg-app': bg, 'text-primary': ink });
+            const shadow = parseColor(d['shadow-mid'].match(/rgba\([^)]+\)/)[0]);
+            const surface = parseColor(bg);
+            const lum = c => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+            expect(lum(shadow)).toBeLessThanOrEqual(lum(surface) + 1);
+        }
+    });
 });
 
 describe('resolveTheme', () => {

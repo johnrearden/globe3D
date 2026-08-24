@@ -138,6 +138,21 @@ belongs in a sibling island. `tests/country-page-static.test.js` enforces all of
 Astro is a **build-time generator only**; the runtime is a plain SPA with app-owned
 `pushState`, so `ClientRouter` is deliberately not enabled.
 
+**Styling rule (`apps/web/src/styles/`).** Every colour, radius, weight, font-family and
+shadow must resolve to a `var(--…)` token from `@terragotcha/design-tokens` — never a
+literal. Spacing comes from the six-step scale (`--space-1`…`--space-6`); its absence is the
+single biggest reason the old `styles.css` sprawled to 5,481 lines. The generated
+`packages/design-tokens/dist/tokens.css` is imported by `CountryLayout.astro` ahead of the
+page styles, so the whole cascade is token-driven.
+
+Layout constants that are *not* theme knobs (an author cannot set them) live as local custom
+properties, e.g. `--panel-grip`. Where JS needs the same number it reads the property via
+`getComputedStyle` rather than restating it — `PanelSheet` does this for the collapse maths,
+because two declarations of one value drift silently.
+
+`styles.css` at the repo root belongs to the **vanilla app** and is not used here; it is
+replaced, not migrated.
+
 ## Key Features
 
 ### 1. Interactive 3D Globe

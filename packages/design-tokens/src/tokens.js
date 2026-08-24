@@ -24,7 +24,7 @@
  *            derivation is free. When in doubt, derive.
  */
 
-import { mix, alpha } from './color.js';
+import { mix, alpha, luminance } from './color.js';
 
 // ---------------------------------------------------------------------------
 // KNOBS — the 13 authorable values
@@ -166,6 +166,7 @@ export const FIXED_RADII = Object.freeze({
  * @returns {Object<string,string>}
  */
 export function derive(t) {
+    const ink = shadowInk(t);
     return {
         // Hairlines and dividers: primary ink at low opacity, so they track the
         // text colour rather than being a separate colour to keep in step.
@@ -195,13 +196,14 @@ export function derive(t) {
         // fill can only darken, which is why the old system used a mid-grey.
         'globe-selection': mix(t.primary, t['bg-app'], 0.35),
 
-        // Elevation. Each shadow is built from bg-app, so the whole scale adapts
-        // per theme with no per-theme redefinition.
-        'shadow-low': `0 1px 3px ${alpha(t['bg-app'], 0.4)}`,
-        'shadow-mid': `0 4px 12px ${alpha(t['bg-app'], 0.5)}`,
-        'shadow-high': `0 12px 32px ${alpha(t['bg-app'], 0.6)}`,
+        // Elevation, cast in whichever knob is DARKER — see shadowInk. Built from
+        // a knob either way, so the scale still adapts per theme with no
+        // per-theme redefinition.
+        'shadow-low': `0 1px 3px ${alpha(ink, 0.4)}`,
+        'shadow-mid': `0 4px 12px ${alpha(ink, 0.5)}`,
+        'shadow-high': `0 12px 32px ${alpha(ink, 0.6)}`,
         // Bottom-docked sheets cast upward.
-        'shadow-dock': `0 -6px 24px ${alpha(t['bg-app'], 0.5)}`,
+        'shadow-dock': `0 -6px 24px ${alpha(ink, 0.5)}`,
     };
 }
 
@@ -239,6 +241,26 @@ export function resolveTheme(overrides = {}) {
         ...FIXED_RADII,
         ...derive(knobs),
     };
+}
+
+/**
+ * The colour a shadow is cast in: whichever of `bg-app` and `text-primary` is
+ * darker.
+ *
+ * Deriving elevation from `bg-app` alone was wrong, and only a light theme
+ * revealed it: on a dark backdrop a dark shadow reads as depth, but on a light
+ * one it casts a light shadow onto a light surface and disappears. Shadows are
+ * absence of light, so they have to be dark regardless of which way the theme
+ * runs — while still coming from a knob, so the scale adapts without any
+ * per-theme redefinition.
+ *
+ * @param {Object<string,string>} t  a full knob map
+ * @returns {string}
+ */
+function shadowInk(t) {
+    return luminance(t['bg-app']) <= luminance(t['text-primary'])
+        ? t['bg-app']
+        : t['text-primary'];
 }
 
 /**

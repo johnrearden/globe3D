@@ -1,0 +1,312 @@
+/**
+ * Country page styling.
+ *
+ * Every colour, radius, weight, font and shadow below resolves to a token from
+ * @terragotcha/design-tokens — never a literal. That is what makes the theme
+ * switcher work, and it is the rule whose absence let the old stylesheet grow to
+ * 5,481 lines with a hundred hand-tuned greys.
+ *
+ * Spacing likewise comes from the six-step scale. The old CSS had no scale, so
+ * every component invented its own padding; that is the single biggest reason it
+ * sprawled.
+ *
+ * Layout has one job: keep the article readable while leaving room for the globe
+ * that B3 will mount behind it. Desktop puts the panel in a column beside the
+ * globe; mobile makes it a draggable sheet over it.
+ */
+
+:root {
+    /* How much of the panel stays on screen when collapsed. Declared here rather
+       than as a design token because it is layout, not theme — an author cannot
+       set it. PanelSheet.tsx READS this value at runtime rather than hardcoding
+       its own copy: the drag maths needs the same number, and two declarations of
+       it would drift silently into a sheet that snaps to the wrong place. */
+    --panel-grip: 44px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    /* The panel is a scroll container, not the document — so anchor jumps and
+       the sheet gesture do not fight the page scroll. */
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg-app);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-normal);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── The globe's seat ──────────────────────────────────────────────────────
+   Fixed and out of document flow, so mounting the real globe into it later
+   cannot reflow the article — CLS stays at zero. Until B3 it shows the ocean
+   colour, which is a knob precisely so the globe never vanishes into the page. */
+#globe-placeholder {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at 42% 38%,
+            var(--ocean) 0%,
+            var(--bg-app) 68%);
+}
+
+#globe-placeholder p {
+    margin: 0;
+    color: var(--text-disabled);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+.panel-sheet {
+    position: fixed;
+    z-index: 1;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--space-5);
+}
+
+/* The grip is the drag target on mobile and a show/hide toggle everywhere. It
+   is a real <button>, so it is reachable by keyboard before any JS loads. */
+.panel-grip {
+    flex: none;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: var(--space-3);
+    display: grid;
+    place-items: center;
+}
+
+.panel-grip::before {
+    content: '';
+    display: block;
+    width: var(--panel-grip);
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+    transition: background 150ms ease;
+}
+
+.panel-grip:hover::before {
+    background: var(--primary);
+}
+
+.panel-grip:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -4px;
+}
+
+/* Before hydration the sheet cannot be dragged, so the grip must not imply it
+   can. The content is fully readable in this state — that is the point. */
+.panel-sheet[data-interactive='false'] .panel-grip {
+    cursor: default;
+}
+
+/* ── Article ──────────────────────────────────────────────────────────────── */
+.country-article {
+    max-width: 68ch;   /* measure, not pixels: the limit is reading comfort */
+    margin: 0 auto;
+}
+
+.country-article h1 {
+    margin: 0 0 var(--space-3);
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.15;
+}
+
+.country-summary {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-lg);
+    line-height: 1.45;
+}
+
+.country-article h2 {
+    margin: var(--space-6) 0 var(--space-3);
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-medium);
+    line-height: 1.25;
+}
+
+.country-article p {
+    margin: 0 0 var(--space-4);
+}
+
+.country-article p:last-child {
+    margin-bottom: 0;
+}
+
+/* ── Facts ────────────────────────────────────────────────────────────────── */
+.country-facts {
+    margin: var(--space-5) 0 0;
+    padding: var(--space-4);
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    background: var(--surface-inset);
+    border-radius: var(--radius-panel);
+}
+
+.country-facts > div {
+    min-width: 0;
+}
+
+.country-facts dt {
+    margin: 0 0 var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.country-facts dd {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+
+/* ── Related links ────────────────────────────────────────────────────────── */
+.country-related {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.country-related h2 {
+    margin-top: 0;
+}
+
+.country-related ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-2);
+}
+
+.country-related li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.country-related a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: var(--weight-medium);
+    padding: var(--space-1) var(--space-2);
+    margin-left: calc(var(--space-2) * -1);
+    border-radius: var(--radius-btn);
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.country-related a:hover {
+    background: var(--primary-soft);
+    color: var(--primary-hover);
+}
+
+.country-related a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.country-related .relation {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+/* ── Mobile: a bottom sheet over the globe ────────────────────────────────── */
+@media (max-width: 899px) {
+    .panel-sheet {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-height: 88vh;
+        border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+        box-shadow: var(--shadow-dock);
+        /* Collapsed leaves only the grip on screen. */
+        transform: translateY(0);
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .panel-sheet[data-snap='collapsed'] {
+        transform: translateY(calc(100% - var(--panel-grip)));
+    }
+
+    .panel-body {
+        padding: var(--space-4) var(--space-4) var(--space-6);
+    }
+}
+
+/* ── Desktop: a column beside the globe ───────────────────────────────────── */
+@media (min-width: 900px) {
+    .panel-sheet {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(46rem, 46vw);
+        border-radius: var(--radius-panel) 0 0 var(--radius-panel);
+        box-shadow: var(--shadow-high);
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Collapsing slides the panel out to reveal the globe, leaving the grip. */
+    .panel-sheet[data-snap='collapsed'] {
+        transform: translateX(calc(100% - var(--panel-grip)));
+    }
+
+    .panel-grip {
+        /* On a side panel the grip belongs on the leading edge, not the top. */
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: var(--panel-grip);
+        padding: 0;
+    }
+
+    .panel-grip::before {
+        width: 4px;
+        height: var(--panel-grip);
+    }
+
+    .panel-body {
+        padding: var(--space-6) var(--space-6) var(--space-6)
+                 calc(var(--panel-grip) + var(--space-5));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .panel-sheet {
+        transition: none;
+    }
+}
