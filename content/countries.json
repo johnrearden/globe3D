@@ -33,13 +33,203 @@
           "id": "literature",
           "heading": "Literary heritage",
           "paragraphs": [
-            "French literature carries an unusual institutional weight: the Academie Francaise has adjudicated the language since 1635.",
-            "The nineteenth-century novel is its most exported form, from Hugo's Les Miserables to Flaubert's Madame Bovary, whose trial for offending public morals in 1857 became a landmark in the argument over what fiction is allowed to describe. In the twentieth century Proust's In Search of Lost Time reshaped what a novel could attempt, and Camus and Sartre made Paris the centre of a philosophical literature read worldwide."
+            "French literature carries an unusual institutional weight: the Académie Française has adjudicated the language since 1635.",
+            "The nineteenth-century novel is its most exported form, from Hugo's Les Misérables to Flaubert's Madame Bovary, whose trial for offending public morals in 1857 became a landmark in the argument over what fiction is allowed to describe. In the twentieth century Proust's In Search of Lost Time reshaped what a novel could attempt, and Camus and Sartre made Paris the centre of a philosophical literature read worldwide."
           ]
         }
       ],
       "reviewedAt": "2026-08-23T15:46:52.324811+00:00",
-      "related": []
+      "related": [
+        {
+          "slug": "germany",
+          "name": "Germany",
+          "relation": "borders"
+        },
+        {
+          "slug": "italy",
+          "name": "Italy",
+          "relation": "borders"
+        },
+        {
+          "slug": "spain",
+          "name": "Spain",
+          "relation": "borders"
+        }
+      ]
+    },
+    {
+      "slug": "germany",
+      "name": "Germany",
+      "cca2": "de",
+      "cca3": "DEU",
+      "flagIso": "de",
+      "region": "Europe",
+      "subregion": "Western Europe",
+      "capital": "Berlin",
+      "areaKm2": 357114.0,
+      "summary": "Germany sits at the crossing point of Europe, bordering nine countries — more than any other state on the continent — and its literature has circled that condition of being always in the middle of things.",
+      "sections": [
+        {
+          "id": "geography",
+          "heading": "Geography",
+          "paragraphs": [
+            "Germany covers about 357,600 square kilometres, running from the North Sea and Baltic coasts to the Bavarian Alps. The land rises as it goes south: the flat, sandy North German Plain gives way to the wooded central uplands, then to the Alpine foreland and finally the mountains themselves, where the Zugspitze reaches 2,962 metres.",
+            "Three great rivers organise the country. The Rhine runs north through the western industrial belt, the Elbe drains the centre toward Hamburg, and the Danube leaves Bavaria heading east — the only one of the three flowing away from the North Sea, and the reason southern Germany has always looked toward Vienna as much as Berlin."
+          ]
+        },
+        {
+          "id": "history",
+          "heading": "History",
+          "paragraphs": [
+            "For most of its history the territory was not one country but hundreds. The Holy Roman Empire held a patchwork of principalities, free cities and bishoprics together loosely for eight centuries, and the Reformation that began with Luther in 1517 split it along confessional lines that later wars did little to heal.",
+            "Unification came late and from the north: Prussia under Bismarck assembled the German Empire in 1871. The century that followed brought two world wars, the collapse of the Weimar Republic, and the Nazi dictatorship whose crimes remain the defining fact of modern German self-understanding.",
+            "Division followed defeat. From 1949 there were two German states, separated after 1961 by the Berlin Wall, until reunification on 3 October 1990 — still marked annually as the Day of German Unity."
+          ]
+        },
+        {
+          "id": "literature",
+          "heading": "Literary heritage",
+          "paragraphs": [
+            "German literature has an unusually precise starting gun. Luther's Bible translation, completed in 1534, did not merely render scripture into the vernacular; it chose among competing dialects and in doing so largely invented standard written German. That it could be printed at all was down to Gutenberg, working in Mainz around 1450.",
+            "The classical age belongs to Weimar, where Goethe and Schiller worked in close and sometimes uneasy proximity. Goethe's Faust, written across sixty years, is the work German readers still measure others against.",
+            "The twentieth century produced Thomas Mann, whose Buddenbrooks and The Magic Mountain won him the Nobel in 1929 and who spent the Nazi years broadcasting against the regime from exile, and later Günter Grass, whose The Tin Drum (1959) forced a reckoning with what ordinary Germans had seen and chosen not to see."
+          ]
+        }
+      ],
+      "reviewedAt": "2026-08-24T10:58:17.358207+00:00",
+      "related": [
+        {
+          "slug": "france",
+          "name": "France",
+          "relation": "borders"
+        },
+        {
+          "slug": "italy",
+          "name": "Italy",
+          "relation": "region"
+        },
+        {
+          "slug": "spain",
+          "name": "Spain",
+          "relation": "region"
+        }
+      ]
+    },
+    {
+      "slug": "italy",
+      "name": "Italy",
+      "cca2": "it",
+      "cca3": "ITA",
+      "flagIso": "it",
+      "region": "Europe",
+      "subregion": "Southern Europe",
+      "capital": "Rome",
+      "areaKm2": 301336.0,
+      "summary": "Italy runs 1,200 kilometres into the Mediterranean, a peninsula whose fragmented geography kept it politically divided until 1861 — and whose city-states, competing rather than combining, produced the Renaissance.",
+      "sections": [
+        {
+          "id": "geography",
+          "heading": "Geography",
+          "paragraphs": [
+            "Italy covers about 301,000 square kilometres, shaped by two mountain systems. The Alps close the northern border with France, Switzerland, Austria and Slovenia, while the Apennines run the length of the peninsula like a spine, leaving narrow coastal plains on either side.",
+            "The exception is the Po valley in the north, the country's largest lowland and its industrial and agricultural heartland. Italy is also volcanically alive in a way few European countries are: Vesuvius buried Pompeii in AD 79 and still overlooks Naples, while Etna in Sicily, at roughly 3,300 metres, is among the most active volcanoes on earth. Two independent states, San Marino and Vatican City, sit entirely within Italian territory."
+          ]
+        },
+        {
+          "id": "history",
+          "heading": "History",
+          "paragraphs": [
+            "Rome grew from a city on the Tiber into a republic and then an empire that ringed the Mediterranean, and whose language, law and administrative habits outlived it everywhere in Europe. The Western Empire ended in 476.",
+            "What followed was not a successor state but a thousand years of plurality — maritime republics at Venice and Genoa, duchies and papal territories, Spanish and Austrian rule in turn. The competition between these small states, each wanting the best architects and painters, is the practical explanation for the Renaissance.",
+            "Unification, the Risorgimento, came only in 1861, with Rome added in 1870 and made the capital the following year. Fascism under Mussolini lasted from 1922 until the collapse of 1943; Italians voted the monarchy out and the republic in by referendum in June 1946."
+          ]
+        },
+        {
+          "id": "literature",
+          "heading": "Literary heritage",
+          "paragraphs": [
+            "Italian as a literary language was effectively chosen by one man. Dante wrote the Divine Comedy in Tuscan rather than Latin, finishing it shortly before his death in 1321, and the dialect he used became the basis of the national language six centuries before there was a nation to speak it.",
+            "Petrarch gave Europe the sonnet sequence and Boccaccio, in the Decameron, gave it the frame narrative — ten young people fleeing the plague and telling stories to pass the time. Manzoni's The Betrothed, published in the 1820s and endlessly revised, did for the modern language something like what Dante had done for the medieval one.",
+            "Post-war writing is dominated by witness and invention in equal measure: Primo Levi's If This Is a Man, an account of Auschwitz written with a chemist's precision, and Italo Calvino's fables and puzzles, which took the novel somewhere entirely different."
+          ]
+        }
+      ],
+      "reviewedAt": "2026-08-24T10:58:17.370638+00:00",
+      "related": [
+        {
+          "slug": "france",
+          "name": "France",
+          "relation": "borders"
+        },
+        {
+          "slug": "germany",
+          "name": "Germany",
+          "relation": "region"
+        },
+        {
+          "slug": "spain",
+          "name": "Spain",
+          "relation": "region"
+        }
+      ]
+    },
+    {
+      "slug": "spain",
+      "name": "Spain",
+      "cca2": "es",
+      "cca3": "ESP",
+      "flagIso": "es",
+      "region": "Europe",
+      "subregion": "Southern Europe",
+      "capital": "Madrid",
+      "areaKm2": 505992.0,
+      "summary": "Spain occupies most of the Iberian Peninsula, cut off from the rest of Europe by the Pyrenees and turned for centuries toward Africa and the Atlantic — a position that gave it both an empire and the first modern novel.",
+      "sections": [
+        {
+          "id": "geography",
+          "heading": "Geography",
+          "paragraphs": [
+            "Spain covers roughly 506,000 square kilometres, second only to France in western Europe. Most of it is the Meseta Central, a high inland plateau ringed by mountains and averaging some 600 metres above sea level, which makes Madrid the highest capital city in Europe.",
+            "The Pyrenees seal the French border along a 430-kilometre wall breached by few passes. The highest point in the country is not on the mainland at all but on Tenerife, where the volcano Teide rises to 3,715 metres; the mainland summit is Mulhacén in the Sierra Nevada, at 3,479 metres. Beyond the peninsula, Spain holds the Balearic Islands in the Mediterranean and the Canaries off north-west Africa."
+          ]
+        },
+        {
+          "id": "history",
+          "heading": "History",
+          "paragraphs": [
+            "Roman Hispania gave the peninsula its roads, its law and the Latin from which Castilian grew. After the Visigoths came the Muslim conquest of 711, and for nearly eight centuries Al-Andalus made Córdoba and Granada among the most learned cities in Europe.",
+            "The year 1492 concentrated an extraordinary amount of history: Granada fell, completing the Reconquista; the Jews were expelled; and Columbus sailed. The empire that followed made Spain the dominant European power of the sixteenth century and left Spanish the first language of some twenty countries.",
+            "The modern state was forged more painfully — the loss of the last colonies in 1898, the Civil War of 1936 to 1939, and the Franco dictatorship that followed it. Democracy returned after Franco's death in 1975, formalised in the constitution of 1978."
+          ]
+        },
+        {
+          "id": "literature",
+          "heading": "Literary heritage",
+          "paragraphs": [
+            "Spanish literature can claim the novel itself. Cervantes published the first part of Don Quixote in 1605 and the second in 1615, and the book's method — a protagonist who has read too much, moving through a world that refuses to match his reading — has been imitated ever since.",
+            "The Siglo de Oro that surrounded him was crowded: Lope de Vega wrote plays by the hundred, Calderón gave the Spanish stage its philosophical turn, and Góngora and Quevedo conducted a feud in verse that readers still take sides in.",
+            "The twentieth century's defining figure is Federico García Lorca, whose Blood Wedding and Poet in New York fused folk forms with the avant-garde, and whose murder by Nationalist forces in 1936, weeks into the Civil War, made him the period's emblem as well as its poet."
+          ]
+        }
+      ],
+      "reviewedAt": "2026-08-24T10:58:17.365190+00:00",
+      "related": [
+        {
+          "slug": "france",
+          "name": "France",
+          "relation": "borders"
+        },
+        {
+          "slug": "germany",
+          "name": "Germany",
+          "relation": "region"
+        },
+        {
+          "slug": "italy",
+          "name": "Italy",
+          "relation": "region"
+        }
+      ]
     }
   ]
 }
