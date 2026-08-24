@@ -19,9 +19,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCountry, onCountryChange } from '../lib/route';
 
-/** Where the baked .bin assets are served from. */
+/**
+ * Where the baked .bin assets load from.
+ *
+ * R2 in production. In dev, same-origin `/assets`, served by the middleware in
+ * astro.config.mjs — R2's CORS policy allows only the two terragotcha.com
+ * origins, so a dev server pointed at it gets a CORS failure and no globe.
+ * `PUBLIC_ASSET_BASE` overrides both, which is how a local *build* is previewed.
+ */
 const ASSET_BASE =
-    import.meta.env.PUBLIC_ASSET_BASE ?? 'https://assets.terragotcha.com';
+    import.meta.env.PUBLIC_ASSET_BASE ??
+    (import.meta.env.DEV ? '/assets' : 'https://assets.terragotcha.com');
 
 export default function GlobeIsland({ focus }: { focus?: string }) {
     const hostRef = useRef<HTMLDivElement>(null);

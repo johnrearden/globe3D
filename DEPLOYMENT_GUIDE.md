@@ -905,6 +905,10 @@ R2 → bucket → **Settings → CORS Policy**:
 ]
 ```
 
+**Local development does NOT need an entry here.** `apps/web`'s dev server serves the repo's
+own `assets/` at `/assets`, so it is same-origin and CORS never applies. Adding
+`http://localhost:*` would widen a production policy for a problem that does not exist.
+
 ### 6.6 Deploy the Pages shell
 **Git (recommended):** Workers & Pages → *Create* → **Pages** → connect the repo → preset
 **None**, build command `npm run build:pages`, output dir `dist` → deploy. Then **Custom

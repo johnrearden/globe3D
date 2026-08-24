@@ -165,9 +165,16 @@ implementation would be the one that drifts. `GlobeManager.init()` must be calle
 `loadGlobe()` — it creates the Group the meshes are added to, and skipping it fails later and
 less obviously.
 
-The import is dynamic so Three.js (~511 KB) is never in the page's initial bundle. Assets come
-from `PUBLIC_ASSET_BASE`, defaulting to R2; for a local globe, build with
-`PUBLIC_ASSET_BASE=/assets` and serve the repo-root `assets/` at that path.
+The import is dynamic so Three.js (~511 KB) is never in the page's initial bundle.
+
+**Asset origin, and the CORS trap.** R2's CORS policy allows only
+`https://terragotcha.com` and `https://www.terragotcha.com`, so anything on localhost that
+points at R2 gets a CORS failure and no globe — with the page otherwise looking fine, since
+the article does not depend on it. So `astro dev` serves the repo's `assets/` at `/assets`
+itself (middleware in `astro.config.mjs`, dev-only — a `public/` symlink would get copied
+into production builds). `astro build` points at R2; `npm run build:local` overrides it for
+previewing a build. Widen the R2 policy only if a deployed non-production origin needs it —
+not for local work.
 
 **Styling rule (`apps/web/src/styles/`).** Every colour, radius, weight, font-family and
 shadow must resolve to a `var(--…)` token from `@terragotcha/design-tokens` — never a
