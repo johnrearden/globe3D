@@ -310,3 +310,49 @@ body {
         transition: none;
     }
 }
+
+/* ── Globe ────────────────────────────────────────────────────────────────────
+   The island mounts its canvas here. Both this and #globe-placeholder are fixed
+   and out of document flow, so swapping one for the other cannot reflow the
+   article — the reason CLS stays at zero on a page whose main content paints
+   long before the globe exists. */
+.globe-host {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 700ms ease;
+}
+
+.globe-host canvas {
+    display: block;
+}
+
+/* Set by GlobeIsland once the mesh is on screen. Cross-fading rather than
+   switching avoids a flash of empty background between the two. */
+:root[data-globe='ready'] .globe-host {
+    opacity: 1;
+}
+
+:root[data-globe='ready'] #globe-placeholder {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#globe-placeholder {
+    transition: opacity 700ms ease;
+}
+
+/* If the globe fails, the placeholder's "Loading globe…" would lie. The article
+   is the page's reason to exist and is already on screen, so this degrades to a
+   plain backdrop rather than an error. */
+:root[data-globe='failed'] #globe-placeholder p {
+    visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .globe-host,
+    #globe-placeholder {
+        transition: none;
+    }
+}

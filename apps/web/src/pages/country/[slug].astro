@@ -12,14 +12,16 @@
  * hydrates around it. That is what makes the text structurally safe from being
  * wiped on hydration — the failure that got the site rejected by AdSense.
  *
- * The globe placeholder is markup in THIS file rather than inside a component,
- * because a `client:only` island renders nothing at build time. B3 mounts the
- * real globe behind it; `position: fixed` keeps it out of document flow so CLS
- * stays at zero.
+ * The globe placeholder is markup in THIS file rather than inside GlobeIsland,
+ * because a `client:only` island renders nothing at build time — it would leave
+ * the first paint empty behind the panel. The island mounts over it and the
+ * placeholder cross-fades out; both are `position: fixed`, so neither is in
+ * document flow and CLS stays at zero.
  */
 import CountryLayout from '../../layouts/CountryLayout.astro';
 import CountryArticle from '../../components/CountryArticle';
 import PanelSheet from '../../components/PanelSheet';
+import GlobeIsland from '../../components/GlobeIsland';
 import { countries } from '../../lib/content';
 
 export function getStaticPaths() {
@@ -42,6 +44,7 @@ const title = `${country.name} — geography, history and literature | Terragotc
     <div id="globe-placeholder" aria-hidden="true">
         <p>Loading globe…</p>
     </div>
+    <GlobeIsland client:only="react" focus={country.name} />
 
     <main>
         <PanelSheet client:idle initial="expanded">

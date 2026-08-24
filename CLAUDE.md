@@ -138,6 +138,23 @@ belongs in a sibling island. `tests/country-page-static.test.js` enforces all of
 Astro is a **build-time generator only**; the runtime is a plain SPA with app-owned
 `pushState`, so `ClientRouter` is deliberately not enabled.
 
+**The globe (`GlobeIsland.tsx`, `client:only="react"`).** It renders nothing at build time and
+must not try — it needs WebGL, a canvas and `window`. That is why the "Loading globe…"
+placeholder lives in the page's own markup: a `client:only` island contributes no HTML for
+the crawler or the first paint. Both the placeholder and the globe host are `position: fixed`
+and out of document flow, so the swap between them cannot reflow the article — measured CLS
+is 0.
+
+The island is glue and lifecycle only. It imports the vanilla engine unchanged (`SceneManager`,
+`GlobeManager`, `CameraController`) and drives it through `GlobeBridge`; a second globe
+implementation would be the one that drifts. `GlobeManager.init()` must be called before
+`loadGlobe()` — it creates the Group the meshes are added to, and skipping it fails later and
+less obviously.
+
+The import is dynamic so Three.js (~511 KB) is never in the page's initial bundle. Assets come
+from `PUBLIC_ASSET_BASE`, defaulting to R2; for a local globe, build with
+`PUBLIC_ASSET_BASE=/assets` and serve the repo-root `assets/` at that path.
+
 **Styling rule (`apps/web/src/styles/`).** Every colour, radius, weight, font-family and
 shadow must resolve to a `var(--…)` token from `@terragotcha/design-tokens` — never a
 literal. Spacing comes from the six-step scale (`--space-1`…`--space-6`); its absence is the

@@ -41,9 +41,24 @@ describe('country page composition', () => {
         expect(tag[0]).not.toMatch(/client:/);
     });
 
-    it('hydrates PanelSheet, and only PanelSheet', () => {
-        const hydrated = [...page.matchAll(/<(\w+)[^>]*\sclient:[\w]+/g)].map(m => m[1]);
-        expect(hydrated).toEqual(['PanelSheet']);
+    it('hydrates exactly the two known islands, each in the right mode', () => {
+        // An allow-list, so adding an island is a deliberate act rather than a
+        // drift. The MODE matters as much as the membership:
+        //   PanelSheet   client:idle  — wraps static content, so it must render
+        //                               server-side and hydrate over it.
+        //   GlobeIsland  client:only  — needs WebGL and window, so it cannot
+        //                               render at build time at all.
+        const hydrated = [...page.matchAll(/<(\w+)[^>]*\sclient:([\w]+)/g)]
+            .map(m => `${m[1]}:${m[2]}`)
+            .sort();
+        expect(hydrated).toEqual(['GlobeIsland:only', 'PanelSheet:idle']);
+    });
+
+    it('keeps the globe placeholder in the page, not inside the island', () => {
+        // A client:only island contributes no HTML at build time, so a
+        // placeholder living inside it would leave the first paint empty.
+        expect(page).toMatch(/id="globe-placeholder"/);
+        expect(page.indexOf('globe-placeholder')).toBeLessThan(page.indexOf('<GlobeIsland'));
     });
 
     it('passes the article to PanelSheet as a slot, not as a prop', () => {

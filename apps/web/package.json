@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Astro static site: one crawlable page per country, with the globe mounted as an island.",
   "scripts": {
+    "//assets": "PUBLIC_ASSET_BASE overrides where the baked .bin assets load from. Defaults to R2. For a local globe, build with PUBLIC_ASSET_BASE=/assets and serve repo-root assets/ at that path.",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
