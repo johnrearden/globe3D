@@ -224,8 +224,28 @@ ${related.map((r) => `                <li><a href="/borders/${r.slug}">Countries
 }
 
 // --- sitemap ----------------------------------------------------------------
+// One generator for the whole site, not one per page type: two would drift, and
+// a sitemap that disagrees with itself is worse than a short one. The country
+// pages are built by Astro (apps/web) but listed here, from the same
+// content/countries.json that build consumes — so a page and its sitemap entry
+// cannot exist independently.
+let countryPages = [];
+try {
+    const content = JSON.parse(readFileSync(join(ROOT, 'content', 'countries.json'), 'utf8'));
+    countryPages = content.countries.map((c) => c.slug);
+} catch (err) {
+    // Not fatal: the border pages are still worth a sitemap. But say so, because
+    // silently dropping ~200 URLs is exactly the kind of SEO regression nobody
+    // notices for a month.
+    console.warn(`build-landing — no content/countries.json (${err.code ?? err.message}); ` +
+                 `sitemap will omit the country pages.`);
+}
+
 const urls = [
     { loc: `${ORIGIN}/`, changefreq: 'weekly', priority: '1.0' },
+    // Country pages rank above the border quizzes: they carry the editorial
+    // content, and they are the reason this sitemap matters.
+    ...countryPages.map((slug) => ({ loc: `${ORIGIN}/country/${slug}`, changefreq: 'monthly', priority: '0.8' })),
     ...built.map((slug) => ({ loc: `${ORIGIN}/borders/${slug}`, changefreq: 'monthly', priority: '0.7' })),
 ];
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -243,4 +263,5 @@ console.log(`build-landing — generated ${built.length} page(s): ${built.join('
 if (skipped.length) {
     console.warn(`build-landing — skipped ${skipped.length} (no img/borders/<slug>.png): ${skipped.join(', ')}`);
 }
-console.log(`build-landing — sitemap.xml lists ${urls.length} URL(s).`);
+console.log(`build-landing — sitemap.xml lists ${urls.length} URL(s) ` +
+            `(${countryPages.length} country, ${built.length} borders, 1 apex).`);

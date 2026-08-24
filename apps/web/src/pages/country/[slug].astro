@@ -22,6 +22,7 @@ import CountryLayout from '../../layouts/CountryLayout.astro';
 import CountryArticle from '../../components/CountryArticle';
 import PanelSheet from '../../components/PanelSheet';
 import GlobeIsland from '../../components/GlobeIsland';
+import CountryRouter from '../../components/CountryRouter';
 import { countries } from '../../lib/content';
 
 export function getStaticPaths() {
@@ -45,6 +46,7 @@ const title = `${country.name} — geography, history and literature | Terragotc
         <p>Loading globe…</p>
     </div>
     <GlobeIsland client:only="react" focus={country.name} />
+    <CountryRouter client:idle initial={country} />
 
     <main>
         <PanelSheet client:idle initial="expanded">

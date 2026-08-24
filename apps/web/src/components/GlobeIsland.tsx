@@ -17,6 +17,7 @@
  * gives up) has lost nothing that matters.
  */
 import { useEffect, useRef, useState } from 'react';
+import { getCountry, onCountryChange } from '../lib/route';
 
 /** Where the baked .bin assets are served from. */
 const ASSET_BASE =
@@ -34,6 +35,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
         // Everything that needs tearing down if the component unmounts before
         // the globe finishes loading — a real case on a fast pushState away.
         let sceneManager: any = null;
+        let unsubscribe: (() => void) | null = null;
 
         (async () => {
             // The vanilla loader reads this global to build asset URLs. Set it
@@ -100,10 +102,20 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // Everything past this point goes through the bridge, not the
                 // engine objects — the same contract the quiz layer uses.
                 const globe = createWebGlobeBridge({ globeManager, cameraController });
-                if (focus) {
-                    globe.highlight(focus);
-                    globe.focusCountry(focus);
-                }
+
+                const show = (name: string) => {
+                    globe.highlight(name);
+                    globe.focusCountry(name);
+                };
+
+                // Whatever is on screen now — the store may already have moved
+                // on if the mesh took a while and the reader navigated.
+                show(getCountry()?.name ?? focus ?? '');
+
+                // Re-focus on every pushState navigation. This subscription is
+                // the whole reason the globe survives a link click: the router
+                // publishes, the globe pans, and nothing is torn down.
+                unsubscribe = onCountryChange((c) => show(c.name));
 
                 // Hand the page over: the placeholder fades out, the globe in.
                 document.documentElement.dataset.globe = 'ready';
@@ -118,6 +130,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
 
         return () => {
             disposed = true;
+            unsubscribe?.();
             sceneManager?.destroy?.();
             delete document.documentElement.dataset.globe;
         };

@@ -138,6 +138,20 @@ belongs in a sibling island. `tests/country-page-static.test.js` enforces all of
 Astro is a **build-time generator only**; the runtime is a plain SPA with app-owned
 `pushState`, so `ClientRouter` is deliberately not enabled.
 
+**Navigation (`CountryRouter.tsx`, `client:idle`).** After boot, clicks on internal
+`/country/<slug>` links are intercepted: the router fetches `/country/<slug>.json` (emitted
+beside each page), swaps the panel content, rewrites `<title>`/description/canonical by hand,
+and pushes the URL. The globe is never rebuilt — that is the point, since it costs seconds.
+Astro's `ClientRouter` is not used: it swaps documents, so every island would need
+`transition:persist`; owning the navigation means nothing has to survive anything.
+
+React takes over the panel only on the **first user navigation** (`createRoot`, replacing the
+static markup rather than hydrating it — the trees deliberately differ). A crawler never
+clicks, so the document it sees is the untouched static one.
+
+Islands share state through the module singleton in `src/lib/route.ts`, not React Context —
+separate roots cannot share a provider. Same constraint that makes `quizStore` a singleton.
+
 **The globe (`GlobeIsland.tsx`, `client:only="react"`).** It renders nothing at build time and
 must not try — it needs WebGL, a canvas and `window`. That is why the "Loading globe…"
 placeholder lives in the page's own markup: a `client:only` island contributes no HTML for

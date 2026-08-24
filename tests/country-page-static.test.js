@@ -41,17 +41,20 @@ describe('country page composition', () => {
         expect(tag[0]).not.toMatch(/client:/);
     });
 
-    it('hydrates exactly the two known islands, each in the right mode', () => {
+    it('hydrates exactly the three known islands, each in the right mode', () => {
         // An allow-list, so adding an island is a deliberate act rather than a
         // drift. The MODE matters as much as the membership:
         //   PanelSheet   client:idle  — wraps static content, so it must render
         //                               server-side and hydrate over it.
         //   GlobeIsland  client:only  — needs WebGL and window, so it cannot
         //                               render at build time at all.
+        //   CountryRouter client:idle  — renders no DOM of its own; it takes over
+        //                               the panel only on a user navigation, so
+        //                               the initial document stays static.
         const hydrated = [...page.matchAll(/<(\w+)[^>]*\sclient:([\w]+)/g)]
             .map(m => `${m[1]}:${m[2]}`)
             .sort();
-        expect(hydrated).toEqual(['GlobeIsland:only', 'PanelSheet:idle']);
+        expect(hydrated).toEqual(['CountryRouter:idle', 'GlobeIsland:only', 'PanelSheet:idle']);
     });
 
     it('keeps the globe placeholder in the page, not inside the island', () => {
@@ -120,5 +123,25 @@ describe('exported content', () => {
                 expect(slugs.has(r.slug), `${c.slug} links to missing ${r.slug}`).toBe(true);
             }
         }
+    });
+});
+
+describe('sitemap', () => {
+    const sitemap = read('../sitemap.xml');
+
+    it('lists every published country page', () => {
+        // The pages and the sitemap come from one generator reading one file, so
+        // a page can never exist without its entry — but a regression here is
+        // invisible for months, which is why it is asserted rather than trusted.
+        for (const c of content.countries) {
+            expect(sitemap, `${c.slug} missing from sitemap`)
+                .toContain(`<loc>https://terragotcha.com/country/${c.slug}</loc>`);
+        }
+    });
+
+    it('uses the same URL shape the pages link to', () => {
+        // A trailing-slash mismatch between sitemap, canonical and <a href> is
+        // the classic way to get duplicate URLs indexed.
+        expect(sitemap).not.toMatch(/<loc>[^<]*\/country\/[a-z-]+\/<\/loc>/);
     });
 });
