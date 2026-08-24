@@ -176,6 +176,19 @@ into production builds). `astro build` points at R2; `npm run build:local` overr
 previewing a build. Widen the R2 policy only if a deployed non-production origin needs it —
 not for local work.
 
+**Dev troubleshooting: `_jsxDEV is not a function`.** Symptom: the page flashes its content
+then goes blank, the globe never appears, and the console blames `GlobeIsland`. It is not a
+code bug — `_jsxDEV` only exists in dev builds, and a production build of the same commit is
+fine. It means Vite's dependency cache went stale, which happens when `package.json` or the
+lockfile changes under a running dev server. `GlobeIsland` is the one that reports it because
+it is the only `client:only` island, so its component is resolved in the browser at runtime.
+
+Fix:
+
+```bash
+cd apps/web && npx astro dev stop && rm -rf node_modules/.vite && npx astro dev
+```
+
 **Styling rule (`apps/web/src/styles/`).** Every colour, radius, weight, font-family and
 shadow must resolve to a `var(--…)` token from `@terragotcha/design-tokens` — never a
 literal. Spacing comes from the six-step scale (`--space-1`…`--space-6`); its absence is the
