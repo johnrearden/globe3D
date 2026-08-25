@@ -478,6 +478,13 @@ minimize what they add to `index.html`:**
   instead of new `<script>`/`<link>` tags.
 - Net effect: a new feature should touch `index.html` by roughly an `import` + one instantiation
   call, and nothing more.
+- **`index.html` contains one generated region — do not hand-edit it.** Everything between
+  `<!-- BEGIN GENERATED: landing panel ... -->` and `<!-- END GENERATED: landing panel -->` is the
+  apex's static, crawlable content, written by `build-landing-facts.mjs` from
+  `landing/landing-facts.json` (editorial copy) + `assets/country-meta.json` (the figures). Edit the
+  JSON and run `npm run build:landing-facts`; `npm test` runs `--check` and fails if the block is
+  stale. Every superlative is verified against the baked country geometry, so the build refuses a
+  claim the data contradicts — that check is the point of the file, not a formality.
 - **Icons: use inline SVG everywhere.** Do not add icon-font `<link>`s (e.g. Phosphor/Font
   Awesome webfonts) or `<i class="...">` glyphs. Define the needed SVG markup as constants in the
   feature's module and inject it at runtime. This keeps `index.html` free of new `<link>` tags and

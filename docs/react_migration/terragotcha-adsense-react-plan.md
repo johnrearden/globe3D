@@ -10,6 +10,23 @@
 > [`c0-expo-gl-spike.md`](./c0-expo-gl-spike.md) — the React Native app can render
 > the real 30 MB globe mesh through expo-gl at 60 fps, so the native globe is the
 > same globe, not a decimated stand-in.
+>
+> **The apex is now covered too.** The diagnosis below ("the raw HTML is
+> essentially an empty shell") is about `/`, and Phase B fixed every page *except*
+> that one: `/country/*` got static content, `/` kept its 137 words — 62 of them
+> hidden in a 1×1px-clipped `.sr-only` block — and zero links to any of it. The
+> landing panel closes that gap: `build-landing-facts.mjs` generates a static
+> content panel into `index.html` from `landing/landing-facts.json`, ~700 visible
+> words with a link to every published country page, and the splash overlay that
+> used to be the first thing a crawler met is gone. Every superlative it states is
+> verified against `assets/country-meta.json` at build time, so a claim cannot be
+> wrong on arrival or go stale silently.
+>
+> Still open from the same diagnosis: the 28 `/borders/<slug>` pages are ~126
+> words each and largely identical to one another, which is a doorway-page
+> pattern that may be working against the site rather than for it. They also hide
+> their quiz answer in `.sr-only`. Worth a decision — improve, consolidate, or
+> `noindex` — before assuming the apex fix is sufficient on its own.
 
 ## Context / Problem
 

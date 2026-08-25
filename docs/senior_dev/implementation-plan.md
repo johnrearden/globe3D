@@ -160,7 +160,9 @@ duplicates the client id — the comment at both sites says to keep them in sync
 `site-config.js`). `adsense.js` keeps `loadAdsenseScript()` as a fallback that no-ops when the static
 tag is already present, so the page never carries two loaders. `initAds()` **stays** in
 `setupEventListeners()` on purpose: on a fatal WebGL failure the rail must not mount over the error
-panel. Ad *units* remain deferred behind the splash — the loader alone renders nothing.
+panel. Ad *units* remain deferred until `globe3d:intro-dismissed` — the loader alone renders
+nothing. (That event no longer coincides with a splash fading out; since the landing panel replaced
+the splash it simply marks "the globe is ready".)
 **Empty-slot guards** were added so the loader can ship before the slot ids exist: `AdRail.init()`
 returns early when `ADSENSE_RAIL_SLOT` is empty, `mountAd()` requires a non-empty slot, and
 `build-landing.mjs` `adSection()` now needs both `ADS_ID` and `ADS_SLOT`; without them a slot-less
@@ -212,8 +214,8 @@ The markup is small and mostly stays (it's the entry-point shell). Major blocks:
 
 | Block | Lines (approx) | Notes |
 |-------|----------------|-------|
-| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), the `<script type="importmap">` that resolves `three` + `@terragotcha/*` by bare specifier (three.js and OrbitControls were `<script src>` tags until stage A8), Google Fonts (Fredoka/Archivo) for the splash |
-| Terragotcha splash overlay (`#seo-content`), `#container`, top buttons | ~67–106 | opaque loading splash (markup ~67–98, styled in `styles.css`, dismissed by `js/features/loading.js`); wraps SEO copy in `.sr-only`; zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
+| Head / meta / external `<script>`s | 3–224 | confetti CDN (11), the `<script type="importmap">` that resolves `three` + `@terragotcha/*` by bare specifier (three.js and OrbitControls were `<script src>` tags until stage A8), Google Fonts (Fredoka/Archivo) |
+| Landing panel (`#landing-panel`), `#container`, top buttons | ~96–210 | **The splash overlay (`#seo-content`) and its `.sr-only` block are gone.** In their place is a generated static content panel — markup written between the `BEGIN/END GENERATED: landing panel` markers by `build-landing-facts.mjs` from `landing/landing-facts.json`, styled in `styles.css`, behaviour in `js/features/landing-panel.js`. It is the apex's crawlable content (~700 words, links to every published `/country/*` page) and it paints before the globe, which slides in on `globe3d:intro-dismissed`. Do not hand-edit the generated block — `npm test` runs `build-landing-facts.mjs --check` and fails if it is stale. `.sr-only` REMAINS in `styles.css` for the `/borders/*` pages, which use it on `.lp-answer`. Also here: zoom/quiz/bounce/shatter/pinball/edit/color/zoom-editor toggles |
 | Zoom widget, flag panel, search | ~63–106 | (controls legend removed — globe manipulation is self-evident) |
 | Quiz container + mode-selector | ~107–160 | `#quiz-container` is gameplay-only now: its idle "Geography Quiz" launcher panel is hidden (shown only on `body.quiz-active`); entry points are the Take Quiz button + the `quiz-invite.js` reminder. The end-of-quiz celebration overlay was **extracted** — now built at runtime by `js/features/quiz/quiz-results-modal.js` (the new "Quiz Results" design); only the `body.celebration-active` chrome-hiding CSS remains. The old bespoke click-quiz DOM (container / countdown bar / results modal) was **removed** — "Find the country" now reuses the shared floating `#qz-chrome` like the other quizzes |
 | Label-editor modal | ~189–219 | sliders + buttons |

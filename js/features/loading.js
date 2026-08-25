@@ -1,11 +1,16 @@
 /**
- * Loading / splash-overlay handling.
+ * Loading handling + the "globe is ready" signal.
  *
- * The Terragotcha splash (#seo-content) is opaque on first paint and covers the
- * whole viewport while the globe loads. hideLoading() — called once the globe has
- * rendered (and its lighting fade-in has run) — fades the splash out to reveal the
- * globe, then fires `globe3d:intro-dismissed` so other features (e.g. the Daily
- * Challenge invite) can react. The one-shot guard keeps dismissal idempotent.
+ * There is NO LONGER a splash overlay on the apex: the landing panel paints first
+ * and the globe slides in behind it, so nothing covers the viewport while assets
+ * load (see js/features/landing-panel.js). #seo-content is gone from index.html.
+ *
+ * What survives is the signal. hideSeoContent() — called once the globe has
+ * rendered and its lighting fade-in has run — fires `globe3d:intro-dismissed`,
+ * which several features wait on (the Daily Challenge invite, ads, the landing
+ * panel's globe reveal). The element lookup is kept and stays null-safe so an
+ * embedder that still ships an overlay keeps working. The one-shot guard keeps
+ * dismissal idempotent.
  */
 
 import { elements, hide, addClass } from '../utils/dom.js';

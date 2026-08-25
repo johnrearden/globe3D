@@ -282,6 +282,31 @@ export class CameraController {
         this.controls.enableRotate = !lockRotation;
     }
 
+    /**
+     * Set (or clear) a PERSISTENT focal anchor.
+     *
+     * Unlike the one-shot anchor frameView() takes, this one is remembered and
+     * survives a resize — which is what a standing layout needs. The landing
+     * panel uses it to push the globe into the third of the screen it does not
+     * cover, WITHOUT resizing the canvas: PointerControls maps pointer→NDC
+     * against window.innerWidth/innerHeight, so a sub-viewport canvas would make
+     * every pick resolve to the wrong country, silently.
+     *
+     * @param {{x:number,y:number}|null} anchor normalized screen pos, or null to centre
+     */
+    setFocalAnchor(anchor) {
+        this._applyViewOffset(anchor || null);
+    }
+
+    /**
+     * Re-apply the stored anchor at the current viewport size. Call after a
+     * resize: setViewOffset bakes in the width/height it was given, so an offset
+     * computed for the old viewport skews the projection at the new one.
+     */
+    refreshViewOffset() {
+        if (this._focalAnchor) this._applyViewOffset(this._focalAnchor);
+    }
+
     /** Shift the projection so the globe center lands at `focalAnchor` on screen. */
     _applyViewOffset(focalAnchor) {
         const el = this.renderer.domElement;
@@ -291,6 +316,7 @@ export class CameraController {
             this.clearViewOffset();
             return;
         }
+        this._focalAnchor = focalAnchor;
         const { x, y } = viewOffsetFor(w, h, focalAnchor);
         this.camera.setViewOffset(w, h, x, y, w, h);
         this.camera.updateProjectionMatrix();
@@ -299,6 +325,7 @@ export class CameraController {
 
     /** Remove any view offset and re-enable user rotation. */
     clearViewOffset() {
+        this._focalAnchor = null;
         if (this._viewOffsetActive || this.camera.view) {
             this.camera.clearViewOffset();
             this.camera.updateProjectionMatrix();

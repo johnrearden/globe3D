@@ -5,10 +5,12 @@
  * `createWebGLRenderer` (js/utils/webgl-diagnostics.js) logs the reason to the console
  * and re-throws; that throw escapes the app's init() (index.html) — the FIRST failure is
  * the hover-flag renderer, before the globe assets even load — and would otherwise leave
- * the opaque #seo-content splash frozen on screen forever ("LOADING THE WORLD").
+ * the app in a half-started state with no explanation.
  *
- * This module is the user-facing recovery for that dead end: it dismisses the stuck splash
- * and shows a fatal-error panel with a Reload action. It complements
+ * This module is the user-facing recovery for that dead end: it shows a fatal-error panel
+ * with a Reload action. It deliberately does NOT touch the landing panel — when WebGL is
+ * unavailable, that static content is the only part of the site that still works, so it
+ * stays on screen behind the panel. It complements
  * js/core/context-recovery.js (which handles context *loss after* a successful start).
  *
  * Console diagnostics still fire underneath — this only adds the visible fallback.
@@ -38,10 +40,9 @@ export function showWebGLFallback(error) {
 
     console.error('[webgl-fallback] startup failed — showing fallback panel', error);
 
-    // Dismiss the frozen splash directly. NOT via hideLoading()/hideSeoContent(): those fire
+    // Dismiss the loading text directly. NOT via hideLoading()/hideSeoContent(): those fire
     // `globe3d:intro-dismissed` on a timer, which would wake deferred features (Daily invite,
     // ads) on an app that never initialised.
-    hide(elements.get('seo-content'));
     hide(elements.get('loading'));
 
     const overlay = document.createElement('div');

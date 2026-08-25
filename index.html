@@ -94,39 +94,120 @@
     </script>
 </head>
 <body>
-    <!-- Loading / splash overlay (Terragotcha). Opaque on first paint; auto-dismisses
-         once the globe has rendered (see js/features/loading.js). Styling: styles.css. -->
-    <div id="seo-content">
-        <!-- SEO copy: kept in the DOM for crawlers, visually hidden behind the splash. -->
-        <div class="sr-only">
-            <h1>Interactive 3D World Globe</h1>
-            <p>Explore our interactive 3D globe featuring all 195 countries of the world. Click, drag, and zoom to discover geography in an immersive way.</p>
-            <h2>Features</h2>
-            <ul>
-                <li>Interactive 3D visualization of all countries</li>
-                <li>Geography quizzes to test your knowledge</li>
-                <li>Country information including flags, population, and area</li>
-                <li>Smooth rotation and zoom controls</li>
-                <li>Educational tool for learning world geography</li>
-            </ul>
-        </div>
+    <!-- The apex landing panel: the static, crawlable content for terragotcha.com/.
+         It paints FIRST — there is deliberately no splash overlay on this view, so the
+         page is readable before the globe exists. The globe slides in behind it once
+         WebGL is up (js/features/landing-panel.js). -->
+<!-- BEGIN GENERATED: landing panel (build-landing-facts.mjs) -->
+    <!-- Generated from landing/landing-facts.json + assets/country-meta.json by
+         build-landing-facts.mjs. Do not edit by hand: npm run build:landing-facts
+         rewrites it, and npm test fails if this block is stale. -->
+    <main id="landing-panel" class="landing-panel">
+        <div class="lf-inner">
+            <header class="lf-intro">
+                <div class="lf-wordmark"><span class="tg-terra">Terra</span><span class="tg-gotcha">gotcha</span></div>
+                <h1>Terragotcha — learn world geography on an interactive 3D globe</h1>
+                <p>Terragotcha is an interactive globe with every country rendered as real geometry rather than a flat image, so borders stay sharp however far you zoom in. Spin it, search for a country, or take a quiz: name the flag, find the country against the clock, or work through the daily challenge.</p>
+                <p>Below are some of the countries worth finding first — the largest, the smallest and the most remote — followed by the written country guides. Every one of them is on the globe.</p>
+            </header>
 
-        <!-- Top lockup: globe mark → wordmark → tagline -->
-        <div class="tg-lockup">
-            <div class="tg-globe">
-                <div class="tg-globe-glow"></div>
-                <img class="tg-globe-img" src="img/globe-splash.png" width="170" height="170" alt="" aria-hidden="true">
-            </div>
-            <div class="tg-wordmark"><span class="tg-terra">Terra</span><span class="tg-gotcha">gotcha</span></div>
-            <div class="tg-tagline">Learn geography through quizzes</div>
+            <section class="lf-section" aria-labelledby="lf-notable-h">
+                <h2 id="lf-notable-h">Notable countries</h2>
+                <p class="lf-lede">Superlatives measured against the same geometry the globe is built from. Areas are land area in square kilometres; the north–south figures are the latitude of each country&#39;s geographic centre.</p>
+                <ul class="lf-list">
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Largest country</p>
+                    <h3 class="lf-heading"><span class="lf-name">Russia</span></h3>
+                    <p class="lf-stat">17,098,242 km²</p>
+                    <p class="lf-blurb">Russia stretches from the Baltic Sea to the Pacific and spans eleven time zones. Its land area is more than a ninth of the world&#39;s total, though most of that ground is Siberian forest and tundra where very few people live.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Second largest</p>
+                    <h3 class="lf-heading"><span class="lf-name">Canada</span></h3>
+                    <p class="lf-stat">9,984,670 km²</p>
+                    <p class="lf-blurb">Canada is second only to Russia in area, yet almost the entire population lives within a few hundred kilometres of the United States border. Nearly everything north of that ribbon is lake, boreal forest and Arctic archipelago.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Third largest</p>
+                    <h3 class="lf-heading"><span class="lf-name">China</span></h3>
+                    <p class="lf-stat">9,706,961 km²</p>
+                    <p class="lf-blurb">China&#39;s territory runs from the Himalaya to the Pacific coast, taking in the Gobi Desert, the Tibetan Plateau and the Yangtze basin. It shares land borders with fourteen countries.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Fourth largest</p>
+                    <h3 class="lf-heading"><span class="lf-name">USA</span></h3>
+                    <p class="lf-stat">9,372,610 km²</p>
+                    <p class="lf-blurb">The United States covers everything from Alaskan tundra to Florida wetland, with the Rocky Mountains and the Mississippi basin in between. Alaska on its own is larger than any country in Europe apart from Russia.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Fifth largest</p>
+                    <h3 class="lf-heading"><span class="lf-name">Brazil</span></h3>
+                    <p class="lf-stat">8,515,767 km²</p>
+                    <p class="lf-blurb">Brazil covers close to half of South America and holds the greater part of the Amazon basin. It borders every country on the continent except Chile and Ecuador.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Sixth largest</p>
+                    <h3 class="lf-heading"><span class="lf-name">Australia</span></h3>
+                    <p class="lf-stat">7,692,024 km²</p>
+                    <p class="lf-blurb">Australia is the only country that is also a continent, and the driest one that is inhabited. The interior is largely desert; the cities cluster on the southeastern and southwestern coasts.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Smallest country</p>
+                    <h3 class="lf-heading"><span class="lf-name">Vatican City</span></h3>
+                    <p class="lf-stat">0.44 km²</p>
+                    <p class="lf-blurb">The Vatican is a walled enclave inside Rome, small enough to fit into a large city park. It has been a sovereign state in its present form since the Lateran Treaty of 1929, and it is the one country on the globe you have to zoom all the way in to see.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Second smallest</p>
+                    <h3 class="lf-heading"><span class="lf-name">Monaco</span></h3>
+                    <p class="lf-stat">2.02 km²</p>
+                    <p class="lf-blurb">Monaco occupies a stretch of Mediterranean coast smaller than many airports, wedged between the sea and the French Alpes-Maritimes. It has repeatedly extended itself seawards by reclaiming land from the harbour.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Sixth smallest</p>
+                    <h3 class="lf-heading"><span class="lf-name">Nauru</span></h3>
+                    <p class="lf-stat">21 km²</p>
+                    <p class="lf-blurb">Nauru is a single raised coral island in the central Pacific, so small that a coastal road loops the entire country in under half an hour. Decades of phosphate mining stripped most of the interior.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Furthest north</p>
+                    <h3 class="lf-heading"><span class="lf-name">Greenland</span></h3>
+                    <p class="lf-stat">74.7° N</p>
+                    <p class="lf-blurb">No other large territory has its geographic centre this far north. An ice sheet covers roughly four-fifths of Greenland, and the settlements are strung along the ice-free fringe of the coast.</p>
+                </li>
+                <li class="lf-card">
+                    <p class="lf-eyebrow">Furthest south</p>
+                    <h3 class="lf-heading"><span class="lf-name">Chile</span></h3>
+                    <p class="lf-stat">37.2° S</p>
+                    <p class="lf-blurb">Chile runs more than 4,000 kilometres down the Pacific edge of South America, from the Atacama Desert — the driest non-polar place on Earth — to the fjords and glaciers of Patagonia. Nowhere is it much more than 350 kilometres wide.</p>
+                </li>
+                </ul>
+            </section>
+            <section class="lf-section" aria-labelledby="lf-guides-h">
+                <h2 id="lf-guides-h">Country guides</h2>
+                <p class="lf-lede">Longer written guides, each with the country framed on the globe alongside it.</p>
+                <ul class="lf-list lf-list-guides">
+                <li class="lf-guide">
+                    <h3 class="lf-heading"><a class="lf-name" href="/country/france/">France</a></h3>
+                    <p class="lf-blurb">France stretches from the chalk cliffs of the Channel to the Mediterranean, a country whose geography has shaped a literature preoccupied with the pull between province and capital.</p>
+                </li>
+                <li class="lf-guide">
+                    <h3 class="lf-heading"><a class="lf-name" href="/country/germany/">Germany</a></h3>
+                    <p class="lf-blurb">Germany sits at the crossing point of Europe, bordering nine countries — more than any other state on the continent — and its literature has circled that condition of being always in the middle of things.</p>
+                </li>
+                <li class="lf-guide">
+                    <h3 class="lf-heading"><a class="lf-name" href="/country/italy/">Italy</a></h3>
+                    <p class="lf-blurb">Italy runs 1,200 kilometres into the Mediterranean, a peninsula whose fragmented geography kept it politically divided until 1861 — and whose city-states, competing rather than combining, produced the Renaissance.</p>
+                </li>
+                <li class="lf-guide">
+                    <h3 class="lf-heading"><a class="lf-name" href="/country/spain/">Spain</a></h3>
+                    <p class="lf-blurb">Spain occupies most of the Iberian Peninsula, cut off from the rest of Europe by the Pyrenees and turned for centuries toward Africa and the Atlantic — a position that gave it both an empire and the first modern novel.</p>
+                </li>
+                </ul>
+            </section>
         </div>
-
-        <!-- Bottom indicator: progress bar → status label -->
-        <div class="tg-indicator">
-            <div class="tg-track"><div class="tg-bar"></div></div>
-            <div class="tg-status">Loading the world</div>
-        </div>
-    </div>
+    </main>
+    <!-- END GENERATED: landing panel -->
 
     <div id="container">
         <button id="zoom-out-btn">🌍 Zoom Out</button>
@@ -309,6 +390,7 @@
         import { initConsentCmp } from './js/features/consent-cmp.js';
         import { initErrorReporter } from './js/features/error-reporter.js';
         import { initAds } from './js/features/ads/adsense.js';
+        import { LandingPanel } from './js/features/landing-panel.js';
 
         // Start frontend error reporting as early as possible (prod + configured
         // DSN only; self-gated, never throws) so start-up errors are captured too.
@@ -439,6 +521,7 @@
         let searchManager = null;
         let weakSpotsWidget = null;   // WeakSpotsWidget (top-right most-missed overlay)
         let settingsPanel = null;     // SettingsPanel instance (the ⚙ gear + panel)
+        let landingPanel = null;      // LandingPanel (apex reading view; null elsewhere)
 
 
         // Intro-overlay dismissal (hideLoading / hideSeoContent) lives in
@@ -503,6 +586,13 @@
 
             // Get controls reference
             controls = cameraController.getControls();
+
+            // Apex landing view: the generated static panel plus the camera offset
+            // that puts the globe in the third of the screen it doesn't cover.
+            // No-ops (returns false) on any page without #landing-panel, so the
+            // country pages' globe island is unaffected.
+            landingPanel = new LandingPanel({ cameraController, sceneManager, camera, controls });
+            landingPanel.init();
 
             // Gently spin the globe behind the intro screen while assets load.
             // Drives the idle system (CameraController): any interaction stops it
@@ -862,13 +952,14 @@
                     // Resolved through country-pages.json (slug → display name)
                     // rather than by slugifying names here, so the app and the
                     // static pages agree on the mapping by construction.
-                    // Deliberately after the splash hides, so the camera move is
-                    // seen rather than happening behind an opaque overlay.
+                    // Deliberately after the reveal, so the camera move is seen
+                    // rather than happening before the globe is on screen.
                     const deepLink = new URLSearchParams(location.search).get('country');
 
-                    // Complete loading. Hold the opaque splash through the globe's
-                    // lighting fade-in (1500ms above) so it reveals a fully-lit globe,
-                    // never a black/half-rendered frame.
+                    // Complete loading. Hold the reveal through the globe's lighting
+                    // fade-in (1500ms above) so the globe slides in fully lit, never as
+                    // a black/half-rendered frame. hideLoading() fires
+                    // globe3d:intro-dismissed, which is what LandingPanel waits on.
                     sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
                     setTimeout(() => {
                         hideLoading();
@@ -1157,8 +1248,9 @@
 
         // Start the application. A synchronous startup failure — chiefly a WebGL context
         // the browser refuses to create (see js/utils/webgl-diagnostics.js) — would
-        // otherwise throw out of init() and leave the opaque #seo-content splash frozen
-        // on screen. Catch it and show a fallback panel with a Reload action instead.
+        // otherwise throw out of init() and leave the app half-started with no
+        // explanation. Catch it and show a fallback panel with a Reload action instead.
+        // The landing panel stays visible underneath — it needs no WebGL.
         try {
             init();
         } catch (err) {
