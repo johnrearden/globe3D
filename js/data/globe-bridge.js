@@ -48,6 +48,11 @@ export function createWebGlobeBridge({ globeManager, cameraController }) {
             cameraController.rotateToCountry(name, quizFraming, aimPoint);
         },
 
+        setVisibleRegion(region) {
+            cameraController.setFocalAnchor(region?.focalAnchor ?? null);
+            cameraController.setVisibleFraction(region?.visibleFraction ?? 1);
+        },
+
         frameGlobe(opts = {}) { cameraController.frameWholeGlobe(opts); },
 
         frameView(opts) { cameraController.frameView(opts); },

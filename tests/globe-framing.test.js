@@ -66,3 +66,32 @@ describe('degenerate inputs never produce a broken camera', () => {
         }
     });
 });
+
+describe('visibleFraction', () => {
+    it('reports how much of the short side is actually visible', () => {
+        // Framing does not shrink with the viewport when a panel covers it —
+        // setViewOffset moves the projection without rescaling — so a country
+        // framed to 40% of the viewport spills behind the panel. This is the
+        // factor that corrects it.
+        const panel = { left: 893, top: 0, width: 547, height: 900 };
+        const { visibleFraction } = framingFor(panel, { width: 1440, height: 900 });
+        expect(visibleFraction).toBeCloseTo(Math.min(893, 900) / Math.min(1440, 900), 6);
+        expect(visibleFraction).toBeLessThan(1);
+    });
+
+    it('is 1 when nothing covers the globe', () => {
+        expect(framingFor(null, { width: 1440, height: 900 }).visibleFraction).toBe(1);
+    });
+
+    it('is always finite and positive', () => {
+        for (const [panel, v] of [
+            [null, { width: 1440, height: 900 }],
+            [{ left: 0, top: 0, width: 1440, height: 900 }, { width: 1440, height: 900 }],
+            [{ left: 5, top: 5, width: 5, height: 5 }, { width: 0, height: 0 }],
+        ]) {
+            const f = framingFor(panel, v);
+            expect(Number.isFinite(f.visibleFraction)).toBe(true);
+            expect(f.visibleFraction).toBeGreaterThan(0);
+        }
+    });
+});

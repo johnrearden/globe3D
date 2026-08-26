@@ -22,11 +22,20 @@ export interface Framing {
     focalAnchor: { x: number; y: number };
     /** Globe diameter as a fraction of viewport width, for frameGlobe(). */
     widthFraction: number;
+    /** Short side of the free region over the viewport's, for setVisibleRegion(). */
+    visibleFraction: number;
 }
 
 /** How much of the free region's short side the globe spans. Below 1 so the
  *  limb never touches the panel edge. */
 const FILL = 0.62;
+
+/** Nothing is covering the globe: centre it, full size. */
+const FULL = (vw: number, vh: number): Framing => ({
+    focalAnchor: { x: 0.5, y: 0.5 },
+    widthFraction: (FILL * Math.min(vw, vh)) / vw,
+    visibleFraction: 1,
+});
 
 /**
  * @param panel    the panel's bounding rect, or null when nothing covers the globe
@@ -37,7 +46,7 @@ export function framingFor(panel: Rect | null, viewport: { width: number; height
     const vh = Math.max(viewport.height, 1);
 
     if (!panel || panel.width <= 0 || panel.height <= 0) {
-        return { focalAnchor: { x: 0.5, y: 0.5 }, widthFraction: (FILL * Math.min(vw, vh)) / vw };
+        return FULL(vw, vh);
     }
 
     // Side by side when the panel leaves a usable column beside it; stacked
@@ -49,14 +58,16 @@ export function framingFor(panel: Rect | null, viewport: { width: number; height
 
     // A collapsed sheet can leave no free region at all; centre rather than
     // divide by zero.
-    if (freeW <= 0 || freeH <= 0) {
-        return { focalAnchor: { x: 0.5, y: 0.5 }, widthFraction: (FILL * Math.min(vw, vh)) / vw };
-    }
+    if (freeW <= 0 || freeH <= 0) return FULL(vw, vh);
 
     const focalAnchor = horizontal
         ? { x: (freeW * 0.5) / vw, y: 0.5 }
         : { x: 0.5, y: (freeH * 0.5) / vh };
 
     const diameter = FILL * Math.min(freeW, freeH);
-    return { focalAnchor, widthFraction: diameter / vw };
+    return {
+        focalAnchor,
+        widthFraction: diameter / vw,
+        visibleFraction: Math.min(freeW, freeH) / Math.min(vw, vh),
+    };
 }

@@ -58,6 +58,16 @@
  *   Move the camera to frame a country. `quizFraming` frames it smaller so
  *   neighbours give context without giving the answer away. `aim` points at a
  *   specific coordinate (a capital) rather than the country's centroid.
+ * @property {(region: {focalAnchor: {x: number, y: number}, visibleFraction: number}|null) => void} setVisibleRegion
+ *   Declare that something covers part of the viewport, so everything framed
+ *   afterwards lands in what is left. `focalAnchor` is where the globe's centre
+ *   should appear (normalized, {x:.5,y:.5} = centre); `visibleFraction` scales
+ *   framing sizes, because covering the screen does not shrink the field of view
+ *   — a country framed to 40% of the viewport spills behind a panel otherwise.
+ *   Null restores the full viewport.
+ *
+ *   Both are plain numbers on purpose: the caller measures its own layout, and
+ *   no DOM rectangle crosses this interface.
  * @property {(opts?: {lat?: number, lng?: number, widthFraction?: number, focalAnchor?: {x: number, y: number}}) => void} frameGlobe
  *   Frame the whole globe, optionally rotating a coordinate into view. Used
  *   when showing the target must not reveal which country it is.
@@ -111,6 +121,7 @@ export const GLOBE_BRIDGE_METHODS = Object.freeze([
     'showOnly',
     'showAll',
     'focusCountry',
+    'setVisibleRegion',
     'frameGlobe',
     'frameView',
     'framingDistanceFor',

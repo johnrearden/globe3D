@@ -129,6 +129,15 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                  * there is nothing in particular to look at.
                  */
                 const show = (screen: Screen) => {
+                    // Declare the covered region BEFORE framing anything, so a
+                    // country focus lands beside the panel rather than behind it
+                    // — focusCountry has no framing options of its own.
+                    const f = framing();
+                    globe.setVisibleRegion({
+                        focalAnchor: f.focalAnchor,
+                        visibleFraction: f.visibleFraction,
+                    });
+
                     const name = screen.country?.name
                         // The router mounts client:idle and this island
                         // client:only, so on a country page the store may not be
@@ -145,7 +154,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                         // case, because aiming at an undefined point yields a NaN
                         // camera and a canvas that renders nothing at all.
                         globe.clearSelection();
-                        globe.frameGlobe(framing());
+                        globe.frameGlobe(f);
                     }
                 };
 
@@ -161,7 +170,9 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // setViewOffset bakes in the viewport it was given, so a resize
                 // needs the framing recomputed or the projection skews.
                 onResize = () => {
-                    if (getScreen().route.view === 'home') globe.frameGlobe(framing());
+                    // setViewOffset bakes in the viewport it was given, so both
+                    // halves of the region have to be recomputed, on every route.
+                    show(getScreen());
                 };
                 window.addEventListener('resize', onResize);
 

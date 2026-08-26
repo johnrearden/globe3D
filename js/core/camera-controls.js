@@ -30,6 +30,13 @@ export class CameraController {
         this.lastInteractionTime = Date.now();
         this.IDLE_DELAY = 120000; // 2 minutes of inactivity before auto-rotation resumes
 
+        // Fraction of the viewport the reader can actually see; 1 = nothing is
+        // covering the globe. Multiplied into every framing calculation, so it
+        // MUST be a number from the start — `fraction * undefined` is NaN, and a
+        // NaN framing distance is a camera that renders nothing at all.
+        this._visibleFraction = 1;
+        this._focalAnchor = null;
+
         // Release-momentum ("flick") state. OrbitControls' own damping barely
         // coasts on a mouse release; this adds a decaying spin from the pointer
         // velocity at release so desktop matches the touch flick feel.
@@ -166,7 +173,19 @@ export class CameraController {
      */
     framingDistanceFor(name, fraction) {
         const reg = this.focusRegistry;
-        const fallback = reg ? reg.distanceOf(name) : 1.55;
+        // A precomputed distance assumes the whole viewport is visible. When a
+        // panel covers part of it the camera has to stand further back for the
+        // country to occupy the same share of what is left — the fraction-scaling
+        // below does that for the computed path, so the fallback needs the
+        // equivalent. Without it a country page frames at the same distance
+        // whether or not two thirds of the screen is covered, and the country
+        // simply overflows behind the panel.
+        const clamp = (d) => Math.max(this.controls.minDistance,
+                                      Math.min(this.controls.maxDistance, d));
+        const fallback = clamp((reg ? reg.distanceOf(name) : 1.55) / this._visibleFraction);
+
+        // No registry — a host that never built one (the content pages) gets the
+        // A–H bucket distance rather than nothing.
         if (!reg) return fallback;
 
         const vHalf = (this.camera.fov || 75) * Math.PI / 360;   // half vertical FOV (rad)
@@ -174,9 +193,14 @@ export class CameraController {
         const hHalf = Math.atan(Math.tan(vHalf) * aspect);       // half horizontal FOV (rad)
         const halfFov = Math.min(vHalf, hHalf);
 
-        const d = framingDistance(reg.widthOf(name), fraction, halfFov);
+        // Frame against what the reader can actually SEE. A panel covering two
+        // thirds of the screen does not shrink the field of view — setViewOffset
+        // moves the projection without rescaling it — so a country framed to 40%
+        // of the viewport spills behind the panel. Scaling the fraction keeps
+        // "40% of the visible area" true.
+        const d = framingDistance(reg.widthOf(name), fraction * this._visibleFraction, halfFov);
         if (!(d > 0)) return fallback;
-        return Math.max(this.controls.minDistance, Math.min(this.controls.maxDistance, d));
+        return clamp(d);
     }
 
     /**
@@ -303,6 +327,17 @@ export class CameraController {
      *
      * @param {{x:number,y:number}|null} anchor normalized screen pos, or null to centre
      */
+    /**
+     * How much of the viewport is actually visible, 0..1 — the short side of the
+     * free region over the short side of the viewport. Paired with
+     * setFocalAnchor: one says where the globe goes, the other how big it may be.
+     * 1 means nothing is covering it.
+     * @param {number} f
+     */
+    setVisibleFraction(f) {
+        this._visibleFraction = Number.isFinite(f) ? Math.max(0.1, Math.min(1, f)) : 1;
+    }
+
     setFocalAnchor(anchor) {
         this._applyViewOffset(anchor || null);
     }

@@ -62,6 +62,10 @@ export function createFakeGlobeBridge({ framingDistance = () => 1.5 } = {}) {
             record('focusCountry', [name, opts]);
             fake.view = { kind: 'country', name, ...opts };
         },
+        setVisibleRegion(region) {
+            record('setVisibleRegion', [region]);
+            fake.visibleRegion = region ?? null;
+        },
         frameGlobe(opts = {}) { record('frameGlobe', [opts]); fake.view = { kind: 'globe', ...opts }; },
         frameView(opts) { record('frameView', [opts]); fake.view = { kind: 'view', ...opts }; },
         framingDistanceFor(name, fraction) {

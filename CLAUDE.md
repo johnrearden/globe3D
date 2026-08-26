@@ -70,13 +70,26 @@ change. Follow that pattern rather than importing a package directly from a feat
 **No quiz code may touch `globeManager` or `cameraController` directly.** Everything under
 `js/features/quiz/`, `js/features/daily-quiz/` and `js/features/audit/` takes a single `globeBridge`
 dependency and calls `highlight` / `clearSelection` / `flash` / `showOnly` / `showAll` /
-`focusCountry` / `frameGlobe` / `frameView` / `framingDistanceFor` / `resetView` / `setInteractive` /
-`setAutoRotateAllowed` / `onPick` / `markers.*`. That list is `GLOBE_BRIDGE_METHODS`, and
+`focusCountry` / `setVisibleRegion` / `frameGlobe` / `frameView` / `framingDistanceFor` /
+`resetView` / `setInteractive` / `setAutoRotateAllowed` / `onPick` / `markers.*`. That list is `GLOBE_BRIDGE_METHODS`, and
 `missingBridgeMembers()` validates an implementation against it.
 
 The rule that gives the interface its shape: **nothing platform-specific crosses it** — no
 `THREE.Vector3`, no DOM node, no engine object, only names and plain values. Aiming the camera at a
 capital passes `{lat, lng}`, not a vector; focusing a country passes a name, not a centroid record.
+
+**When a panel covers the globe, say so — do not resize the canvas.** `setVisibleRegion({focalAnchor,
+visibleFraction})` moves the projection and scales framing so everything lands in the free region.
+The canvas must stay full-viewport: `PointerControls` maps pointer→NDC against
+`window.innerWidth/innerHeight`, so a smaller canvas makes every pick resolve to the wrong country
+with nothing to notice. Both fields are plain numbers — no DOM rectangle crosses the interface.
+
+**Framing helpers must never return a non-finite number.** `frameGlobe()` legitimately names no
+lat/lng, and `latLngToXYZ(undefined, …)` is NaN; a NaN camera position renders an *entirely blank
+canvas* with no error, no warning and the ready flag still set. `framingDirection()`
+(`js/utils/coordinates.js`) exists for that, `frameView` snaps rather than lerps out of a non-finite
+camera, and `CameraController._visibleFraction` is initialised to 1 for the same reason. A check
+that only asserts "a canvas exists" will not catch this — assert drawn pixels.
 
 **Country data is not a globe concern.** `getCountryByName`, `getCapital` and the centroid list come
 from `createCountryTable()` (`js/data/country-table.js`), not from the bridge — a renderer that
