@@ -79,7 +79,24 @@ if (!existsSync(join(ASTRO_DIST, 'country'))) {
         `Deploying without it would leave every /country/ URL in sitemap.xml a 404.`);
     process.exit(1);
 }
+// THE APEX IS NOT ASTRO'S YET. This merge copies entry-by-entry over dist/, so
+// the day apps/web grows a src/pages/index.astro it would overwrite the vanilla
+// app's index.html — the live front page — with no warning and no diff to notice.
+//
+// The Phase B rewrite builds its apex at /app until it reaches parity; the flip
+// is then a deliberate edit HERE, not a side effect of adding a page. Until that
+// edit, refuse.
+const APEX_IS_ASTRO = false;
 for (const entry of readdirSync(ASTRO_DIST)) {
+    if (entry === 'index.html' && !APEX_IS_ASTRO) {
+        console.error(
+            'build:pages — apps/web emitted an index.html, which would replace the ' +
+            'vanilla app at /.\n' +
+            '  If that is the intended flip, set APEX_IS_ASTRO = true in build-pages.mjs ' +
+            "and drop 'index.html' from INCLUDE.\n" +
+            '  If not, the new apex belongs at src/pages/app/index.astro.');
+        process.exit(1);
+    }
     cpSync(join(ASTRO_DIST, entry), join(DIST, entry), { recursive: true });
 }
 const countryPages = readdirSync(join(DIST, 'country'))
