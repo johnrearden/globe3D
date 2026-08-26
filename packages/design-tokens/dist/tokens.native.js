@@ -24,8 +24,10 @@ export const theme = {
     "surface-disabled": "rgba(8, 19, 31, 0.6)",
     "text-disabled": "rgba(159, 178, 198, 0.45)",
     "globe-label": "#eef2f6",
+    "globe-label-active": "#7c8793",
     "globe-border": "rgba(238, 242, 246, 0.28)",
-    "globe-selection": "#a37142"
+    "globe-selection": "#a37142",
+    "globe-space": "#050d16"
   },
   "font": {
     "heading": "'Fredoka', system-ui, sans-serif",

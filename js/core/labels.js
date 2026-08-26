@@ -4,7 +4,7 @@
  */
 
 import { state } from '../data/state.js';
-import { canvasFont, onThemeChange } from '../utils/theme.js';
+import { canvasFont, cssToken, onThemeChange } from '../utils/theme.js';
 
 import * as THREE from 'three';
 import { quizStore } from '@terragotcha/quiz-core';
@@ -218,14 +218,16 @@ export class LabelManager {
         // Toggle material.color rather than swapping textures. The texture has white text;
         // tinting it mid-gray via material.color produces the highlighted look — readable
         // against both the dark ocean and the white highlighted country fill.
-        const setLabelColor = (countryName, hex) => {
+        // `.set()` rather than `.setHex()`: these arrive as CSS colour strings
+        // from the token cascade, which THREE.Color parses directly.
+        const setLabelColor = (countryName, css) => {
             if (!countryName) return;
             const label = this.labels.find(l => l.userData.countryName === countryName);
-            if (label) label.material.color.setHex(hex);
+            if (label) label.material.color.set(css);
         };
 
-        setLabelColor(previous, 0xFFFFFF);
-        setLabelColor(this.currentHighlight, 0x808080);
+        setLabelColor(previous, cssToken('--globe-label', '#FFFFFF'));
+        setLabelColor(this.currentHighlight, cssToken('--globe-label-active', '#808080'));
     }
 
     /**

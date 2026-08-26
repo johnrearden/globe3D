@@ -12,6 +12,7 @@ import { assetUrl } from '../data/asset-base.js';
 import { latLngToXYZ } from '../utils/coordinates.js';
 import { COUNTRY_REGIONS } from '../data/country-regions.js';
 import { MarkerLayer } from './markers.js';
+import { cssToken } from '../utils/theme.js';
 
 import * as THREE from 'three';
 
@@ -192,7 +193,16 @@ export class GlobeManager {
 
         this.borderLines = null;     // LineSegments sharing the fill mesh's vertices (fail-soft)
         this.borderMaterial = null;
-        this._borderColor = 0x222831; // border ink color
+        // Country-outline ink. The fallback is the previous hard-coded value, so
+        // this is a no-op wherever the token cascade is not yet loaded.
+        //
+        // Only the RGB is taken. --globe-border carries an alpha (0.28) that
+        // describes its intended strength for consumers that can use one, but
+        // line strength here is a USER setting: _borderOpacity below is the
+        // initial value and settings-panel.js overwrites it from the store
+        // (default 0.2) at boot. Consuming the token's alpha would add a fourth
+        // number to a decision that already has three.
+        this._borderColor = new THREE.Color(cssToken('--globe-border', '#222831')).getHex();
         this._borderOpacity = 0.85;   // line opacity; applied when borders are visible
         this._borderVisible = false;
 
@@ -384,8 +394,13 @@ export class GlobeManager {
 
     addLatLongLines() {
         const radius = 1.001;
+        // The graticule is the same ink as the country outlines, carried at a
+        // lower opacity — a derivation rather than two more tokens, per the
+        // design system's "derive rather than add a knob" rule. Fallbacks are the
+        // values these were hard-coded to.
+        const graticuleColor = new THREE.Color(cssToken('--globe-border', '#444444'));
         const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0x444444, opacity: 0.3, transparent: true
+            color: graticuleColor, opacity: 0.3, transparent: true
         });
 
         for (let lat = -75; lat <= 75; lat += 15) {
@@ -407,7 +422,7 @@ export class GlobeManager {
         }
 
         const equatorMaterial = new THREE.LineBasicMaterial({
-            color: 0x666666, opacity: 0.5, transparent: true
+            color: graticuleColor, opacity: 0.5, transparent: true
         });
         const equatorPoints = [];
         for (let lng = -180; lng <= 180; lng += 5) {

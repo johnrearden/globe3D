@@ -44,6 +44,8 @@
   --text-disabled: rgba(159, 178, 198, 0.45);
   --globe-label: #eef2f6;
   --globe-border: rgba(238, 242, 246, 0.28);
+  --globe-label-active: #7c8793;
+  --globe-space: #050d16;
   --globe-selection: #a37142;
   --shadow-low: 0 1px 3px rgba(10, 28, 48, 0.4);
   --shadow-mid: 0 4px 12px rgba(10, 28, 48, 0.5);

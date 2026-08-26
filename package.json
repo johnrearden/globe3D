@@ -33,7 +33,8 @@
     "build:pages:local": "node build-landing.mjs && node build-landing-facts.mjs && npm --workspace @terragotcha/web run build:local && node build-pages.mjs && ln -sfn ../assets dist/assets",
     "build:web": "npm --workspace @terragotcha/web run build",
     "check:syntax": "node check-syntax.mjs",
-    "test": "node check-syntax.mjs && node packages/design-tokens/bin/build-tokens.mjs --check && node build-landing-facts.mjs --check && vitest run",
+    "check:tokens": "node check-tokens.mjs",
+    "test": "node check-syntax.mjs && node check-tokens.mjs && node packages/design-tokens/bin/build-tokens.mjs --check && node build-landing-facts.mjs --check && vitest run",
     "test:watch": "vitest"
   }
 }

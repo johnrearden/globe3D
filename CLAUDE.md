@@ -92,8 +92,9 @@ Adding a method means adding it to `packages/globe-bridge/src/interface.js` (doc
 `packages/design-tokens/src/tokens.js` is the **single source of truth**, in three tiers:
 
 - **13 knobs** a theme author may set: `font-heading`, `font-body`; `bg-app` (which also drives the
-  Three.js scene background), `bg-panel`, `surface-raised`, `surface-inset`; `primary`, `on-primary`;
-  `text-primary`, `text-secondary`; `ocean`; `radius-btn`, `radius-panel`.
+  Three.js scene background, via the derived `globe-space`), `bg-panel`, `surface-raised`,
+  `surface-inset`; `primary`, `on-primary`; `text-primary`, `text-secondary`; `ocean`; `radius-btn`,
+  `radius-panel`.
 - **Fixed**: the type scale (5 sizes), weights, the 6-step spacing scale, elevation,
   `radius-pill`/`radius-circle`, and `status-correct`/`status-incorrect` — fixed because red/green is
   the most common colour-vision deficiency and a theme must not be able to break comprehension.
@@ -105,7 +106,30 @@ Adding a method means adding it to `packages/globe-bridge/src/interface.js` (doc
 then run `npm run build:tokens`; the committed artefacts in `packages/design-tokens/dist/` are
 regenerated and `npm test` fails if they go stale.
 
-**Not yet live.** `styles.css`, `js/data/theme-tokens.js` (24 legacy knobs) and
+**Every UI value must resolve to a token, and `check-tokens.mjs` enforces it** (wired into
+`npm test`). It fails the build on colour / font / weight / shadow / radius literals, on raw spacing
+outside `--space-1…6`, on six-digit `0x……` colours in engine JS, and — the rule that matters most
+during the rewrite — on any `var(--x)` or `cssToken('--x')` naming a token the build does not emit.
+A legacy name does not error, it resolves to nothing, so it fails silently.
+
+**Its scope is an explicit list, and that list is the migration's progress bar** (`SCOPE` in
+`check-tokens.mjs`): `apps/web/src`, `js/core`, `js/utils/theme.js` today. A file joins when it has
+been migrated. `styles.css` and `js/features/**` never join — they are deleted, not migrated.
+Switching a checker on against a mountain of violations only ends with the checker switched off.
+
+Two exceptions are deliberate and named at their sites: light colours/intensities in `scene.js` are
+optics rather than palette, and the 256-colour country fill palette is pinned by *scheme key*
+(`COUNTRY_SCHEMES`), not by tokens. A legacy token name kept as a fallback behind a real one is
+marked `token-check: legacy-vocabulary`; the checker counts those on every successful run so they
+read as a countdown.
+
+**The globe reads tokens.** `--globe-space` (scene background), `--globe-border` (country outlines
+and the graticule, colour only — line strength is a user setting), `--globe-label` and
+`--globe-label-active` are consumed by `js/core/scene.js`, `globe.js` and `labels.js` through
+`cssToken()`. Every one falls back to the value it was previously hard-coded to, so the vanilla app —
+which does not load `tokens.css` — is byte-for-byte unchanged.
+
+**Not yet live for the DOM.** `styles.css`, `js/data/theme-tokens.js` (24 legacy knobs) and
 `backend/themes/tokens.py` still run the old system, because the legacy knob names are the ones the
 current stylesheet uses. Repointing the editor at the new knobs before the new stylesheet exists
 would give authors 13 controls that style nothing. The cutover happens with the Phase B UI; the steps

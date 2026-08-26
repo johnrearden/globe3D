@@ -25,7 +25,16 @@ export function cssToken(name, fallback = '') {
  * @returns {string}
  */
 export function canvasFont(px) {
-    return `${px}px ${cssToken('--font-ui', 'system-ui, sans-serif')}`;
+    // --font-body is the design-token name; --font-ui is the legacy stylesheet's
+    // name for the same family. Reading the new one first means canvas text
+    // follows the token system wherever it is live, and still follows the old
+    // stylesheet until that is retired. cssToken returns '' for a name that does
+    // not exist, so the chain degrades quietly rather than erroring.
+    const family = cssToken('--font-body')
+        // token-check: legacy-vocabulary — the old stylesheet's name for the same
+        // family. Remove with styles.css.
+        || cssToken('--font-ui', 'system-ui, sans-serif');
+    return `${px}px ${family}`;
 }
 
 /**

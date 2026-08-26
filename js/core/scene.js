@@ -5,6 +5,7 @@
 
 import { state } from '../data/state.js';
 import { createWebGLRenderer } from '../utils/webgl-diagnostics.js';
+import { cssToken } from '../utils/theme.js';
 
 import * as THREE from 'three';
 
@@ -41,7 +42,13 @@ export class SceneManager {
     init() {
         // Create scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x001122); // darkened space; original was 0x001122
+        // The space behind the globe. --globe-space is derived from the --bg-app
+        // knob (darkened), so a theme moves the backdrop with the rest of the UI
+        // without the limb losing contrast against it. The fallback is the value
+        // this was hard-coded to, so the look is unchanged anywhere the token is
+        // not yet in the cascade. Re-read on a theme change by
+        // js/features/scene-appearance.js, which captures this as the default.
+        this.scene.background = new THREE.Color(cssToken('--globe-space', '#001122'));
 
         // Create camera with adaptive positioning
         this.camera = new THREE.PerspectiveCamera(

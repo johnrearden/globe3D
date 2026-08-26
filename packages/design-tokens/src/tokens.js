@@ -190,6 +190,17 @@ export function derive(t) {
         'globe-label': t['text-primary'],
         'globe-border': alpha(t['text-primary'], 0.28),
 
+        // A label over the selected country. The label texture is white text
+        // tinted via material.color, and the selected fill is bright, so the
+        // active label has to go DARKER to stay readable — hence a mid-tone
+        // toward the backdrop rather than a brighter version of the label.
+        'globe-label-active': mix(t['text-primary'], t['bg-app'], 0.5),
+
+        // The space the globe sits in. Derived rather than reusing bg-app
+        // directly so the backdrop can read darker than the UI around it, which
+        // is what makes the globe's limb legible against it.
+        'globe-space': mix(t['bg-app'], '#000000', 0.55),
+
         // Selection highlight. Deliberately a MID-tone of the primary, not the
         // primary itself: the radial selection gradient brightens the centre and
         // darkens the edge, so it needs headroom in both directions. A saturated
@@ -221,7 +232,8 @@ export const COLOR_TOKENS = Object.freeze([
     'border-subtle', 'border-strong', 'scrim',
     'primary-soft', 'primary-hover',
     'surface-disabled', 'text-disabled',
-    'globe-label', 'globe-border', 'globe-selection',
+    'globe-label', 'globe-label-active', 'globe-border', 'globe-selection',
+    'globe-space',
 ]);
 
 /**
