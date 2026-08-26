@@ -48,7 +48,7 @@ describe('apex page composition', () => {
         const hydrated = [...page.matchAll(/<(\w+)[^>]*\sclient:([\w]+)/g)]
             .map(m => `${m[1]}:${m[2]}`)
             .sort();
-        expect(hydrated).toEqual(['GlobeIsland:only', 'PanelSheet:idle']);
+        expect(hydrated).toEqual(['AppRouter:idle', 'GlobeIsland:only', 'PanelSheet:idle']);
     });
 
     it('keeps the globe placeholder in the page, not inside the island', () => {

@@ -22,7 +22,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import CountryArticle from '../../components/CountryArticle';
 import PanelSheet from '../../components/PanelSheet';
 import GlobeIsland from '../../components/GlobeIsland';
-import CountryRouter from '../../components/CountryRouter';
+import AppRouter from '../../components/AppRouter';
 import { countries } from '../../lib/content';
 import '../../styles/country.css';
 
@@ -47,7 +47,7 @@ const title = `${country.name} — geography, history and literature | Terragotc
         <p>Loading globe…</p>
     </div>
     <GlobeIsland client:only="react" focus={country.name} />
-    <CountryRouter client:idle initial={country} />
+    <AppRouter client:idle initial={{ view: 'country', slug: country.slug }} country={country} />
 
     <main>
         <PanelSheet client:idle initial="expanded">

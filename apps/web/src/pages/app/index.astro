@@ -32,6 +32,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import LandingContent from '../../components/LandingContent';
 import PanelSheet from '../../components/PanelSheet';
 import GlobeIsland from '../../components/GlobeIsland';
+import AppRouter from '../../components/AppRouter';
+import { HOME_ROUTE } from '../../lib/routes';
 import { landing } from '../../lib/landing';
 import '../../styles/landing.css';
 
@@ -48,6 +50,7 @@ const title = 'Terragotcha — learn world geography on an interactive 3D globe'
         <p>Loading globe…</p>
     </div>
     <GlobeIsland client:only="react" />
+    <AppRouter client:idle initial={HOME_ROUTE} />
 
     <main>
         <PanelSheet client:idle initial="expanded">

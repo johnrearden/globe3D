@@ -17,7 +17,7 @@
  * gives up) has lost nothing that matters.
  */
 import { useEffect, useRef, useState } from 'react';
-import { getCountry, onCountryChange } from '../lib/route';
+import { getScreen, onScreenChange, type Screen } from '../lib/route';
 
 /**
  * Where the baked .bin assets load from.
@@ -111,19 +111,35 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // engine objects — the same contract the quiz layer uses.
                 const globe = createWebGlobeBridge({ globeManager, cameraController });
 
-                const show = (name: string) => {
-                    globe.highlight(name);
-                    globe.focusCountry(name);
+                /**
+                 * Point the globe at whatever the route names. A country gets
+                 * highlighted and flown to; the apex gets the whole world, since
+                 * there is nothing in particular to look at.
+                 */
+                const show = (screen: Screen) => {
+                    const name = screen.country?.name
+                        // The router mounts client:idle and this island
+                        // client:only, so on a country page the store may not be
+                        // seeded yet when the mesh lands. The page tells us
+                        // directly for exactly that window.
+                        ?? (screen.route.view === 'country' ? focus : null);
+                    if (name) {
+                        globe.highlight(name);
+                        globe.focusCountry(name);
+                    } else {
+                        globe.clearSelection();
+                        globe.frameGlobe();
+                    }
                 };
 
                 // Whatever is on screen now — the store may already have moved
                 // on if the mesh took a while and the reader navigated.
-                show(getCountry()?.name ?? focus ?? '');
+                show(getScreen());
 
-                // Re-focus on every pushState navigation. This subscription is
+                // Re-frame on every pushState navigation. This subscription is
                 // the whole reason the globe survives a link click: the router
-                // publishes, the globe pans, and nothing is torn down.
-                unsubscribe = onCountryChange((c) => show(c.name));
+                // publishes, the globe moves, and nothing is torn down.
+                unsubscribe = onScreenChange(show);
 
                 // Hand the page over: the placeholder fades out, the globe in.
                 document.documentElement.dataset.globe = 'ready';

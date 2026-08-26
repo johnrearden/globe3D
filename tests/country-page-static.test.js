@@ -48,13 +48,13 @@ describe('country page composition', () => {
         //                               server-side and hydrate over it.
         //   GlobeIsland  client:only  — needs WebGL and window, so it cannot
         //                               render at build time at all.
-        //   CountryRouter client:idle  — renders no DOM of its own; it takes over
+        //   AppRouter    client:idle  — renders no DOM of its own; it takes over
         //                               the panel only on a user navigation, so
         //                               the initial document stays static.
         const hydrated = [...page.matchAll(/<(\w+)[^>]*\sclient:([\w]+)/g)]
             .map(m => `${m[1]}:${m[2]}`)
             .sort();
-        expect(hydrated).toEqual(['CountryRouter:idle', 'GlobeIsland:only', 'PanelSheet:idle']);
+        expect(hydrated).toEqual(['AppRouter:idle', 'GlobeIsland:only', 'PanelSheet:idle']);
     });
 
     it('keeps the globe placeholder in the page, not inside the island', () => {
