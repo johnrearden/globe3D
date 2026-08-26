@@ -956,15 +956,21 @@
                     // rather than happening before the globe is on screen.
                     const deepLink = new URLSearchParams(location.search).get('country');
 
-                    // Complete loading. Hold the reveal through the globe's lighting
-                    // fade-in (1500ms above) so the globe slides in fully lit, never as
-                    // a black/half-rendered frame. hideLoading() fires
-                    // globe3d:intro-dismissed, which is what LandingPanel waits on.
+                    // Complete loading. The globe is BUILT at this point and its
+                    // lighting is ramping (fadeInLights / fadeInLighting, ~1500ms,
+                    // self-driving). Reveal on the next painted frame rather than
+                    // waiting the ramp out — the canvas slide-in (0.7s, styles.css)
+                    // then overlaps the ramp instead of queueing behind it, which is
+                    // what used to make this ~2.5s of dead wall clock. The short
+                    // floor keeps the first visible frame off pure black.
+                    // hideLoading() fires globe3d:intro-dismissed, which is what
+                    // LandingPanel waits on.
+                    const REVEAL_FLOOR_MS = 250;
                     sceneManager.updateLoadingProgress(100, 'Complete!', true, (id) => elements.get(id));
-                    setTimeout(() => {
+                    setTimeout(() => requestAnimationFrame(() => {
                         hideLoading();
                         if (deepLink) focusFromDeepLink(deepLink);
-                    }, 1500);
+                    }), REVEAL_FLOOR_MS);
                 },
                 // Error callback
                 (error) => {

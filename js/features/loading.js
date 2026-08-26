@@ -15,6 +15,9 @@
 
 import { elements, hide, addClass } from '../utils/dom.js';
 
+// Matches the overlay's CSS fade-out duration.
+const FADE_MS = 1000;
+
 // One-shot guard so dismissing the splash is idempotent.
 let seoContentHidden = false;
 
@@ -25,13 +28,16 @@ export function hideSeoContent() {
     if (seoContent) {
         addClass(seoContent, 'hidden');
         // Remove after the fade-out transition completes (matches CSS 1s).
-        setTimeout(() => hide(seoContent), 1000);
+        setTimeout(() => hide(seoContent), FADE_MS);
     }
     // Once the splash has faded, let features react (e.g. the Daily Challenge
-    // invite appears under the globe). Fires whether or not the overlay existed.
+    // invite appears under the globe). The delay exists to let a real overlay
+    // finish fading; with no overlay there is nothing to wait for, so waiting is
+    // a second of dead time on every load. The apex has had no overlay since the
+    // landing panel replaced it.
     setTimeout(
         () => document.dispatchEvent(new CustomEvent('globe3d:intro-dismissed')),
-        1000,
+        seoContent ? FADE_MS : 0,
     );
 }
 
