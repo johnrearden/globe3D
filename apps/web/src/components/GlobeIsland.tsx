@@ -18,6 +18,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { getScreen, onScreenChange, type Screen } from '../lib/route';
+import { framingFor } from '../lib/globe-framing';
 
 /**
  * Where the baked .bin assets load from.
@@ -44,6 +45,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
         // the globe finishes loading — a real case on a fast pushState away.
         let sceneManager: any = null;
         let unsubscribe: (() => void) | null = null;
+        let onResize: (() => void) | null = null;
 
         (async () => {
             // The vanilla loader reads this global to build asset URLs. Set it
@@ -112,6 +114,16 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 const globe = createWebGlobeBridge({ globeManager, cameraController });
 
                 /**
+                 * Framing that puts the globe in whatever the panel leaves free.
+                 * Measured from the live rect, so it follows the CSS breakpoint
+                 * instead of restating it.
+                 */
+                const framing = () => framingFor(
+                    document.querySelector('.panel-sheet')?.getBoundingClientRect() ?? null,
+                    { width: window.innerWidth, height: window.innerHeight },
+                );
+
+                /**
                  * Point the globe at whatever the route names. A country gets
                  * highlighted and flown to; the apex gets the whole world, since
                  * there is nothing in particular to look at.
@@ -127,8 +139,13 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                         globe.highlight(name);
                         globe.focusCountry(name);
                     } else {
+                        // No country: show the whole globe, beside the panel
+                        // rather than behind it. frameGlobe names no lat/lng, so
+                        // it keeps the current heading — the engine guards that
+                        // case, because aiming at an undefined point yields a NaN
+                        // camera and a canvas that renders nothing at all.
                         globe.clearSelection();
-                        globe.frameGlobe();
+                        globe.frameGlobe(framing());
                     }
                 };
 
@@ -140,6 +157,13 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // the whole reason the globe survives a link click: the router
                 // publishes, the globe moves, and nothing is torn down.
                 unsubscribe = onScreenChange(show);
+
+                // setViewOffset bakes in the viewport it was given, so a resize
+                // needs the framing recomputed or the projection skews.
+                onResize = () => {
+                    if (getScreen().route.view === 'home') globe.frameGlobe(framing());
+                };
+                window.addEventListener('resize', onResize);
 
                 // Hand the page over: the placeholder fades out, the globe in.
                 document.documentElement.dataset.globe = 'ready';
@@ -155,6 +179,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
         return () => {
             disposed = true;
             unsubscribe?.();
+            if (onResize) window.removeEventListener('resize', onResize);
             sceneManager?.destroy?.();
             delete document.documentElement.dataset.globe;
         };

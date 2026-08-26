@@ -58,9 +58,19 @@
  *   Move the camera to frame a country. `quizFraming` frames it smaller so
  *   neighbours give context without giving the answer away. `aim` points at a
  *   specific coordinate (a capital) rather than the country's centroid.
- * @property {(opts?: {lat?: number, lng?: number, widthFraction?: number}) => void} frameGlobe
+ * @property {(opts?: {lat?: number, lng?: number, widthFraction?: number, focalAnchor?: {x: number, y: number}}) => void} frameGlobe
  *   Frame the whole globe, optionally rotating a coordinate into view. Used
  *   when showing the target must not reveal which country it is.
+ *
+ *   Every field is optional, including the pair: "show me the whole globe"
+ *   names no point, and the implementation must keep the current heading rather
+ *   than aiming at an undefined one.
+ *
+ *   `focalAnchor` is a normalized screen position ({x: 0.5, y: 0.5} = centre)
+ *   for where the globe's centre should appear — for a layout where a panel
+ *   covers part of the viewport and the globe belongs in what is left. It moves
+ *   the projection only; the canvas stays full-size, because picking maps
+ *   pointer→NDC against the window.
  * @property {(opts: {lat: number, lng: number, distance?: number, focalAnchor?: object, lockRotation?: boolean}) => void} frameView
  *   Explicit framing from a server-supplied map block (Daily Challenge).
  * @property {(name: string, fraction: number) => number} framingDistanceFor

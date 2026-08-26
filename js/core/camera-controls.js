@@ -4,7 +4,7 @@
  */
 
 import { state } from '../data/state.js';
-import { latLngToXYZ } from '../utils/coordinates.js';
+import { latLngToXYZ, framingDirection } from '../utils/coordinates.js';
 import { viewOffsetFor } from '../utils/view-offset.js';
 import {
     framingDistance,
@@ -189,14 +189,14 @@ export class CameraController {
      * @param {number} [opts.widthFraction=0.25] target fraction of screen width
      * @param {number} [opts.duration=800]
      */
-    frameWholeGlobe({ lat, lng, widthFraction = 0.25, duration = 800 } = {}) {
+    frameWholeGlobe({ lat, lng, widthFraction = 0.25, focalAnchor = null, duration = 800 } = {}) {
         const vHalf = (this.camera.fov || 75) * Math.PI / 360;   // half vertical FOV (rad)
         const aspect = this.camera.aspect || (window.innerWidth / window.innerHeight);
         const hHalf = Math.atan(Math.tan(vHalf) * aspect);       // half horizontal FOV (rad)
 
         // Globe diameter = 2; frame it against the horizontal axis specifically.
         const distance = framingDistance(2, widthFraction, hHalf) || this.controls.maxDistance;
-        this.frameView({ lat, lng, distance, duration });
+        this.frameView({ lat, lng, distance, focalAnchor, duration });
     }
 
     /** Remove the small-country reveal overlay (white disc + arrow), if shown. */
@@ -258,12 +258,21 @@ export class CameraController {
         const maxD = this.controls.maxDistance;
         const targetDistance = Math.max(minD, Math.min(maxD, distance || this.initialCameraDistance));
 
-        const dir = latLngToXYZ(lat, lng, 1, 0);
-        const target = new THREE.Vector3(dir.x, dir.y, dir.z).normalize().multiplyScalar(targetDistance);
+        // lat/lng are optional: frameGlobe() asks to frame the whole globe without
+        // naming a point. framingDirection keeps the current heading in that case
+        // and always returns a finite unit vector — feeding NaN in here renders a
+        // blank canvas with no error of any kind.
+        const dir = framingDirection({ lat, lng, current: this.camera.position });
+        const target = new THREE.Vector3(dir.x, dir.y, dir.z).multiplyScalar(targetDistance);
 
         this._applyViewOffset(focalAnchor);
 
+        // A camera that is already non-finite cannot be lerped back — every
+        // interpolation of NaN is NaN — so snap rather than animate. Self-healing
+        // matters here because the failure is silent: the scene renders nothing
+        // and keeps reporting itself ready.
         const startPos = this.camera.position.clone();
+        if (!Number.isFinite(startPos.lengthSq())) startPos.copy(target);
         const startTime = Date.now();
         const animate = () => {
             const progress = Math.min((Date.now() - startTime) / duration, 1);
