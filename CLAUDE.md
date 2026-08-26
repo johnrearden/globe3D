@@ -195,6 +195,8 @@ PanelSheet     client:idle   — hydrates, so the sheet can be dragged
   CountryArticle             — NO client: directive, passed as a SLOT
 ```
 
+The same composition serves the apex (`LandingContent` in place of `CountryArticle`).
+
 `CountryArticle` is **React with no `client:` directive**, so Astro renders it to HTML at
 build time and ships zero JavaScript for it. Passing it to `PanelSheet` as a *slot* (not a
 prop) keeps it static markup that hydration cannot wipe — a prop would serialise the country
@@ -208,6 +210,32 @@ belongs in a sibling island. `tests/country-page-static.test.js` enforces all of
 
 Astro is a **build-time generator only**; the runtime is a plain SPA with app-owned
 `pushState`, so `ClientRouter` is deliberately not enabled.
+
+**Routes and the staged apex.** `src/lib/routes.ts` is the app's one URL parser and formatter
+(`parseRoute` / `pathForRoute` / `HOME_PATH`), shared by the pages, the router and the globe —
+replacing the vanilla app's habit of answering "what is on screen?" in two places that could
+disagree. Two things it must keep right: country links are emitted in **both** trailing-slash
+shapes (the generated landing panel writes `/country/france/`, `CountryArticle` writes
+`/country/france`), so it parses either and emits exactly one; and it returns null for paths the
+app does not own (`/borders/*`, `/privacy/`), which must stay real navigations.
+
+`HOME_PATH` is **`/app`, not `/`** — the vanilla app still owns the front page, so the Astro apex
+(`src/pages/app/index.astro`) is staged beside it and carries `robots="noindex, nofollow"` with a
+canonical of `/`, because `build-pages.mjs` stages everything Astro emits and an indexable duplicate
+of the front page would be an own-goal. **`build-pages.mjs` refuses an Astro `index.html` outright**
+(`APEX_IS_ASTRO`): the merge copies entry-by-entry over `dist/`, so without that guard adding
+`src/pages/index.astro` would silently replace the live apex. The flip is those two constants.
+
+**The apex content is the same verified model as the vanilla panel.** `landingModel()` in
+`build-landing-facts.mjs` is the single source: it checks every superlative against
+`assets/country-meta.json` and reports what the data contradicts. `src/lib/landing.ts` calls it and
+**throws on any failure**, so a second renderer cannot become a way around the checking.
+`LandingContent.tsx` renders the result and computes no figure of its own.
+
+**Stylesheets are split by scope, not by page.** `styles/shell.css` is the furniture every route
+needs — page, globe seat, panel sheet and its breakpoints — imported by `AppLayout.astro` after the
+token artefact. `styles/country.css` and `styles/landing.css` hold only their own content and are
+imported by their page. Adding a route means adding a stylesheet, not extending someone else's.
 
 **Navigation (`CountryRouter.tsx`, `client:idle`).** After boot, clicks on internal
 `/country/<slug>` links are intercepted: the router fetches `/country/<slug>.json` (emitted

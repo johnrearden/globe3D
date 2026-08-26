@@ -18,12 +18,13 @@
  * placeholder cross-fades out; both are `position: fixed`, so neither is in
  * document flow and CLS stays at zero.
  */
-import CountryLayout from '../../layouts/CountryLayout.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
 import CountryArticle from '../../components/CountryArticle';
 import PanelSheet from '../../components/PanelSheet';
 import GlobeIsland from '../../components/GlobeIsland';
 import CountryRouter from '../../components/CountryRouter';
 import { countries } from '../../lib/content';
+import '../../styles/country.css';
 
 export function getStaticPaths() {
     // One route per published country. Nothing is generated for a country
@@ -37,7 +38,7 @@ export function getStaticPaths() {
 const { country } = Astro.props;
 const title = `${country.name} — geography, history and literature | Terragotcha`;
 ---
-<CountryLayout
+<AppLayout
     title={title}
     description={country.summary}
     canonicalPath={`/country/${country.slug}`}
@@ -53,4 +54,4 @@ const title = `${country.name} — geography, history and literature | Terragotc
             <CountryArticle country={country} />
         </PanelSheet>
     </main>
-</CountryLayout>
+</AppLayout>

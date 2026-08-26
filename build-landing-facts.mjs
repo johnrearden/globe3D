@@ -124,13 +124,24 @@ export function verifyEntries(entries, meta) {
 // ---------------------------------------------------------------------------
 
 /**
+ * The verified landing content, as data.
+ *
+ * Both renderers go through this — the generator below, which splices markup
+ * into index.html, and apps/web's Astro page, which renders the same content as
+ * React. One model means the claim checking cannot be re-implemented (or
+ * quietly skipped) on the second path, and it is why the Phase B rewrite
+ * inherits the verification rather than reproducing it.
+ *
+ * Pure: it takes parsed JSON rather than reading files, because its two callers
+ * run with different working directories.
+ *
  * @param {Object} args
  * @param {Object} args.facts   landing/landing-facts.json
  * @param {Object} args.meta    assets/country-meta.json
  * @param {Object} args.content content/countries.json ({countries: []})
- * @returns {{block: string, failures: string[], links: number}}
+ * @returns {{intro: Object, notable: Object, guides: Object, failures: string[], links: number}}
  */
-export function renderPanel({ facts, meta, content }) {
+export function landingModel({ facts, meta, content }) {
     const { stats, failures } = verifyEntries(facts.notable.entries, meta);
 
     // Name → slug for the countries that actually have a written page. Everything
@@ -138,32 +149,63 @@ export function renderPanel({ facts, meta, content }) {
     // light up on their own as pages are written.
     const pageSlug = new Map(content.countries.map((c) => [c.name, c.slug]));
     let links = 0;
-
-    const countryTag = (name, display) => {
+    const hrefFor = (name) => {
         const slug = pageSlug.get(name);
-        const text = esc(display || name);
-        if (!slug) return `<span class="lf-name">${text}</span>`;
+        if (!slug) return null;
         links += 1;
-        return `<a class="lf-name" href="/country/${slug}/">${text}</a>`;
+        return `/country/${slug}/`;
     };
 
     const entries = facts.notable.entries
         .filter((e) => stats.has(e.id))
+        .map((e) => ({
+            id: e.id,
+            eyebrow: e.eyebrow,
+            name: e.displayName || e.country,
+            stat: stats.get(e.id),
+            blurb: e.blurb,
+            href: hrefFor(e.country),
+        }));
+
+    const guideEntries = content.countries.map((c) => {
+        links += 1;
+        return { name: c.name, slug: c.slug, summary: c.summary, href: `/country/${c.slug}/` };
+    });
+
+    return {
+        intro: facts.intro,
+        notable: { heading: facts.notable.heading, lede: facts.notable.lede, entries },
+        guides: { heading: facts.guides.heading, lede: facts.guides.lede, entries: guideEntries },
+        failures,
+        links,
+    };
+}
+
+/**
+ * @param {Object} args  same as landingModel
+ * @returns {{block: string, failures: string[], links: number}}
+ */
+export function renderPanel({ facts, meta, content }) {
+    const model = landingModel({ facts, meta, content });
+    const { failures, links } = model;
+
+    const countryTag = (name, href) => (href
+        ? `<a class="lf-name" href="${href}">${esc(name)}</a>`
+        : `<span class="lf-name">${esc(name)}</span>`);
+
+    const entries = model.notable.entries
         .map((e) => `                <li class="lf-card">
                     <p class="lf-eyebrow">${esc(e.eyebrow)}</p>
-                    <h3 class="lf-heading">${countryTag(e.country, e.displayName)}</h3>
-                    <p class="lf-stat">${esc(stats.get(e.id))}</p>
+                    <h3 class="lf-heading">${countryTag(e.name, e.href)}</h3>
+                    <p class="lf-stat">${esc(e.stat)}</p>
                     <p class="lf-blurb">${esc(e.blurb)}</p>
                 </li>`)
         .join('\n');
 
-    const guides = content.countries.map((c) => {
-        links += 1;
-        return `                <li class="lf-guide">
-                    <h3 class="lf-heading"><a class="lf-name" href="/country/${c.slug}/">${esc(c.name)}</a></h3>
+    const guides = model.guides.entries.map((c) => `                <li class="lf-guide">
+                    <h3 class="lf-heading"><a class="lf-name" href="${c.href}">${esc(c.name)}</a></h3>
                     <p class="lf-blurb">${esc(c.summary)}</p>
-                </li>`;
-    }).join('\n');
+                </li>`).join('\n');
 
     const guidesSection = guides
         ? `

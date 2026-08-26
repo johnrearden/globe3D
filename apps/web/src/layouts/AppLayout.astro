@@ -1,24 +1,36 @@
 ---
 /**
- * The document shell for a country page.
+ * The document shell for every route.
  *
  * Everything here is emitted at build time. The head carries the canonical URL
- * and description that an app-owned pushState navigation will later have to
- * update by hand — B4's job — so the two must stay in step.
+ * and description that an app-owned pushState navigation rewrites by hand, so
+ * the two must stay in step — see AppRouter.
+ *
+ * It imports the token artefact and the shell, and nothing page-specific: a page
+ * imports its own stylesheet. `ogType` is a prop because the apex is a website
+ * and a country page is an article, and getting that wrong is the kind of thing
+ * nobody notices until a share preview looks wrong.
  */
 interface Props {
     title: string;
     description: string;
     canonicalPath: string;
+    ogType?: 'website' | 'article';
+    /** Override for routes that must not be indexed — a staging duplicate of a
+     *  live page, for instance. Defaults to indexable, because every real page
+     *  here exists to be found. */
+    robots?: string;
 }
-const { title, description, canonicalPath } = Astro.props;
+const {
+    title, description, canonicalPath, ogType = 'article', robots = 'index, follow',
+} = Astro.props;
 const canonical = new URL(canonicalPath, Astro.site).href;
 
-// The generated token artefact first, then the styling that consumes it. Both
-// are plain CSS imports, so Astro inlines/bundles them and the page needs no
-// runtime style loading.
+// The generated token artefact first, then the shell that consumes it. Both are
+// plain CSS imports, so Astro inlines/bundles them and the page needs no runtime
+// style loading. Page-specific styling is imported by the page.
 import '../../../../packages/design-tokens/dist/tokens.css';
-import '../styles/country.css';
+import '../styles/shell.css';
 ---
 <!doctype html>
 <html lang="en">
@@ -28,9 +40,9 @@ import '../styles/country.css';
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={robots} />
 
-    <meta property="og:type" content="article" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
