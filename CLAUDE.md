@@ -129,11 +129,11 @@ every workspace, so the floor applies to the whole deploy.
 
 ## Local development (`npm run dev`)
 
-Two apps, **one origin** — the same shape Cloudflare Pages serves in production:
+Two apps, **one origin, one command** — the same shape Cloudflare Pages serves in production:
 
 ```bash
-npm run dev:web    # terminal 1 — astro dev on :4321 (the country pages)
-npm run dev        # terminal 2 — http://localhost:8011
+npm run dev            # http://localhost:8011 — starts Astro too
+npm run dev -- --solo  # just the proxy; bring your own `npm run dev:web`
 ```
 
 `dev-server.mjs` serves the repo root statically and proxies `/country/*` (plus Vite's
@@ -141,8 +141,17 @@ npm run dev        # terminal 2 — http://localhost:8011
 this, the vanilla app on one port and Astro on another meant every `/country/<slug>` link on
 the apex 404'd locally — the landing panel looked broken in exactly the way it is not.
 
-`npm run dev:web` is optional: without it the globe still works and `/country/*` returns a
-502 saying how to start it.
+**`astro dev` is a managed daemon, not a foreground process.** It forks, prints a pid and
+outlives whatever started it; `npx astro dev status` / `npx astro dev stop` are the controls
+(the same ones in the stale-Vite-cache recipe below). So `npm run dev` does not try to own its
+lifetime — it starts one if none is up, **reuses** one if it is, waits for it to actually
+answer before reporting ready, and leaves it running on exit. Stop it with
+`npx astro dev stop`. The `--port` flag is passed explicitly, so `ASTRO_PORT` governs both
+ends; without it Astro takes its own default and the proxy points at nothing.
+
+If Astro cannot start, the globe still works and `/country/*` returns a 502 saying what to do.
+If port 8011 is taken — a leftover `python3 -m http.server` from the old two-server setup is
+the usual culprit — the server says so and suggests `PORT=8012`.
 
 **The trailing slash in the `/country/` proxy prefix is load-bearing.** `/country` alone also
 matches `country-pages.json`, `country-colors.json` and `country-zoom.json`, which are

@@ -17,17 +17,30 @@
  * R2 CORS surprise.
  *
  * Usage:
- *   npx astro dev --root apps/web      # terminal 1 (or: npm run dev:web)
- *   npm run dev                        # terminal 2
+ *   npm run dev            # both servers, one terminal, http://localhost:8011
+ *   npm run dev -- --solo  # just this one; bring your own `npm run dev:web`
  *
- * The country pages are optional: if nothing is listening on 4321 the globe
- * still works and `/country/*` returns a 502 that says how to start it, rather
- * than a bare connection error.
+ * By default it starts Astro itself, because the two-terminal version has one
+ * obvious failure mode: forget the second terminal and every /country link 404s,
+ * which looks like a bug in the site rather than a missing process.
+ *
+ * `astro dev` is a MANAGED DAEMON, not a foreground process — it forks, prints a
+ * pid, and outlives whatever launched it (`astro dev status` / `astro dev stop`
+ * are its controls; CLAUDE.md's stale-Vite-cache recipe uses them). So this does
+ * not try to own its lifetime: it starts one if none is up, reuses one if it is,
+ * waits for it to answer before reporting ready, and leaves it running on exit.
+ * `--port` is passed explicitly so ASTRO_PORT actually governs both ends —
+ * without it Astro takes its own default and the proxy points at nothing.
+ *
+ * The country pages stay optional: if Astro is not running and cannot be
+ * started, the globe still works and `/country/*` returns a 502 that says what
+ * to do, rather than a bare connection error.
  */
-import { createServer, request as httpRequest } from 'node:http';
+import { createServer, request as httpRequest, get as httpGet } from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { spawn } from 'node:child_process';
 
 const ROOT = process.cwd();
 const PORT = Number(process.env.PORT || 8011);
@@ -125,11 +138,82 @@ server.on('upgrade', (req, socket, head) => {
     up.end();
 });
 
-// Importable for tests without binding a port.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    server.listen(PORT, () => {
-        console.log(`dev-server — http://localhost:${PORT}`);
-        console.log(`  /            → ${ROOT} (the vanilla globe)`);
-        console.log(`  /country/*   → astro dev on :${ASTRO.port} (npm run dev:web)`);
+/** Is something already serving the Astro port? */
+function astroIsUp() {
+    return new Promise((resolve) => {
+        const req = httpGet({ ...ASTRO, path: '/', timeout: 700 }, (res) => {
+            res.resume();
+            resolve(true);
+        });
+        req.on('error', () => resolve(false));
+        req.on('timeout', () => { req.destroy(); resolve(false); });
     });
+}
+
+/**
+ * Start the Astro dev daemon on our port and wait until it answers.
+ *
+ * Waiting matters: `astro dev` returns as soon as the daemon is forked, well
+ * before it serves anything, so announcing readiness immediately means the first
+ * /country request 502s for no visible reason.
+ *
+ * @returns {Promise<boolean>} whether it came up
+ */
+async function startAstro() {
+    const child = spawn('npm', ['--workspace', '@terragotcha/web', 'run', 'dev', '--',
+                                '--port', String(ASTRO.port)], {
+        cwd: ROOT,
+        stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const errors = [];
+    child.stderr.on('data', (c) => errors.push(String(c)));
+    child.stdout.resume();
+
+    for (let i = 0; i < 60; i++) {
+        if (await astroIsUp()) return true;
+        if (child.exitCode !== null && !(await astroIsUp())) break;
+        await new Promise((r) => setTimeout(r, 500));
+    }
+    if (errors.length) console.error(errors.join('').trim().split('\n').slice(-4).join('\n'));
+    return false;
+}
+
+async function main() {
+    const solo = process.argv.includes('--solo');
+
+    let web = solo ? 'not started (--solo)' : null;
+    if (!solo) {
+        if (await astroIsUp()) {
+            web = `reused (already running on :${ASTRO.port})`;
+        } else {
+            process.stdout.write(`dev-server — starting astro dev on :${ASTRO.port}… `);
+            const ok = await startAstro();
+            process.stdout.write(ok ? 'ready\n' : 'FAILED\n');
+            web = ok ? `started — stop it with: npx astro dev stop` : 'unavailable — /country/* will 502';
+        }
+    }
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`\ndev-server — port ${PORT} is already in use.\n\n`
+                + `Something else is serving it — most likely a leftover\n`
+                + `  python3 -m http.server ${PORT}\n`
+                + `from the old two-server setup. Stop that, or run this on another port:\n`
+                + `  PORT=8012 npm run dev\n`);
+            process.exit(1);
+        }
+        throw err;
+    });
+
+    server.listen(PORT, () => {
+        console.log(`\ndev-server — http://localhost:${PORT}`);
+        console.log(`  /            → ${ROOT} (the vanilla globe)`);
+        console.log(`  /country/*   → astro dev on :${ASTRO.port}`);
+        console.log(`  ${web}`);
+    });
+}
+
+// Importable for tests without binding a port or spawning anything.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+    main();
 }
