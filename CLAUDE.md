@@ -127,6 +127,28 @@ the repo instead of R2, for previewing locally.
 `.node-version` pins 22 for the Pages build image; Astro 7 needs ≥22.12 and `npm ci` installs
 every workspace, so the floor applies to the whole deploy.
 
+## Local development (`npm run dev`)
+
+Two apps, **one origin** — the same shape Cloudflare Pages serves in production:
+
+```bash
+npm run dev:web    # terminal 1 — astro dev on :4321 (the country pages)
+npm run dev        # terminal 2 — http://localhost:8011
+```
+
+`dev-server.mjs` serves the repo root statically and proxies `/country/*` (plus Vite's
+`/@…`, `/_astro/`, `/src/`, `/node_modules/.vite/`, and the HMR websocket) to Astro. Before
+this, the vanilla app on one port and Astro on another meant every `/country/<slug>` link on
+the apex 404'd locally — the landing panel looked broken in exactly the way it is not.
+
+`npm run dev:web` is optional: without it the globe still works and `/country/*` returns a
+502 saying how to start it.
+
+**The trailing slash in the `/country/` proxy prefix is load-bearing.** `/country` alone also
+matches `country-pages.json`, `country-colors.json` and `country-zoom.json`, which are
+repo-root files the globe fetches; proxying the first of those silently removes every "Read
+more" article link. `tests/dev-server-routing.test.js` pins this.
+
 ## Static country pages (`apps/web`)
 
 The site was rejected by AdSense for "low quality content": the client-rendered shell has no

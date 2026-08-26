@@ -24,6 +24,8 @@
  * order the /country/* pages use.
  */
 
+import { quizStore } from '@terragotcha/quiz-core';
+
 const RESTORE_ICON = `<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224 128a8 8 0 0 1-8 8H59.3l58.4 58.3a8 8 0 0 1-11.4 11.4l-72-72a8 8 0 0 1 0-11.4l72-72a8 8 0 0 1 11.4 11.4L59.3 120H216a8 8 0 0 1 8 8Z"/></svg>`;
 
 // A pointer that moves further/longer than this is a globe drag, not a tap, so
@@ -104,22 +106,43 @@ export class LandingPanel {
         });
 
         this._watchCanvasTaps();
+
+        // A quiz owns the screen. The panel would sit on top of the question
+        // chrome, and "Find the country" is unplayable with the globe pushed
+        // into a third of the viewport. onActiveChange rather than the
+        // `quiz-active` body class because it is the one signal that covers
+        // every mode — the Daily Challenge and audit mode are active quizzes
+        // that are not reducer sessions.
+        quizStore.onActiveChange((active) => {
+            if (active) this.focusGlobe({ focusControl: false });
+        });
+
         return true;
     }
 
-    /** Reading view → globe view. */
-    focusGlobe() {
+    /**
+     * Reading view → globe view.
+     *
+     * @param {Object} [opts]
+     * @param {boolean} [opts.focusControl] move keyboard focus to the restore
+     *   button. True for a user tap, so the way back is the next thing tabbed
+     *   to; false when a quiz triggered this, where focus belongs to the quiz
+     *   and the button is hidden anyway.
+     */
+    focusGlobe({ focusControl = true } = {}) {
         if (!this.active) return;
         this.active = false;
         document.body.classList.remove('landing-active');
         document.body.classList.add('globe-focus');
         this._animateTo({ x: 0.5, y: 0.5 }, this.sceneManager.getInitialCameraDistance());
-        if (this.restoreBtn) this.restoreBtn.focus({ preventScroll: true });
+        if (focusControl && this.restoreBtn) this.restoreBtn.focus({ preventScroll: true });
     }
 
     /** Globe view → reading view. */
     showPanel() {
-        if (this.active) return;
+        // Belt and braces with the CSS that hides the control mid-quiz: bringing
+        // a 2/3-screen reading panel back over a running quiz is never right.
+        if (this.active || quizStore.isActive()) return;
         this.active = true;
         document.body.classList.remove('globe-focus');
         document.body.classList.add('landing-active');

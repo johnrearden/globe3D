@@ -21,6 +21,8 @@
     "world-countries": "^5.1.0"
   },
   "scripts": {
+    "dev": "node dev-server.mjs",
+    "dev:web": "npm --workspace @terragotcha/web run dev",
     "build:globe": "node build-textures.js",
     "build:geo-data": "node backend/data_build/build_countries_json.mjs && node backend/data_build/build_mesh_iso.mjs",
     "build:assets": "node compress-assets.mjs",

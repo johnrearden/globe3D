@@ -3622,6 +3622,16 @@
             display: inline-flex;
         }
 
+        /* …except while a quiz is running. The quiz owns the screen, and the
+           control sits exactly where the quiz chrome does. Covers every mode:
+           quiz-active (the three globe quizzes), dq-active (Daily Challenge)
+           and audit-active. */
+        body.quiz-active .lf-restore,
+        body.dq-active .lf-restore,
+        body.audit-active .lf-restore {
+            display: none !important;
+        }
+
         .lf-restore:hover {
             background: var(--accent-soft);
         }
