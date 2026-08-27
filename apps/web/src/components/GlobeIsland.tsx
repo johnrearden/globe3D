@@ -59,12 +59,16 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     { CameraController },
                     { SmallCountryIndicator },
                     { createWebGlobeBridge },
+                    { applyScheme },
+                    { settingsStore },
                 ] = await Promise.all([
                     import('../../../../js/core/scene.js'),
                     import('../../../../js/core/globe.js'),
                     import('../../../../js/core/camera-controls.js'),
                     import('../../../../js/features/small-country-indicator.js'),
                     import('../../../../js/data/globe-bridge.js'),
+                    import('../../../../js/features/color-schemes.js'),
+                    import('../../../../js/data/settings-store.js'),
                 ]);
                 if (disposed) return;
 
@@ -100,6 +104,25 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     globeManager.loadGlobe(undefined, resolve, reject);
                 });
                 if (disposed) return;
+
+                // The reader's country colour scheme, the same one the globe app
+                // applies. Without this the baked "vibrant" palette shows
+                // through, so the globe visibly changes colour when crossing
+                // between the two apps — which reads as the globe being rebuilt
+                // even though the scene is the same object throughout.
+                //
+                // Must come after loadGlobe: applyScheme reads
+                // globeManager.paletteOriginal and no-ops until the palette is
+                // there. Defaulted here rather than trusted to the caller
+                // because the store's own default ('greys') is the shared answer.
+                //
+                // Reads the reader's STORED scheme only, not a theme-pinned one.
+                // resolveActiveScheme() in scene-appearance.js prefers a remote
+                // theme's countryScheme, but that needs theme-switcher and an API
+                // round trip the content pages do not make. Wire it when settings
+                // move over; until then a pinned scheme is honoured in the globe
+                // app and not here.
+                applyScheme(globeManager, settingsStore.get().scheme || 'greys');
 
                 sceneManager.onRender(() => {
                     cameraController.update();
