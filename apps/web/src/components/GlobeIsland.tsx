@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getScreen, onScreenChange, type Screen } from '../lib/route';
 import { framingFor } from '../lib/globe-framing';
+import { getPanelSnap, onPanelSnapChange } from '../lib/panel';
 
 /**
  * Where the baked .bin assets load from.
@@ -45,6 +46,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
         // the globe finishes loading — a real case on a fast pushState away.
         let sceneManager: any = null;
         let unsubscribe: (() => void) | null = null;
+        let unsubscribePanel: (() => void) | null = null;
         let onResize: (() => void) | null = null;
 
         (async () => {
@@ -142,7 +144,13 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                  * instead of restating it.
                  */
                 const framing = () => framingFor(
-                    document.querySelector('.panel-sheet')?.getBoundingClientRect() ?? null,
+                    // A collapsed panel leaves the whole viewport free. Taken from
+                    // the state rather than the rect on purpose: the rect is
+                    // mid-transition for 260ms after a collapse, and framing off a
+                    // moving target lands the globe somewhere it will not stay.
+                    getPanelSnap() === 'collapsed'
+                        ? null
+                        : document.querySelector('.panel-sheet')?.getBoundingClientRect() ?? null,
                     { width: window.innerWidth, height: window.innerHeight },
                 );
 
@@ -198,6 +206,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     show(getScreen());
                 };
                 window.addEventListener('resize', onResize);
+                unsubscribePanel = onPanelSnapChange(() => show(getScreen()));
 
                 // Hand the page over: the placeholder fades out, the globe in.
                 document.documentElement.dataset.globe = 'ready';
@@ -213,6 +222,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
         return () => {
             disposed = true;
             unsubscribe?.();
+            unsubscribePanel?.();
             if (onResize) window.removeEventListener('resize', onResize);
             sceneManager?.destroy?.();
             delete document.documentElement.dataset.globe;

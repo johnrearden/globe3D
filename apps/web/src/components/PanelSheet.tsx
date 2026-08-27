@@ -21,8 +21,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 // eslint-disable-next-line import/no-relative-packages -- deliberate: see above.
 import { decideSnap } from '../../../../js/features/daily-quiz/panel-sheet.js';
-
-type SnapState = 'expanded' | 'collapsed';
+import { getPanelSnap, setPanelSnap, onPanelSnapChange, type Snap as SnapState } from '../lib/panel';
 
 export default function PanelSheet({
     children,
@@ -31,7 +30,11 @@ export default function PanelSheet({
     children?: ReactNode;
     initial?: SnapState;
 }) {
-    const [snap, setSnap] = useState<SnapState>(initial);
+    // Mirrored from the module store rather than owned here: the router asks for
+    // a collapse when the reader follows "Explore … on the globe", and the globe
+    // re-frames itself off the same signal.
+    const [snap, setSnapState] = useState<SnapState>(initial);
+    const setSnap = (next: SnapState) => setPanelSnap(next);
     const ref = useRef<HTMLDivElement>(null);
     const drag = useRef<{ startY: number; startT: number } | null>(null);
 
@@ -41,6 +44,13 @@ export default function PanelSheet({
     // whether or not this island ever runs.
     const [interactive, setInteractive] = useState(false);
     useEffect(() => setInteractive(true), []);
+
+    useEffect(() => {
+        // Seed the store with this page's starting state, then follow it.
+        setPanelSnap(initial);
+        setSnapState(getPanelSnap());
+        return onPanelSnapChange(setSnapState);
+    }, [initial]);
 
     const onPointerDown = (e: React.PointerEvent) => {
         if (!interactive) return;

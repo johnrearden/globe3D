@@ -184,3 +184,31 @@ describe('deploy integration', () => {
         expect(headers).toMatch(/\/country\/\*\s*\n\s*Cache-Control: public, max-age=0, must-revalidate/);
     });
 });
+
+describe('"Explore … on the globe" must not leave the app', () => {
+    const router = read('../apps/web/src/components/AppRouter.tsx');
+
+    it('is still a real anchor, so it works with no JavaScript', () => {
+        // The no-JS path and the crawler path both need a genuine href. It points
+        // at the vanilla app's deep link, which is a real page.
+        expect(article).toMatch(/className="country-explore"/);
+        expect(article).toMatch(/<a href=\{`\/\?country=\$\{country\.slug\}`\}/);
+    });
+
+    it('is intercepted by the router rather than followed', () => {
+        // Following it is a document load into the OTHER app, which destroys the
+        // WebGL context and rebuilds the globe from scratch — it looked like the
+        // globe vanishing and coming back as the bare loading sphere. The globe is
+        // already on screen behind the article; the reader wants the panel out of
+        // the way, so this collapses the panel instead.
+        expect(router).toMatch(/closest\('\.country-explore'\)/);
+        expect(router).toMatch(/setPanelSnap\('collapsed'\)/);
+    });
+
+    it('keeps the class the interception keys on', () => {
+        // If the article renames it, the router silently stops intercepting and
+        // the globe starts being rebuilt again — with nothing failing.
+        expect(article).toContain('country-explore');
+        expect(router).toContain('country-explore');
+    });
+});
