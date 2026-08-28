@@ -359,6 +359,7 @@
         import { PinballAnimation } from './js/features/pinball-animation.js';
         import { FocusZoomRegistry, LEVELS, LEVEL_DISTANCES } from './js/core/focus-zoom.js';
         import { countryData, countryToISO } from './js/data/country-data.js';
+        import { LARGE_COUNTRIES, SMALL_COUNTRIES } from './js/data/country-sizes.js';
         import { elements, show, hide, showFlex, setText, addClass, removeClass, toggleClass } from './js/utils/dom.js';
         import { updateZoomWidget, updateZoomOutButtonVisibility } from './js/features/ui-sync.js';
         import { hideLoading } from './js/features/loading.js';
@@ -457,32 +458,6 @@
         // Focus-zoom level variables (per-country focus distance + label visibility)
         let focusRegistry = null;     // FocusZoomRegistry, built once globe data loads (shared)
         let zoomEditor = null;        // ZoomEditor instance (owns its own edit-mode flag + config)
-
-        // Curated palette: 16 dark hues chosen for ~5:1+ contrast against white label text
-        // while keeping enough chroma to read as distinct, vivid country colors.
-        // Country size categories for label sizing and visibility
-        const LARGE_COUNTRIES = new Set([
-            'Russia', 'Canada', 'United States', 'China', 'Brazil', 'Australia',
-            'India', 'Argentina', 'Kazakhstan', 'Algeria', 'Democratic Republic Of The Congo',
-            'Saudi Arabia', 'Mexico', 'Indonesia', 'Libya', 'Iran', 'Mongolia',
-            'Peru', 'Chad', 'Niger', 'Angola', 'Mali', 'South Africa', 'Colombia',
-            'Ethiopia', 'Bolivia', 'Mauritania', 'Egypt', 'Tanzania', 'Nigeria',
-            'Venezuela', 'Pakistan', 'Mozambique', 'Turkey', 'Chile', 'Zambia',
-            'Myanmar', 'Afghanistan', 'Somalia', 'Central African Republic', 'Ukraine',
-            'Madagascar', 'Botswana', 'Kenya', 'France', 'Yemen', 'Thailand',
-            'Spain', 'Turkmenistan', 'Cameroon', 'Papua New Guinea', 'Sweden',
-            'Uzbekistan', 'Morocco', 'Iraq', 'Paraguay', 'Zimbabwe'
-        ]);
-
-        const SMALL_COUNTRIES = new Set([
-            'Singapore', 'Bahrain', 'Malta', 'Maldives', 'Barbados',
-            'Saint Lucia', 'Antigua And Barbuda', 'Andorra', 'Seychelles',
-            'Palau', 'Saint Vincent And The Grenadines', 'Grenada',
-            'Saint Kitts And Nevis', 'Marshall Islands', 'Liechtenstein',
-            'San Marino', 'Tuvalu', 'Nauru', 'Monaco', 'Vatican City',
-            'Comoros', 'Mauritius', 'Sao Tome And Principe', 'Dominica',
-            'Tonga', 'Kiribati', 'Micronesia', 'Cape Verde', 'Samoa'
-        ]);
 
         // Auto-rotation state
         // Auto-rotation / idle state is owned by CameraController.

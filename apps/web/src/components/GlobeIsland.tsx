@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getScreen, onScreenChange, type Screen } from '../lib/route';
 import { framingFor } from '../lib/globe-framing';
 import { getPanelSnap, onPanelSnapChange } from '../lib/panel';
+import { setGlobeHandle } from '../lib/globe';
 
 /**
  * Where the baked .bin assets load from.
@@ -59,18 +60,32 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     { SceneManager },
                     { GlobeManager },
                     { CameraController },
+                    { LabelManager },
+                    { FocusZoomRegistry },
+                    { installContextRecovery },
                     { SmallCountryIndicator },
+                    { PointerControls },
                     { createWebGlobeBridge },
+                    { createCountryTable },
                     { applyScheme },
                     { settingsStore },
+                    { LARGE_COUNTRIES, SMALL_COUNTRIES },
+                    { countryData, countryToISO },
                 ] = await Promise.all([
                     import('../../../../js/core/scene.js'),
                     import('../../../../js/core/globe.js'),
                     import('../../../../js/core/camera-controls.js'),
+                    import('../../../../js/core/labels.js'),
+                    import('../../../../js/core/focus-zoom.js'),
+                    import('../../../../js/core/context-recovery.js'),
                     import('../../../../js/features/small-country-indicator.js'),
+                    import('../../../../js/features/pointer-controls.js'),
                     import('../../../../js/data/globe-bridge.js'),
+                    import('../../../../js/data/country-table.js'),
                     import('../../../../js/features/color-schemes.js'),
                     import('../../../../js/data/settings-store.js'),
+                    import('../../../../js/data/country-sizes.js'),
+                    import('../../../../js/data/country-data.js'),
                 ]);
                 if (disposed) return;
 
@@ -88,19 +103,6 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     sceneManager.getScene(),
                 );
                 cameraController.setupControls();
-
-                // rotateToCountry reveals tiny countries through this at the end
-                // of its animation, so it has to exist. An empty set means it
-                // always no-ops — the reveal marker is a quiz affordance, not
-                // something a content page needs.
-                cameraController.configure({
-                    globeManager,
-                    smallCountryIndicator: new SmallCountryIndicator({
-                        globeManager,
-                        smallCountries: new Set(),
-                    }),
-                    initialCameraDistance: sceneManager.getInitialCameraDistance(),
-                });
 
                 await new Promise<void>((resolve, reject) => {
                     globeManager.loadGlobe(undefined, resolve, reject);
@@ -126,9 +128,53 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // app and not here.
                 applyScheme(globeManager, settingsStore.get().scheme || 'greys');
 
+                // Country names. The size tiers come from js/data/country-sizes.js
+                // rather than a copy here, so both apps draw the same labels at
+                // the same zooms.
+                const labelManager = new LabelManager(
+                    sceneManager.getScene(),
+                    sceneManager.getCamera(),
+                    globeManager,
+                );
+                labelManager.createLabels(LARGE_COUNTRIES, SMALL_COUNTRIES);
+
+                // Classify every country into a focus-zoom level (A–H) by bbox
+                // width. It drives both the camera distance a focus flies to and
+                // each label's appearance threshold, so labels need it before
+                // they can decide when to show.
+                const focusRegistry = new FocusZoomRegistry();
+                focusRegistry.buildFromCountries(
+                    globeManager.getCountryNames()
+                        .map((n: string) => globeManager.getCountryByName(n))
+                        .filter(Boolean),
+                );
+                labelManager.applyFocusZoom(focusRegistry);
+
+                // rotateToCountry reveals a country too small to see through
+                // this at the end of its animation. It takes the same size list
+                // the labels do — a country that is too small to label is the
+                // one that needs the marker.
+                const smallCountryIndicator = new SmallCountryIndicator({
+                    globeManager,
+                    smallCountries: SMALL_COUNTRIES,
+                });
+
+                // Configured in one call, after loadGlobe, because every
+                // collaborator here needs the mesh: the registry is built from
+                // country bboxes and the labels from centroids. Nothing asks the
+                // camera to fly anywhere before this point.
+                cameraController.configure({
+                    globeManager,
+                    labelManager,
+                    smallCountryIndicator,
+                    focusRegistry,
+                    initialCameraDistance: sceneManager.getInitialCameraDistance(),
+                });
+
                 sceneManager.onRender(() => {
                     cameraController.update();
                     globeManager.updateFlash();
+                    labelManager.updateVisibility();
                 });
                 sceneManager.start();
                 sceneManager.fadeInLights();
@@ -137,6 +183,48 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // Everything past this point goes through the bridge, not the
                 // engine objects — the same contract the quiz layer uses.
                 const globe = createWebGlobeBridge({ globeManager, cameraController });
+
+                // Taps on the globe. PointerControls owns the whole pointer
+                // dispatch — drag vs. tap, flick momentum, long-press — so this
+                // is not "add a click handler"; reimplementing it would fork the
+                // gesture thresholds.
+                //
+                // The editors and the vanilla quiz objects are simply absent:
+                // they default to permanently-inactive stand-ins, so an ordinary
+                // tap takes the plain select-and-fly path. Quiz code hears the
+                // pick through `globe.onPick` instead, which is the only route
+                // that carries no engine object with it.
+                const pointerControls = new PointerControls({
+                    camera: sceneManager.getCamera(),
+                    controls: cameraController.controls,
+                    renderer: sceneManager.getRenderer(),
+                    globeManager,
+                    labelManager,
+                    smallCountryIndicator,
+                    deliverPick: (name: string) => globe.deliverPick(name),
+                    rotateGlobeToCountry: (arg: unknown, quiz: boolean, aim: unknown) =>
+                        cameraController.rotateToCountry(arg, quiz, aim),
+                    resetIdleTimer: () => cameraController.resetIdleTimer(),
+                    onFlick: (vx: number, vy: number) => cameraController.flick(vx, vy),
+                    cancelFlick: () => cameraController.cancelFlick(),
+                    countryData,
+                    countryToISO,
+                });
+                pointerControls.attach();
+
+                // A lost context is otherwise permanent here: the island mounts
+                // once and never remounts, so nothing would rebuild the globe.
+                installContextRecovery(sceneManager, { globeManager });
+
+                // Publish the globe for the islands that are not the globe — the
+                // quiz UI is a separate React root and cannot be handed this
+                // through a provider. Country data crosses as a plain table, not
+                // as the renderer: `createCountryTable` is the seam between the
+                // engine and quiz-core.
+                setGlobeHandle({
+                    globe,
+                    countries: createCountryTable({ globeManager, countryToISO }),
+                });
 
                 /**
                  * Framing that puts the globe in whatever the panel leaves free.
@@ -221,6 +309,10 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
 
         return () => {
             disposed = true;
+            // Before anything else: a consumer must never command a destroyed
+            // scene. Clearing this is what makes that impossible rather than
+            // unlikely.
+            setGlobeHandle(null);
             unsubscribe?.();
             unsubscribePanel?.();
             if (onResize) window.removeEventListener('resize', onResize);

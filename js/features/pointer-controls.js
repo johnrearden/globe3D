@@ -13,6 +13,20 @@ import { track } from './analytics.js';
 import * as THREE from 'three';
 import { quizStore } from '@terragotcha/quiz-core';
 
+/**
+ * Stand-in for an edit mode that is not present.
+ *
+ * The three editors are dev-only tools that the vanilla app builds and the Astro
+ * app does not. Eleven call sites below consult them, all guarded by `isActive()`
+ * or `getSelected()`, so substituting one that is permanently inactive keeps the
+ * hot path reading identically in both apps — better than eleven `?.` guards
+ * that each look like a possible bug.
+ */
+const INACTIVE_EDITOR = Object.freeze({
+    isActive: () => false,
+    getSelected: () => null,
+});
+
 export class PointerControls {
     constructor(deps = {}) {
         this.camera = deps.camera;
@@ -22,14 +36,20 @@ export class PointerControls {
         this.labelManager = deps.labelManager;
         this.flagRenderer = deps.flagRenderer;
         this.smallCountryIndicator = deps.smallCountryIndicator;
-        this.labelEditor = deps.labelEditor;
-        this.colorEditor = deps.colorEditor;
-        this.zoomEditor = deps.zoomEditor;
+        this.labelEditor = deps.labelEditor || INACTIVE_EDITOR;
+        this.colorEditor = deps.colorEditor || INACTIVE_EDITOR;
+        this.zoomEditor = deps.zoomEditor || INACTIVE_EDITOR;
         this.clickQuiz = deps.clickQuiz;
         this.dailyQuiz = deps.dailyQuiz;
         // Late-binding accessor: audit mode is dynamically imported after boot
         // (superuser tool), so it may not exist yet when we're constructed.
         this.getAuditMode = deps.getAuditMode || (() => null);
+        // Publish every successful pick, whatever happens to it afterwards.
+        // `GlobeBridge.onPick` is the platform-neutral way to hear a globe tap;
+        // the vanilla app leaves this unset and keeps routing taps through the
+        // injected quiz objects below, so the two schemes coexist during the
+        // migration rather than one having to land all at once.
+        this.deliverPick = deps.deliverPick || (() => {});
         this.rotateGlobeToCountry = deps.rotateGlobeToCountry || (() => {});
         this.resetIdleTimer = deps.resetIdleTimer || (() => {});
         this.onFlick = deps.onFlick || (() => {});       // (velX, velY) px/ms at release
@@ -194,7 +214,7 @@ export class PointerControls {
 
         const pickedName = pickResult.name;
         this.selectedCountry = pickedName;
-        console.log('Selected country:', pickedName);
+        this.deliverPick(pickedName);
 
         if (this.clickQuiz && this.clickQuiz.isActive()) {
             this.clickQuiz.handleAnswer(pickedName);
