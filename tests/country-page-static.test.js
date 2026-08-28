@@ -14,6 +14,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { HOME_PATH, parseRoute } from '../apps/web/src/lib/routes';
 import { fileURLToPath } from 'node:url';
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
@@ -185,30 +186,33 @@ describe('deploy integration', () => {
     });
 });
 
-describe('"Explore … on the globe" must not leave the app', () => {
-    const router = read('../apps/web/src/components/AppRouter.tsx');
-
-    it('is still a real anchor, so it works with no JavaScript', () => {
-        // The no-JS path and the crawler path both need a genuine href. It points
-        // at the vanilla app's deep link, which is a real page.
-        expect(article).toMatch(/className="country-explore"/);
-        expect(article).toMatch(/<a href=\{`\/\?country=\$\{country\.slug\}`\}/);
+describe('"Explore the globe" must not leave the app', () => {
+    it('is a real anchor, so it works with no JavaScript', () => {
+        // The no-JS reader and the crawler both need a genuine href — the CTA is
+        // the only route from an article back into the app.
+        expect(article).toMatch(/className="explore-cta"/);
+        expect(article).toMatch(/<a href=\{HOME_PATH\}>/);
     });
 
-    it('is intercepted by the router rather than followed', () => {
-        // Following it is a document load into the OTHER app, which destroys the
-        // WebGL context and rebuilds the globe from scratch — it looked like the
-        // globe vanishing and coming back as the bare loading sphere. The globe is
-        // already on screen behind the article; the reader wants the panel out of
-        // the way, so this collapses the panel instead.
-        expect(router).toMatch(/closest\('\.country-explore'\)/);
-        expect(router).toMatch(/setPanelSnap\('collapsed'\)/);
+    it('takes its path from routes.ts, so it follows the apex', () => {
+        // A literal '/app' here would rot silently at the flip: it would still be
+        // a valid-looking link to a path that no longer exists.
+        expect(article).toMatch(/import \{ HOME_PATH \} from '\.\.\/lib\/routes'/);
     });
 
-    it('keeps the class the interception keys on', () => {
-        // If the article renames it, the router silently stops intercepting and
-        // the globe starts being rebuilt again — with nothing failing.
-        expect(article).toContain('country-explore');
-        expect(router).toContain('country-explore');
+    it('points at a path the router owns, so the globe survives the click', () => {
+        // This is the load-bearing part. parseRoute returning a route is what
+        // makes AppRouter intercept the click; returning null would make it a
+        // document load, which destroys the WebGL context and rebuilds the globe
+        // — the "globe vanishes and comes back as a bare sphere" symptom. No
+        // special case in the router keys on this link any more, so the ONLY
+        // thing keeping it client-side is that parseRoute claims the path.
+        expect(parseRoute(HOME_PATH)).toEqual({ view: 'home', slug: null });
+    });
+
+    it('no longer deep-links the vanilla app', () => {
+        // `/?country=<slug>` is the OTHER application. It also aimed the globe at
+        // the country already behind the panel, which is why it was replaced.
+        expect(article).not.toContain('?country=');
     });
 });

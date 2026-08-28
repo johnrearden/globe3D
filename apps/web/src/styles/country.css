@@ -124,27 +124,34 @@
     font-size: var(--text-sm);
 }
 
-/* ── Route back into the globe app ────────────────────────────────────────── */
-.country-explore {
-    margin: var(--space-5) 0 0;
+/* ── Route into the globe app ─────────────────────────────────────────────── */
+/* The article's one call to action, and the site's main conversion: a reader who
+   arrived here from search leaves through this link or not at all. So it is a
+   full-width target sized to be FOUND rather than read for — the inline-block
+   button it replaced sat at the end of the prose and read as one more link. */
+.explore-cta {
+    margin: var(--space-6) 0 0;
 }
 
-.country-explore a {
-    display: inline-block;
-    padding: var(--space-2) var(--space-4);
+.explore-cta a {
+    display: block;
+    padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-btn);
     background: var(--primary);
     color: var(--on-primary);
-    font-weight: var(--weight-medium);
+    font-family: var(--font-heading);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    text-align: center;
     text-decoration: none;
     transition: background 150ms ease;
 }
 
-.country-explore a:hover {
+.explore-cta a:hover {
     background: var(--primary-hover);
 }
 
-.country-explore a:focus-visible {
+.explore-cta a:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }

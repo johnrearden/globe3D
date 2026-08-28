@@ -20,6 +20,8 @@
  *     database field cannot inject markup into a static page.
  */
 
+import { HOME_PATH } from '../lib/routes';
+
 export interface Section {
     id: string;
     heading: string;
@@ -88,12 +90,24 @@ export default function CountryArticle({ country }: { country: Country }) {
                     </section>
                 ))}
 
-            {/* The route back into the globe. A country page with no way through
-                to the app is a dead end for a reader, and the app is the reason
-                they are on the site. The vanilla app resolves ?country= against
-                the same country-pages.json this page's slug came from. */}
-            <p className="country-explore">
-                <a href={`/?country=${country.slug}`}>Explore {country.name} on the globe</a>
+            {/* The route into the app. A country page with no way through to the
+                globe is a dead end for a reader, and the globe is the reason they
+                are on the site.
+
+                It aims at the app's HOME route, not at this country. The previous
+                version linked to `/?country=<slug>`, which pointed the globe at
+                the country the reader was already looking at — behind this very
+                panel — so it promised an experience it could not deliver. Home is
+                a genuinely different screen: the landing content and the whole
+                globe.
+
+                HOME_PATH rather than a literal, so the link follows the apex when
+                it moves from /app to /. Because the router owns that path,
+                `parseRoute` claims the click and the navigation is client-side —
+                the globe is never rebuilt. The href stays real, so it still works
+                for a crawler and with JavaScript disabled. */}
+            <p className="explore-cta">
+                <a href={HOME_PATH}>Explore the globe</a>
             </p>
 
             {/* Real anchors, server-rendered. A WebGL canvas is not crawlable, so

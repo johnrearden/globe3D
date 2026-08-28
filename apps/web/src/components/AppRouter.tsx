@@ -33,7 +33,6 @@ import CountryArticle, { type Country } from './CountryArticle';
 import LandingContent from './LandingContent';
 import type { LandingModel } from '../lib/landing';
 import { fetchCountry, fetchLanding, setScreen } from '../lib/route';
-import { setPanelSnap } from '../lib/panel';
 import { parseRoute, pathForRoute, sameRoute, HOME_ROUTE, type Route } from '../lib/routes';
 
 interface Props {
@@ -133,19 +132,6 @@ export default function AppRouter({ initial, country }: Props) {
             if (link.target && link.target !== '_self') return;
             if (link.hasAttribute('download')) return;
             if (link.origin !== window.location.origin) return;
-
-            // "Explore <country> on the globe" is not a navigation here. The
-            // globe is already on screen behind the article and has been for the
-            // whole session; the reader is asking the panel to get out of the
-            // way. Its href still points at the vanilla app so it works with no
-            // JavaScript and for a crawler, but following it would leave this app
-            // and rebuild the globe from scratch — which is exactly what it looked
-            // like: the globe vanished and came back as the bare loading sphere.
-            if (link.closest('.country-explore')) {
-                e.preventDefault();
-                setPanelSnap('collapsed');
-                return;
-            }
 
             // parseRoute returns null for everything this app does not own —
             // /borders/*, /privacy/, the sitemap. Those must stay real
