@@ -794,6 +794,78 @@ each quiz supplies its own prompt. All four quizzes now use this chrome. *(CSS g
 write a literal `*/` — e.g. `--qz-correct-*/...` — inside a `/* */` block; it closes the
 comment early and silently drops the following `:root` rule.)*
 
+## Phase B10a — the quiz on `/app` (Astro/React) — ✅ Done
+
+The Astro app could be read but not played: `apps/web/src` imported no workspace package
+except the token CSS, and its globe loaded `scene.js`/`globe.js`/`camera-controls.js` and
+nothing else — no labels, no picking, no markers. This slice closed that.
+
+**The globe island grew interaction** (`GlobeIsland.tsx`). `LabelManager` +
+`FocusZoomRegistry` (the labels need it for their appearance thresholds), `PointerControls`,
+and `installContextRecovery` — without which a lost context was permanent, since the island
+mounts once and never remounts. The three edit modes `PointerControls` consults became
+optional via a permanently-inactive stand-in rather than eleven `?.` guards; they are dev
+tools the Astro app does not build. Picks reach React through `GlobeBridge.onPick`, wired by
+the pre-existing `deliverPick` seam, so no engine object crosses the boundary; the vanilla app
+leaves `deliverPick` unset and keeps its direct wiring, so the two schemes coexist.
+
+- `js/data/country-sizes.js` — `LARGE_COUNTRIES` / `SMALL_COUNTRIES` extracted from
+  `index.html` so both apps draw the same labels at the same zooms. **The extraction surfaced
+  three tier assignments that had silently never applied**: the mesh calls them `USA`,
+  `Democratic Congo` and `Vatican`. A name matching no country does not fail — it falls
+  through to the medium tier — so this was invisible in the app and in review. Pinned by
+  `tests/country-sizes.test.js`.
+- `apps/web/src/lib/globe.ts` — module singleton publishing the bridge + country table to the
+  islands that are not the globe. Forced, not stylistic: Astro islands are separate React
+  roots. `lib/globe-types.ts` restates the bridge in TypeScript, with
+  `tests/globe-bridge-types.test.js` failing if it drifts from `GLOBE_BRIDGE_METHODS`.
+
+**One runner, not four.** Every quiz-core generator already describes what the globe should do
+(`payload.map`) and what the grid should show (`payload.grid`); the four vanilla modes ignored
+both and hand-wrote each. Reading them leaves a per-mode table — `lib/quiz/specs.ts`: which
+generator, where the answer comes from, what the eyebrow says. A fifth mode is a table entry.
+
+- `components/quiz/` — `QuizLayer` (mounted `client:idle` in `AppLayout`, renders **null** at
+  build time so every article's markup is untouched), `ModePicker`, `QuestionChrome`,
+  `OptionGrid`, `ResultsScreen`, `FlagStage`, `Icon`.
+- `lib/quiz/` — `modes.ts`, `specs.ts`, `globe-choreography.ts`, `useQuizSession.ts`,
+  `useElapsed.ts` (the one genuine gap: elapsed time is not in quiz-core, since
+  `toHistoryRecord` takes `durationMs` as an argument), `reveal.ts`.
+- **Mode ids are quiz-core's `MODES` throughout**, deleting the vanilla four-arm translation
+  switch. Those ids are the localStorage history keys, so a mistranslation would have filed
+  sessions under the wrong mode without erroring.
+- `BackButtonGuard` is replaced, not ported: it watched `document.body`'s class with a
+  MutationObserver because it had no other signal. The component that starts the quiz pushes
+  the guard entry itself.
+- `styles/quiz.css` is authored against the 47 emitted tokens, not copied from the ~394
+  legacy-vocabulary selectors in `styles.css`. `check-tokens.mjs` covers `apps/web/src`, so it
+  was enforced from the first line — it caught two hard-coded flash colours, which now read
+  `--status-correct` / `--status-incorrect` so the globe flash and the answer grid agree.
+
+**Perlin left `index.html`** (`js/utils/perlin.js`, −2,230 chars, 1,266 → 1,238 lines). The
+flag wave read a `window.noise` global set by an inline `<script>`, so it only worked inside
+that one document. Transcribed rather than reformulated, and proved identical to the blob
+across 16,000 samples over four seeds before deleting it; both consumers (`flag-wave.js`,
+`flag-renderer.js`) now import the module.
+
+**Deliberately not carried over:** the vanilla reverse flag question rendered its six options
+as six viewports inside a *second* WebGL canvas positioned to line up with the DOM buttons
+overlaid on it. A canvas whose contents must track the layout of elements above it is the
+coupling this rewrite exists to shed, and it cost a third context. Those tiles are images now.
+
+**Verified:** all four modes play ten questions and record to history; find-the-country
+resolved 10/10 answers from globe taps; 14/14 off-centre picks resolved correctly with the
+panel's view offset active; a quiz taken from `/country/france` leaves the URL, the globe and
+all 290 article words intact, and Back leaves the quiz rather than the article. The production
+build holds the AdSense baseline exactly — 728 and 292 words, 4 internal links each, zero quiz
+markup, zero hidden text.
+
+**Still vanilla-only** (later B10 slices): progress + settings, the Daily Challenge and
+leaderboard, search, the country info panel. The dev editors (label/colour/zoom, audit mode)
+are **not being ported** — `index.html` survives B11 as a dev-only tool page.
+
+---
+
 ## Cross-cutting conventions
 
 - **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.

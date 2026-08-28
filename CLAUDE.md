@@ -264,6 +264,30 @@ clicks, so the document it sees is the untouched static one.
 Islands share state through the module singleton in `src/lib/route.ts`, not React Context —
 separate roots cannot share a provider. Same constraint that makes `quizStore` a singleton.
 
+**The quiz (`QuizLayer.tsx`, `client:idle`, mounted in `AppLayout` for every route).** It
+renders **null** at build time and until the reader asks for a quiz, so the article underneath
+is untouched static markup — a reader who arrived on `/country/france` from search can play
+without leaving it. A quiz is not a route: no URL change, not linkable, never seen by a crawler.
+
+**There is one runner, not four.** Every quiz-core generator already describes what the globe
+should do (`payload.map`) and what the grid should show (`payload.grid`); the four vanilla
+modes ignored both and hand-wrote each. Reading them instead leaves only a per-mode table —
+`src/lib/quiz/specs.ts`: which generator, where the answer comes from, what the eyebrow says.
+**A fifth mode is a table entry, not a component.** Mode ids are quiz-core's `MODES`
+throughout; those ids are the localStorage history keys, so the vanilla app's private ids and
+its translation switch are gone.
+
+Answers to "find the country" arrive through `globeBridge.onPick`, never from an engine
+object. `BackButtonGuard` is replaced rather than ported — the component that starts the quiz
+pushes the history guard entry itself.
+
+**Other islands reach the globe through `src/lib/globe.ts`**, a module singleton holding the
+`GlobeBridge` and the country table. Forced, not stylistic: `GlobeIsland` is `client:only` and
+the quiz UI is a separate React root, and separate roots cannot share a provider — the same
+constraint that makes `quizStore` a singleton. `src/lib/globe-types.ts` restates the bridge in
+TypeScript because the package is plain JS by design; `tests/globe-bridge-types.test.js` fails
+if the two drift, since a restatement nothing checks is a copy waiting to rot.
+
 **The globe (`GlobeIsland.tsx`, `client:only="react"`).** It renders nothing at build time and
 must not try — it needs WebGL, a canvas and `window`. That is why the "Loading globe…"
 placeholder lives in the page's own markup: a `client:only` island contributes no HTML for
@@ -272,10 +296,19 @@ and out of document flow, so the swap between them cannot reflow the article —
 is 0.
 
 The island is glue and lifecycle only. It imports the vanilla engine unchanged (`SceneManager`,
-`GlobeManager`, `CameraController`) and drives it through `GlobeBridge`; a second globe
-implementation would be the one that drifts. `GlobeManager.init()` must be called before
-`loadGlobe()` — it creates the Group the meshes are added to, and skipping it fails later and
-less obviously.
+`GlobeManager`, `CameraController`, `LabelManager`, `FocusZoomRegistry`, `PointerControls`,
+`installContextRecovery`) and drives it through `GlobeBridge`; a second globe implementation
+would be the one that drifts. `GlobeManager.init()` must be called before `loadGlobe()` — it
+creates the Group the meshes are added to, and skipping it fails later and less obviously.
+Everything else is configured **after** `loadGlobe` resolves, in one `cameraController.configure`
+call, because the labels need centroids and the focus registry needs bboxes.
+
+`installContextRecovery` matters more here than in the vanilla app: the island mounts once and
+never remounts, so without it a lost context is permanent.
+
+`PointerControls`' three edit modes are optional — an absent editor is substituted by a
+permanently-inactive stand-in rather than guarded at eleven call sites — because they are dev
+tools this app does not build.
 
 The import is dynamic so Three.js (~511 KB) is never in the page's initial bundle.
 
@@ -329,7 +362,12 @@ replaced, not migrated.
 
 ### 2. Country Labels
 - **Auto-generated:** Canvas-based text textures
-- **3 size tiers:** Large, medium, small countries
+- **3 size tiers:** `LARGE_COUNTRIES` / `SMALL_COUNTRIES` in `js/data/country-sizes.js`
+  (anything in neither is medium), shared by both apps. **Every name must be one the globe
+  actually uses** — the mesh calls them `USA`, `Democratic Congo` and `Vatican`, and all three
+  were spelled out in full and silently did nothing for as long as the lists existed, because a
+  tier assignment matching no country just falls through to medium. `tests/country-sizes.test.js`
+  checks the lists against `assets/country-meta.json`.
 - **Smart visibility:** Based on zoom level and camera direction
 - **Position:** Placed at country centroids at radius 1.02
 - **Configurable:** Manual positioning via label editor
@@ -567,7 +605,10 @@ minimize what they add to `index.html`:**
   off app-wide but the tokens and all `var(--glow-*)` usage sites remain; restore the `was:` values in
   the `:root` block to re-enable.
 - **No new inline `<script>` logic** — all new JS goes in separate ES modules under `js/`
-  (e.g. `js/features/<feature>.js`), imported from the main module block.
+  (e.g. `js/features/<feature>.js`), imported from the main module block. The last inline
+  library, the Perlin noise the flag wave uses, left in B10a and is now `js/utils/perlin.js`;
+  it had to, because a `window` global only exists in the document that sets it and the flag
+  quiz now also runs in the Astro app.
 - **Prefer self-contained feature modules** that create their own DOM and attach their own
   listeners at runtime (as `js/features/flag-renderer.js` does with its canvas), rather than adding
   static markup to `index.html`. Pull third-party libs via ESM `import` from a CDN where practical
