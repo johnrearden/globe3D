@@ -420,14 +420,20 @@
 }
 
 /* ── The flag being identified ────────────────────────────────────────────── */
-.qz-flag-hero {
+/* A live canvas, so it gets a reserved box rather than an intrinsic size: the
+   3:2 ratio matches the plane's 10 × 6.67, and holding the space stops the
+   answer grid jumping when the texture lands. */
+.qz-flag-stage {
+    width: 100%;
+    max-width: 24rem;
+    margin: 0 auto;
+    aspect-ratio: 3 / 2;
+}
+
+.qz-flag-canvas {
     display: block;
     width: 100%;
-    max-width: 20rem;
-    height: auto;
-    margin: 0 auto;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-btn);
+    height: 100%;
 }
 
 /* ── Answer grid ──────────────────────────────────────────────────────────── */

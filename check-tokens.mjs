@@ -197,6 +197,13 @@ function checkVocabulary(src, file, tokens, add) {
 export const JS_COLOUR_ALLOW = [
     { file: 'js/core/scene.js', match: /AmbientLight|DirectionalLight|PointLight/,
       why: 'light colour — optics, not palette' },
+    // Same category, different scene: the flag stage lights a plane so that a
+    // purely-Z ripple reads as moving shading. White light is what makes the
+    // flag's own colours correct; a theme able to tint it could not improve
+    // that, only break it.
+    { file: 'apps/web/src/components/quiz/FlagStage.tsx',
+      match: /AmbientLight|DirectionalLight/,
+      why: 'light colour — optics, not palette' },
 ];
 
 function checkJsColours(src, file, add) {

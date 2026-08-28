@@ -29,6 +29,7 @@ import { toThreeHex } from '@terragotcha/design-tokens';
 import { cssToken } from '../../../../../js/utils/theme.js';
 import QuestionChrome from './QuestionChrome';
 import OptionGrid from './OptionGrid';
+import FlagStage from './FlagStage';
 
 /** How long the right/wrong overlay sits on the answered country. */
 const FLASH_MS = 1200;
@@ -152,12 +153,13 @@ export default function QuizRunner({
             onClose={close}
         >
             {question.payload.flag && (
-                <img
-                    className="qz-flag-hero"
-                    src={`https://flagcdn.com/w640/${question.payload.flag.iso.toLowerCase()}.png`}
-                    alt="The flag to identify"
-                    width={640}
-                    height={427}
+                <FlagStage
+                    // Remount per question: the stage loads one texture and the
+                    // effect keys on the iso, so a shared instance would have to
+                    // hand-manage swapping meshes mid-animation.
+                    key={question.payload.flag.iso}
+                    iso={question.payload.flag.iso}
+                    label="The flag to identify"
                 />
             )}
 

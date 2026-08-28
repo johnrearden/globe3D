@@ -6,6 +6,7 @@
 import { state } from '../data/state.js';
 import { countryPageUrl, loadCountryPages } from '../data/country-pages.js';
 import { createWebGLRenderer } from '../utils/webgl-diagnostics.js';
+import { perlin2 } from '../utils/perlin.js';
 
 import * as THREE from 'three';
 
@@ -130,12 +131,6 @@ export class FlagRenderer {
     animateFlagWave(mesh, originalPositions, time) {
         if (!mesh || !originalPositions) return;
 
-        // Check if Perlin noise library is loaded
-        if (!window.noise || !window.noise.perlin2) {
-            console.warn('Perlin noise library not loaded yet');
-            return;
-        }
-
         const positions = mesh.geometry.attributes.position;
         const coeff = 72;
         const coeff2 = 65;
@@ -149,7 +144,7 @@ export class FlagRenderer {
             // Apply Perlin noise to Z position for wave effect
             positions.array[i * 3 + 2] = 1 +
                 (spacing / 25) *
-                window.noise.perlin2(
+                perlin2(
                     x * (gap / coeff) + time,
                     y * (gap / coeff2)
                 );
