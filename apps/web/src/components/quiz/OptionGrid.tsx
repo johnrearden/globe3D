@@ -9,6 +9,11 @@
  * identify-the-flag question — "which of these flags is Peru's" — and it is the
  * only difference between the three modes' grids, which is why there is one
  * component rather than three.
+ *
+ * `multiSelect` is the Daily Challenge's: several answers, toggled, then
+ * submitted together. It is here rather than in a second grid component because
+ * the two differ only in when the answer is sent — a single-select cell submits
+ * on tap, a multi-select cell toggles and waits for the caller's Submit button.
  */
 import Icon from './Icon';
 import { cellState } from '../../lib/quiz/reveal';
@@ -30,6 +35,8 @@ export default function OptionGrid({
     options,
     cols,
     display = 'name',
+    multiSelect = false,
+    selected,
     reveal,
     onPick,
 }: {
@@ -37,6 +44,11 @@ export default function OptionGrid({
     cols: number;
     display?: string;
     reveal: Reveal | null;
+    /** Several answers, toggled and submitted together (Daily Challenge). */
+    multiSelect?: boolean;
+    /** The current multi-select, owned by the caller alongside its Submit. */
+    selected?: ReadonlySet<string>;
+    /** One value in single-select; a toggle in multi-select. */
     onPick: (value: string) => void;
 }) {
     return (
@@ -45,12 +57,14 @@ export default function OptionGrid({
             style={{ '--qz-cols': cols } as React.CSSProperties}
         >
             {options.map((option) => {
-                const state = cellState(option.value, reveal);
+                const state = cellState(option.value, reveal, multiSelect);
+                const isSelected = !reveal && !!selected?.has(option.value);
                 return (
                     <li key={option.value}>
                         <button
                             type="button"
-                            className={`quiz-option ${state}`}
+                            className={`quiz-option ${state} ${isSelected ? 'selected' : ''}`}
+                            aria-pressed={multiSelect ? isSelected : undefined}
                             // After the reveal the grid is a display, not a
                             // control: disabling it is what stops a second
                             // answer, rather than a flag the handler checks.
@@ -77,6 +91,11 @@ export default function OptionGrid({
                             {state === 'incorrect' && (
                                 <span className="qz-mark qz-mark-wrong">
                                     <Icon name="x" size={16} />
+                                </span>
+                            )}
+                            {state === 'missed' && (
+                                <span className="qz-mark qz-mark-missed">
+                                    <Icon name="plus" size={16} />
                                 </span>
                             )}
                         </button>

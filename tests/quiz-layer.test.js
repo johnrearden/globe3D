@@ -87,11 +87,35 @@ describe('reveal → grid state', () => {
         expect(cellState('Malawi', reveal)).toBe('dimmed');
     });
 
-    it('prefers correct over incorrect for the same option', () => {
-        // Defensive: if an option ever appears in both lists, the player must
-        // see the teaching signal, not the scolding one.
-        const both = { ...reveal, wrongPicks: ['Zambia'] };
-        expect(cellState('Zambia', both)).toBe('correct');
+    it('shows a single-select answer as correct even in multi-select terms', () => {
+        // `missed` means "right, and you did not pick it". With one right answer
+        // there is nothing to distinguish, so it reads plainly as the answer.
+        expect(cellState('Zambia', reveal, false)).toBe('correct');
+    });
+
+    it('separates found from missed once several answers are right', () => {
+        // The Daily Challenge's multi-select: the player needs to know WHICH of
+        // the right answers they actually found.
+        const multi = {
+            correct: false,
+            correctOptions: ['Chad', 'Niger', 'Libya'],
+            yourSelections: ['Chad', 'Egypt'],
+            rightPicks: ['Chad'],
+            wrongPicks: ['Egypt'],
+            missed: ['Niger', 'Libya'],
+        };
+        expect(cellState('Chad', multi, true)).toBe('correct');
+        expect(cellState('Egypt', multi, true)).toBe('incorrect');
+        expect(cellState('Niger', multi, true)).toBe('missed');
+        expect(cellState('Sudan', multi, true)).toBe('dimmed');
+    });
+
+    it('tolerates a grade that reports only the answer', () => {
+        // Some reveals carry correctOptions and nothing else; the answer must
+        // still be shown rather than dimmed away.
+        const sparse = { correct: false, correctOptions: ['Zambia'] };
+        expect(cellState('Zambia', sparse)).toBe('correct');
+        expect(cellState('Malawi', sparse)).toBe('dimmed');
     });
 });
 
@@ -163,5 +187,27 @@ describe('settings never touch the engine', () => {
         expect(weak).not.toMatch(/setSelectedCountry|rotateToCountry/);
         expect(weak).toMatch(/globe\.highlight/);
         expect(weak).toMatch(/globe\.focusCountry/);
+    });
+});
+
+describe('the Daily Challenge must not reach the static document either', () => {
+    const layout = read('../apps/web/src/layouts/AppLayout.astro');
+    const layer = read('../apps/web/src/components/daily/DailyLayer.tsx');
+
+    it('mounts as client:idle, never client:load', () => {
+        expect(layout).toMatch(/<DailyLayer client:idle \/>/);
+    });
+
+    it('renders nothing until the globe exists', () => {
+        expect(layer).toMatch(/if \(!handle\) return null;/);
+    });
+
+    it('loads the API client lazily, so a reader who never plays never pays', () => {
+        // A static import would put @terragotcha/api-client and the device
+        // identity into the shell's chunk for every article on the site — and
+        // would construct it during SSR, where there is no localStorage.
+        const api = stripComments(read('../apps/web/src/lib/daily/api.ts'));
+        expect(api).toMatch(/import\(/);
+        expect(api).not.toMatch(/^import .*api-client/m);
     });
 });

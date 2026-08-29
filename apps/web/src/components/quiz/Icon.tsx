@@ -14,7 +14,7 @@
 export type IconName =
     | 'globe' | 'flag' | 'pin' | 'bank' | 'arrowRight'
     | 'x' | 'clock' | 'checkCircle' | 'check' | 'plus'
-    | 'faders';
+    | 'faders' | 'calendar';
 
 /**
  * Phosphor regular, 256×256 viewBox — except `faders`, which is drawn here.
@@ -33,6 +33,9 @@ const PATHS: Record<IconName, string | string[]> = {
     clock: 'M128,40a88,88,0,1,0,88,88A88.1,88.1,0,0,0,128,40Zm0,160a72,72,0,1,1,72-72A72.08,72.08,0,0,1,128,200Zm64-72a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z',
     checkCircle: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z',
     check: 'M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z',
+    // Phosphor FILL `calendar-dots` — the Daily Challenge's mark, carried over
+    // from the vanilla pill so the feature keeps its identity.
+    calendar: 'M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM84,168a12,12,0,1,1,12-12A12,12,0,0,1,84,168Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,128,168Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,172,168Zm44-88H40V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h32Z',
     faders: [
         'M40 56h176v16H40zM104 44a20 20 0 1 0 0 40a20 20 0 1 0 0 -40z', 'M40 120h176v16H40zM168 108a20 20 0 1 0 0 40a20 20 0 1 0 0 -40z', 'M40 184h176v16H40zM88 172a20 20 0 1 0 0 40a20 20 0 1 0 0 -40z',
     ],
