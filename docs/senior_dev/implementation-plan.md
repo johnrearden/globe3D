@@ -866,6 +866,73 @@ are **not being ported** — `index.html` survives B11 as a dev-only tool page.
 
 ---
 
+## Phase B10b — settings, progress and weak spots on `/app` — ✅ Done
+
+**The design decision is a second interface, not a bigger bridge.**
+`GlobeBridge` is the *quiz* boundary: its fake is what lets quiz logic be tested without WebGL,
+and every method on it is something a question does. Settings are a different consumer with a
+different lifetime, so `packages/globe-bridge/src/appearance.js` defines `GlobeAppearance` —
+`applyAll` / `schemes` / `setCountryScheme` / `setCountriesVisible` / `setLabelsVisible` /
+`setBordersVisible` / `setBorderOpacity` / `setSelectionGradient` / `setAutoRotate` /
+`setLighting` / `lightingDefaults`. Same governing rule: **nothing platform-specific crosses**,
+so the palette crosses as a scheme *key* and lighting as five plain numbers. Web
+implementation: `js/data/globe-appearance.js`; test double: `createFakeGlobeAppearance`.
+
+That separation is what makes the panel portable at all. `settings-panel.js` held
+`globeManager`, `cameraController`, `labelManager` **and raw shader uniforms**;
+`tests/quiz-layer.test.js` now fails if any of those names reappears in the React one.
+
+**Two ordering rules are carried across with tests**, because neither throws when broken and
+both present as "the setting was ignored":
+
+1. `setBorderOpacity` before `setBordersVisible(true)`, or borders enable at the renderer's
+   last strength rather than the saved one.
+2. Enabling auto-rotate at boot sets `autoRotateAllowed` directly rather than calling
+   `setAutoRotateAllowed(true)` — that resets the idle timer and *stops* the intro spin it was
+   meant to permit.
+
+Persisted lighting is still deferred `LIGHTING_FADE_MS` (1700 ms) past boot, because
+`fadeInLighting()` ramps the same uniforms and would overwrite it mid-ramp.
+
+**Bugs found and fixed rather than ported:**
+
+- `getModeStats()` tracked the highest score and the highest percentage *independently*, so
+  they could come from different sessions: a player whose best round was 6/6 was told "best
+  7/10". They are now one session's result (`bestScore` + new `bestTotal`, ranked by `bestPct`,
+  ties broken on score), and **both** stats screens read `bestTotal` instead of a hard-coded 10.
+- `weak-spots-widget.js` reproduced `PointerControls.onPointerUp`'s four-call selection
+  sequence by hand, with a comment admitting it. It is `globe.highlight` + `globe.focusCountry`.
+- `scene-appearance.js` fell back to `'vibrant'` while `SETTINGS_DEFAULTS` and the globe island
+  both said `'greys'` — three answers to one question. It reads `SETTINGS_DEFAULTS.scheme`.
+
+**`settingsStore` gained `subscribe()` and `getVersion()`.** The version is the snapshot
+`useSyncExternalStore` compares: `get()` returns a live reference by design — `settings-panel.js`
+and `scene-appearance.js` both depend on it — so its identity never changes and React would
+never re-render on a write.
+
+**New in `apps/web/src`:** `components/shell/` (`ShellControls`, `SettingsSheet`, `StatsSheet`,
+`WeakSpots`), `lib/settings.ts`, `lib/overlay.ts`, `styles/sheet.css` (the sheet scaffolding the
+quiz had already duplicated twice), `styles/controls.css`. `ShellControls` mounts `client:idle`
+beside `QuizLayer` and renders **null** until a globe exists, so the static document is
+untouched. `lib/overlay.ts` is what lets the quiz's mode picker open the progress sheet across
+the island boundary.
+
+**Deliberately not included, each for a reason:**
+
+- **UI theme / remote themes** — they need the 13-knob backend cutover (B9). A theme control
+  against the legacy 24-knob vocabulary would style nothing.
+- **"Country info panel"** — that panel is `flag-renderer.js`, still vanilla only (B10d). A
+  switch for something the app cannot show is worse than no switch.
+- **The dev editors** — not being ported; `index.html` keeps them.
+
+**Verified:** every scheme and toggle applies live and survives a reload through `applyAll`;
+lighting stays gated behind the audit token; sliders drive the store from real keyboard input
+(setting `.value` does not reach a React-controlled input — a harness trap, not a bug); a
+finished quiz fills the progress sheet and raises the weak-spots list. Production build still
+728 / 292 words, 4 internal links each, zero control markup.
+
+---
+
 ## Cross-cutting conventions
 
 - **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.

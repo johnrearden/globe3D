@@ -100,6 +100,20 @@ Adding a method means adding it to `packages/globe-bridge/src/interface.js` (doc
 `GLOBE_BRIDGE_METHODS`), to `js/data/globe-bridge.js`, and to the fake in
 `packages/globe-bridge/src/fake.js` — the fake is what lets quiz logic be tested without WebGL.
 
+**Display state is a second interface, `GlobeAppearance`** (`packages/globe-bridge/src/appearance.js`,
+web implementation `js/data/globe-appearance.js`): `applyAll`, `schemes`, `setCountryScheme`,
+`setCountriesVisible`, `setLabelsVisible`, `setBordersVisible`, `setBorderOpacity`,
+`setSelectionGradient`, `setAutoRotate`, `setLighting`, `lightingDefaults`. **Do not fold these
+into `GlobeBridge`** — the bridge is what a *question* does, and every quiz test constructs its
+fake. Same governing rule, though: the palette crosses as a scheme *key*, never as colours, and
+lighting as five plain numbers.
+
+Two ordering rules on it are load-bearing and tested, because neither throws and both present as
+"the setting was ignored": **`setBorderOpacity` before `setBordersVisible(true)`**, and
+**enabling auto-rotate at boot sets `autoRotateAllowed` directly** rather than calling
+`setAutoRotateAllowed(true)`, which resets the idle timer and stops the intro spin. Persisted
+lighting is applied ~1.7 s late on purpose: `fadeInLighting()` ramps the same uniforms.
+
 ### The design system — `@terragotcha/design-tokens`
 
 `packages/design-tokens/src/tokens.js` is the **single source of truth**, in three tiers:
@@ -280,6 +294,18 @@ its translation switch are gone.
 Answers to "find the country" arrive through `globeBridge.onPick`, never from an engine
 object. `BackButtonGuard` is replaced rather than ported — the component that starts the quiz
 pushes the history guard entry itself.
+
+**Settings, progress and weak spots (`ShellControls.tsx`, `client:idle`).** A sibling island to
+the quiz, mounted for every route, rendering **null** until a globe exists. Settings drive
+`GlobeAppearance` and never see an engine object. The progress sheet is a pure read over
+`quizHistoryStore`. `src/lib/overlay.ts` is a module singleton naming which sheet is open, so
+the quiz's mode picker can open the progress sheet across the island boundary — the same
+separate-roots constraint as everywhere else. Sheet scaffolding shared by all four surfaces is
+`styles/sheet.css`.
+
+Not there yet, each for a reason: the **UI theme picker** waits on B9's backend cutover (the
+legacy 24-knob names would style nothing), and **"Country info panel"** waits on
+`flag-renderer.js` moving over — a switch for something the app cannot show is worse than none.
 
 **Other islands reach the globe through `src/lib/globe.ts`**, a module singleton holding the
 `GlobeBridge` and the country table. Forced, not stylistic: `GlobeIsland` is `client:only` and
@@ -482,6 +508,13 @@ islands — separate React roots can only share a module-level store.
   so a raw subscription would fire an analytics event per answered question.
 - A quiz mode calls `quizStore.startSession(this.session)` after `createSession`
   and `quizStore.end()` from both `end()` and `cancel()`. Nothing else writes it.
+
+### Settings — `settingsStore` (`@terragotcha/storage`)
+
+`get()` returns a **live reference**, by design: `settings-panel.js` and `scene-appearance.js`
+both depend on it. That means its identity never changes, so React cannot use it as a
+`useSyncExternalStore` snapshot — the store exposes `subscribe()` and `getVersion()` for that,
+and `apps/web/src/lib/settings.ts` reads the version and the values separately.
 
 `js/data/state.js` is **not** the place for new application state — it holds live
 Three.js references and editor bookkeeping, and is destined to become internal to
