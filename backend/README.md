@@ -33,23 +33,30 @@ cp .env.example .env            # then edit secrets / CORS origins
 
 ## Run locally with the frontend
 
-The globe is a static site; run it and the API as two local servers (no deployment, no
-`rojosample.net` needed). Keep the **API on Django's default port 8000** and serve the static
-frontend on **any other port** (8001 below). On localhost the frontend auto-targets `:8000/api`, and
-in DEBUG the backend accepts any localhost origin — so the frontend's port doesn't matter and no
-`window.GLOBE3D_API_BASE` is needed.
+Run the API and the frontend as two local servers (no deployment, no `rojosample.net`
+needed). Keep the **API on Django's default port 8000**; the frontend's own port doesn't
+matter, because on a localhost hostname it auto-targets `:8000/api` and in DEBUG the backend
+accepts any localhost origin — so no `window.GLOBE3D_API_BASE` is needed.
 
 ```bash
 # Terminal A — the API (from backend/, after the Setup steps above)
 .venv/bin/python manage.py runserver          # -> http://127.0.0.1:8000
 
-# Terminal B — the static frontend (from the repo root)
-python3 -m http.server 8001
+# Terminal B — the frontend (from the repo root)
+npm run dev                                   # -> http://localhost:8011
 ```
 
-Open <http://localhost:8001> (use `localhost` or `127.0.0.1`, not `0.0.0.0`) and click
+Open <http://localhost:8011> (use `localhost` or `127.0.0.1`, not `0.0.0.0`) and click
 **★ Daily Challenge**. The frontend's calls go to `http://localhost:8000/api/*`. Set
 `window.GLOBE3D_API_BASE` only for the **deployed** frontend, to point it at the self-hosted API.
+
+`npm run dev` serves the repo root *and* starts `astro dev`, proxying `/country/*` to it so
+both apps share one origin — the shape Cloudflare Pages serves in production. Notes:
+
+- `astro dev` is a managed daemon that outlives `npm run dev`; stop it with `npx astro dev stop`.
+- `PORT=8012 npm run dev` if 8011 is taken. A leftover `python3 -m http.server` from the old
+  two-server setup is the usual culprit.
+- `npm run dev -- --solo` runs just the proxy, if you'd rather start `npm run dev:web` yourself.
 
 > Serving over `file://` won't work — ES modules and the large `.bin` asset fetches need HTTP.
 

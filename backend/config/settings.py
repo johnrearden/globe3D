@@ -258,7 +258,7 @@ AUDIT_TOKEN_MAX_AGE = int(os.environ.get('AUDIT_TOKEN_MAX_AGE', '3600'))  # 1h
 # CORS-allowed origin the operator already configures) rather than the dev
 # default, so a missing AUDIT_FRONTEND_ORIGIN can't hand out a localhost link.
 _default_audit_origin = (
-    CORS_ALLOWED_ORIGINS[0] if (not DEBUG and CORS_ALLOWED_ORIGINS) else 'http://localhost:8001'
+    CORS_ALLOWED_ORIGINS[0] if (not DEBUG and CORS_ALLOWED_ORIGINS) else 'http://localhost:8011'
 )
 AUDIT_FRONTEND_ORIGIN = os.environ.get('AUDIT_FRONTEND_ORIGIN', _default_audit_origin)
 
