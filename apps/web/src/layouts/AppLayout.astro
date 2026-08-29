@@ -31,12 +31,15 @@ const canonical = new URL(canonicalPath, Astro.site).href;
 // style loading. Page-specific styling is imported by the page.
 import '../../../../packages/design-tokens/dist/tokens.css';
 import '../styles/shell.css';
+import '../styles/sheet.css';
 import '../styles/quiz.css';
+import '../styles/controls.css';
 
 // The quiz is furniture rather than a route: it overlays whatever page is on
 // screen and never changes the URL. So it mounts here, once, for every route —
 // a reader who arrived on a country article can take a quiz without leaving it.
 import QuizLayer from '../components/quiz/QuizLayer';
+import ShellControls from '../components/shell/ShellControls';
 ---
 <!doctype html>
 <html lang="en">
@@ -69,5 +72,8 @@ import QuizLayer from '../components/quiz/QuizLayer';
          stays untouched static markup, which is the invariant this app exists
          to hold. -->
     <QuizLayer client:idle />
+    <!-- Settings, progress and weak spots. A separate island from the quiz
+         because none of it is a quiz; they agree through lib/overlay.ts. -->
+    <ShellControls client:idle />
 </body>
 </html>

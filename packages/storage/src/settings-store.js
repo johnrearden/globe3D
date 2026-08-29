@@ -48,11 +48,40 @@ class SettingsStore {
             ...parsed,
             autoRotate: { ...SETTINGS_DEFAULTS.autoRotate, ...(parsed.autoRotate || {}) }
         };
+        this._listeners = new Set();
+        this._version = 0;
     }
 
     /** Full settings object (a live reference — treat as read-only). */
     get() {
         return this._data;
+    }
+
+    /**
+     * A number that changes on every `save`.
+     *
+     * The snapshot for `useSyncExternalStore`, which compares snapshots with
+     * `Object.is`. It cannot compare the settings object itself: `get()` returns
+     * a LIVE reference by design — settings-panel.js and scene-appearance.js
+     * both rely on that — so its identity never changes and React would never
+     * re-render. A component reads the version here and the values from `get()`.
+     *
+     * @returns {number}
+     */
+    getVersion() {
+        return this._version;
+    }
+
+    /**
+     * Observe writes. Fires after the change is persisted, so a listener that
+     * re-reads always sees the value that is on disk.
+     *
+     * @param {() => void} listener
+     * @returns {() => void} unsubscribe
+     */
+    subscribe(listener) {
+        this._listeners.add(listener);
+        return () => this._listeners.delete(listener);
     }
 
     /**
@@ -70,6 +99,16 @@ class SettingsStore {
             }
         }
         writeJson(this._storage, SETTINGS_KEY, d);
+        this._version++;
+        for (const listener of this._listeners) {
+            try {
+                listener();
+            } catch (err) {
+                // One bad subscriber must not stop the others, and must not make
+                // a settings write look like it failed — it is already on disk.
+                console.error('settings listener failed:', err);
+            }
+        }
         return d;
     }
 }

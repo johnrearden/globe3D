@@ -1,0 +1,122 @@
+/**
+ * The sheet: a bottom sheet on mobile, a centred dialog on desktop.
+ *
+ * Every full-screen surface in the app is one — the quiz mode picker, the
+ * results, settings, progress. Extracted here when the second one arrived,
+ * rather than at the third: the quiz's `.qmp-sheet` and `.qr-sheet` already had
+ * to be written as one rule, which is the point at which "these are the same
+ * thing" stops being a guess.
+ *
+ * Furniture, so it is imported by `AppLayout` alongside `shell.css` rather than
+ * by any one page. Tokens only; see `shell.css`'s header for the rule.
+ */
+
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;      /* mobile: rises from the bottom edge */
+    justify-content: center;
+}
+
+@media (min-width: 720px) {
+    .sheet-overlay {
+        align-items: center;
+    }
+}
+
+/* A button, not a div with a click handler, so dismissing by backdrop works for
+   the keyboard as well as the mouse. */
+.sheet-scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--scrim);
+    border: none;
+    cursor: pointer;
+}
+
+.sheet {
+    /* Measure, not decoration: wider than this and two-column content sprawls. */
+    --sheet-max: 34rem;
+    position: relative;
+    width: 100%;
+    max-width: var(--sheet-max);
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: var(--space-4);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+    box-shadow: var(--shadow-dock);
+}
+
+@media (min-width: 720px) {
+    .sheet {
+        border-radius: var(--radius-panel);
+        box-shadow: var(--shadow-high);
+    }
+}
+
+/* The drag affordance. Decorative on desktop, but harmless and keeps the two
+   layouts recognisably the same object. */
+.sheet-grabber {
+    width: 2.5rem;
+    height: 4px;
+    margin: 0 auto var(--space-3);
+    background: var(--border-strong);
+    border-radius: var(--radius-pill);
+}
+
+.sheet-title {
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+}
+
+/* A section heading inside a sheet — small, spaced, secondary. */
+.sheet-section-label {
+    margin: var(--space-5) 0 var(--space-2);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.sheet-section-label:first-of-type {
+    margin-top: 0;
+}
+
+/* The dismissing control every sheet ends with. */
+.sheet-dismiss {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    background: none;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: var(--radius-btn);
+    cursor: pointer;
+    font-size: var(--text-sm);
+}
+
+.sheet-dismiss:hover {
+    color: var(--text-primary);
+}
+
+.sheet-dismiss:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.sheet-empty {
+    margin: 0;
+    padding: var(--space-5) 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+}

@@ -12,4 +12,14 @@ export {
     missingBridgeMembers,
 } from './interface.js';
 
-export { createFakeGlobeBridge, callNames } from './fake.js';
+export {
+    GLOBE_APPEARANCE_METHODS,
+    LIGHTING_DEFAULTS,
+    missingAppearanceMembers,
+} from './appearance.js';
+
+export {
+    createFakeGlobeBridge,
+    createFakeGlobeAppearance,
+    callNames,
+} from './fake.js';

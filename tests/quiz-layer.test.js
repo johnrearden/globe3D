@@ -18,6 +18,17 @@ import { AREA_FILTER_EXEMPT_REGION } from '../packages/quiz-core/src/filters.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
+/**
+ * Strip comments so the "never touches the engine" checks read CODE, not prose.
+ * Without this, a docstring explaining WHY the engine is off-limits fails the
+ * test that enforces it — which is exactly what happened when these were
+ * written. Same crude approach as tests/country-page-static.test.js.
+ */
+const stripComments = src => src
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^\s*\/\/.*$/gm, ' ')
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ');
+
 describe('mode table', () => {
     it('covers every quiz-core mode exactly once', () => {
         // The vanilla picker used its own ids (name/flag/find/capital) and a
@@ -116,5 +127,41 @@ describe('the quiz must not reach the static document', () => {
         // server there is no globe, so the component returns null and Astro
         // emits an empty island rather than quiz chrome.
         expect(layer).toMatch(/if \(!globe\) return null;/);
+    });
+});
+
+describe('the shell controls must not reach the static document either', () => {
+    const layout = read('../apps/web/src/layouts/AppLayout.astro');
+    const shell = read('../apps/web/src/components/shell/ShellControls.tsx');
+
+    it('mounts as client:idle, never client:load', () => {
+        expect(layout).toMatch(/<ShellControls client:idle \/>/);
+    });
+
+    it('renders nothing until the globe exists', () => {
+        // Same guarantee as QuizLayer: on the server there is no globe, so the
+        // island's build-time output is empty and the article is untouched.
+        expect(shell).toMatch(/if \(!handle\) return null;/);
+    });
+});
+
+describe('settings never touch the engine', () => {
+    const settings = stripComments(read('../apps/web/src/components/shell/SettingsSheet.tsx'));
+    const weak = stripComments(read('../apps/web/src/components/shell/WeakSpots.tsx'));
+
+    it('goes through GlobeAppearance, not globeManager', () => {
+        // The vanilla panel held globeManager, cameraController, labelManager
+        // and raw shader uniforms, which is exactly why it could never have been
+        // carried to native.
+        expect(settings).not.toMatch(/globeManager|cameraController|labelManager|uniforms/);
+        expect(settings).toMatch(/appearance\./);
+    });
+
+    it('reproduces a globe tap through the bridge, not by hand', () => {
+        // weak-spots-widget.js copied PointerControls.onPointerUp's four-call
+        // sequence, with a comment admitting it. A copied sequence drifts.
+        expect(weak).not.toMatch(/setSelectedCountry|rotateToCountry/);
+        expect(weak).toMatch(/globe\.highlight/);
+        expect(weak).toMatch(/globe\.focusCountry/);
     });
 });

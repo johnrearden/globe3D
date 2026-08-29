@@ -96,3 +96,55 @@ export interface GlobeBridge {
 
     markers: GlobeMarkers;
 }
+
+/** Persisted preferences, as `SETTINGS_DEFAULTS` shapes them. */
+export interface GlobeSettings {
+    scheme?: string;
+    showCountries?: boolean;
+    showLabels?: boolean;
+    borders?: boolean;
+    borderOpacity?: number;
+    selGradient?: boolean;
+    autoRotate?: { enabled?: boolean; delayMs?: number; speed?: number };
+    lighting?: Lighting | null;
+}
+
+export interface Lighting {
+    ambient: number;
+    diffuse: number;
+    specStrength: number;
+    shininess: number;
+    oceanSpecBoost: number;
+}
+
+/**
+ * How the globe LOOKS, as opposed to where it is pointing.
+ *
+ * Separate from `GlobeBridge` on purpose — see
+ * `packages/globe-bridge/src/appearance.js` for why, and note that
+ * `tests/globe-bridge-types.test.js` checks this list against
+ * `GLOBE_APPEARANCE_METHODS` the same way it checks the bridge.
+ */
+export interface GlobeAppearance {
+    /** Apply a whole persisted settings object. The boot call. */
+    applyAll(settings: GlobeSettings): void;
+    /** The colour schemes this globe can render, in display order. */
+    schemes(): Array<{ key: string; label: string }>;
+    /** Recolour every country. A scheme KEY, never colours. */
+    setCountryScheme(key: string): void;
+    setCountriesVisible(visible: boolean): void;
+    setLabelsVisible(visible: boolean): void;
+    setBordersVisible(visible: boolean): void;
+    /** 0–1. Set before enabling borders, or they draw at the wrong strength. */
+    setBorderOpacity(opacity: number): void;
+    setSelectionGradient(enabled: boolean): void;
+    /**
+     * The user's standing preference. Distinct from
+     * `GlobeBridge.setAutoRotateAllowed`, which is a quiz suppressing drift for
+     * the duration of a question and must not overwrite this.
+     */
+    setAutoRotate(opts: { enabled?: boolean; delayMs?: number; speed?: number }): void;
+    /** Null restores the defaults. */
+    setLighting(lighting: Lighting | null): void;
+    lightingDefaults(): Lighting;
+}

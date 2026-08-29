@@ -126,9 +126,32 @@ describe('quiz history store', () => {
         const [row] = s.getModeStats();
         expect(row).toMatchObject({
             mode: 'name-flag', scope: 'globe', games: 2,
-            bestScore: 8, bestPct: 80, avgPct: 60,
+            bestScore: 8, bestTotal: 10, bestPct: 80, avgPct: 60,
             bestTimeMs: 20000, avgTimeMs: 30000, lastTs: 2000,
         });
+    });
+
+    it('reports the best score with the total it was actually out of', () => {
+        const s = createQuizHistoryStore(createMemoryStorage());
+        // A shorter region round that was perfect, and a longer one that was not.
+        // The higher SCORE is 7; the better RESULT is 6/6.
+        s.record({ ts: 1, mode: 'name-flag', scope: 'Oceania', score: 7, total: 10, durationMs: 1000, questions: [] });
+        s.record({ ts: 2, mode: 'name-flag', scope: 'Oceania', score: 6, total: 6, durationMs: 1000, questions: [] });
+
+        const [row] = s.getModeStats();
+        // Tracking the two maxima separately used to pair 7 with the wrong total
+        // and report "best 7/10" for a player whose best round was 6/6.
+        expect(row.bestPct).toBe(100);
+        expect(row.bestScore).toBe(6);
+        expect(row.bestTotal).toBe(6);
+    });
+
+    it('breaks a percentage tie on the higher score', () => {
+        const s = createQuizHistoryStore(createMemoryStorage());
+        s.record({ ts: 1, mode: 'capital', scope: 'globe', score: 3, total: 6, durationMs: 1, questions: [] });
+        s.record({ ts: 2, mode: 'capital', scope: 'globe', score: 5, total: 10, durationMs: 1, questions: [] });
+        const [row] = s.getModeStats();
+        expect([row.bestScore, row.bestTotal]).toEqual([5, 10]);
     });
 
     it('returns sessions newest-first and filters by mode', () => {

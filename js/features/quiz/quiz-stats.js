@@ -105,7 +105,7 @@ export class QuizStats {
                         <div class="qsv-row-sub">${escapeHtml(scopeLabel(s.scope))} · ${s.games} game${s.games === 1 ? '' : 's'}${time}</div>
                     </div>
                     <div class="qsv-row-metric">
-                        <div class="qsv-row-best">${s.bestScore}/10</div>
+                        <div class="qsv-row-best">${s.bestScore}/${s.bestTotal}</div>
                         <div class="qsv-row-best-label">best · avg ${s.avgPct}%</div>
                     </div>
                 </div>`;

@@ -1,0 +1,354 @@
+/**
+ * Standing controls: the settings gear, the form rows inside settings, the
+ * progress lists, and the weak-spots heads-up list.
+ *
+ * The sheets these live in are `sheet.css`; this is only what goes inside them
+ * plus the two fixed affordances. Tokens only; see `shell.css`'s header.
+ */
+
+/* ── The gear ─────────────────────────────────────────────────────────────── */
+/* Top-left, opposite the panel, so it never sits under the sheet on mobile. */
+.shell-gear {
+    position: fixed;
+    z-index: 40;
+    top: var(--space-4);
+    left: var(--space-4);
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-circle);
+    box-shadow: var(--shadow-low);
+    cursor: pointer;
+}
+
+.shell-gear:hover {
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+
+.shell-gear:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ── Form rows ────────────────────────────────────────────────────────────── */
+.ctl-row {
+    display: grid;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+}
+
+.ctl-label {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+.ctl-value {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+    text-align: right;
+    /* Tabular figures, so a slider's readout does not jitter as it changes. */
+    font-variant-numeric: tabular-nums;
+}
+
+/* Toggle: label left, switch right. */
+.ctl-toggle {
+    grid-template-columns: 1fr auto;
+}
+
+/* The checkbox is the accessible control; the pill is what you see. Clipped
+   rather than display:none so it stays focusable and announced. */
+.ctl-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.ctl-switch {
+    position: relative;
+    width: 2.5rem;
+    height: 1.5rem;
+    background: var(--surface-inset);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    transition: background 150ms ease;
+}
+
+.ctl-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 1.125rem;
+    height: 1.125rem;
+    background: var(--text-secondary);
+    border-radius: var(--radius-circle);
+    transition: transform 150ms ease, background 150ms ease;
+}
+
+.ctl-toggle input:checked + .ctl-switch {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.ctl-toggle input:checked + .ctl-switch::after {
+    background: var(--on-primary);
+    transform: translateX(1rem);
+}
+
+.ctl-toggle input:focus-visible + .ctl-switch {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ctl-switch,
+    .ctl-switch::after {
+        transition: none;
+    }
+}
+
+/* Slider: label and readout on one line, track beneath, full width. */
+.ctl-slider {
+    grid-template-columns: 1fr auto;
+}
+
+.ctl-slider input[type='range'] {
+    grid-column: 1 / -1;
+    width: 100%;
+    accent-color: var(--primary);
+}
+
+.ctl-slider input[type='range']:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 4px;
+}
+
+/* ── Chip group (the colour schemes) ──────────────────────────────────────── */
+.ctl-fieldset {
+    margin: 0;
+    padding: var(--space-2) 0;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ctl-fieldset legend {
+    padding: 0 0 var(--space-2);
+}
+
+.ctl-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.ctl-chip input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.ctl-chip span {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    background: var(--surface-inset);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+
+.ctl-chip input:checked + span {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+    font-weight: var(--weight-medium);
+}
+
+.ctl-chip input:focus-visible + span {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ── Buttons inside a sheet ───────────────────────────────────────────────── */
+.ctl-button {
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-btn);
+    cursor: pointer;
+    font-size: var(--text-sm);
+}
+
+.ctl-button:hover {
+    border-color: var(--border-strong);
+}
+
+.ctl-button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Armed state for the two-tap destructive confirm — the colour is the warning,
+   and the label changes too, so it does not rely on hue alone. */
+.ctl-danger.armed {
+    background: var(--status-incorrect);
+    border-color: var(--status-incorrect);
+    color: var(--on-primary);
+    font-weight: var(--weight-medium);
+}
+
+/* ── Progress lists ───────────────────────────────────────────────────────── */
+.stat-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.stat-row {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--text-sm);
+}
+
+.stat-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+.stat-metric {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: var(--space-1);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-sub {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-normal);
+    color: var(--text-secondary);
+}
+
+/* ── Weak spots ───────────────────────────────────────────────────────────── */
+/* Chromeless, under the gear on the left: a heads-up list annotating the globe,
+   not a panel. NOT top-right — the content panel is `right: 0` on desktop, so
+   the list would be behind it exactly where the globe is easiest to see.
+   Hidden entirely during a quiz; see WeakSpots.tsx. */
+.weakspots {
+    /* Clears the gear above it: gear height plus one step. */
+    --weakspots-top: 4.5rem;
+    position: fixed;
+    z-index: 30;
+    top: var(--weakspots-top);
+    left: var(--space-4);
+    width: 11rem;
+    pointer-events: none;   /* the rows re-enable it; the gaps stay click-through */
+}
+
+/* Below the panel's breakpoint the sheet covers the bottom and the globe has
+   little room left; a floating list on top of it is clutter, not a heads-up. */
+@media (max-width: 899px) {
+    .weakspots {
+        display: none;
+    }
+}
+
+.weakspots-title {
+    margin: 0 0 var(--space-1);
+    padding-left: var(--space-2);
+}
+
+.weakspots-title button {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    pointer-events: auto;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.weakspots-title button:hover {
+    color: var(--primary);
+}
+
+.weakspots-list {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.weakspots-row {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: var(--space-1) var(--space-2);
+    background: none;
+    border: none;
+    border-radius: var(--radius-btn);
+    color: var(--text-secondary);
+    cursor: pointer;
+    pointer-events: auto;
+    font-size: var(--text-xs);
+    text-align: left;
+}
+
+.weakspots-row:hover {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+}
+
+.weakspots-row:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.weakspots-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.weakspots-flag {
+    /* Not --radius-btn: that is 10px, which on a 20px-wide thumbnail is half its
+       height and turns a flag into a lozenge. A hairline softening is a property
+       of this thumbnail, not of the theme, so it is a local custom property —
+       the --panel-grip pattern. */
+    --flag-radius: 2px;
+    flex: none;
+    width: 1.25rem;
+    height: auto;
+    border-radius: var(--flag-radius);
+}

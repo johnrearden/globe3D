@@ -13,6 +13,7 @@
  */
 import { useState } from 'react';
 import Icon from './Icon';
+import { setOverlay } from '../../lib/overlay';
 import { QUIZ_MODES, REGIONS, type ModeId, type Scope } from '../../lib/quiz/modes';
 
 export default function ModePicker({
@@ -27,15 +28,15 @@ export default function ModePicker({
     const [scope, setScope] = useState<Scope>('globe');
 
     return (
-        <div className="qmp" role="dialog" aria-modal="true" aria-labelledby="qmp-heading">
+        <div className="qmp sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="qmp-heading">
             {/* A click on the backdrop cancels, the same as Escape. It is a
                 button rather than a div with a handler so that is true for the
                 keyboard too. */}
-            <button type="button" className="qmp-scrim" onClick={onCancel} aria-label="Close" />
+            <button type="button" className="sheet-scrim" onClick={onCancel} aria-label="Close" />
 
-            <div className="qmp-sheet">
-                <div className="qmp-grabber" aria-hidden="true" />
-                <h2 id="qmp-heading">Take a quiz</h2>
+            <div className="qmp-sheet sheet">
+                <div className="sheet-grabber" aria-hidden="true" />
+                <h2 id="qmp-heading" className="sheet-title">Take a quiz</h2>
 
                 <fieldset className="qmp-scope">
                     <legend>Where in the world?</legend>
@@ -75,6 +76,16 @@ export default function ModePicker({
                         </li>
                     ))}
                 </ul>
+
+                {/* Reaches a sheet owned by ShellControls, a different React
+                    root — hence the module singleton rather than a prop. */}
+                <button
+                    type="button"
+                    className="qmp-stats-link"
+                    onClick={() => { onCancel(); setOverlay('stats'); }}
+                >
+                    View your progress
+                </button>
 
                 <button type="button" className="qmp-cancel" onClick={onCancel}>
                     Not now

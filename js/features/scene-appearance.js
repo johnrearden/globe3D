@@ -15,6 +15,7 @@
  */
 
 import { settingsStore } from '../data/settings-store.js';
+import { SETTINGS_DEFAULTS } from '@terragotcha/storage';
 import { onThemeChange } from '../utils/theme.js';
 import { applyScheme } from './color-schemes.js';
 import { getActiveSceneAppearance } from './theme-switcher.js';
@@ -28,11 +29,18 @@ let _defaultOcean = null;   // THREE.Color captured before any override (for res
  * The country color scheme the active theme dictates, else the user's persisted
  * pick. A theme-pinned scheme wins; the settings-gear picker is a live override.
  * Shared with settings-panel.js so both writers resolve identically.
+ *
+ * The last fallback is `SETTINGS_DEFAULTS.scheme` rather than a literal. It used
+ * to say 'vibrant' here while the store defaulted to 'greys' and the Astro globe
+ * island defaulted to 'greys' — three answers to one question, only reachable if
+ * the store ever handed back a falsy scheme, and therefore the kind of
+ * disagreement that would surface as "the globe is the wrong colour on one page"
+ * long after the change that caused it.
  * @returns {string}
  */
 export function resolveActiveScheme() {
     return getActiveSceneAppearance().countryScheme
-        || settingsStore.get().scheme || 'vibrant';
+        || settingsStore.get().scheme || SETTINGS_DEFAULTS.scheme;
 }
 
 /**
@@ -46,7 +54,7 @@ export function applySceneAppearance(a = {}) {
     if (!_sceneManager || !_globeManager) return;
     if (_defaultBg) _sceneManager.setBackground(a.sceneBg || _defaultBg);
     _globeManager.setOceanColor(a.oceanColor || _defaultOcean);
-    applyScheme(_globeManager, a.countryScheme || settingsStore.get().scheme || 'vibrant');
+    applyScheme(_globeManager, a.countryScheme || settingsStore.get().scheme || SETTINGS_DEFAULTS.scheme);
 }
 
 /**

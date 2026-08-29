@@ -13,6 +13,7 @@
 import { useEffect, useState } from 'react';
 import { formatDuration } from '../../lib/quiz/useElapsed';
 import { scopeLabel, type Scope } from '../../lib/quiz/modes';
+import { setOverlay } from '../../lib/overlay';
 import type { BestSummary } from '../../lib/quiz/useQuizSession';
 
 /** Circumference of the r=62 ring, for the dash-offset arc. */
@@ -60,8 +61,8 @@ export default function ResultsScreen({
     }, []);
 
     return (
-        <div className="qr" role="dialog" aria-modal="true" aria-labelledby="qr-headline">
-            <div className="qr-sheet">
+        <div className="qr sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="qr-headline">
+            <div className="qr-sheet sheet">
                 <div className="qr-ring">
                     <svg viewBox="0 0 140 140" aria-hidden="true">
                         <circle className="qr-ring-track" cx="70" cy="70" r="62" />
@@ -106,6 +107,14 @@ export default function ResultsScreen({
                         Back to the globe
                     </button>
                 </div>
+
+                <button
+                    type="button"
+                    className="qr-progress-link"
+                    onClick={() => { onGlobe(); setOverlay('stats'); }}
+                >
+                    See all your results
+                </button>
             </div>
         </div>
     );

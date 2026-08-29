@@ -18,6 +18,7 @@ import {
     GLOBE_BRIDGE_METHODS,
     GLOBE_MARKER_METHODS,
 } from '../packages/globe-bridge/src/interface.js';
+import { GLOBE_APPEARANCE_METHODS } from '../packages/globe-bridge/src/appearance.js';
 
 const src = readFileSync(
     fileURLToPath(new URL('../apps/web/src/lib/globe-types.ts', import.meta.url)),
@@ -59,5 +60,12 @@ describe('globe-types.ts mirrors the GlobeBridge contract', () => {
     it('declares exactly the marker methods', () => {
         expect([...methodsIn('GlobeMarkers')].sort())
             .toEqual([...GLOBE_MARKER_METHODS].sort());
+    });
+
+    it('declares exactly the appearance methods', () => {
+        // The display half of the boundary, mirrored for the same reason and
+        // guarded the same way.
+        expect([...methodsIn('GlobeAppearance')].sort())
+            .toEqual([...GLOBE_APPEARANCE_METHODS].sort());
     });
 });

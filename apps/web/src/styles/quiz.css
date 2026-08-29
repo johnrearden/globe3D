@@ -62,71 +62,9 @@
     opacity: 0.75;
 }
 
-/* ── Shared overlay scaffolding ───────────────────────────────────────────── */
-.qmp,
-.qr {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-
-@media (min-width: 720px) {
-    .qmp,
-    .qr {
-        align-items: center;
-    }
-}
-
-.qmp-scrim {
-    position: absolute;
-    inset: 0;
-    background: var(--scrim);
-    border: none;
-    cursor: pointer;
-}
-
-.qmp-sheet,
-.qr-sheet {
-    --sheet-max: 34rem;      /* measure: wider than this and the cards sprawl */
-    position: relative;
-    width: 100%;
-    max-width: var(--sheet-max);
-    max-height: 88vh;
-    overflow-y: auto;
-    padding: var(--space-4);
-    background: var(--bg-panel);
-    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
-    box-shadow: var(--shadow-dock);
-}
-
-@media (min-width: 720px) {
-    .qmp-sheet,
-    .qr-sheet {
-        border-radius: var(--radius-panel);
-        box-shadow: var(--shadow-high);
-    }
-}
-
-.qmp-grabber {
-    width: 2.5rem;
-    height: 4px;
-    margin: 0 auto var(--space-3);
-    background: var(--border-strong);
-    border-radius: var(--radius-pill);
-}
-
 /* ── Mode picker ──────────────────────────────────────────────────────────── */
-.qmp h2 {
-    margin: 0 0 var(--space-4);
-    font-family: var(--font-heading);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-}
-
+/* Overlay, scrim, sheet, grabber and title come from sheet.css — every
+   full-screen surface in the app is the same object. */
 .qmp-scope {
     margin: 0 0 var(--space-4);
     padding: 0;
@@ -245,6 +183,19 @@
 .qmp-card-go {
     flex: none;
     color: var(--text-secondary);
+}
+
+.qmp-stats-link {
+    display: block;
+    width: 100%;
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    text-decoration: underline;
 }
 
 .qmp-cancel {
@@ -542,6 +493,25 @@
 /* ── Results ──────────────────────────────────────────────────────────────── */
 .qr-sheet {
     text-align: center;
+}
+
+/* A link out of the results into the progress sheet, so the numbers a player
+   just made are one tap from the numbers they have made before. */
+.qr-progress-link {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+}
+
+.qr-progress-link:hover {
+    color: var(--primary);
 }
 
 .qr-ring {

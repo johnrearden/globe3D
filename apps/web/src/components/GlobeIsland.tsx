@@ -66,8 +66,8 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     { SmallCountryIndicator },
                     { PointerControls },
                     { createWebGlobeBridge },
+                    { createWebGlobeAppearance },
                     { createCountryTable },
-                    { applyScheme },
                     { settingsStore },
                     { LARGE_COUNTRIES, SMALL_COUNTRIES },
                     { countryData, countryToISO },
@@ -81,8 +81,8 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     import('../../../../js/features/small-country-indicator.js'),
                     import('../../../../js/features/pointer-controls.js'),
                     import('../../../../js/data/globe-bridge.js'),
+                    import('../../../../js/data/globe-appearance.js'),
                     import('../../../../js/data/country-table.js'),
-                    import('../../../../js/features/color-schemes.js'),
                     import('../../../../js/data/settings-store.js'),
                     import('../../../../js/data/country-sizes.js'),
                     import('../../../../js/data/country-data.js'),
@@ -109,24 +109,6 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 });
                 if (disposed) return;
 
-                // The reader's country colour scheme, the same one the globe app
-                // applies. Without this the baked "vibrant" palette shows
-                // through, so the globe visibly changes colour when crossing
-                // between the two apps — which reads as the globe being rebuilt
-                // even though the scene is the same object throughout.
-                //
-                // Must come after loadGlobe: applyScheme reads
-                // globeManager.paletteOriginal and no-ops until the palette is
-                // there. Defaulted here rather than trusted to the caller
-                // because the store's own default ('greys') is the shared answer.
-                //
-                // Reads the reader's STORED scheme only, not a theme-pinned one.
-                // resolveActiveScheme() in scene-appearance.js prefers a remote
-                // theme's countryScheme, but that needs theme-switcher and an API
-                // round trip the content pages do not make. Wire it when settings
-                // move over; until then a pinned scheme is honoured in the globe
-                // app and not here.
-                applyScheme(globeManager, settingsStore.get().scheme || 'greys');
 
                 // Country names. The size tiers come from js/data/country-sizes.js
                 // rather than a copy here, so both apps draw the same labels at
@@ -180,9 +162,28 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 sceneManager.fadeInLights();
                 globeManager.fadeInLighting?.();
 
-                // Everything past this point goes through the bridge, not the
-                // engine objects — the same contract the quiz layer uses.
+                // Everything past this point goes through the two interfaces,
+                // not the engine objects — the same contract the quiz layer and
+                // the settings panel use. The bridge is where the globe is
+                // POINTING; the appearance is how it LOOKS.
                 const globe = createWebGlobeBridge({ globeManager, cameraController });
+                const appearance = createWebGlobeAppearance({
+                    globeManager, cameraController, labelManager,
+                });
+
+                // The reader's saved preferences, all of them, in one call.
+                //
+                // Must come after loadGlobe: a scheme is derived FROM
+                // `paletteOriginal`, so applying one before the palette exists
+                // silently does nothing — which is how the baked "vibrant"
+                // palette used to show through and make the globe appear to
+                // change colour between the two apps.
+                //
+                // A theme-pinned scheme is still not honoured here:
+                // `resolveActiveScheme()` prefers one, but that needs
+                // theme-switcher and an API round trip these pages do not make.
+                // It arrives with B9.
+                appearance.applyAll(settingsStore.get());
 
                 // Taps on the globe. PointerControls owns the whole pointer
                 // dispatch — drag vs. tap, flick momentum, long-press — so this
@@ -223,6 +224,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // engine and quiz-core.
                 setGlobeHandle({
                     globe,
+                    appearance,
                     countries: createCountryTable({ globeManager, countryToISO }),
                 });
 

@@ -7,12 +7,15 @@
  * module-level store is the only thing both can reach. Same constraint that
  * makes `quizStore` a singleton — see `packages/quiz-core/src/store.js`.
  *
- * Two values cross, and only two:
+ * Three values cross, and only three:
  *
  *   - the `GlobeBridge`, so quiz code can command the globe without ever seeing
  *     `globeManager`, `cameraController`, a `THREE.Vector3` or a DOM node. That
  *     rule is what makes the interface portable to native; see
  *     `packages/globe-bridge/src/interface.js`.
+ *   - the `GlobeAppearance`, the display half of the same boundary. Separate
+ *     from the bridge because settings are a different consumer with a
+ *     different lifetime; see `packages/globe-bridge/src/appearance.js`.
  *   - the country table, because country data is deliberately NOT a globe
  *     concern. `createCountryTable` (`js/data/country-table.js`) assembles the
  *     plain, serialisable rows quiz-core's generators take. A renderer that
@@ -23,7 +26,7 @@
  * globe is already up, which is the common case for a quiz started by a user who
  * has been looking at the globe for a while.
  */
-import type { GlobeBridge } from './globe-types';
+import type { GlobeAppearance, GlobeBridge } from './globe-types';
 
 /** The rows quiz-core generators consume. Mirrors `js/data/country-table.js`. */
 export interface CountryRow {
@@ -44,6 +47,7 @@ export interface CountryTable {
 
 export interface GlobeHandle {
     globe: GlobeBridge;
+    appearance: GlobeAppearance;
     countries: CountryTable;
 }
 

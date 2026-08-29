@@ -12,6 +12,8 @@
  * catches and a state-only double would not.
  */
 
+import { LIGHTING_DEFAULTS } from './appearance.js';
+
 /**
  * @param {object} [opts]
  * @param {(name: string, fraction: number) => number} [opts.framingDistance]
@@ -107,4 +109,65 @@ export function createFakeGlobeBridge({ framingDistance = () => 1.5 } = {}) {
 /** Method names from a `calls` log, for order assertions. */
 export function callNames(bridge) {
     return bridge.calls.map(c => c.method);
+}
+
+/**
+ * A `GlobeAppearance` that records instead of rendering.
+ *
+ * Same shape as `createFakeGlobeBridge`: a `calls` log plus the live state, so a
+ * test can assert either "it did this" or "it ended up like this". The state
+ * matters more here than for the bridge — settings are about what the globe IS,
+ * not what it just did.
+ */
+export function createFakeGlobeAppearance() {
+    const fake = {
+        calls: [],
+        // Deliberately undefined rather than defaulted: a test asserting that
+        // boot applied a setting must be able to tell "set to false" from
+        // "never set".
+        state: {
+            scheme: undefined,
+            countriesVisible: undefined,
+            labelsVisible: undefined,
+            bordersVisible: undefined,
+            borderOpacity: undefined,
+            selectionGradient: undefined,
+            autoRotate: undefined,
+            lighting: undefined,
+        },
+    };
+
+    const record = (method, args) => fake.calls.push({ method, args });
+
+    Object.assign(fake, {
+        applyAll(settings) {
+            record('applyAll', [settings]);
+            // Mirrors the real implementation's ordering contract: opacity
+            // before visibility, so a test can catch a regression in it.
+            if (settings.scheme != null) fake.setCountryScheme(settings.scheme);
+            fake.setCountriesVisible(settings.showCountries !== false);
+            fake.setLabelsVisible(settings.showLabels !== false);
+            fake.setBorderOpacity(settings.borderOpacity);
+            fake.setBordersVisible(!!settings.borders);
+            fake.setSelectionGradient(!!settings.selGradient);
+            fake.setAutoRotate(settings.autoRotate || {});
+            if (settings.lighting) fake.setLighting(settings.lighting);
+        },
+        schemes: () => [
+            { key: 'vibrant', label: 'Vibrant' },
+            { key: 'greys', label: 'Greys' },
+        ],
+        setCountryScheme(key) { record('setCountryScheme', [key]); fake.state.scheme = key; },
+        setCountriesVisible(v) { record('setCountriesVisible', [v]); fake.state.countriesVisible = v; },
+        setLabelsVisible(v) { record('setLabelsVisible', [v]); fake.state.labelsVisible = v; },
+        setBordersVisible(v) { record('setBordersVisible', [v]); fake.state.bordersVisible = v; },
+        setBorderOpacity(v) { record('setBorderOpacity', [v]); fake.state.borderOpacity = v; },
+        setSelectionGradient(v) { record('setSelectionGradient', [v]); fake.state.selectionGradient = v; },
+        setAutoRotate(o) { record('setAutoRotate', [o]); fake.state.autoRotate = { ...o }; },
+        setLighting(l) { record('setLighting', [l]); fake.state.lighting = l; },
+        lightingDefaults: () => ({ ...LIGHTING_DEFAULTS }),
+        reset() { fake.calls = []; },
+    });
+
+    return fake;
 }
