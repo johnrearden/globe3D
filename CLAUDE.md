@@ -295,6 +295,18 @@ Answers to "find the country" arrive through `globeBridge.onPick`, never from an
 object. `BackButtonGuard` is replaced rather than ported — the component that starts the quiz
 pushes the history guard entry itself.
 
+**The Daily Challenge (`DailyLayer.tsx`, `client:idle`).** Its own island because it is the only
+thing in the app that talks to a server: `lib/daily/api.ts` imports the API client **lazily**, so
+it lands in its own chunk and never constructs during SSR. The flow is a state machine
+(`lib/daily/useDailyAttempt.ts`) and deliberately **not** a quiz-core session —
+`quizStore.startForeign(DAILY)` publishes "a quiz is on screen" without a reducer to mirror.
+
+**There are two map appliers and they must stay apart.** quiz-core's block *describes* what to
+look at and the client picks a camera (`lib/quiz/globe-choreography.ts`); the server's block *is*
+a camera (`lib/daily/server-map.ts`). One rule there is load-bearing: **a map-click question is
+never rotation-locked**, whatever the server sends, or the player cannot reach the country they
+mean and the question is unanswerable.
+
 **Settings, progress and weak spots (`ShellControls.tsx`, `client:idle`).** A sibling island to
 the quiz, mounted for every route, rendering **null** until a globe exists. Settings drive
 `GlobeAppearance` and never see an engine object. The progress sheet is a pure read over

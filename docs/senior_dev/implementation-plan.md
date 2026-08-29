@@ -933,6 +933,63 @@ finished quiz fills the progress sheet and raises the weak-spots list. Productio
 
 ---
 
+## Phase B10c — the Daily Challenge on `/app` — ✅ Done
+
+The first slice with a server in it. The backend owns the questions, the grading, the running
+score and the board; the client owns only what is on screen and the per-question timing.
+
+**The flow is an explicit state machine** (`apps/web/src/lib/daily/useDailyAttempt.ts`), not a
+port of `daily-quiz.js:_play`. That was an async `while` loop awaiting a promise resolved from a
+DOM click handler, once per question — the quiz's position lived in a call stack rather than in
+a value, so nothing could render from it, and closing the panel mid-await needed a stashed
+`_cancelWait` to stop a pending timer driving the quiz on invisibly. Here the position IS the
+state and closing is one transition.
+
+It is deliberately **not a quiz-core session**: `quizStore.startForeign(FOREIGN_MODES.DAILY)`
+exists for exactly this, publishing "a quiz is on screen" — read by labels, auto-rotate and the
+weak-spots list — without pretending there is a reducer to mirror.
+
+**Two map appliers, kept apart on purpose.** quiz-core's block *describes* what to look at
+(`focus`, `marker`) and the client chooses a camera; the server's block *is* a camera
+(`center`, `zoom`, `lockRotation`). `lib/daily/server-map.ts` handles the second so neither has
+to guess which shape it was handed. One rule in it is load-bearing and tested: **a map-click
+question is never locked**, whatever the server sends — the player has to be able to rotate to
+reach the country they mean, and `PointerControls`' drag-vs-tap threshold is what stops that
+registering as an answer. A locked globe makes the question unanswerable.
+
+**`OptionGrid` gained multi-select and a fourth reveal state.** `missed` — a right answer the
+player did not pick — is its own cue *only* when several answers are right; with one there is
+nothing to distinguish and showing it plainly as the answer is the teaching moment. That is the
+vanilla distinction between the practice quizzes and the daily, kept rather than flattened.
+
+**The API client is imported lazily** (`lib/daily/api.ts`), so `@terragotcha/api-client` and the
+device identity land in their own ~4 KB chunk rather than the shell's — a reader who never opens
+the challenge never pays for it, and it never constructs during SSR where there is no
+localStorage.
+
+`leaderboard.js` built every row as an `innerHTML` string with a hand-rolled `escapeHtml` around
+nicknames **other people typed**. React escapes by construction; the helper went with the
+strings. The board is still padded to ten rows, and a player who finished outside them still
+gets their own row underneath.
+
+**Not carried over:** the invite's FLIP dock animation (`daily-quiz.js:_dock`), which existed to
+move a hand-built DOM node between two positions — here they are two renders of one component.
+The `globe3d:intro-dismissed` event is gone too: it came from the vanilla loading overlay, so
+the invite waits for the globe instead.
+
+**Verified end to end against a stub backend speaking the real endpoint shapes**
+(`packages/api-client/src/client.js` + `backend/quiz/urls.py`), since the Django app is not run
+here: single-select; multi-select with correct / incorrect / missed / dimmed all landing right;
+a map-click answered by tapping the globe; a flag question; the name prompt **after** the run
+rather than before it; a padded board with the player's row highlighted. Reopening once
+completed shows the board with the "add your name" CTA, and closing hands the globe back.
+Baseline still 728 / 292 words, zero app chrome in the static document.
+
+**Remaining in B10:** search and the country info panel (`flag-renderer.js`) — B10d. The
+celebration animations are deletions, not ports.
+
+---
+
 ## Cross-cutting conventions
 
 - **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.
