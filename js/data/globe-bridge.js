@@ -23,6 +23,7 @@
  */
 export function createWebGlobeBridge({ globeManager, cameraController }) {
     const pickListeners = new Set();
+    const deselectListeners = new Set();
 
     return {
         // ---- appearance -------------------------------------------------------
@@ -93,6 +94,18 @@ export function createWebGlobeBridge({ globeManager, cameraController }) {
         deliverPick(name) {
             for (const cb of pickListeners) {
                 try { cb(name); } catch (err) { console.error('globe-bridge pick listener failed:', err); }
+            }
+        },
+
+        onDeselect(cb) {
+            deselectListeners.add(cb);
+            return () => deselectListeners.delete(cb);
+        },
+
+        /** Called by pointer-controls when a tap hits no country. Not part of the interface. */
+        deliverDeselect() {
+            for (const cb of deselectListeners) {
+                try { cb(); } catch (err) { console.error('globe-bridge deselect listener failed:', err); }
             }
         },
 

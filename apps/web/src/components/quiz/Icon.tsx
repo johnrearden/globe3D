@@ -14,7 +14,7 @@
 export type IconName =
     | 'globe' | 'flag' | 'pin' | 'bank' | 'arrowRight'
     | 'x' | 'clock' | 'checkCircle' | 'check' | 'plus'
-    | 'faders' | 'calendar';
+    | 'faders' | 'calendar' | 'search';
 
 /**
  * Phosphor regular, 256×256 viewBox — except `faders`, which is drawn here.
@@ -40,6 +40,7 @@ const PATHS: Record<IconName, string | string[]> = {
         'M40 56h176v16H40zM104 44a20 20 0 1 0 0 40a20 20 0 1 0 0 -40z', 'M40 120h176v16H40zM168 108a20 20 0 1 0 0 40a20 20 0 1 0 0 -40z', 'M40 184h176v16H40zM88 172a20 20 0 1 0 0 40a20 20 0 1 0 0 -40z',
     ],
     plus: 'M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z',
+    search: 'M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z',
 };
 
 export default function Icon({

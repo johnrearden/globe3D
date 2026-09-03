@@ -24,6 +24,7 @@ export function createFakeGlobeBridge({ framingDistance = () => 1.5 } = {}) {
     const calls = [];
     const record = (method, args) => { calls.push({ method, args }); };
     const pickListeners = new Set();
+    const deselectListeners = new Set();
 
     const fake = {
         // ---- observable state -------------------------------------------------
@@ -48,6 +49,11 @@ export function createFakeGlobeBridge({ framingDistance = () => 1.5 } = {}) {
         /** Deliver a tap to every onPick subscriber, as the real globe would. */
         emitPick(name) {
             for (const cb of pickListeners) cb(name);
+        },
+
+        /** Drive a tap that hit no country — the ocean, or a miss. */
+        emitDeselect() {
+            for (const cb of deselectListeners) cb();
         },
 
         // ---- the interface ----------------------------------------------------
@@ -86,6 +92,12 @@ export function createFakeGlobeBridge({ framingDistance = () => 1.5 } = {}) {
             record('onPick', []);
             pickListeners.add(cb);
             return () => pickListeners.delete(cb);
+        },
+
+        onDeselect(cb) {
+            record('onDeselect', []);
+            deselectListeners.add(cb);
+            return () => deselectListeners.delete(cb);
         },
 
         markers: {

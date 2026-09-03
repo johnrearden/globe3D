@@ -21,6 +21,7 @@
  * page, and the globe holds one for the whole session.
  */
 import { useEffect, useRef } from 'react';
+import '../../styles/flag.css';
 
 /** Plane size and subdivision, from the vanilla hero flag. */
 const FLAG_W = 10;
@@ -28,14 +29,31 @@ const FLAG_H = 6.67;
 const SEG_X = 20;
 const SEG_Y = 15;
 
-/** Drawing-buffer size. CSS sizes the element; this is resolution only. */
+/**
+ * Default drawing-buffer size. CSS sizes the element; this is resolution only.
+ * The country info panel renders the same flag much smaller and passes its own.
+ */
 const BUFFER_W = 560;
 const BUFFER_H = 373;
 
 /** Wave speed, in Perlin units per second. */
 const SPEED = 3;
 
-export default function FlagStage({ iso, label }: { iso: string; label: string }) {
+export default function FlagStage({
+    iso,
+    label,
+    width = BUFFER_W,
+    height = BUFFER_H,
+    className = 'qz-flag-stage',
+}: {
+    iso: string;
+    /** Accessible name — the country here, "the flag to identify" in a quiz. */
+    label: string;
+    /** Drawing-buffer size. Resolution only; CSS decides the layout size. */
+    width?: number;
+    height?: number;
+    className?: string;
+}) {
     const hostRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -60,7 +78,7 @@ export default function FlagStage({ iso, label }: { iso: string; label: string }
             // and an orthographic camera renders a Z-only ripple as a motionless
             // rectangle. The lights matter for the same reason — the wave reads
             // through shading, not through silhouette.
-            const camera = new THREE.PerspectiveCamera(45, BUFFER_W / BUFFER_H, 0.1, 1000);
+            const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
             camera.position.z = 9.5;
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -72,10 +90,10 @@ export default function FlagStage({ iso, label }: { iso: string; label: string }
             // updateStyle = false: keep the buffer at a fixed resolution but let
             // CSS size the element. Otherwise setSize writes inline pixels and
             // beats the stylesheet.
-            renderer.setSize(BUFFER_W, BUFFER_H, false);
+            renderer.setSize(width, height, false);
             // No setClearColor: `alpha: true` already clears to fully
             // transparent, so the flag floats on the panel behind it.
-            renderer.domElement.className = 'qz-flag-canvas';
+            renderer.domElement.className = 'flag-canvas';
             host.appendChild(renderer.domElement);
 
             const geometry = new THREE.PlaneGeometry(FLAG_W, FLAG_H, SEG_X, SEG_Y);
@@ -153,12 +171,12 @@ export default function FlagStage({ iso, label }: { iso: string; label: string }
             cancelAnimationFrame(frame);
             cleanup?.();
         };
-    }, [iso]);
+    }, [iso, width, height]);
 
     return (
         <div
             ref={hostRef}
-            className="qz-flag-stage"
+            className={className}
             role="img"
             // The canvas is the question, so it needs a name — but naming the
             // country would BE the answer.

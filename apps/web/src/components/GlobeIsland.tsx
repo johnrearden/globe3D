@@ -212,6 +212,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     labelManager,
                     smallCountryIndicator,
                     deliverPick: (name: string) => globe.deliverPick(name),
+                    deliverDeselect: () => globe.deliverDeselect(),
                     rotateGlobeToCountry: (arg: unknown, quiz: boolean, aim: unknown) =>
                         cameraController.rotateToCountry(arg, quiz, aim),
                     resetIdleTimer: () => cameraController.resetIdleTimer(),
@@ -234,7 +235,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 setGlobeHandle({
                     globe,
                     appearance,
-                    countries: createCountryTable({ globeManager, countryToISO }),
+                    countries: createCountryTable({ globeManager, countryToISO, countryData }),
                 });
 
                 /**

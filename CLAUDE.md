@@ -71,8 +71,14 @@ change. Follow that pattern rather than importing a package directly from a feat
 `js/features/quiz/`, `js/features/daily-quiz/` and `js/features/audit/` takes a single `globeBridge`
 dependency and calls `highlight` / `clearSelection` / `flash` / `showOnly` / `showAll` /
 `focusCountry` / `setVisibleRegion` / `frameGlobe` / `frameView` / `framingDistanceFor` /
-`resetView` / `setInteractive` / `setAutoRotateAllowed` / `onPick` / `markers.*`. That list is `GLOBE_BRIDGE_METHODS`, and
+`resetView` / `setInteractive` / `setAutoRotateAllowed` / `onPick` / `onDeselect` /
+`markers.*`. That list is `GLOBE_BRIDGE_METHODS`, and
 `missingBridgeMembers()` validates an implementation against it.
+
+`onDeselect` is a tap that hit no country, and is its own event rather than `onPick(null)`
+for a reason worth keeping: every pick subscriber grades the name it is handed, so a null
+would have to be special-cased at each of them — and tapping empty water is a different
+gesture, the one that dismisses what is on screen.
 
 The rule that gives the interface its shape: **nothing platform-specific crosses it** — no
 `THREE.Vector3`, no DOM node, no engine object, only names and plain values. Aiming the camera at a
@@ -324,6 +330,27 @@ look at and the client picks a camera (`lib/quiz/globe-choreography.ts`); the se
 a camera (`lib/daily/server-map.ts`). One rule there is load-bearing: **a map-click question is
 never rotation-locked**, whatever the server sends, or the player cannot reach the country they
 mean and the question is unanswerable.
+
+**Search and the country info panel (`SearchBox.tsx`, `CountryInfo.tsx`).** Both live in
+`ShellControls`, not in islands of their own: they need the same globe handle and the same
+"stand down while a quiz runs" rule. Matching is `lib/search.ts` — pure, and separate
+because both its rules were bugs in the vanilla version: **diacritics fold** (the four
+accented names in the mesh were unreachable from an ASCII keyboard) and **prefix beats
+substring** (Enter takes the first result, so alphabetical order decided what Enter did).
+
+The info panel reuses `FlagStage` rather than writing a second waving-flag renderer, so
+that component takes `{width, height, className}` and owns its canvas rule in
+`styles/flag.css`. Its container is `pointer-events: none` with only the close button and
+the link opting back in — forget that and the link renders but cannot be clicked. The
+"Read more" link is gated on `country-pages.json` (via `lib/published.ts`), because only a
+handful of countries have articles and the rest would 404.
+
+**Country facts are the country table's job, not the panel's.** `countryData` covers the
+210 sovereigns; territories carry their ISO, parent, population, area and language on the
+mesh record instead. The vanilla app merged the two by mutating the imported module at
+boot; `createCountryTable` builds the union where both sources are in scope, emitting
+`parent`, `population`, `areaLabel` and `language`. Note `areaLabel` (a string to show)
+is deliberately not `area` (km², for quiz size filtering).
 
 **Settings, progress and weak spots (`ShellControls.tsx`, `client:idle`).** A sibling island to
 the quiz, mounted for every route, rendering **null** until a globe exists. Settings drive

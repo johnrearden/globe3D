@@ -98,6 +98,17 @@
  * @property {(cb: (name: string) => void) => (() => void)} onPick
  *   Subscribe to country taps. Returns an unsubscribe function.
  *
+ * @property {(cb: () => void) => (() => void)} onDeselect
+ *   Subscribe to taps that hit no country — the ocean, or a ray that misses the
+ *   globe entirely. Returns an unsubscribe function.
+ *
+ *   Its own event rather than `onPick(null)`: every existing subscriber grades
+ *   the name it is handed, and handing them a null would make "the player
+ *   missed" indistinguishable from "the player answered nothing" at each of
+ *   them. It is also a different gesture — tapping empty water is how you
+ *   dismiss what is on screen, which is why the country info panel needs it and
+ *   a quiz does not.
+ *
  * @property {GlobeMarkers} markers
  *   Point markers — currently the capital-city dot.
  *
@@ -129,6 +140,7 @@ export const GLOBE_BRIDGE_METHODS = Object.freeze([
     'setInteractive',
     'setAutoRotateAllowed',
     'onPick',
+    'onDeselect',
 ]);
 
 /** Methods required on `bridge.markers`. @type {readonly string[]} */

@@ -158,3 +158,43 @@ describe('web globe bridge', () => {
         expect(globeManager.markers.clear).toHaveBeenCalled();
     });
 });
+
+describe('onDeselect', () => {
+    it('delivers a tap that hit no country, and unsubscribes', () => {
+        // Its own event rather than onPick(null): every pick subscriber grades
+        // the name it is handed, so a null would have to be special-cased at
+        // each of them. Tapping empty water is a different gesture — it is how
+        // you dismiss what is on screen.
+        const { bridge } = stubs();
+        const seen = [];
+        const off = bridge.onDeselect(() => seen.push('deselect'));
+        bridge.deliverDeselect();
+        expect(seen).toEqual(['deselect']);
+        off();
+        bridge.deliverDeselect();
+        expect(seen).toEqual(['deselect']);
+    });
+
+    it('keeps picks and deselects apart', () => {
+        const { bridge } = stubs();
+        const picks = [];
+        const misses = [];
+        bridge.onPick(name => picks.push(name));
+        bridge.onDeselect(() => misses.push(true));
+        bridge.deliverPick('Chad');
+        bridge.deliverDeselect();
+        expect(picks).toEqual(['Chad']);
+        expect(misses).toHaveLength(1);
+    });
+
+    it('does not let one broken listener stop the others', () => {
+        // Same guarantee deliverPick makes: a subscriber that throws is a bug
+        // in that subscriber, not a reason for the rest to miss the event.
+        const { bridge } = stubs();
+        const seen = [];
+        bridge.onDeselect(() => { throw new Error('boom'); });
+        bridge.onDeselect(() => seen.push('ok'));
+        expect(() => bridge.deliverDeselect()).not.toThrow();
+        expect(seen).toEqual(['ok']);
+    });
+});

@@ -1,0 +1,21 @@
+/**
+ * The waving flag component's own style.
+ *
+ * Imported by `FlagStage.tsx` rather than by a page, because the component now
+ * has two consumers — the identify-the-flag question and the country info panel
+ * — and a rule that only one stylesheet declared would break the other the day
+ * that stylesheet was split or retired.
+ *
+ * The CONTAINER is each consumer's business: `.qz-flag-stage` sizes it for a
+ * question, `.ci-flag` for the panel. All this says is that the canvas fills
+ * whatever it is given, which is what lets `setSize(w, h, false)` leave layout
+ * to CSS.
+ *
+ * Tokens only; see `shell.css`'s header for the rule.
+ */
+
+.flag-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}

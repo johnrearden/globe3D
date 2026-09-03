@@ -21,7 +21,10 @@ import {
     setOverlay,
     type OverlayName,
 } from '../../lib/overlay';
+import { useSettings } from '../../lib/settings';
 import Icon from '../quiz/Icon';
+import CountryInfo from './CountryInfo';
+import SearchBox from './SearchBox';
 import SettingsSheet from './SettingsSheet';
 import StatsSheet from './StatsSheet';
 import WeakSpots from './WeakSpots';
@@ -36,6 +39,50 @@ export default function ShellControls() {
     // Nothing here can do anything useful without a globe to act on.
     if (!handle) return null;
 
+    return <Controls handle={handle} overlay={overlay} />;
+}
+
+/**
+ * Split from the component above only so the hooks below it can run
+ * unconditionally: `ShellControls` returns null before the globe exists, and a
+ * hook after that early return would break the rules-of-hooks contract.
+ */
+function Controls({
+    handle,
+    overlay,
+}: {
+    handle: GlobeHandle;
+    overlay: OverlayName | null;
+}) {
+    const settings = useSettings();
+    /** The country whose info panel is open, or null. */
+    const [selected, setSelected] = useState<string | null>(null);
+    const [quizActive, setQuizActive] = useState(() => quizStore.isActive());
+    const infoEnabled = settings.showInfoPanel !== false;
+
+    // A quiz takes the globe. Search would be aiming a camera the quiz is
+    // driving, and the info panel names the country under it — which in several
+    // modes IS the answer, the same reason `question-renderer.js:6` refuses to
+    // reuse the vanilla panel. Fires only on the start/end flip, not per answer.
+    useEffect(() => quizStore.onActiveChange((active: boolean) => {
+        setQuizActive(active);
+        if (active) setSelected(null);
+    }), []);
+
+    // Taps on the globe, and taps that hit nothing. Both are the bridge's to
+    // report — this component never sees an engine object. A quiz owns the
+    // globe while it runs, so its picks are answers and are not ours to read.
+    useEffect(() => {
+        if (!infoEnabled) { setSelected(null); return; }
+        const offPick = handle.globe.onPick((name: string) => {
+            if (!quizStore.isActive()) setSelected(name);
+        });
+        const offDeselect = handle.globe.onDeselect(() => setSelected(null));
+        return () => { offPick(); offDeselect(); };
+    }, [handle.globe, infoEnabled]);
+
+    const row = selected ? handle.countries.byName(selected) : undefined;
+
     return (
         <>
             <button
@@ -48,10 +95,31 @@ export default function ShellControls() {
                 <Icon name="faders" size={20} />
             </button>
 
+            {!quizActive && (
+                <SearchBox
+                    globe={handle.globe}
+                    countries={handle.countries}
+                    onSelect={(name) => setSelected(infoEnabled ? name : null)}
+                />
+            )}
+
             <WeakSpots
                 globe={handle.globe}
                 isoOf={(name) => handle.countries.byName(name)?.iso}
             />
+
+            {/* Only when a sheet is not covering it: both dock to the same
+                corner on mobile, and the panel is the less important of the
+                two once the reader has deliberately opened settings. */}
+            {row && infoEnabled && !overlay && !quizActive && (
+                <CountryInfo
+                    row={row}
+                    onClose={() => {
+                        setSelected(null);
+                        handle.globe.clearSelection();
+                    }}
+                />
+            )}
 
             {overlay === 'settings' && <SettingsSheet appearance={handle.appearance} />}
             {overlay === 'stats' && <StatsSheet />}
@@ -80,3 +148,4 @@ function OverlayCloserOnQuiz() {
     }, []);
     return null;
 }
+

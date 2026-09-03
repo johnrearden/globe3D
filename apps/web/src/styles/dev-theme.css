@@ -12,13 +12,15 @@
  * Tokens only; see `shell.css`'s header for the rule.
  */
 
-/* The dev handle. Bottom-left — the gear is top-left, the daily invite is
-   bottom-centre, and the quiz card is bottom/right. */
+/* The dev handle. Left edge, vertically centred: the gear is top-left, the
+   daily invite bottom-centre, the quiz card bottom/right, and the country info
+   panel took the bottom-left corner this used to sit in. */
 .tl-open {
     position: fixed;
     z-index: 60;
-    bottom: var(--space-4);
+    top: 50%;
     left: var(--space-4);
+    transform: translateY(-50%);
     display: grid;
     place-items: center;
     width: 2.25rem;

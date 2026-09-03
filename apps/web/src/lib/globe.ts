@@ -37,6 +37,13 @@ export interface CountryRow {
     region?: string | null;
     capital?: { name: string; lat: number; lng: number } | null;
     isDependency?: boolean;
+    /** The sovereign a territory belongs to; null for sovereigns. */
+    parent?: string | null;
+    /** Millions. Display only — `area` above is km², for size filtering. */
+    population?: number | null;
+    /** Pre-formatted, e.g. "643K km²". */
+    areaLabel?: string | null;
+    language?: string | null;
 }
 
 export interface CountryTable {

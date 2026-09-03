@@ -50,6 +50,10 @@ export class PointerControls {
         // injected quiz objects below, so the two schemes coexist during the
         // migration rather than one having to land all at once.
         this.deliverPick = deps.deliverPick || (() => {});
+        // Its counterpart: a tap that hit no country. The vanilla app expresses
+        // "dismiss what is on screen" by reaching flagRenderer directly below;
+        // the Astro app has no such reference and hears it through the bridge.
+        this.deliverDeselect = deps.deliverDeselect || (() => {});
         this.rotateGlobeToCountry = deps.rotateGlobeToCountry || (() => {});
         this.resetIdleTimer = deps.resetIdleTimer || (() => {});
         this.onFlick = deps.onFlick || (() => {});       // (velX, velY) px/ms at release
@@ -206,8 +210,9 @@ export class PointerControls {
         if (!pickResult) {
             // A tap on the ocean or off the globe dismisses the country detail panel
             // (pick() returns null for ocean id 0 and for rays that miss the sphere).
-            if (!quizStore.isActive() && this.flagRenderer && this.flagRenderer.isShowing()) {
-                this.deselectCountry();
+            if (!quizStore.isActive()) {
+                this.deliverDeselect();
+                if (this.flagRenderer && this.flagRenderer.isShowing()) this.deselectCountry();
             }
             return;
         }

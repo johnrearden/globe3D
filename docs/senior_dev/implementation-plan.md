@@ -994,6 +994,78 @@ celebration animations are deletions, not ports.
 
 ---
 
+## Phase B10d — search and the country info panel on `/app` — ✅ Done
+
+The last of B10. Both are rewrites rather than ports, and both turned out to be
+**bridge-only plus one gap each**.
+
+**Search (`components/shell/SearchBox.tsx`)** is a combobox now, in `ShellControls`
+beside `WeakSpots` — shell furniture, sharing the same globe handle and the same
+`quizStore` suppression rather than being a fourth island. The old one had no label, no
+roles and no `aria-activedescendant`, marked its cursor with an inline background colour,
+and was hidden by **five other modules writing to its `style.display`**; it now reads
+`quizStore.onActiveChange` and returns null, which deletes all five writers.
+
+Three behaviours changed because they were wrong, not merely dated. Matching folded no
+diacritics, so `Curaçao`, `Åland Islands`, `Réunion` and `Saint Barthélemy` — the four
+accented names in the mesh — **could not be reached from an ASCII keyboard at all**.
+Ranking was alphabetical, putting *British Indian Ocean Territory* above *India* for
+"ind", which was not cosmetic because Enter takes the first result. And the arrow keys
+wrote the highlighted name **into the input**, destroying the query with no way back.
+The matching rules are `lib/search.ts`, pure and tested against the real name list;
+`tests/country-search.test.js` derives the accented cases from `country-meta.json` rather
+than hard-coding them, so a mesh rebuild that adds one is covered.
+
+**The info panel (`components/shell/CountryInfo.tsx`)** reuses `FlagStage`, now
+parameterised with `{width, height, className}` — a second waving-flag renderer was the
+one thing worth not writing. Its canvas rule moved to `styles/flag.css`, imported by the
+component, since it has two consumers now. Two vanilla behaviours are carried across
+deliberately: the container is `pointer-events: none` with only the close button and the
+link opting back in (a port that forgets this ships a link that renders and cannot be
+clicked), and the "Read more" link is **gated on `country-pages.json`** because four
+countries have articles and the other 233 would 404. `lib/published.ts` fetches that
+135-byte file rather than importing `content/countries.json`, which is 14 KB of article
+prose for four name/slug pairs. `astro.config.mjs` serves it in dev, where it 404'd.
+
+**The `showInfoPanel` switch is the first setting in the sheet that drives no globe
+method** — the panel is React, so enabling it is a component reading a setting. That is
+why `GlobeAppearance` did not grow, and why `SettingsSheet`'s `set()` helper now takes
+`apply` as optional.
+
+**One bridge method, `onDeselect`.** Its own event rather than `onPick(null)`: every pick
+subscriber grades the name it is handed, so a null would need special-casing at each of
+them, and tapping empty water is a different gesture — it is how you dismiss what is on
+screen. `PointerControls` publishes it through a `deliverDeselect` dep mirroring
+`deliverPick`.
+
+**One data gap, fixed at the source.** The vanilla app merged
+`globeManager.getDependencyData()` into the imported `countryData` at boot
+(`index.html:622`) — a module changing shape depending on who loaded first. The Astro app
+never did it, so **Greenland opened with no flag and four em-dashes**: it is absent from
+`countryToISO` entirely, and its population, area and language live only on the mesh
+record. `createCountryTable` now builds that union where both sources are already in
+scope, emitting `parent`, `population`, `areaLabel` and `language` alongside the existing
+numeric `area` (km², for quiz size filtering — deliberately a different field, not a
+different reading of the same one). `tests/country-table.test.js` pins it.
+
+**The celebrations are not ported, per the earlier decision.** `quiz-ui.js:94` fires
+shatter at ≤30% and confetti at 100% and says in a comment that bounce and pinball are
+not called; all three survive only as buttons on `index.html`'s dev toolbar, which puts
+them with the label/colour/zoom editors. They go with `js/features/**` at B11 rather than
+being deleted now.
+
+**Verified** in headless Chrome: prefix ranking, diacritic folding, arrow keys leaving the
+query intact, `aria-activedescendant` tracking; a search-select and a globe tap both
+opening the panel with the right facts and a published link; Greenland showing its flag,
+"Territory of Denmark" and its mesh-only facts with no link; a tap on empty canvas
+dismissing via the new `onDeselect`; and both surfaces standing down when a quiz starts.
+528 tests. Static baseline unmoved — 4 internal links and zero app-chrome elements on both
+`/app` and `/country/france`, with no `cs-`/`ci-` markup in either document.
+
+**Remaining before B11:** B9, the backend token cutover.
+
+---
+
 ## Theme Lab — editing the knobs live, in dev — ✅ Done
 
 Independent of the B10 sequence: not blocked by B9, and B11 does not touch it.

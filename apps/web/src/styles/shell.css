@@ -128,6 +128,20 @@ body {
 }
 
 /* ── Mobile: a bottom sheet over the globe ────────────────────────────────── */
+/* ── Search's seat ─────────────────────────────────────────────────────────
+   Placed here rather than in discover.css because where it sits is a fact about
+   the shell furniture around it — the gear owns the top-left corner, the quiz
+   card the bottom — and on a wide screen about the article panel's width. What
+   it LOOKS like is discover.css's business. */
+.cs-box {
+    position: fixed;
+    z-index: 45;
+    top: var(--space-4);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(20rem, calc(100vw - 8rem));
+}
+
 @media (max-width: 899px) {
     .panel-sheet {
         left: 0;
@@ -152,11 +166,25 @@ body {
 
 /* ── Desktop: a column beside the globe ───────────────────────────────────── */
 @media (min-width: 900px) {
+    :root {
+        /* The panel's width, named because search has to avoid it. */
+        --panel-w: min(46rem, 46vw);
+    }
+
+    /* Centre search on what the panel LEAVES, not on the viewport — otherwise
+       it sits half underneath the article. This lives here rather than in
+       discover.css because it is derived from the panel's width: restating that
+       width in another file is the drift `--panel-grip` exists to avoid, and
+       discover.css is imported later, so a `left` there would win anyway. */
+    .cs-box {
+        left: calc((100vw - var(--panel-w)) / 2);
+    }
+
     .panel-sheet {
         top: 0;
         right: 0;
         bottom: 0;
-        width: min(46rem, 46vw);
+        width: var(--panel-w);
         border-radius: var(--radius-panel) 0 0 var(--radius-panel);
         box-shadow: var(--shadow-high);
         transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);

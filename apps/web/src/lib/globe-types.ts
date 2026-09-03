@@ -93,6 +93,11 @@ export interface GlobeBridge {
 
     /** Subscribe to country taps. @returns unsubscribe */
     onPick(cb: (name: string) => void): () => void;
+    /**
+     * Taps that hit no country — the ocean, or a miss. Its own event rather
+     * than `onPick(null)`: every pick subscriber grades the name it is handed.
+     */
+    onDeselect(cb: () => void): () => void;
 
     markers: GlobeMarkers;
 }

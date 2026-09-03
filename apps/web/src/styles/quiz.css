@@ -381,12 +381,6 @@
     aspect-ratio: 3 / 2;
 }
 
-.qz-flag-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
 /* ── Answer grid ──────────────────────────────────────────────────────────── */
 .qz-answers {
     /* Column count is a property of the question, not of the theme, so the

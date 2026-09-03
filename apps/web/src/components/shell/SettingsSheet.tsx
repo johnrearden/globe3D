@@ -17,13 +17,17 @@
  *
  * ## What is deliberately not here yet
  *
- * - **UI theme** and the remote-theme picker. They need the 13-knob backend
- *   cutover (B9); offering a theme control against the legacy 24-knob vocabulary
- *   would style nothing.
- * - **"Country info panel"**. That panel is `flag-renderer.js`, still vanilla
- *   only. A switch for something this app cannot show is worse than no switch.
+ * - **UI theme** and the remote-theme picker. They need the backend cutover
+ *   (B9); offering a theme control against the legacy 24-knob vocabulary would
+ *   style nothing. The *knobs* are editable today through the dev-only Theme
+ *   Lab, which needs no backend.
  * - **The dev editors** (labels, colours, zoom, audit). Not being ported;
  *   `index.html` keeps them.
+ *
+ * "Country info panel" has now arrived (`CountryInfo.tsx`), and its switch is
+ * the one control here that drives no globe method: the panel is React, so
+ * enabling it is a component reading `showInfoPanel` and rendering. That is why
+ * `GlobeAppearance` did not have to grow for it.
  */
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../lib/settings';
@@ -118,13 +122,17 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
     }, []);
 
     /** Save and apply together — the two must never disagree. */
+    // `apply` is optional because not every setting drives the engine: the
+    // country info panel is a React component that reads `showInfoPanel`, so
+    // saving it IS applying it. Every setting that does touch the globe still
+    // passes its call here, so the store and the renderer cannot disagree.
     const set = <K extends keyof typeof settings>(
         key: K,
         value: (typeof settings)[K],
-        apply: () => void,
+        apply?: () => void,
     ) => {
         save({ [key]: value } as never);
-        apply();
+        apply?.();
     };
 
     const rotate = settings.autoRotate ?? {};
@@ -181,6 +189,11 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
                     label="Country names"
                     checked={settings.showLabels !== false}
                     onChange={(v) => set('showLabels', v, () => appearance.setLabelsVisible(v))}
+                />
+                <Toggle
+                    label="Country info panel"
+                    checked={settings.showInfoPanel !== false}
+                    onChange={(v) => set('showInfoPanel', v)}
                 />
                 <Toggle
                     label="Country borders"
