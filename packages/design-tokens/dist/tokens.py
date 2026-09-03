@@ -2,7 +2,7 @@
 # Regenerate with: npm run build:tokens
 # Source of truth: packages/design-tokens/src/tokens.js
 #
-# 13 authorable knobs. Everything else in the design system is
+# 14 authorable knobs. Everything else in the design system is
 # either fixed (type/spacing scales, elevation, status colours, pill/circle
 # radii) or derived in JS from these — see that file for which and why.
 
@@ -26,6 +26,7 @@ COLOR_TOKENS = (
     '--text-primary',
     '--text-secondary',
     '--ocean',
+    '--globe-border',
 )
 
 EDITABLE_TOKENS = frozenset((
@@ -40,6 +41,7 @@ EDITABLE_TOKENS = frozenset((
     '--text-primary',
     '--text-secondary',
     '--ocean',
+    '--globe-border',
     '--radius-btn',
     '--radius-panel',
 ))

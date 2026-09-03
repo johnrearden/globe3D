@@ -2,7 +2,7 @@
  * LEGACY — the 24-knob token list belonging to the current styles.css.
  *
  * **This is no longer the source of truth.** `@terragotcha/design-tokens` is
- * (stage A7): 13 knobs, with the CSS, React Native and backend artefacts all
+ * (stage A7): 14 knobs, with the CSS, React Native and backend artefacts all
  * generated from one definition.
  *
  * This file survives only because it is coupled to the *stylesheet*, not to the

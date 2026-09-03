@@ -17,10 +17,10 @@ import {
 } from '../src/index.js';
 
 describe('the knob set', () => {
-    it('is exactly 13 knobs', () => {
+    it('is exactly 14 knobs', () => {
         // The number is the design decision: the previous system had 24 and
         // still could not express a coherent theme.
-        expect(KNOB_NAMES).toHaveLength(13);
+        expect(KNOB_NAMES).toHaveLength(14);
     });
 
     it('covers the six intended groups', () => {
@@ -44,6 +44,22 @@ describe('the knob set', () => {
         // It cannot derive from bg-app: a dark backdrop with a derived-dark
         // ocean makes the globe vanish into the page.
         expect(KNOB_NAMES).toContain('ocean');
+    });
+
+    it('exposes the country outline ink as its own knob, not derived from text', () => {
+        // It was alpha(text-primary, .28), and that was wrong: this ink is read
+        // against the COUNTRY PALETTE, which is pinned by scheme key rather
+        // than by tokens, so a text colour picked to be legible on bg-panel
+        // says nothing about whether these lines will be visible.
+        expect(KNOB_NAMES).toContain('globe-border');
+        expect(Object.keys(derive(defaultTheme()))).not.toContain('globe-border');
+    });
+
+    it('carries no alpha on the outline ink — strength is the user\'s setting', () => {
+        // borderOpacity in settingsStore owns line strength. An alpha here
+        // would be discarded by globe.js and read as a knob that half works.
+        const ink = KNOBS.find(k => k.name === 'globe-border');
+        expect(parseColor(ink.value).a).toBe(1);
     });
 
     it('exposes exactly two font and two radius knobs', () => {

@@ -53,6 +53,12 @@ const PAIRS: Array<[string, string, string]> = [
     ['text-primary', 'bg-panel', 'Body text on a panel'],
     ['text-secondary', 'bg-panel', 'Secondary text on a panel'],
     ['on-primary', 'primary', 'Label on a primary button'],
+    // Coastlines are outline ink drawn straight onto water, so this pair is
+    // real. It is only half the question: outlines are read mostly against the
+    // COUNTRY PALETTE, which is pinned by scheme key rather than by tokens
+    // (COUNTRY_SCHEMES), so there is no token to check it against. Judge that
+    // half by looking at the globe — which is what this panel is for.
+    ['globe-border', 'ocean', 'Coastlines on water'],
 ];
 
 /** WCAG AA for body text. Advisory here — nothing is blocked. */

@@ -1,11 +1,11 @@
 """Allow-list + validation for theme token maps.
 
 LEGACY ALLOW-LIST. The design system's source of truth is now
-packages/design-tokens/src/tokens.js (13 knobs), which generates this file's
+packages/design-tokens/src/tokens.js (14 knobs), which generates this file's
 allow-list into packages/design-tokens/dist/tokens.py.
 
 The cutover is deliberately NOT done yet: this list is in step with the current
-styles.css and the current theme editor, and shrinking it to the new 13 knobs
+styles.css and the current theme editor, and shrinking it to the new 14 knobs
 before the Phase B stylesheet exists would reject every theme the editor can
 currently produce. When that UI lands:
 

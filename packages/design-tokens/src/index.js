@@ -1,7 +1,7 @@
 /**
  * @terragotcha/design-tokens — the design system's single source of truth.
  *
- * 13 authorable knobs, fixed scales, JS-derived values, and generators for the
+ * 14 authorable knobs, fixed scales, JS-derived values, and generators for the
  * three platforms. No DOM (except the one optional `applyCssVariables` helper),
  * no React, no Three.js.
  */

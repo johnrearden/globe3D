@@ -13,7 +13,7 @@ reference implementation and `npm test` is green at every commit (24 files, 307 
 | A4 · `packages/api-client` | **done** | `f05406a` |
 | A5 · vanilla Zustand session store | **done** | `8c3ef46` |
 | A6 · `packages/globe-bridge` + adoption | **done** | `a47d1b2` |
-| A7 · `packages/design-tokens` (13 knobs) | **done** | `1e3252d` |
+| A7 · `packages/design-tokens` (13 knobs; 14 today) | **done** | `1e3252d` |
 | A8 · three as an npm dependency | **done** | `bcc7c0f` |
 | C0 · expo-gl spike (scheduled early) | **done — viable** | `f31f6c6` |
 
@@ -23,7 +23,7 @@ storage and `fetch` as arguments. No call site changed: the three `js/data/` mod
 web bindings. Verified against seeded pre-extraction localStorage — settings, history and (critically)
 the device token all survive, since that token *is* the account.
 
-**`packages/design-tokens`** is the design system's single source of truth: 13 knobs → CSS, a React
+**`packages/design-tokens`** is the design system's single source of truth: 14 knobs → CSS, a React
 Native theme object, and the backend allow-list, with the committed artefacts guarded against
 staleness by `npm test`. **The cutover is deliberately deferred** — `styles.css`,
 `js/data/theme-tokens.js` and `backend/themes/tokens.py` still run the legacy 24-knob system, because
@@ -127,7 +127,7 @@ Phase B starts from a validated core rather than a rewrite of a rewrite.
 | Country-page entry | Static content paints first, docked panel expanded, globe loads behind a placeholder |
 | Question generation | Client-side in the shared core, emitting the **backend's existing payload schema** |
 | UI | Built from scratch; no migration of existing components or `styles.css` |
-| Design tokens | 13 authorable knobs, JS object as source of truth |
+| Design tokens | 14 authorable knobs, JS object as source of truth |
 | Native globe | Real 3D via `expo-gl` + `three`, gated on an early spike |
 | Mesh strategy | Prototype the full mesh on native and measure; a lite mesh is justified for mobile **web** |
 
@@ -282,7 +282,7 @@ and `data-theme` do not exist in React Native, so a CSS-first definition cannot 
 collapses today's three-way hand-mirroring (`styles.css` `:root` → `js/data/theme-tokens.js` →
 `backend/themes/tokens.py`).
 
-### 13 authorable knobs
+### 14 authorable knobs
 
 | Group | Tokens |
 |---|---|
@@ -290,7 +290,7 @@ collapses today's three-way hand-mirroring (`styles.css` `:root` → `js/data/th
 | Surfaces | `bg-app` (also drives the Three.js scene background), `bg-panel`, `surface-raised`, `surface-inset` |
 | Brand | `primary`, `on-primary` |
 | Text | `text-primary`, `text-secondary` |
-| Globe | `ocean` |
+| Globe | `ocean`, `globe-border` |
 | Shape | `radius-panel`, `radius-btn` |
 
 `on-primary` is a knob rather than a derivation because there is no shipped `color-contrast()`; without
@@ -455,7 +455,7 @@ for a pure core, and the existing 12 specs cover almost exactly the modules bein
   (validates the Worker decode).
 - Verify globe→`pushState` navigation updates URL, title and canonical, and that a hard reload of a
   pushed URL serves the same content.
-- Author a theme through the rebuilt editor and confirm all 13 knobs propagate to both DOM and the
+- Author a theme through the rebuilt editor and confirm all 14 knobs propagate to both DOM and the
   Three.js scene, and that `status-correct`/`status-incorrect` remain unaffected.
 
 **Phase C.** Run the C0 spike on physical low-end Android before committing to the full mesh. Verify

@@ -13,7 +13,7 @@
  * The system has three tiers, and which tier a value belongs in is the design
  * decision:
  *
- *   KNOBS    13 values a theme author may set. Deliberately few — the previous
+ *   KNOBS    14 values a theme author may set. Deliberately few — the previous
  *            system had 24 and still could not express a coherent theme,
  *            because the knobs were named after CSS variables rather than after
  *            intentions.
@@ -27,7 +27,7 @@
 import { mix, alpha, luminance } from './color.js';
 
 // ---------------------------------------------------------------------------
-// KNOBS — the 13 authorable values
+// KNOBS — the 14 authorable values
 // ---------------------------------------------------------------------------
 
 /**
@@ -82,6 +82,8 @@ export const KNOB_GROUPS = Object.freeze([
         knobs: [
             { name: 'ocean', label: 'Ocean', type: 'color', value: '#061a33',
               note: 'Cannot derive from bg-app: a dark backdrop with a derived-dark ocean makes the globe vanish into the page.' },
+            { name: 'globe-border', label: 'Country outlines', type: 'color', value: '#eef2f6',
+              note: 'Country outlines and the graticule. Was derived from text-primary, which was wrong: this ink is read against the COUNTRY PALETTE, and that palette is pinned by scheme key rather than by tokens (COUNTRY_SCHEMES), so nothing about text-primary — chosen to be legible on bg-panel — says anything about whether these lines will be visible. Two different backgrounds cannot share one colour. Plain RGB: line strength is the user\'s borderOpacity setting, not a theme decision.' },
         ],
     },
     {
@@ -93,7 +95,7 @@ export const KNOB_GROUPS = Object.freeze([
     },
 ]);
 
-/** Flat list of the 13 knob descriptors. @type {ReadonlyArray<Knob>} */
+/** Flat list of the 14 knob descriptors. @type {ReadonlyArray<Knob>} */
 export const KNOBS = Object.freeze(KNOB_GROUPS.flatMap(g => g.knobs));
 
 /** Knob ids, for allow-list generation and validation. @type {ReadonlyArray<string>} */
@@ -185,10 +187,12 @@ export function derive(t) {
         'surface-disabled': alpha(t['surface-inset'], 0.6),
         'text-disabled': alpha(t['text-secondary'], 0.45),
 
-        // Globe ink. Country labels are canvas-rendered and border lines are a
-        // GL uniform, so both need a concrete value — neither can read a CSS var.
+        // Globe ink. Country labels are canvas-rendered, so this needs a
+        // concrete value — a canvas cannot read a CSS var. Still derived,
+        // unlike the outlines beside it: a label is read against the country
+        // fill AND the space around it, and tracking the body text is what
+        // keeps it coherent with the rest of the type.
         'globe-label': t['text-primary'],
-        'globe-border': alpha(t['text-primary'], 0.28),
 
         // A label over the selected country. The label texture is white text
         // tinted via material.color, and the selected fill is bright, so the
@@ -232,7 +236,7 @@ export const COLOR_TOKENS = Object.freeze([
     'border-subtle', 'border-strong', 'scrim',
     'primary-soft', 'primary-hover',
     'surface-disabled', 'text-disabled',
-    'globe-label', 'globe-label-active', 'globe-border', 'globe-selection',
+    'globe-label', 'globe-label-active', 'globe-selection',
     'globe-space',
 ]);
 

@@ -39,7 +39,7 @@ globe3d/
 │   ├── storage/             # StorageAdapter + the settings and quiz-history stores
 │   ├── api-client/          # Quiz backend client (host + storage + fetch injected)
 │   ├── globe-bridge/        # The globe interface + a test double. No rendering code
-│   └── design-tokens/       # 13 knobs → CSS / React Native / backend allow-list
+│   └── design-tokens/       # 14 knobs → CSS / React Native / backend allow-list
 ├── apps/web/                # Astro static site (Phase B): one crawlable page per
 │                            #   country. `npm run build:web`
 ├── content/countries.json   # Published country page content, baked from Django by
@@ -118,10 +118,10 @@ lighting is applied ~1.7 s late on purpose: `fadeInLighting()` ramps the same un
 
 `packages/design-tokens/src/tokens.js` is the **single source of truth**, in three tiers:
 
-- **13 knobs** a theme author may set: `font-heading`, `font-body`; `bg-app` (which also drives the
+- **14 knobs** a theme author may set: `font-heading`, `font-body`; `bg-app` (which also drives the
   Three.js scene background, via the derived `globe-space`), `bg-panel`, `surface-raised`,
-  `surface-inset`; `primary`, `on-primary`; `text-primary`, `text-secondary`; `ocean`; `radius-btn`,
-  `radius-panel`.
+  `surface-inset`; `primary`, `on-primary`; `text-primary`, `text-secondary`; `ocean`,
+  `globe-border`; `radius-btn`, `radius-panel`.
 - **Fixed**: the type scale (5 sizes), weights, the 6-step spacing scale, elevation,
   `radius-pill`/`radius-circle`, and `status-correct`/`status-incorrect` — fixed because red/green is
   the most common colour-vision deficiency and a theme must not be able to break comprehension.

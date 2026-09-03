@@ -617,7 +617,7 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   one-attempt-per-day, leaderboard ordering, seed reconciliation guard). Run `manage.py test`.
 
 **Frontend (new modules — `index.html` touched only by an import + one instantiation):**
-- The design system's source of truth is `packages/design-tokens` as of stage A7 — 13 knobs
+- The design system's source of truth is `packages/design-tokens` as of stage A7 — 14 knobs
   generating the CSS, React Native and backend-allow-list artefacts (`npm run build:tokens`, checked
   for staleness by `npm test`). `styles.css`, `js/data/theme-tokens.js` and `backend/themes/tokens.py`
   still run the legacy 24-knob system until the Phase B stylesheet lands; the cutover steps are at the
@@ -994,11 +994,11 @@ celebration animations are deletions, not ports.
 
 ---
 
-## Theme Lab — editing the 13 knobs live, in dev — ✅ Done
+## Theme Lab — editing the knobs live, in dev — ✅ Done
 
 Independent of the B10 sequence: not blocked by B9, and B11 does not touch it.
 
-`/app` and `/country/*` wear one generated `:root` block of 47 properties, and 13 knobs fan out
+`/app` and `/country/*` wear one generated `:root` block of 47 properties, and 14 knobs fan out
 to 34 more through `derive()` — so the result of a knob change is genuinely hard to predict by
 reading. `apps/web/src/components/dev/ThemeLab.tsx` edits them against the running app.
 
@@ -1020,7 +1020,28 @@ panel does not handle renders an empty cell with nothing to notice.
 **Border *thickness* is deliberately absent, here and everywhere.** `setBorderWidth()` is a
 no-op: WebGL caps line width at 1px, so it would need a fat-line mesh implementation. Border
 *strength* exists and is a **user setting**, not a theme knob — `SettingsSheet`'s "Border
-strength" slider over `settingsStore.borderOpacity`. `--globe-border` carries colour only.
+strength" slider over `settingsStore.borderOpacity`.
+
+**Border *colour* became the 14th knob** (`globe-border`, "Country outlines"). It had been
+`alpha(text-primary, 0.28)`, and that derivation was wrong rather than merely tight: this ink is
+read against the **country palette**, which is pinned by scheme key rather than by tokens
+(`COUNTRY_SCHEMES`), so a `text-primary` chosen to be legible on `bg-panel` says nothing about
+whether the outlines will be visible. Two different backgrounds cannot share one colour, and
+under a dark scheme the borders could vanish with no knob able to rescue them.
+
+The default is `#eef2f6` — the same RGB the globe was already using, since `globe.js` took only
+the RGB and discarded the 0.28. So the promotion changed no pixel, and the emitted set is still
+**47 properties**: the name moved tier, it was not added. It carries no alpha on purpose, and a
+test pins that: strength belongs to `borderOpacity`, and an alpha here would be silently dropped
+and read as a knob that half works.
+
+`globe-label` stays derived from `text-primary`. A label is read against the fill *and* the space
+around it, and tracking the body text is what keeps it coherent with the rest of the type — the
+argument that moved the outlines does not apply to it.
+
+The Theme Lab picked the knob up with no change, which was the point of generating rows from
+`KNOB_GROUPS`. It gained one contrast pair, "Coastlines on water" — half the question, since the
+country palette is not a token; the other half is what looking at the globe is for.
 
 **Persistence is `packages/design-tokens/theme.json`**, a committed knob-override map read by
 `bin/build-tokens.mjs` and layered over the defaults through the `overrides` parameter that

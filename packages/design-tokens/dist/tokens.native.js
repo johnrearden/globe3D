@@ -15,6 +15,7 @@ export const theme = {
     "text-primary": "#eef2f6",
     "text-secondary": "#9fb2c6",
     "ocean": "#061a33",
+    "globe-border": "#eef2f6",
     "status-correct": "#4CAF50",
     "status-incorrect": "#f44336",
     "border-subtle": "rgba(238, 242, 246, 0.12)",
@@ -26,7 +27,6 @@ export const theme = {
     "text-disabled": "rgba(159, 178, 198, 0.45)",
     "globe-label": "#eef2f6",
     "globe-label-active": "#7c8793",
-    "globe-border": "rgba(238, 242, 246, 0.28)",
     "globe-selection": "#a37142",
     "globe-space": "#050d16"
   },
@@ -114,6 +114,7 @@ export const theme = {
     "text-primary": "#eef2f6",
     "text-secondary": "#9fb2c6",
     "ocean": "#061a33",
+    "globe-border": "#eef2f6",
     "radius-btn": "10px",
     "radius-panel": "14px"
   }
