@@ -23,6 +23,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { KNOBS } from '../packages/design-tokens/src/tokens.js';
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
 
@@ -74,6 +75,31 @@ describe('the dev components themselves', () => {
         for (const f of readdirSync(fileURLToPath(new URL('../apps/web/src/styles', import.meta.url)))) {
             if (f === 'dev-theme.css') continue;
             expect(read(`apps/web/src/styles/${f}`), f).not.toMatch(/\.tl-/);
+        }
+    });
+});
+
+describe('the Theme Lab covers the knob table', () => {
+    const panel = read('apps/web/src/components/dev/ThemeLab.tsx');
+
+    it('renders a control for every knob type the system defines', () => {
+        // The panel generates its rows from KNOB_GROUPS, which is the point --
+        // a fourteenth knob should need no change to it. But that only holds
+        // while every `type` has a branch: a knob whose type the panel does not
+        // handle renders an empty cell, with nothing to notice.
+        const handled = new Set(
+            [...panel.matchAll(/knob\.type === '([a-z]+)'/g)].map(m => m[1]));
+        for (const type of new Set(KNOBS.map(k => k.type))) {
+            expect(handled, `no control for knob type '${type}'`).toContain(type);
+        }
+    });
+
+    it('drives the roundness sliders in px, the unit the knobs are declared in', () => {
+        // `${n}px` on the way out, parseInt on the way in. A bare number would
+        // resolve to nothing as a border-radius and fail silently.
+        expect(panel).toMatch(/`\$\{e\.target\.value\}px`/);
+        for (const k of KNOBS.filter(k => k.type === 'length')) {
+            expect(k.value, `${k.name} is not in px`).toMatch(/^\d+px$/);
         }
     });
 });

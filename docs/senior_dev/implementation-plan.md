@@ -1008,6 +1008,20 @@ carried per-knob `label` and `type` for an editor's widgets; `contrastRatio` and
 there. The panel is the caller they were waiting for, and it generates its rows from
 `KNOB_GROUPS` — **a fourteenth knob needs no change to it**.
 
+**One control per knob `type`.** Colours get a native swatch plus a text field (a hex is often
+something you paste, and the picker cannot express `rgba()`). Fonts get a dropdown whose "loaded
+on this page" group is read from **`document.fonts`**, not from a hand-written list — the Google
+Fonts `<link>` in `AppLayout.astro` is then the only place a family is named, instead of two that
+drift; the System group offers generic stacks and names no specific family. Roundness gets a
+slider, 0–32px, because the useful range is small, bounded and entirely a matter of looking at
+it. `tests/dev-tools-gate.test.js` asserts every `type` in `KNOBS` has a branch, since a knob the
+panel does not handle renders an empty cell with nothing to notice.
+
+**Border *thickness* is deliberately absent, here and everywhere.** `setBorderWidth()` is a
+no-op: WebGL caps line width at 1px, so it would need a fat-line mesh implementation. Border
+*strength* exists and is a **user setting**, not a theme knob — `SettingsSheet`'s "Border
+strength" slider over `settingsStore.borderOpacity`. `--globe-border` carries colour only.
+
 **Persistence is `packages/design-tokens/theme.json`**, a committed knob-override map read by
 `bin/build-tokens.mjs` and layered over the defaults through the `overrides` parameter that
 `resolveTheme` / `toCss` / `toNativeTheme` always took. `tokens.js` keeps the system — knobs,

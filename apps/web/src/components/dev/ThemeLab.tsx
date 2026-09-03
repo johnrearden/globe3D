@@ -80,6 +80,37 @@ function asHex(value: string): string {
 }
 
 /**
+ * The generic families, as complete stacks. No specific family is named here —
+ * a dev tool that hardcodes "Georgia" is asserting something about the reader's
+ * machine that it cannot know.
+ */
+const SYSTEM_FONTS = [
+    { value: 'system-ui, sans-serif', label: 'System default' },
+    { value: 'ui-serif, serif', label: 'System serif' },
+    { value: 'ui-monospace, monospace', label: 'System monospace' },
+];
+
+/** Roundness slider range, in px. 0 is square; past ~32 a panel reads as a pill. */
+const RADIUS_MAX = 32;
+
+/**
+ * The families actually available to this document, read from `document.fonts`.
+ *
+ * Deliberately not a hand-written list of what the Google Fonts `<link>` in
+ * `AppLayout.astro` requests: that would be a second place to update, and the
+ * two would drift the first time a family was swapped. `FontFaceSet` holds one
+ * entry per loaded weight, so families repeat and are deduped.
+ */
+function loadedFamilies(): string[] {
+    const set = globalThis.document?.fonts;
+    if (!set) return [];
+    return [...new Set([...set].map((f) => f.family))].sort((a, b) => a.localeCompare(b));
+}
+
+/** A family name as a complete stack, so a missing glyph still falls back sanely. */
+const stackFor = (family: string) => `'${family}', system-ui, sans-serif`;
+
+/**
  * Is this value usable as a knob of this type?
  *
  * The colour maths in the package **throws** on an unparseable value —
@@ -105,6 +136,22 @@ export default function ThemeLab() {
      */
     const [drafts, setDrafts] = useState<Knobs>({});
     const [saved, setSaved] = useState<string | null>(null);
+    /** Families this document can actually render, for the font dropdowns. */
+    const [families, setFamilies] = useState<string[]>(loadedFamilies);
+
+    // `document.fonts` is empty until the webfonts arrive, so the first read
+    // would offer System and nothing else. Re-read once they have landed.
+    useEffect(() => {
+        let live = true;
+        document.fonts?.ready.then(() => { if (live) setFamilies(loadedFamilies()); });
+        return () => { live = false; };
+    }, []);
+
+    /** Every stack the dropdowns offer, so an unlisted one can be shown as-is. */
+    const fontValues = useMemo(
+        () => new Set([...families.map(stackFor), ...SYSTEM_FONTS.map((f) => f.value)]),
+        [families],
+    );
 
     const edit = useCallback((name: string, type: string, value: string) => {
         setDrafts((d) => ({ ...d, [name]: value }));
@@ -222,26 +269,87 @@ export default function ThemeLab() {
                                 <span className="tl-label" title={knob.note || knob.name}>
                                     {knob.label}
                                 </span>
-                                {knob.type === 'color' && (
-                                    <input
-                                        type="color"
-                                        className="tl-swatch"
-                                        value={asHex(knobs[knob.name])}
-                                        onChange={(e) =>
-                                            edit(knob.name, knob.type, e.target.value)}
-                                        aria-label={`${knob.label} colour`}
-                                    />
-                                )}
-                                <input
-                                    type="text"
-                                    className={`tl-value${
-                                        knob.name in drafts ? ' tl-pending' : ''}`}
-                                    value={drafts[knob.name] ?? knobs[knob.name]}
-                                    spellCheck={false}
-                                    onChange={(e) =>
-                                        edit(knob.name, knob.type, e.target.value)}
-                                    aria-label={`${knob.label} value`}
-                                />
+                                <span className="tl-control">
+                                    {knob.type === 'color' && (
+                                        <>
+                                            <input
+                                                type="color"
+                                                className="tl-swatch"
+                                                value={asHex(knobs[knob.name])}
+                                                onChange={(e) =>
+                                                    edit(knob.name, knob.type, e.target.value)}
+                                                aria-label={`${knob.label} colour`}
+                                            />
+                                            {/* Colours keep a text field: a hex is
+                                                often something you paste, and the
+                                                native picker cannot express rgba(). */}
+                                            <input
+                                                type="text"
+                                                className={`tl-value${
+                                                    knob.name in drafts ? ' tl-pending' : ''}`}
+                                                value={drafts[knob.name] ?? knobs[knob.name]}
+                                                spellCheck={false}
+                                                onChange={(e) =>
+                                                    edit(knob.name, knob.type, e.target.value)}
+                                                aria-label={`${knob.label} value`}
+                                            />
+                                        </>
+                                    )}
+
+                                    {knob.type === 'font' && (
+                                        <select
+                                            className="tl-select"
+                                            value={knobs[knob.name]}
+                                            onChange={(e) =>
+                                                edit(knob.name, knob.type, e.target.value)}
+                                            aria-label={`${knob.label} family`}
+                                        >
+                                            {/* A stack the dropdown does not offer —
+                                                from theme.json, or a family that has
+                                                not loaded yet. Listed first so the
+                                                select shows the truth rather than
+                                                silently reading as something else. */}
+                                            {!fontValues.has(knobs[knob.name]) && (
+                                                <option value={knobs[knob.name]}>
+                                                    {knobs[knob.name]}
+                                                </option>
+                                            )}
+                                            {families.length > 0 && (
+                                                <optgroup label="Loaded on this page">
+                                                    {families.map((f) => (
+                                                        <option key={f} value={stackFor(f)}>{f}</option>
+                                                    ))}
+                                                </optgroup>
+                                            )}
+                                            <optgroup label="System">
+                                                {SYSTEM_FONTS.map((f) => (
+                                                    <option key={f.value} value={f.value}>
+                                                        {f.label}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                    )}
+
+                                    {knob.type === 'length' && (
+                                        <>
+                                            <input
+                                                type="range"
+                                                className="tl-range"
+                                                min={0}
+                                                max={RADIUS_MAX}
+                                                step={1}
+                                                value={parseInt(knobs[knob.name], 10) || 0}
+                                                onChange={(e) => edit(
+                                                    knob.name, knob.type, `${e.target.value}px`)}
+                                                aria-label={`${knob.label} in pixels`}
+                                            />
+                                            <output className="tl-readout">
+                                                {knobs[knob.name]}
+                                            </output>
+                                        </>
+                                    )}
+                                </span>
                             </label>
                         ))}
                     </section>
@@ -258,11 +366,14 @@ export default function ThemeLab() {
                     </section>
                 )}
 
-                {/* The one knob→asset dependency the panel cannot honour: the
-                    font files are a hand-written <link> in AppLayout.astro. */}
+                {/* The dropdowns offer only what this document can already
+                    render, so a chosen family always resolves. Widening the
+                    list is the one knob→asset dependency the panel cannot do
+                    for you: the webfonts are a hand-written <link>. */}
                 <p className="tl-note">
-                    Changing a font here restyles the app but loads no new webfont — add it to the
-                    Google Fonts <code>&lt;link&gt;</code> in <code>AppLayout.astro</code>.
+                    Font options are the families this page has loaded, plus the system stacks.
+                    To offer another, add it to the Google Fonts <code>&lt;link&gt;</code> in{' '}
+                    <code>AppLayout.astro</code>.
                 </p>
             </div>
 
