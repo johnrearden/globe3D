@@ -118,6 +118,18 @@ export interface Lighting {
 }
 
 /**
+ * The globe's themed colours: the space behind it, the ink its outlines and
+ * graticule share, and the water. The resolved values of `--globe-space`,
+ * `--globe-border` and `--ocean` — read from the cascade by
+ * `lib/theme-colors.ts`, never recomputed in JS.
+ */
+export interface ThemeColors {
+    space?: string;
+    border?: string;
+    ocean?: string;
+}
+
+/**
  * How the globe LOOKS, as opposed to where it is pointing.
  *
  * Separate from `GlobeBridge` on purpose — see
@@ -144,6 +156,11 @@ export interface GlobeAppearance {
      * the duration of a question and must not overwrite this.
      */
     setAutoRotate(opts: { enabled?: boolean; delayMs?: number; speed?: number }): void;
+    /**
+     * The three globe surfaces a theme owns — backdrop, outline ink, water — as
+     * plain CSS colour strings. An omitted field is left alone, not reset.
+     */
+    setThemeColors(colors: ThemeColors): void;
     /** Null restores the defaults. */
     setLighting(lighting: Lighting | null): void;
     lightingDefaults(): Lighting;

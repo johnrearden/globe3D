@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { toCss } from '../src/css.js';
 import { toNativeTheme } from '../src/native.js';
 import { toPythonAllowList } from '../src/python.js';
+import { readTheme } from '../src/theme-file.js';
 import { KNOBS } from '../src/tokens.js';
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,19 +26,27 @@ const dist = join(pkgRoot, 'dist');
 const banner = kind => [
     `${kind === 'css' ? '/*' : '//'} GENERATED — do not edit.`,
     `${kind === 'css' ? '  ' : '//'} Source: packages/design-tokens/src/tokens.js`,
+    `${kind === 'css' ? '  ' : '//'}         packages/design-tokens/theme.json (knob overrides)`,
     `${kind === 'css' ? '  ' : '//'} Rebuild: npm run build:tokens`,
     kind === 'css' ? '*/' : '',
 ].filter(Boolean).join('\n') + '\n\n';
 
-/** @returns {Record<string, string>} relative path → contents */
-export function artefacts() {
+/**
+ * @param {Object<string,string>} [overrides] knob map layered over the defaults.
+ *   Defaults to the committed `theme.json`, so the artefacts describe the theme
+ *   this product actually ships rather than the system's built-in values.
+ * @returns {Record<string, string>} relative path → contents
+ */
+export function artefacts(overrides = readTheme()) {
     return {
-        'tokens.css': banner('css') + toCss(),
+        'tokens.css': banner('css') + toCss(overrides),
         'tokens.native.js':
             banner('js') +
-            '/** The resolved default theme as a plain object for React Native. */\n' +
-            'export const theme = ' + JSON.stringify(toNativeTheme(), null, 2) + ';\n' +
+            '/** The resolved theme as a plain object for React Native. */\n' +
+            'export const theme = ' + JSON.stringify(toNativeTheme(overrides), null, 2) + ';\n' +
             '\nexport default theme;\n',
+        // Names only — the allow-list is a property of the system, not of a
+        // theme, so overrides do not reach it.
         'tokens.py': toPythonAllowList() + '\n',
     };
 }

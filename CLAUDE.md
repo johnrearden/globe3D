@@ -133,6 +133,24 @@ lighting is applied ~1.7 s late on purpose: `fadeInLighting()` ramps the same un
 then run `npm run build:tokens`; the committed artefacts in `packages/design-tokens/dist/` are
 regenerated and `npm test` fails if they go stale.
 
+**To restyle the app, do not edit the knob defaults — set them in
+`packages/design-tokens/theme.json`.** `tokens.js` defines the *system* (which knobs exist, the
+fixed scales, how the other 34 values derive); `theme.json` is a committed override map holding
+this product's deviation from it, layered in by the build through the `overrides` parameter
+`resolveTheme` / `toCss` / `toNativeTheme` always took. The fastest way to author one is the
+**dev-only Theme Lab** on `/app` (`apps/web/src/components/dev/ThemeLab.tsx`): it edits all 13
+live, warns on contrast below AA, and its Save writes `theme.json` — then `npm run build:tokens`
+bakes it in. It generates its rows from `KNOB_GROUPS`, so a fourteenth knob needs no change to
+it. `src/theme-file.js` is **Node-only and must not be re-exported from `src/index.js`**, which
+the browser loads via the importmap.
+
+**A dev-only island needs a conditional `await import()`, not a conditional render.**
+`{import.meta.env.DEV && <X client:only="react" />}` still ships X: a client directive is read by
+the Astro *compiler*, which registers the island whether or not the expression can be true — the
+first build done that way emitted an 8 KB chunk and inlined its CSS into every page. Put the
+directive in a wrapper (`components/dev/DevTools.astro`) and import that wrapper conditionally,
+so Rollup has a whole module to drop. `tests/dev-tools-gate.test.js` pins it.
+
 **Every UI value must resolve to a token, and `check-tokens.mjs` enforces it** (wired into
 `npm test`). It fails the build on colour / font / weight / shadow / radius literals, on raw spacing
 outside `--space-1…6`, on six-digit `0x……` colours in engine JS, and — the rule that matters most

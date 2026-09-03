@@ -42,6 +42,12 @@ import '../styles/daily.css';
 import QuizLayer from '../components/quiz/QuizLayer';
 import ShellControls from '../components/shell/ShellControls';
 import DailyLayer from '../components/daily/DailyLayer';
+// Dev only. Imported dynamically inside a branch Vite replaces with `false`,
+// so Rollup drops the module and everything it pulls in. A static import with
+// a conditional render would NOT do that — see DevTools.astro for why.
+const DevTools = import.meta.env.DEV
+    ? (await import('../components/dev/DevTools.astro')).default
+    : null;
 ---
 <!doctype html>
 <html lang="en">
@@ -81,5 +87,6 @@ import DailyLayer from '../components/daily/DailyLayer';
          thing in the app that talks to a server, and a reader who never opens it
          should not pay for the API client. -->
     <DailyLayer client:idle />
+    {DevTools && <DevTools />}
 </body>
 </html>

@@ -21,6 +21,7 @@ import { getScreen, onScreenChange, type Screen } from '../lib/route';
 import { framingFor } from '../lib/globe-framing';
 import { getPanelSnap, onPanelSnapChange } from '../lib/panel';
 import { setGlobeHandle } from '../lib/globe';
+import { readThemeColors } from '../lib/theme-colors';
 
 /**
  * Where the baked .bin assets load from.
@@ -168,7 +169,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // POINTING; the appearance is how it LOOKS.
                 const globe = createWebGlobeBridge({ globeManager, cameraController });
                 const appearance = createWebGlobeAppearance({
-                    globeManager, cameraController, labelManager,
+                    globeManager, cameraController, labelManager, sceneManager,
                 });
 
                 // The reader's saved preferences, all of them, in one call.
@@ -184,6 +185,14 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // theme-switcher and an API round trip these pages do not make.
                 // It arrives with B9.
                 appearance.applyAll(settingsStore.get());
+
+                // The globe's themed colours. `scene.js` and `globe.js` read
+                // --globe-space and --globe-border for themselves at boot, but
+                // nothing read --ocean at all: the water came from the baked
+                // `meta.oceanColor` and the knob styled only the loading
+                // placeholder. One call makes all three follow the tokens, and
+                // is the same call the dev theme lab makes on every edit.
+                appearance.setThemeColors(readThemeColors());
 
                 // Taps on the globe. PointerControls owns the whole pointer
                 // dispatch — drag vs. tap, flick momentum, long-press — so this

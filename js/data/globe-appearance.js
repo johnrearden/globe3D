@@ -30,9 +30,13 @@ const LIGHTING_FADE_MS = 1700;
  * @param {object} deps.globeManager   loaded GlobeManager
  * @param {object} deps.cameraController
  * @param {object} [deps.labelManager] absent on a globe with no labels
+ * @param {object} [deps.sceneManager] needed only by setThemeColors, which owns
+ *   the backdrop the globe sits in
  * @returns {import('@terragotcha/globe-bridge').GlobeAppearance}
  */
-export function createWebGlobeAppearance({ globeManager, cameraController, labelManager }) {
+export function createWebGlobeAppearance({
+    globeManager, cameraController, labelManager, sceneManager,
+}) {
     /** The live shader uniforms, or null before the mesh has loaded. */
     const uniforms = () => globeManager?.material?.uniforms || null;
 
@@ -82,6 +86,15 @@ export function createWebGlobeAppearance({ globeManager, cameraController, label
             } else {
                 cameraController.setAutoRotateAllowed(false);
             }
+        },
+
+        setThemeColors({ space, border, ocean } = {}) {
+            // Each field is optional and applied independently: a caller that
+            // only knows the ocean must not blank the backdrop.
+            const scene = sceneManager?.getScene?.();
+            if (space && scene?.background) scene.background.set(space);
+            if (border) globeManager.setBorderColor(border);
+            if (ocean) globeManager.setOceanColor(ocean);
         },
 
         setLighting(lighting) {

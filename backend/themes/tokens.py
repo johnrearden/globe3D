@@ -11,6 +11,9 @@ currently produce. When that UI lands:
 
   1. Replace the token tuples below with the marked block from
      packages/design-tokens/dist/tokens.py (spliceGeneratedBlock() does this).
+     The 13-knob editing UI already exists locally: apps/web's dev-only Theme
+     Lab writes packages/design-tokens/theme.json, which is the same shape a
+     stored Theme's `tokens` field will hold once this list is the new one.
   2. Drop existing Theme rows in a data migration — they name tokens that no
      longer exist. The feature is superuser-gated with test users only.
   3. scene_bg / ocean_color become derived from the --bg-app / --ocean knobs

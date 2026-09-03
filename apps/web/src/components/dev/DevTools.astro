@@ -1,0 +1,24 @@
+---
+/**
+ * Everything that exists only while developing. One island today.
+ *
+ * ## Why this wrapper exists
+ *
+ * `{import.meta.env.DEV && <ThemeLab client:only="react" />}` in `AppLayout`
+ * looks like it does the job and does not. A client directive is read by the
+ * Astro **compiler**, which registers the island in the client manifest whether
+ * or not the surrounding expression ever evaluates true — so a production build
+ * still emitted an 8 KB `ThemeLab` chunk and inlined `dev-theme.css` into every
+ * page. The conditional removed the render, not the module.
+ *
+ * Putting the directive in its own file, imported by `await import()` inside a
+ * branch Vite statically replaces with `false`, gives Rollup a whole module to
+ * drop — the chunk, the stylesheet and the design-tokens JS with it.
+ *
+ * Verified rather than assumed: the build is grepped for this panel's markers,
+ * because "the dev tool did not ship" is exactly the kind of claim that rots.
+ */
+import ThemeLab from './ThemeLab';
+---
+
+<ThemeLab client:only="react" />

@@ -1,8 +1,9 @@
 // GENERATED — do not edit.
 // Source: packages/design-tokens/src/tokens.js
+//         packages/design-tokens/theme.json (knob overrides)
 // Rebuild: npm run build:tokens
 
-/** The resolved default theme as a plain object for React Native. */
+/** The resolved theme as a plain object for React Native. */
 export const theme = {
   "color": {
     "bg-app": "#0a1c30",

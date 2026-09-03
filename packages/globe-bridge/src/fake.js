@@ -133,6 +133,7 @@ export function createFakeGlobeAppearance() {
             borderOpacity: undefined,
             selectionGradient: undefined,
             autoRotate: undefined,
+            themeColors: undefined,
             lighting: undefined,
         },
     };
@@ -164,6 +165,13 @@ export function createFakeGlobeAppearance() {
         setBorderOpacity(v) { record('setBorderOpacity', [v]); fake.state.borderOpacity = v; },
         setSelectionGradient(v) { record('setSelectionGradient', [v]); fake.state.selectionGradient = v; },
         setAutoRotate(o) { record('setAutoRotate', [o]); fake.state.autoRotate = { ...o }; },
+        setThemeColors(c) {
+            record('setThemeColors', [c]);
+            // Merged, not replaced: the real implementation leaves an
+            // omitted field alone, so a test asserting on state must see
+            // the same thing.
+            fake.state.themeColors = { ...fake.state.themeColors, ...c };
+        },
         setLighting(l) { record('setLighting', [l]); fake.state.lighting = l; },
         lightingDefaults: () => ({ ...LIGHTING_DEFAULTS }),
         reset() { fake.calls = []; },

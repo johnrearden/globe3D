@@ -19,6 +19,8 @@ import { createWebGlobeAppearance } from '../js/data/globe-appearance.js';
 function stubEngine() {
     const calls = [];
     const log = name => (...args) => calls.push({ name, args });
+    // THREE.Color's shape, reduced to the one method setThemeColors uses.
+    const scene = { background: { value: null, set(v) { this.value = v; } } };
     const uniforms = {
         uAmbient: { value: { setScalar(v) { uniforms.uAmbient.value.scalar = v; }, scalar: null } },
         uDiffuse: { value: null },
@@ -29,6 +31,7 @@ function stubEngine() {
     return {
         calls,
         uniforms,
+        scene,
         globeManager: {
             material: { uniforms },
             // applyScheme bails without this, which is correct but would make
@@ -40,6 +43,8 @@ function stubEngine() {
             setBorderVisible: log('setBorderVisible'),
             setBorderOpacity: log('setBorderOpacity'),
             setSelectionGradient: log('setSelectionGradient'),
+            setBorderColor: log('setBorderColor'),
+            setOceanColor: log('setOceanColor'),
         },
         cameraController: {
             controls: { autoRotateSpeed: null },
@@ -48,6 +53,7 @@ function stubEngine() {
             setAutoRotateAllowed: log('setAutoRotateAllowed'),
         },
         labelManager: { setLabelsVisible: log('setLabelsVisible') },
+        sceneManager: { getScene: () => scene },
     };
 }
 
@@ -141,6 +147,37 @@ describe('createWebGlobeAppearance', () => {
         const e = stubEngine();
         const a = createWebGlobeAppearance({ ...e, labelManager: undefined });
         expect(() => a.applyAll({ showLabels: false })).not.toThrow();
+    });
+
+    it('applies all three themed globe colours', () => {
+        const e = stubEngine();
+        createWebGlobeAppearance(e).setThemeColors({
+            space: '#050d16', border: 'rgba(238, 242, 246, 0.28)', ocean: '#061a33',
+        });
+        expect(e.scene.background.value).toBe('#050d16');
+        expect(e.calls.find(c => c.name === 'setBorderColor').args)
+            .toEqual(['rgba(238, 242, 246, 0.28)']);
+        expect(e.calls.find(c => c.name === 'setOceanColor').args).toEqual(['#061a33']);
+    });
+
+    it('leaves an omitted colour alone rather than blanking it', () => {
+        // A caller that only knows the ocean must not reset the backdrop --
+        // readThemeColors returns undefined for a token the cascade lacks.
+        const e = stubEngine();
+        createWebGlobeAppearance(e).setThemeColors({ ocean: '#08324f' });
+        expect(e.scene.background.value).toBeNull();
+        expect(e.calls.some(c => c.name === 'setBorderColor')).toBe(false);
+        expect(e.calls.find(c => c.name === 'setOceanColor').args).toEqual(['#08324f']);
+    });
+
+    it('is a no-op with no argument, and on a globe with no scene', () => {
+        const e = stubEngine();
+        expect(() => createWebGlobeAppearance(e).setThemeColors()).not.toThrow();
+        expect(e.calls).toEqual([]);
+        // sceneManager is optional: only setThemeColors needs it.
+        const noScene = createWebGlobeAppearance({ ...e, sceneManager: undefined });
+        expect(() => noScene.setThemeColors({ space: '#000', ocean: '#123' })).not.toThrow();
+        expect(e.calls.find(c => c.name === 'setOceanColor').args).toEqual(['#123']);
     });
 
     it('exposes every declared method and no more', () => {

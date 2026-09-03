@@ -54,10 +54,46 @@ function serveGlobeAssets() {
  *
  * `site` is required for canonical URLs and the sitemap to resolve absolutely.
  */
+/**
+ * Let the dev theme lab persist a knob map to `packages/design-tokens/theme.json`.
+ *
+ * Dev-only by construction, the same reason `serveGlobeAssets` is a middleware
+ * rather than a `public/` symlink: `configureServer` never runs during a build,
+ * so there is no way for this to reach production. `ThemeLab` is likewise gated
+ * on `import.meta.env.DEV`, so nothing in a build even tries to call it.
+ *
+ * `writeTheme` filters the body through `pickKnobs`, so the worst a malformed
+ * request can do is write `{}`.
+ */
+function saveThemeFile() {
+    return {
+        name: 'terragotcha:save-theme-file',
+        configureServer(server) {
+            server.middlewares.use('/__theme/save', (req, res, next) => {
+                if (req.method !== 'POST') return next();
+                let body = '';
+                req.on('data', (chunk) => { body += chunk; });
+                req.on('end', async () => {
+                    try {
+                        const { writeTheme } =
+                            await import('@terragotcha/design-tokens/theme-file.js');
+                        const written = writeTheme(JSON.parse(body || '{}'));
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({ ok: true, written }));
+                    } catch (err) {
+                        res.statusCode = 400;
+                        res.end(JSON.stringify({ ok: false, error: String(err.message || err) }));
+                    }
+                });
+            });
+        },
+    };
+}
+
 export default defineConfig({
     site: 'https://terragotcha.com',
     integrations: [react()],
-    vite: { plugins: [serveGlobeAssets()] },
+    vite: { plugins: [serveGlobeAssets(), saveThemeFile()] },
     // Emit /country/france/index.html rather than /country/france.html, so the
     // URL the app pushes and the URL the build serves are the same string.
     // A trailing-slash mismatch is the classic way pushState routing 404s on

@@ -59,6 +59,18 @@
  *   user's standing preference, and the quiz's suppression must not overwrite
  *   it.
  *
+ * @property {(colors: {space?: string, border?: string, ocean?: string}) => void} setThemeColors
+ *   The three globe surfaces a theme owns: the space behind it, the ink its
+ *   outlines and graticule are drawn in, and the water. Plain CSS colour
+ *   strings — the same values `--globe-space`, `--globe-border` and `--ocean`
+ *   resolve to — so nothing engine-specific crosses. An omitted field is left
+ *   alone rather than reset.
+ *
+ *   Separate from `setCountryScheme` because a scheme is a *palette of 256
+ *   country fills* chosen by key, while these are single colours a theme
+ *   author sets directly. And separate from `setLighting`, which is optics: a
+ *   dark ocean and a dim light look nothing alike.
+ *
  * @property {(lighting: object|null) => void} setLighting
  *   `{ambient, diffuse, specStrength, shininess, oceanSpecBoost}`, or null to
  *   restore the defaults. Plain numbers, so they cross cleanly — but this is
@@ -83,6 +95,7 @@ export const GLOBE_APPEARANCE_METHODS = Object.freeze([
     'setBorderOpacity',
     'setSelectionGradient',
     'setAutoRotate',
+    'setThemeColors',
     'setLighting',
     'lightingDefaults',
 ]);

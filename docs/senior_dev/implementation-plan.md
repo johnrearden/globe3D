@@ -920,7 +920,11 @@ the island boundary.
 **Deliberately not included, each for a reason:**
 
 - **UI theme / remote themes** — they need the 13-knob backend cutover (B9). A theme control
-  against the legacy 24-knob vocabulary would style nothing.
+  against the legacy 24-knob vocabulary would style nothing. (A *dev-only* 13-knob editor now
+  exists — see the Theme Lab section below — so B9 is the Django half alone: splice
+  `dist/tokens.py` into `backend/themes/tokens.py`, migrate away the legacy `Theme` rows, and
+  rebuild the audit-gated editor. `theme.json` is the local equivalent of a stored theme, and
+  `GlobeAppearance.setThemeColors` is the method a remote `sceneBg`/`oceanColor` will use.)
 - **"Country info panel"** — that panel is `flag-renderer.js`, still vanilla only (B10d). A
   switch for something the app cannot show is worse than no switch.
 - **The dev editors** — not being ported; `index.html` keeps them.
@@ -987,6 +991,72 @@ Baseline still 728 / 292 words, zero app chrome in the static document.
 
 **Remaining in B10:** search and the country info panel (`flag-renderer.js`) — B10d. The
 celebration animations are deletions, not ports.
+
+---
+
+## Theme Lab — editing the 13 knobs live, in dev — ✅ Done
+
+Independent of the B10 sequence: not blocked by B9, and B11 does not touch it.
+
+`/app` and `/country/*` wear one generated `:root` block of 47 properties, and 13 knobs fan out
+to 34 more through `derive()` — so the result of a knob change is genuinely hard to predict by
+reading. `apps/web/src/components/dev/ThemeLab.tsx` edits them against the running app.
+
+**Almost none of it was new machinery.** `applyCssVariables` (`design-tokens/src/css.js`) was
+written for a theme switcher that never got built and had **zero callers**; `KNOB_GROUPS` already
+carried per-knob `label` and `type` for an editor's widgets; `contrastRatio` and `pickKnobs` were
+there. The panel is the caller they were waiting for, and it generates its rows from
+`KNOB_GROUPS` — **a fourteenth knob needs no change to it**.
+
+**Persistence is `packages/design-tokens/theme.json`**, a committed knob-override map read by
+`bin/build-tokens.mjs` and layered over the defaults through the `overrides` parameter that
+`resolveTheme` / `toCss` / `toNativeTheme` always took. `tokens.js` keeps the system — knobs,
+tiers, derivations, defaults; `theme.json` is this product's deviation from it. `src/theme-file.js`
+is Node-only and deliberately **not** re-exported from `src/index.js`, which the browser loads.
+A dev-only Vite middleware (`POST /__theme/save`) writes it, filtered through `pickKnobs`.
+
+**Three globe surfaces now follow a theme**, via one new `GlobeAppearance` method,
+`setThemeColors({space, border, ocean})` — plain colour strings, nothing engine-specific
+crossing. Before it, `--globe-space` (`scene.js:51`) and `--globe-border` (`globe.js:205`, `:401`)
+were read once at boot and frozen, and **`--ocean` was read by nothing at all**: it styled only
+the `#globe-placeholder` gradient while the real water came from `DEFAULT_OCEAN_COLOR`. One knob
+in thirteen did nothing to the globe it names. B9's remote themes need this same method for their
+`sceneBg`/`oceanColor`.
+
+Both callers read the three values from the **cascade** (`lib/theme-colors.ts` → `cssToken`),
+never from `resolveTheme()` in JS: `theme.json` is baked in at build time, so a JS resolve returns
+the unoverridden defaults and would quietly disagree with the stylesheet.
+
+**Two bugs found and fixed on the way, neither new to this work:**
+
+- `setBorderColor` recoloured the country outlines and left the graticule behind — its two
+  `LineBasicMaterial`s were locals in `addLatLongLines`, despite the comment there saying the two
+  are one ink. The legacy theme editor has always tripped over this. `tests/globe-border-ink.test.js`.
+- The package's colour maths **throws** on an unparseable value (`mix`, `alpha`, `luminance` all
+  do, correctly). A text field is unparseable on the way to being parseable — `#`, `#3`, `#3b` —
+  so the panel holds a draft per knob and only applies values that parse. Without it the island
+  unmounted mid-keystroke.
+
+**The dev gate is the subtle part.** `{import.meta.env.DEV && <ThemeLab client:only="react" />}`
+looks right and is not: a client directive is read by the Astro **compiler**, which registers the
+island whether or not the expression can ever be true. The first build done that way emitted an
+8 KB chunk and inlined `dev-theme.css` into all five pages. The working shape is a conditional
+`await import()` of `components/dev/DevTools.astro`, which holds the directive — Rollup then has a
+whole module to drop. `tests/dev-tools-gate.test.js` pins that shape, because the broken one reads
+as the simpler of the two.
+
+**Verified** in headless Chrome against the real module: the panel seeds from the built artefact
+(not from defaults, so a committed theme survives the first edit); an edit to `bg-app` moves the
+derived `--globe-space`; the ocean knob visibly recolours the water; a contrast pair below AA
+warns; Escape restores the defaults. Production build grepped for the panel's markers — absent
+entirely, no chunk, no CSS, no `KNOB_GROUPS`. Baseline unchanged: 4 internal links and zero
+app-chrome elements on both `/app` and `/country/france`.
+
+**Still emitted and read by nothing: `--globe-selection`.** Found, not fixed — giving it a
+consumer changes globe appearance behaviour rather than theming.
+
+**What this deliberately is not:** a production theme picker. `SettingsSheet.tsx` keeps its
+deferral comment, which is about *remote* themes and still accurate.
 
 ---
 

@@ -402,6 +402,11 @@ export class GlobeManager {
         const lineMaterial = new THREE.LineBasicMaterial({
             color: graticuleColor, opacity: 0.3, transparent: true
         });
+        // Retained so setBorderColor can recolour them. They were locals, which
+        // meant a theme change moved the country outlines and left the graticule
+        // at whatever colour it was built with — visibly two inks, despite the
+        // comment above saying they are one.
+        this.graticuleMaterials = [lineMaterial];
 
         for (let lat = -75; lat <= 75; lat += 15) {
             const points = [];
@@ -424,6 +429,7 @@ export class GlobeManager {
         const equatorMaterial = new THREE.LineBasicMaterial({
             color: graticuleColor, opacity: 0.5, transparent: true
         });
+        this.graticuleMaterials.push(equatorMaterial);
         const equatorPoints = [];
         for (let lng = -180; lng <= 180; lng += 5) {
             equatorPoints.push(this.latLngToVector3(0, lng, radius));
@@ -827,6 +833,10 @@ export class GlobeManager {
     setBorderColor(hex) {
         this._borderColor = hex;
         if (this.borderMaterial) this.borderMaterial.uniforms.uColor.value.set(hex);
+        // The graticule is the same ink at a lower opacity (addLatLongLines),
+        // so it follows. Each material keeps its own opacity — only the colour
+        // is shared.
+        for (const m of this.graticuleMaterials || []) m.color.set(hex);
     }
 
     // WebGL caps line width at 1px, so the border is a constant 1px at every

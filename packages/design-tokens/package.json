@@ -11,7 +11,8 @@
   },
   "files": [
     "src",
-    "bin"
+    "bin",
+    "theme.json"
   ],
   "sideEffects": false
 }
