@@ -1249,11 +1249,11 @@ shipping no tag:
 | WebGL-absent fallback | `js/features/webgl-fallback.js` (84 lines) | **absent** |
 | favicons, `theme-color`, `og:image`, `manifest.webmanifest` | `index.html:27-43` | **absent** |
 
-**This is a live finding, not only a B11 one.** `/country/*` has been deployed since Phase B
-opened, is listed in `sitemap.xml`, and was built specifically to answer an AdSense rejection —
-and it serves no ad code and asks for no consent. The consent gap is the one with teeth: it is
-a GDPR surface, and today it is an EU visitor on a page with no CMP. Worth fixing ahead of B11
-rather than inside it.
+**Nothing from Phase B has been deployed yet, so this is not a live exposure — but it is a
+first-deploy blocker, not a B11 one.** The moment `/country/*` ships it is a sitemapped page,
+built specifically to answer an AdSense rejection, that serves no ad code and asks for no
+consent; the second half is a GDPR surface. Close it before the first deploy that includes these
+pages, not inside the flip.
 
 **There is already a working reference for the head, and it is generated, not hand-written.**
 `build-landing.mjs` emits the 27 `/borders/<slug>` pages, and each one carries the whole stack —
@@ -1321,7 +1321,7 @@ the borders pages a self-contained generated stylesheet is a real slice of its o
 token migration as much as a file split, since anything extracted has to join `check-tokens.mjs`'s
 `SCOPE` or the checker's progress bar goes backwards. Do it as B12, with `styles.css` deleted at
 its end. The alternative — extract during B11 — puts an untested stylesheet under the only pages
-on the site currently earning ad revenue, in the same change that moves the apex.
+on the site that carry ad units, in the same change that moves the apex.
 
 Note that `check-tokens.mjs` already counts down to this: its one remaining legacy-vocabulary
 fallback is `js/utils/theme.js:36`, `cssToken('--font-ui')`, flagged on every run as "still to
@@ -1357,8 +1357,8 @@ encodes a rule that still holds somewhere:
 
 1. **The production head** — AdSense loader + verification meta, consent CMP, GA4, GlitchTip,
    WebGL fallback, favicons/manifest/og:image into `AppLayout.astro`, read from
-   `site-config.js`. Lands on `/country/*` *before* the flip, where it can be verified against a
-   surface that is already live and already indexed.
+   `site-config.js`. Lands on `/country/*` *before* the first deploy that includes those pages, so
+   it can be verified on a surface that is not also the apex.
 2. **Move the four survivors** out of `js/features/`, on their own.
 3. **The flip** — three constants, plus the page move.
 4. **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
