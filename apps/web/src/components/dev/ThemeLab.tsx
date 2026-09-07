@@ -29,7 +29,9 @@
  *
  * Saving writes `theme.json`, which the build reads. It does NOT change what a
  * hard reload shows until `npm run build:tokens` bakes it into the artefact, so
- * the panel says so rather than letting a reload look like data loss.
+ * the panel says so rather than letting a reload look like data loss — and it
+ * seeds itself from that file rather than from the artefact, so the gap between
+ * the two cannot cost you a knob.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -65,18 +67,47 @@ const PAIRS: Array<[string, string, string]> = [
 const AA = 4.5;
 
 /**
- * Seed from the live cascade, not from `defaultTheme()`.
+ * Seed from the live cascade — the starting point before `theme.json` arrives.
  *
- * The generated stylesheet already has `theme.json` layered in, so the cascade
- * is what the reader is actually looking at. Seeding from the defaults would
- * silently discard a committed theme the moment the first knob was touched,
- * because `applyCssVariables` writes a *complete* resolved set.
+ * Correct for a first paint (the artefact already has the last build layered
+ * in) but NOT the source of truth: see `useStoredTheme` below.
  */
 function knobsFromCascade(): Knobs {
     const defaults = defaultTheme();
     return Object.fromEntries(
         KNOB_NAMES.map((name) => [name, cssToken(`--${name}`) || defaults[name]]),
     );
+}
+
+/**
+ * Replace the seed with what `theme.json` actually holds.
+ *
+ * The panel is a view of the STORED theme, not of the last build, and the
+ * difference is not academic: those two disagree for exactly as long as it
+ * takes to remember `npm run build:tokens`. Seeding from the artefact alone
+ * meant a knob that had been saved but not yet baked showed its default, was
+ * therefore not counted as an override, and **was deleted by the next save** —
+ * which writes the diff against defaults. A save silently dropping a value the
+ * reader had already saved is the worst failure this panel can have.
+ *
+ * Anything the file does not name falls back to the default rather than to the
+ * cascade, so what is on screen is `theme.json` and nothing else.
+ */
+function useStoredTheme(apply: (knobs: Knobs) => void) {
+    useEffect(() => {
+        let live = true;
+        fetch('/__theme/current')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((stored: Knobs | null) => {
+                if (!live || !stored) return;
+                apply({ ...defaultTheme(), ...stored });
+            })
+            // No endpoint means no dev server writing files either, so there is
+            // nothing to be out of step with: the cascade seed stands.
+            .catch(() => {});
+        return () => { live = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount.
+    }, []);
 }
 
 /** `<input type="color">` speaks #rrggbb only; anything else needs converting. */
@@ -144,6 +175,9 @@ export default function ThemeLab() {
     const [saved, setSaved] = useState<string | null>(null);
     /** Families this document can actually render, for the font dropdowns. */
     const [families, setFamilies] = useState<string[]>(loadedFamilies);
+
+    // theme.json wins over the artefact — see useStoredTheme.
+    useStoredTheme(setKnobs);
 
     // `document.fonts` is empty until the webfonts arrive, so the first read
     // would offer System and nothing else. Re-read once they have landed.
@@ -220,9 +254,17 @@ export default function ThemeLab() {
                 body: JSON.stringify(overrides),
             });
             const body = await res.json();
-            setSaved(body.ok
-                ? `Saved ${Object.keys(body.written).length} knob(s). Run npm run build:tokens to bake it in.`
-                : `Save failed: ${body.error}`);
+            if (!body.ok) { setSaved(`Save failed: ${body.error}`); return; }
+            // A dropped knob is the failure worth shouting about: the write
+            // succeeded, so everything downstream reports success while the
+            // value is simply gone. It happened for nine days because a
+            // long-lived dev server was filtering against a stale knob list.
+            const lost = body.dropped?.length
+                ? ` NOT saved: ${body.dropped.join(', ')} — restart the dev server.`
+                : '';
+            setSaved(
+                `Saved ${Object.keys(body.written).length} knob(s).`
+                + ' Run npm run build:tokens to bake it in.' + lost);
         } catch (err) {
             setSaved(`Save failed: ${(err as Error).message}`);
         }

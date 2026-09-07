@@ -132,3 +132,38 @@ describe('the dev server sees a token rebuild', () => {
         expect(config).toMatch(/type:\s*'full-reload'/);
     });
 });
+
+describe('the theme save endpoint', () => {
+    const config = read('apps/web/astro.config.mjs');
+    const panel = read('apps/web/src/components/dev/ThemeLab.tsx');
+
+    it('loads the token module through Vite, not a bare dynamic import', () => {
+        // `await import()` is cached by NODE for the life of the process, and
+        // Astro reloading its config does not clear that. A dev server running
+        // since before `globe-border` became the 14th knob filtered saves
+        // against the stale 13-name list and dropped it -- for nine days, while
+        // answering ok. ssrLoadModule goes through the graph the watcher
+        // invalidates.
+        expect(config).toMatch(/ssrLoadModule\(\s*\n?\s*'@terragotcha\/design-tokens\/theme-file\.js'/);
+        expect(config).not.toMatch(/await import\('@terragotcha\/design-tokens/);
+    });
+
+    it('reports anything pickKnobs refused, rather than swallowing it', () => {
+        // The write succeeds either way, so without this the panel goes on
+        // reporting success while the value is simply gone.
+        expect(config).toMatch(/dropped/);
+        expect(panel).toMatch(/body\.dropped/);
+    });
+
+    it('seeds the panel from the stored theme, not from the built artefact', () => {
+        // They disagree for exactly as long as it takes to remember
+        // `npm run build:tokens`. Seeding from the artefact meant a knob saved
+        // but not yet baked showed its default, was not counted as an override,
+        // and was DELETED by the next save -- which writes the diff against
+        // defaults. Losing a value the reader already saved is the worst thing
+        // this panel can do.
+        expect(config).toContain('/__theme/current');
+        expect(panel).toContain("fetch('/__theme/current')");
+        expect(panel).toMatch(/\.\.\.defaultTheme\(\),\s*\.\.\.stored/);
+    });
+});

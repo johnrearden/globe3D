@@ -124,17 +124,50 @@ function saveThemeFile() {
     return {
         name: 'terragotcha:save-theme-file',
         configureServer(server) {
+            // The stored theme, so the panel can show what is SAVED rather than
+            // what was last built. Those differ for as long as it takes to run
+            // `npm run build:tokens`, and seeding from the artefact meant a
+            // knob saved but not yet baked read as untouched — and was then
+            // deleted by the next save, which writes the diff against defaults.
+            server.middlewares.use('/__theme/current', async (req, res, next) => {
+                if (req.method !== 'GET') return next();
+                try {
+                    const { readTheme } = await server.ssrLoadModule(
+                        '@terragotcha/design-tokens/theme-file.js');
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify(readTheme()));
+                } catch {
+                    next();
+                }
+            });
+
             server.middlewares.use('/__theme/save', (req, res, next) => {
                 if (req.method !== 'POST') return next();
                 let body = '';
                 req.on('data', (chunk) => { body += chunk; });
                 req.on('end', async () => {
                     try {
-                        const { writeTheme } =
-                            await import('@terragotcha/design-tokens/theme-file.js');
-                        const written = writeTheme(JSON.parse(body || '{}'));
+                        // ssrLoadModule, not `await import()`. A bare dynamic
+                        // import is cached by NODE for the life of the process,
+                        // and Astro reloading its config does not clear that —
+                        // so a dev server running since before `globe-border`
+                        // became the 14th knob filtered saves against the old
+                        // 13-name list and dropped it, for nine days, while
+                        // answering ok. Vite's loader goes through the module
+                        // graph the watcher invalidates, so editing tokens.js
+                        // is picked up without a restart.
+                        const { writeTheme } = await server.ssrLoadModule(
+                            '@terragotcha/design-tokens/theme-file.js');
+                        const requested = JSON.parse(body || '{}');
+                        const written = writeTheme(requested);
+                        // Anything pickKnobs refused. Reported rather than
+                        // swallowed: a save that silently loses a knob is worse
+                        // than one that fails, because the panel goes on
+                        // claiming it worked.
+                        const dropped = Object.keys(requested)
+                            .filter((k) => !(k in written));
                         res.setHeader('Content-Type', 'application/json');
-                        res.end(JSON.stringify({ ok: true, written }));
+                        res.end(JSON.stringify({ ok: true, written, dropped }));
                     } catch (err) {
                         res.statusCode = 400;
                         res.end(JSON.stringify({ ok: false, error: String(err.message || err) }));

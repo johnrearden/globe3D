@@ -144,6 +144,14 @@ regenerated and `npm test` fails if they go stale.
 `theme.json` and the regenerated `dist/` artefacts; `npm test` fails if they go stale,
 which is the gate that catches a forgotten rebuild.
 
+The Theme Lab is a view of `theme.json`, not of the last build — it seeds from
+`GET /__theme/current`. That matters because the two disagree until you rebuild, and a
+panel seeded from the artefact counts an unbaked knob as untouched and deletes it on the
+next save. Anything the save endpoint refuses comes back in `dropped` and is shown, since
+the write succeeds either way. The endpoint loads the token module through
+`server.ssrLoadModule` rather than `await import()`, which Node caches for the life of the
+process — a long-lived dev server otherwise filters saves against a stale knob list.
+
 `astro.config.mjs` watches `dist/tokens.css` explicitly, because it lives outside
 `apps/web` and Vite's watcher is rooted there — without that a rebuild produced no change
 event, the dev server went on serving its cached transform, and `npm run build:tokens`

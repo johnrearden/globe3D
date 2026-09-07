@@ -1127,6 +1127,24 @@ The Theme Lab picked the knob up with no change, which was the point of generati
 `KNOB_GROUPS`. It gained one contrast pair, "Coastlines on water" — half the question, since the
 country palette is not a token; the other half is what looking at the globe is for.
 
+**Two ways the save path lost a knob, both silent.**
+
+The middleware loaded `theme-file.js` with a bare `await import()`, which **Node** caches
+for the life of the process — and Astro reloading its config does not clear that. A dev
+server running since before `globe-border` became the 14th knob went on filtering saves
+against the stale 13-name list, dropping that one knob and answering `ok` for nine days.
+It uses `server.ssrLoadModule` now, which goes through the module graph the watcher
+invalidates. The response also reports anything `pickKnobs` refused, so a future drop
+cannot be silent: the write succeeds either way, and without that the panel goes on
+claiming success while the value is gone.
+
+Worse, and entirely mine: the panel **seeded from the built artefact** while saving the
+diff against defaults. Those disagree for exactly as long as it takes to remember
+`npm run build:tokens` — so a knob that had been saved but not yet baked showed its
+default, was not counted as an override, and **was deleted by the next save**. `GET
+/__theme/current` returns the stored map and the panel seeds from that instead, so it is a
+view of `theme.json` rather than of the last build.
+
 **A rebuild has to reach the dev server.** `dist/tokens.css` is outside `apps/web`, so
 Vite's watcher — rooted at the Astro project — never saw it change: the server kept serving
 its cached transform and `npm run build:tokens` looked like a no-op until the dev server was
