@@ -862,7 +862,8 @@ markup, zero hidden text.
 
 **Still vanilla-only** (later B10 slices): progress + settings, the Daily Challenge and
 leaderboard, search, the country info panel. The dev editors (label/colour/zoom, audit mode)
-are **not being ported** — `index.html` survives B11 as a dev-only tool page.
+are **not being ported** — `index.html` survives B11 as a dev-only tool page. It leaves the
+*deploy* (`INCLUDE`) rather than the repo; see the B11 section for the distinction.
 
 ---
 
@@ -1062,7 +1063,7 @@ dismissing via the new `onDeselect`; and both surfaces standing down when a quiz
 528 tests. Static baseline unmoved — 4 internal links and zero app-chrome elements on both
 `/app` and `/country/france`, with no `cs-`/`ci-` markup in either document.
 
-**Remaining before B11:** B9, the backend token cutover.
+**Remaining before B11:** B9, the backend token cutover. B11 itself is written out below.
 
 ---
 
@@ -1202,6 +1203,192 @@ consumer changes globe appearance behaviour rather than theming.
 
 **What this deliberately is not:** a production theme picker. `SettingsSheet.tsx` keeps its
 deferral comment, which is about *remote* themes and still accurate.
+
+---
+
+## Phase B11 — the flip: Astro takes the apex — ⏳ Planned
+
+The last phase of the rewrite, and the only one that changes what a stranger sees. Everything
+before it added a surface beside the vanilla app; this one removes the vanilla app from the
+front door. Written out before it starts rather than recorded after, because it is the only
+slice whose failure mode is *invisible in dev* — every check below is about production.
+
+**Blocked on B9**, the backend token cutover: flipping the apex to a page with no theme picker
+is acceptable, but flipping it while `backend/themes/tokens.py` still names 24 tokens that no
+longer exist means the settings sheet cannot grow one afterwards without a second migration.
+
+### The flip itself is three constants
+
+| where | today | after |
+|---|---|---|
+| `build-pages.mjs:89` | `APEX_IS_ASTRO = false` | `true`, and `'index.html'` leaves `INCLUDE` |
+| `apps/web/src/lib/routes.ts:33` | `PUBLIC_HOME_PATH ?? '/app'` | `?? '/'` |
+| `src/pages/app/index.astro` | staged, `robots="noindex, nofollow"` | moves to `src/pages/index.astro`, robots override dropped |
+
+`HOME_PATH` is already environment-driven, so the third row is a file move plus deleting two
+lines of head. The canonical at `:45` is already `/` — it was written for this day.
+
+That is a morning's work. **It is not the phase.** The phase is everything below, which has to
+land first or the flip ships a regression.
+
+### The blocker: `AppLayout.astro` has no production head
+
+`AppLayout.astro`'s `<head>` (`:55-77`) carries title, description, canonical, robots, Open
+Graph, Twitter and the fonts link. It carries **none** of what the vanilla apex carries, and a
+grep for each of these across `apps/web/src` returns only prose — comments in
+`CountryArticle.tsx`, `LandingContent.tsx` and the two pages that *mention* AdSense while
+shipping no tag:
+
+| concern | vanilla | `apps/web` |
+|---|---|---|
+| `adsbygoogle.js` loader | `index.html:20`, static `<script>` in raw HTML | **absent** |
+| `google-adsense-account` verification meta | `index.html:11` | **absent** |
+| Google consent CMP (`fundingchoicesmessages`) | `js/features/consent-cmp.js` (91 lines) | **absent** |
+| GA4 (`gtag.js`) | `js/features/analytics.js` (126 lines) | **absent** |
+| GlitchTip error reporting | `js/features/error-reporter.js` (54 lines) | **absent** |
+| WebGL-absent fallback | `js/features/webgl-fallback.js` (84 lines) | **absent** |
+| favicons, `theme-color`, `og:image`, `manifest.webmanifest` | `index.html:27-43` | **absent** |
+
+**This is a live finding, not only a B11 one.** `/country/*` has been deployed since Phase B
+opened, is listed in `sitemap.xml`, and was built specifically to answer an AdSense rejection —
+and it serves no ad code and asks for no consent. The consent gap is the one with teeth: it is
+a GDPR surface, and today it is an EU visitor on a page with no CMP. Worth fixing ahead of B11
+rather than inside it.
+
+**There is already a working reference for the head, and it is generated, not hand-written.**
+`build-landing.mjs` emits the 27 `/borders/<slug>` pages, and each one carries the whole stack —
+`gtag/js`, `adsbygoogle.js`, `fundingchoicesmessages`, JSON-LD — read from
+`js/data/site-config.js`, the one place the GA4, AdSense and GlitchTip ids live. So the work is
+to give `AppLayout.astro` the same head from the same config, not to invent one. Keep it
+config-read rather than literal: `site-config.js` already notes that the AdSense client id is
+duplicated into `index.html`'s static loader by hand and that the borders pages "stay in sync
+automatically because build-landing.mjs reads this file". A third hand-copy is the wrong answer.
+
+One constraint carries over verbatim from `index.html:12-19`, and it is the reason that tag is
+not a module: **the loader must sit in the raw HTML.** Injecting it from JS hid it behind an
+`init()` try/catch and a 6-second deferral, so a non-executing crawler saw no ad code at all.
+In Astro that means a literal `<script>` in the layout head — not a component, not an island.
+
+### What gets deleted, and the four modules that must move first
+
+`js/features/**` is 30 modules plus three subdirectories. The plan has always said they go with
+the flip. Three qualifications, all found by grepping rather than by reading the plan:
+
+**1. Six modules under `js/features/` are real dependencies of code that survives.** Every
+other `js/features` string in `apps/web` is a comment naming the vanilla module a component
+replaced — useful as a checklist, invisible to a bundler. The real `import` statements are
+exactly these, and two of them belong to a page that stays *deployed*:
+
+```
+js/data/globe-appearance.js:15   ← features/color-schemes.js          (SCHEMES, applyScheme)
+apps/web PanelSheet.tsx:23       ← features/daily-quiz/panel-sheet.js  (decideSnap)
+apps/web GlobeIsland.tsx:82      ← features/small-country-indicator.js
+apps/web GlobeIsland.tsx:83      ← features/pointer-controls.js
+js/landing/border-quiz.js:14     ← features/daily-quiz/options-grid.js       ← /borders/*
+js/landing/border-quiz.js:15     ← features/quiz/quiz-question-chrome.js     ← /borders/*
+```
+
+The last two are the sharp ones. `/borders/<slug>` is live, in the sitemap and carrying ads, and
+its entire JS closure is three files — `border-quiz.js` plus those two. Deleting either breaks
+the quiz on 27 deployed pages, and it breaks at runtime in the browser, so nothing in `npm test`
+or the build would say a word.
+
+None of the six is really a vanilla *feature*; they are under `js/features/` by accident of when
+they were written. **Move them before the deletion**, not during it — `color-schemes.js` to
+`js/data/`, `pointer-controls.js` / `small-country-indicator.js` / `panel-sheet.js` to
+`js/core/`, and the two borders dependencies to `js/landing/`, which is where their only
+consumer already lives. A move done in the same commit as a 30-module delete is a move nobody
+can review.
+
+**2. `index.html` is dropped from the deploy, not from the repo.** The two existing entries read
+as contradicting each other — `:865` says it "survives B11 as a dev-only tool page", `:1054`
+says the celebration animations "go with `js/features/**` at B11". Both are right about
+different things and the distinction is `INCLUDE`: the file stops being *deployed* and stays as
+a local page for the label, colour and zoom editors, audit mode, and the three celebrations
+(`bounce`, `pinball`, `shatter` — `quiz-ui.js:94` fires shatter and confetti and says in a
+comment that the other two are never called). None of those is worth porting to React; all of
+them need a globe and a toolbar, which is what `index.html` already is.
+
+**3. `styles.css` cannot be deleted at B11.** All 27 `/borders/<slug>` pages carry
+`<link href="/styles.css">`, are listed in `sitemap.xml`, and carry ad units. Dropping the
+stylesheet unstyles 27 crawlable, ad-carrying pages. It is not a lift-and-shift either: the
+pages use 40 `.lp-*` classes (roughly `styles.css:4959-5497`) **plus** `sr-only`, `qz-svg`, and
+the `dq-*` classes `js/landing/border-quiz.js` adds at runtime — `dq-actions`, `dq-feedback`,
+`dq-submit`, `dq-wide`.
+
+**Recommendation: B11 keeps `styles.css` in `INCLUDE` and does not pretend otherwise.** Giving
+the borders pages a self-contained generated stylesheet is a real slice of its own — it is a
+token migration as much as a file split, since anything extracted has to join `check-tokens.mjs`'s
+`SCOPE` or the checker's progress bar goes backwards. Do it as B12, with `styles.css` deleted at
+its end. The alternative — extract during B11 — puts an untested stylesheet under the only pages
+on the site currently earning ad revenue, in the same change that moves the apex.
+
+Note that `check-tokens.mjs` already counts down to this: its one remaining legacy-vocabulary
+fallback is `js/utils/theme.js:36`, `cssToken('--font-ui')`, flagged on every run as "still to
+remove when styles.css goes".
+
+### What else leaves with the flip
+
+- **The importmap** (`index.html:323-341`) leaves the deploy with `index.html`, but not the
+  repo — the dev-tool page still resolves bare specifiers through it. `packages` leaves
+  `INCLUDE` with it: after the flip nothing deployed reads `/packages/…`. Verified rather than
+  assumed — `border-quiz.js`'s closure contains no bare specifier at all, and Astro bundles its
+  own copies.
+- **The `/country/*` dev proxy** (`dev-server.mjs`, `ASTRO_PREFIXES`) — once Astro owns `/`,
+  `dev-server.mjs` has nothing left to serve statically and `npm run dev` becomes `astro dev`
+  plus the two dev middlewares already in `astro.config.mjs`. The trailing-slash rule that
+  `tests/dev-server-routing.test.js` pins retires with it.
+
+### Tests that change
+
+Six files couple to the two artefacts being retired. None should simply be deleted — each
+encodes a rule that still holds somewhere:
+
+| test | coupling | disposition |
+|---|---|---|
+| `cdn-pinning.test.js` | reads `index.html`'s importmap vs `package.json` | keep — the dev page still uses it |
+| `dev-server-routing.test.js` | asserts `/`, `/index.html`, `/styles.css`, `js/features/…` serve statically | retires with `dev-server.mjs` |
+| `landing-panel-static.test.js` | runs against the **shipped** `index.html` generated block | retarget at the Astro apex, which inherits the claim-verification |
+| `routes.test.js:69` | comments on `APEX_IS_ASTRO` | update the comment with the constant |
+| `country-sizes.test.js`, `perlin.test.js` | reference `index.html` in prose only | prose fix |
+| `check-tokens.test.js:100` | asserts `SCOPE` excludes `styles.css` | holds until B12 |
+
+### Order
+
+1. **The production head** — AdSense loader + verification meta, consent CMP, GA4, GlitchTip,
+   WebGL fallback, favicons/manifest/og:image into `AppLayout.astro`, read from
+   `site-config.js`. Lands on `/country/*` *before* the flip, where it can be verified against a
+   surface that is already live and already indexed.
+2. **Move the four survivors** out of `js/features/`, on their own.
+3. **The flip** — three constants, plus the page move.
+4. **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
+   `index.html` and `styles.css` out of `INCLUDE` but kept in the repo.
+5. **B12** (separate) — a generated stylesheet for `/borders/*`, then `styles.css` deleted, then
+   `--font-ui` removed from `js/utils/theme.js` and the legacy counter reaches zero.
+
+### Verification
+
+Everything here is a production check; the dev server proves nothing about steps 1 or 3.
+
+1. **`npm test`** — 540 today across 44 files. Expect a net fall as `dev-server-routing`
+   retires; nothing else should drop.
+2. **The head, in the built output** — grep `apps/web/dist/country/france/index.html` and the new
+   `dist/index.html` for `adsbygoogle.js`, `google-adsense-account`, the GA4 id and the CMP
+   endpoint. Grep, not a browser: the whole point is that they are in the raw HTML for a client
+   that never executes.
+3. **The AdSense baseline, unmoved** — 728 words / 4 internal links on the apex, 292 / 4 on
+   `/country/france`, zero app-chrome elements, no hidden text. That baseline is why Phase B
+   exists; the flip is the change most able to break it.
+4. **Consent before tags** — verify in headless Chrome that no GA4 or ad request precedes a
+   consent decision. `index.html:403-405` emits Consent Mode v2 defaults before any tag loads for exactly this reason,
+   and the ordering does not survive a rewrite by accident.
+5. **`/borders/*` and `/privacy/` still styled and still linked** after the `INCLUDE` edit —
+   they link `href="/"`, which now resolves to a different document.
+6. **`sitemap.xml` unchanged** — 32 URLs, `/` and 27 `/borders/*` among them. The apex URL does
+   not move; only what answers it does.
+7. **`npm run build:pages` from clean** — the guard at `build-pages.mjs:91` inverts here, so
+   prove the *new* failure mode: with `APEX_IS_ASTRO = true` and Astro emitting no `index.html`,
+   the build must still fail loudly rather than deploy a site with no front page.
 
 ---
 
