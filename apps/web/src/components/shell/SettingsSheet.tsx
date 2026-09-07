@@ -30,6 +30,7 @@
  * `GlobeAppearance` did not have to grow for it.
  */
 import { useEffect, useState } from 'react';
+import { SETTINGS_DEFAULTS } from '@terragotcha/storage';
 import { useSettings } from '../../lib/settings';
 import { closeOverlay } from '../../lib/overlay';
 import type { GlobeAppearance, Lighting } from '../../lib/globe-types';
@@ -202,7 +203,7 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
                 />
                 <Slider
                     label="Border strength"
-                    value={settings.borderOpacity ?? 0.2}
+                    value={settings.borderOpacity ?? SETTINGS_DEFAULTS.borderOpacity}
                     min={0.1}
                     max={1}
                     step={0.05}

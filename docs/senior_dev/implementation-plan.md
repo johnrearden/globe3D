@@ -1089,6 +1089,18 @@ slider, 0–32px, because the useful range is small, bounded and entirely a matt
 it. `tests/dev-tools-gate.test.js` asserts every `type` in `KNOBS` has a branch, since a knob the
 panel does not handle renders an empty cell with nothing to notice.
 
+**Default border strength is 0.1** (shown as 10%), down from 0.2 — the outlines read as
+context rather than as a grid. Only `SETTINGS_DEFAULTS` carries that number now: the React
+sheet's `?? 0.2` fallback is gone, since a restated default is the shape of the `scheme`
+bug from B10b even when the value happens to agree. `tests/settings-defaults.test.js`
+checks the relationships rather than the values — the default must be inside the slider's
+own range, and both apps must offer the same range for the one value they share.
+
+A reader with a saved setting keeps it; this changes only a first visit.
+`js/core/globe.js:206` still builds the border line at `0.85` before settings are applied,
+which is an engine default rather than a user one — unchanged here, but the gap it briefly
+flashes across is now wider.
+
 **Border *thickness* is deliberately absent, here and everywhere.** `setBorderWidth()` is a
 no-op: WebGL caps line width at 1px, so it would need a fat-line mesh implementation. Border
 *strength* exists and is a **user setting**, not a theme knob — `SettingsSheet`'s "Border

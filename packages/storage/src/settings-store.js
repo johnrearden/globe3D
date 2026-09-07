@@ -30,7 +30,7 @@ export const SETTINGS_DEFAULTS = {
     showLabels: true,
     showInfoPanel: true,
     borders: true,
-    borderOpacity: 0.2,
+    borderOpacity: 0.1,
     selGradient: true,    // radial tonal gradient on the selected country's fill (on by default)
     // lighting is null until the user touches a slider, so we don't override the
     // build-time fade-in targets unless they've been deliberately changed.
