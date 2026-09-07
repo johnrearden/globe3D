@@ -15,7 +15,7 @@ export const theme = {
     "text-primary": "#eef2f6",
     "text-secondary": "#9fb2c6",
     "ocean": "#061a33",
-    "globe-border": "#eef2f6",
+    "globe-border": "#c9c9c9",
     "status-correct": "#4CAF50",
     "status-incorrect": "#f44336",
     "border-subtle": "rgba(238, 242, 246, 0.12)",
@@ -114,7 +114,7 @@ export const theme = {
     "text-primary": "#eef2f6",
     "text-secondary": "#9fb2c6",
     "ocean": "#061a33",
-    "globe-border": "#eef2f6",
+    "globe-border": "#c9c9c9",
     "radius-btn": "10px",
     "radius-panel": "14px"
   }
