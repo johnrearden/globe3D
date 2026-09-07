@@ -47,6 +47,39 @@ function serveGlobeAssets() {
 }
 
 /**
+ * Reload when the generated token artefact changes.
+ *
+ * `AppLayout` imports `packages/design-tokens/dist/tokens.css`, which lives
+ * OUTSIDE this Astro project — Vite's watcher is rooted at `apps/web`, so a
+ * rebuild of that file produced no change event and the dev server went on
+ * serving the transform it had cached. `npm run build:tokens` appeared to do
+ * nothing, and the only way through was restarting the dev server: exactly the
+ * loop the Theme Lab exists to remove.
+ *
+ * Watching one file by absolute path is the whole fix. A full reload rather
+ * than a CSS hot-update because the globe reads `--globe-space`, `--globe-border`
+ * and `--ocean` through `cssToken()` when it is CONSTRUCTED; swapping the
+ * stylesheet under a live scene would restyle the DOM and leave the globe
+ * wearing the previous theme, which is worse than an honest reload.
+ */
+function watchDesignTokens() {
+    const artefact = join(REPO_ROOT, 'packages/design-tokens/dist/tokens.css');
+    return {
+        name: 'terragotcha:watch-design-tokens',
+        configureServer(server) {
+            server.watcher.add(artefact);
+            server.watcher.on('change', (file) => {
+                if (normalize(file) !== normalize(artefact)) return;
+                for (const mod of server.moduleGraph.getModulesByFile(artefact) || []) {
+                    server.moduleGraph.invalidateModule(mod);
+                }
+                server.ws.send({ type: 'full-reload' });
+            });
+        },
+    };
+}
+
+/**
  * Serve the repo's `country-pages.json` during `astro dev`.
  *
  * It is a root file of the *vanilla* app that `build-pages.mjs` stages into
@@ -123,7 +156,11 @@ function saveThemeFile() {
 export default defineConfig({
     site: 'https://terragotcha.com',
     integrations: [react()],
-    vite: { plugins: [serveGlobeAssets(), serveCountryPages(), saveThemeFile()] },
+    vite: {
+        plugins: [
+            serveGlobeAssets(), serveCountryPages(), saveThemeFile(), watchDesignTokens(),
+        ],
+    },
     // Emit /country/france/index.html rather than /country/france.html, so the
     // URL the app pushes and the URL the build serves are the same string.
     // A trailing-slash mismatch is the classic way pushState routing 404s on

@@ -140,7 +140,14 @@ then run `npm run build:tokens`; the committed artefacts in `packages/design-tok
 regenerated and `npm test` fails if they go stale.
 
 **To restyle the app, do not edit the knob defaults — set them in
-`packages/design-tokens/theme.json`.** `tokens.js` defines the *system* (which knobs exist, the
+`packages/design-tokens/theme.json`, then run `npm run build:tokens`.** Commit both
+`theme.json` and the regenerated `dist/` artefacts; `npm test` fails if they go stale,
+which is the gate that catches a forgotten rebuild.
+
+`astro.config.mjs` watches `dist/tokens.css` explicitly, because it lives outside
+`apps/web` and Vite's watcher is rooted there — without that a rebuild produced no change
+event, the dev server went on serving its cached transform, and `npm run build:tokens`
+appeared to do nothing until the dev server was restarted. `tokens.js` defines the *system* (which knobs exist, the
 fixed scales, how the other 34 values derive); `theme.json` is a committed override map holding
 this product's deviation from it, layered in by the build through the `overrides` parameter
 `resolveTheme` / `toCss` / `toNativeTheme` always took. The fastest way to author one is the

@@ -1115,6 +1115,14 @@ The Theme Lab picked the knob up with no change, which was the point of generati
 `KNOB_GROUPS`. It gained one contrast pair, "Coastlines on water" — half the question, since the
 country palette is not a token; the other half is what looking at the globe is for.
 
+**A rebuild has to reach the dev server.** `dist/tokens.css` is outside `apps/web`, so
+Vite's watcher — rooted at the Astro project — never saw it change: the server kept serving
+its cached transform and `npm run build:tokens` looked like a no-op until the dev server was
+restarted. `astro.config.mjs` now watches that one file by absolute path and sends a
+**full reload** rather than a CSS hot-update, because the globe reads `--globe-space`,
+`--globe-border` and `--ocean` through `cssToken()` when it is *constructed* — swapping the
+stylesheet under a live scene would restyle the DOM and leave the globe on the old theme.
+
 **Persistence is `packages/design-tokens/theme.json`**, a committed knob-override map read by
 `bin/build-tokens.mjs` and layered over the defaults through the `overrides` parameter that
 `resolveTheme` / `toCss` / `toNativeTheme` always took. `tokens.js` keeps the system — knobs,

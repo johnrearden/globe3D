@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { readTheme, writeTheme, THEME_FILE } from '../src/theme-file.js';
-import { defaultTheme } from '../src/tokens.js';
+import { defaultTheme, KNOB_NAMES } from '../src/tokens.js';
 import { toCss } from '../src/css.js';
 import { artefacts } from '../bin/build-tokens.mjs';
 
@@ -91,10 +91,23 @@ describe('the build reads it', () => {
             .toBe(artefacts({})['tokens.py']);
     });
 
-    it('ships the defaults unchanged while theme.json is empty', () => {
-        // The committed file starts at {}, so introducing this mechanism must
-        // not have moved a single value.
-        expect(readTheme(THEME_FILE)).toEqual({});
-        expect(artefacts()['tokens.css']).toContain(toCss(defaultTheme()).split('\n')[1]);
+    it('builds the artefact from whatever the committed theme holds', () => {
+        // Deliberately not "theme.json is empty": it starts that way, but the
+        // file exists precisely so it need not stay that way, and an assertion
+        // that it does would fail the first time anyone authored a theme.
+        const stored = readTheme(THEME_FILE);
+        expect(artefacts()['tokens.css']).toContain(toCss(stored).split('\n')[1]);
+        for (const [name, value] of Object.entries(stored)) {
+            expect(KNOB_NAMES, `${name} is not a knob`).toContain(name);
+            expect(artefacts()['tokens.css']).toContain(`--${name}: ${value};`);
+        }
+    });
+
+    it('falls back to a knob default for anything the theme leaves unset', () => {
+        const stored = readTheme(THEME_FILE);
+        const defaults = defaultTheme();
+        for (const name of KNOB_NAMES.filter(n => !(n in stored))) {
+            expect(artefacts()['tokens.css']).toContain(`--${name}: ${defaults[name]};`);
+        }
     });
 });

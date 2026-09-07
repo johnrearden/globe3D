@@ -103,3 +103,32 @@ describe('the Theme Lab covers the knob table', () => {
         }
     });
 });
+
+describe('the dev server sees a token rebuild', () => {
+    const config = read('apps/web/astro.config.mjs');
+
+    it('watches the generated stylesheet explicitly', () => {
+        // It lives OUTSIDE apps/web, and Vite's watcher is rooted there — so a
+        // rebuild produced no change event and the dev server kept serving the
+        // transform it had cached. `npm run build:tokens` appeared to do
+        // nothing and only a dev-server restart helped, which is precisely the
+        // loop the Theme Lab exists to remove.
+        expect(config).toMatch(/server\.watcher\.add\(/);
+        expect(config).toContain('packages/design-tokens/dist/tokens.css');
+    });
+
+    it('watches the same file the layout imports', () => {
+        // Two paths to one artefact: if they drift the watcher silently watches
+        // nothing, and the symptom is again "the rebuild did not take".
+        const imported = layout.match(/import '([^']*dist\/tokens\.css)'/)[1];
+        const watched = config.match(/join\(REPO_ROOT, '([^']*tokens\.css)'\)/)[1];
+        expect(imported.endsWith(watched)).toBe(true);
+    });
+
+    it('reloads rather than hot-swapping the stylesheet', () => {
+        // The globe reads --globe-space/--globe-border/--ocean through
+        // cssToken() when it is CONSTRUCTED. A CSS-only hot update would
+        // restyle the DOM and leave the globe wearing the old theme.
+        expect(config).toMatch(/type:\s*'full-reload'/);
+    });
+});

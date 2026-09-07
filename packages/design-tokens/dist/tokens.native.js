@@ -10,7 +10,7 @@ export const theme = {
     "bg-panel": "#0e1726",
     "surface-raised": "#162a42",
     "surface-inset": "#08131f",
-    "primary": "#f59e4b",
+    "primary": "#b0a0a6",
     "on-primary": "#321a06",
     "text-primary": "#eef2f6",
     "text-secondary": "#9fb2c6",
@@ -21,17 +21,17 @@ export const theme = {
     "border-subtle": "rgba(238, 242, 246, 0.12)",
     "border-strong": "rgba(238, 242, 246, 0.24)",
     "scrim": "rgba(10, 28, 48, 0.72)",
-    "primary-soft": "rgba(245, 158, 75, 0.2)",
-    "primary-hover": "#f4a860",
+    "primary-soft": "rgba(176, 160, 166, 0.2)",
+    "primary-hover": "#b7aab0",
     "surface-disabled": "rgba(8, 19, 31, 0.6)",
     "text-disabled": "rgba(159, 178, 198, 0.45)",
     "globe-label": "#eef2f6",
     "globe-label-active": "#7c8793",
-    "globe-selection": "#a37142",
+    "globe-selection": "#76727d",
     "globe-space": "#050d16"
   },
   "font": {
-    "heading": "'Fredoka', system-ui, sans-serif",
+    "heading": "ui-monospace, monospace",
     "body": "'Archivo', system-ui, sans-serif"
   },
   "fontSize": {
@@ -103,13 +103,13 @@ export const theme = {
     }
   },
   "knobs": {
-    "font-heading": "'Fredoka', system-ui, sans-serif",
+    "font-heading": "ui-monospace, monospace",
     "font-body": "'Archivo', system-ui, sans-serif",
     "bg-app": "#0a1c30",
     "bg-panel": "#0e1726",
     "surface-raised": "#162a42",
     "surface-inset": "#08131f",
-    "primary": "#f59e4b",
+    "primary": "#b0a0a6",
     "on-primary": "#321a06",
     "text-primary": "#eef2f6",
     "text-secondary": "#9fb2c6",
