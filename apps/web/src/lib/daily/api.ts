@@ -1,35 +1,8 @@
 /**
- * The backend client, for the islands that need it.
- *
- * A lazy module singleton rather than a top-level import, for two reasons:
- *
- *   - `js/data/api-client.js` reads `window.GLOBE3D_API_BASE` and the device
- *     token from localStorage at construction. Neither exists on the server, and
- *     the Daily Challenge island is server-rendered like every `client:idle`
- *     island — it just renders null there.
- *   - the Daily Challenge is the only thing that talks to a backend at all. A
- *     static import would put `@terragotcha/api-client` and the identity code
- *     into the shell's initial chunk for every reader who never opens it.
- *
- * The client is created once and reused, because it owns the device token —
- * `DeviceIdentity` mints one on first read and that token IS the account. Two
- * clients would still share localStorage, but the caching would diverge.
+ * Daily Challenge error helpers. The client itself is `lib/api.ts` — it moved
+ * there when the theme picker became the second thing to talk to the backend.
  */
-import type { ApiClient } from './types';
-
-let client: ApiClient | null = null;
-let pending: Promise<ApiClient> | null = null;
-
-/** The shared client, constructed on first use. */
-export function getApi(): Promise<ApiClient> {
-    if (client) return Promise.resolve(client);
-    // Deduplicated: two islands asking at once must not build two clients.
-    pending ??= import('../../../../../js/data/api-client.js').then((m) => {
-        client = new m.ApiClient() as ApiClient;
-        return client;
-    });
-    return pending;
-}
+export { getApi } from '../api';
 
 /**
  * Is this error the backend saying "you already played today"?

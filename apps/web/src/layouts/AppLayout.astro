@@ -43,18 +43,50 @@ import '../styles/daily.css';
 import QuizLayer from '../components/quiz/QuizLayer';
 import ShellControls from '../components/shell/ShellControls';
 import DailyLayer from '../components/daily/DailyLayer';
-// Dev only. Imported dynamically inside a branch Vite replaces with `false`,
-// so Rollup drops the module and everything it pulls in. A static import with
-// a conditional render would NOT do that — see DevTools.astro for why.
-const DevTools = import.meta.env.DEV
-    ? (await import('../components/dev/DevTools.astro')).default
-    : null;
+// The `is:inline` script in <head> does two things that cannot wait for an
+// island, and nothing else:
+//
+//  1. Re-wears a remote theme before first paint. `lib/theme.ts` caches the
+//     RESOLVED property map when it applies one, so the script does no
+//     derivation: it copies a map onto <html>, and can neither drift from that
+//     file nor throw on a bad value. It reads the settings store under its
+//     SETTINGS_KEY (pinned by test).
+//  2. Keeps an arriving `?audit=` token for the tab and scrubs it from the
+//     address bar. `AppRouter` normalises the URL at boot, so an island reading
+//     `location.search` after it has already lost the token; `index.html` did
+//     this inline for the same reason. The key is the api client's
+//     AUDIT_TOKEN_KEY, also pinned. `lib/audit.ts` holds the same logic as a
+//     pure function, which is what the test exercises.
+//
+// Nothing here can reach the document a crawler sees. A JS comment rather than
+// an HTML one beside the tag, because Astro ships HTML comments and the pages
+// are held to a word count.
 ---
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+        try {
+            var s = JSON.parse(localStorage.getItem('globe3d-settings') || '{}');
+            var css = s.themeInline && s.themeInline.css;
+            if (css && String(s.theme).indexOf('remote:') === 0) {
+                for (var k in css) document.documentElement.style.setProperty(k, css[k]);
+            }
+        } catch (e) { /* private mode, or nothing stored */ }
+        try {
+            var q = new URLSearchParams(location.search);
+            var audit = q.get('audit');
+            if (audit) {
+                sessionStorage.setItem('tg-audit-token', audit);
+                q.delete('audit');
+                var rest = q.toString();
+                history.replaceState(history.state, '',
+                    location.pathname + (rest ? '?' + rest : '') + location.hash);
+            }
+        } catch (e) { /* private mode: the token is simply not kept */ }
+    </script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -88,6 +120,5 @@ const DevTools = import.meta.env.DEV
          thing in the app that talks to a server, and a reader who never opens it
          should not pay for the API client. -->
     <DailyLayer client:idle />
-    {DevTools && <DevTools />}
 </body>
 </html>

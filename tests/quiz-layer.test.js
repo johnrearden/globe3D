@@ -206,7 +206,7 @@ describe('the Daily Challenge must not reach the static document either', () => 
         // A static import would put @terragotcha/api-client and the device
         // identity into the shell's chunk for every article on the site — and
         // would construct it during SSR, where there is no localStorage.
-        const api = stripComments(read('../apps/web/src/lib/daily/api.ts'));
+        const api = stripComments(read('../apps/web/src/lib/api.ts'));
         expect(api).toMatch(/import\(/);
         expect(api).not.toMatch(/^import .*api-client/m);
     });

@@ -18,12 +18,14 @@ export const SETTINGS_KEY = 'globe3d-settings';
 
 export const SETTINGS_DEFAULTS = {
     theme: 'default',
-    // Cached {base, tokens} of the selected *remote* theme, so it can be applied
-    // before first paint on reload (no default-look flash). null for built-ins.
+    // Cached {tokens, css} of the selected *remote* theme — the complete knob
+    // map and the resolved property map — so it can be applied before first
+    // paint on reload (no default-look flash). null for the default. Written by
+    // apps/web/src/lib/theme.ts; the resolved map is what AppLayout's inline
+    // script copies onto <html>. (The vanilla app cached {base, tokens} here;
+    // its reader tolerates the new shape.)
     themeInline: null,
-    // Cached {sceneBg, oceanColor, countryScheme} of the selected remote theme,
-    // applied by scene-appearance.js before the async theme fetch resolves (no
-    // scene flash). null for built-ins. See js/features/scene-appearance.js.
+    // Cached {countryScheme} of the selected remote theme. null for the default.
     themeScene: null,
     scheme: 'greys',
     showCountries: true,

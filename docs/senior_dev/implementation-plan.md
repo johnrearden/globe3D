@@ -1203,7 +1203,7 @@ deferral comment, which is about *remote* themes and still accurate.
 
 ---
 
-## Phase B9 — the backend token cutover — 🔶 Backend half done
+## Phase B9 — the backend token cutover — ✅ Done
 
 The `themes` app validated against the 24 legacy names (`--accent`, `--text-mid`,
 `--bg-elevated`…), so a theme it stored could style nothing on the token-built app, and the
@@ -1228,11 +1228,44 @@ the replacement allow-list since the design-tokens package landed; nothing had s
   gets the 400. Backend tests 30 → 25, retargeted at the rules (the 14 knobs and only those; every
   legacy group rejected; a fixed radius and a derived globe colour rejected) rather than the list.
 
-**Remaining (frontend):** the picker in `SettingsSheet` — `apiClient.listThemes()`, applied with
-`applyCssVariables` + `GlobeAppearance.setThemeColors` + `setCountryScheme`, the same calls the
-Theme Lab makes — and the authoring question: repoint the 495-line vanilla `theme-editor.js`, or
-promote the Theme Lab to a gated production editor that POSTs to `/api/admin/themes`. The
-vanilla editor now gets a 400 from the API and is a dev-page tool until B11 removes it.
+**Done (frontend):**
+
+- **The picker**, in `SettingsSheet`: "Default" plus every published theme, fetched when the sheet
+  opens, applied through the new `lib/theme.ts`. Choosing one writes `theme: remote:<id>`, caches
+  the complete knob map *and the resolved property map* (`themeInline`), and writes a pinned scheme
+  into `scheme` so `applyAll` at boot needs no second source. `reconcileSelection` re-applies or
+  retires the cached theme against the server's list whenever it is fetched.
+- **No flash on reload.** An `is:inline` script in `AppLayout.astro`'s head copies the cached
+  property map onto `<html>` before first paint; verified at `DOMContentLoaded`, before the shell
+  island mounted. It derives nothing — the map is written by `lib/theme.ts` — so it cannot drift.
+- **The Theme Lab promoted**, not the vanilla editor repointed: `components/dev/` is gone, the panel
+  is `components/theme/ThemeLab.tsx`, reached by `React.lazy` from `ShellControls` (its own 8.9 KB
+  chunk, fetched on open) and opened from settings by a session that can save — dev, or a superuser
+  with the audit token. It keeps the dev-only `theme.json` save and gains publish/update/delete
+  against `/api/admin/themes`, a name, a published flag, and a country-scheme row (the one row not
+  generated from `KNOB_GROUPS`, because a scheme is a key, not a token). Closing it restores the
+  persisted look.
+- **A stored theme is the complete 14-knob map.** `applyCssVariables` writes every property from
+  what it is given, so a diff would reset unmentioned knobs to the package default — not to the
+  artefact with `theme.json` in it. "Default" removes the inline properties instead of applying
+  `defaultTheme()`, for the same reason.
+- **Two things found on the way.** Astro hoists a lazily-loaded module's CSS into every page's
+  `<style>` — the Lab's rules were in the crawler-facing documents until the import became
+  `?inline`. And `AppRouter` drops the whole query at boot, so `?audit=` arriving from
+  `/audit/launch` was lost before any island could read it; the same inline script now keeps it.
+  `lib/audit.ts` holds the pure version for the test.
+
+**Verified** in headless Chrome against the dev server and the Django backend: token intake and
+scrub; picker and Lab button; live preview writing `--primary` and its derived properties; publish
+storing 14 tokens with `blues` pinned, the picker following, the cache holding the resolved map;
+reload wearing the theme before the shell island mounted; Default clearing it; picking the stored
+theme back into the Lab, two-tap delete, and the server agreeing. 549 tests. Static baseline
+byte-identical to the previous build: 738 / 300 words, 4 links, zero chrome elements, no `.tl-`
+in either document. The one console 404 is `/favicon.ico` — the B11 head gap, unchanged.
+
+**Left behind on purpose:** the vanilla `theme-editor.js` / `theme-switcher.js` now get a 400 from
+the API and are dev-page tools until B11 removes them; `js/data/theme-tokens.js` is a legacy list
+nothing validates against.
 
 ---
 
@@ -1243,9 +1276,8 @@ before it added a surface beside the vanilla app; this one removes the vanilla a
 front door. Written out before it starts rather than recorded after, because it is the only
 slice whose failure mode is *invisible in dev* — every check below is about production.
 
-**Blocked on B9's frontend half**: the backend now speaks the 14 knobs, so the apex can flip
-without a second migration later — but the settings sheet should carry its picker first, or the
-first deployed apex has a settings control fewer than the page it replaces.
+**B9 is done**, so the settings sheet carries a theme picker and the backend speaks the 14 knobs;
+the apex can flip without a second migration and without losing a control the page it replaces has.
 
 ### The flip itself is three constants
 

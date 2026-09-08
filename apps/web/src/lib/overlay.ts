@@ -15,7 +15,11 @@
  * the app for its duration, and `quizStore` already answers "is a quiz running".
  */
 
-export type OverlayName = 'settings' | 'stats';
+/**
+ * `theme-lab` is a sheet in the same sense: it covers the globe and is opened
+ * from settings, so the two are exclusive by the same rule.
+ */
+export type OverlayName = 'settings' | 'stats' | 'theme-lab';
 
 type Listener = (open: OverlayName | null) => void;
 

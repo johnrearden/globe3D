@@ -159,18 +159,38 @@ appeared to do nothing until the dev server was restarted. `tokens.js` defines t
 fixed scales, how the other 34 values derive); `theme.json` is a committed override map holding
 this product's deviation from it, layered in by the build through the `overrides` parameter
 `resolveTheme` / `toCss` / `toNativeTheme` always took. The fastest way to author one is the
-**dev-only Theme Lab** on `/app` (`apps/web/src/components/dev/ThemeLab.tsx`): it edits all 13
-live, warns on contrast below AA, and its Save writes `theme.json` — then `npm run build:tokens`
-bakes it in. It generates its rows from `KNOB_GROUPS`, so a fourteenth knob needs no change to
-it. `src/theme-file.js` is **Node-only and must not be re-exported from `src/index.js`**, which
+**Theme Lab** (`apps/web/src/components/theme/ThemeLab.tsx`), opened from the settings sheet: it
+edits all 14 live, warns on contrast below AA, and in dev its Save writes `theme.json` — then
+`npm run build:tokens` bakes it in. It generates its rows from `KNOB_GROUPS`, so a fifteenth knob
+needs no change to it. The same panel publishes **remote themes** to the backend for a superuser
+with the audit token (`/audit/launch`), which is also what gates the button; a reader picks one
+from the settings sheet. See "Remote themes" below for what a stored theme is. `src/theme-file.js` is **Node-only and must not be re-exported from `src/index.js`**, which
 the browser loads via the importmap.
 
 **A dev-only island needs a conditional `await import()`, not a conditional render.**
 `{import.meta.env.DEV && <X client:only="react" />}` still ships X: a client directive is read by
 the Astro *compiler*, which registers the island whether or not the expression can be true — the
 first build done that way emitted an 8 KB chunk and inlined its CSS into every page. Put the
-directive in a wrapper (`components/dev/DevTools.astro`) and import that wrapper conditionally,
-so Rollup has a whole module to drop. `tests/dev-tools-gate.test.js` pins it.
+directive in a wrapper and import that wrapper conditionally, so Rollup has a whole module to
+drop. (The Theme Lab was gated this way until B9 promoted it; it is now reached by `React.lazy`
+from `ShellControls`, which is the other shape that keeps a component out of the initial chunk.)
+
+**Astro hoists the CSS of every module a page can reach — dynamic imports included.** A plain
+`import './x.css'` inside a lazily-loaded component still lands in every page's `<style>`, which
+is how the Lab's rules briefly reached the crawler-facing documents. Import it `?inline` and
+render the string from the component, so it travels in the chunk. `tests/theme-lab-gate.test.js`
+pins both shapes.
+
+**Remote themes.** A stored `Theme` is a **complete** 14-knob map, never a diff: `applyCssVariables`
+resolves the whole system from what it is given and writes every property, so a partial map would
+reset every knob it omitted to the *package* default rather than to the built artefact with
+`theme.json` in it. "Default" in the picker is the absence of a theme — the inline properties are
+removed and the cascade shows through — not `defaultTheme()`, which does not know about
+`theme.json`. `lib/theme.ts` owns all of this and caches the *resolved* property map in the settings
+store; the `is:inline` script in `AppLayout.astro`'s head copies that map onto `<html>` before first
+paint, so a reader wearing a theme never sees the default flash. It derives nothing, which is why
+it cannot drift. The same script keeps an arriving `?audit=` token, because `AppRouter` drops the
+whole query at boot and an island reading `location.search` runs after it.
 
 **Every UI value must resolve to a token, and `check-tokens.mjs` enforces it** (wired into
 `npm test`). It fails the build on colour / font / weight / shadow / radius literals, on raw spacing
@@ -380,9 +400,10 @@ the quiz's mode picker can open the progress sheet across the island boundary �
 separate-roots constraint as everywhere else. Sheet scaffolding shared by all four surfaces is
 `styles/sheet.css`.
 
-Not there yet, each for a reason: the **UI theme picker** waits on B9's backend cutover (the
-legacy 24-knob names would style nothing), and **"Country info panel"** waits on
-`flag-renderer.js` moving over — a switch for something the app cannot show is worse than none.
+The **theme picker** is there since B9: "Default" plus every published remote theme, fetched when
+the sheet opens so a reader on the default never causes a request; applying one goes through
+`lib/theme.ts`. Beside it, "Open the Theme Lab" appears only for a session that could save
+(dev, or the audit token). Not ported: the dev editors.
 
 **Other islands reach the globe through `src/lib/globe.ts`**, a module singleton holding the
 `GlobeBridge` and the country table. Forced, not stylistic: `GlobeIsland` is `client:only` and

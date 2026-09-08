@@ -15,14 +15,18 @@
  * control saves the setting and applies it; on reload `GlobeIsland` replays the
  * lot through `applyAll`. There is no separate "current" state here to drift.
  *
- * ## What is deliberately not here yet
+ * ## The theme picker
  *
- * - **UI theme** and the remote-theme picker. They need the backend cutover
- *   (B9); offering a theme control against the legacy 24-knob vocabulary would
- *   style nothing. The *knobs* are editable today through the dev-only Theme
- *   Lab, which needs no backend.
- * - **The dev editors** (labels, colours, zoom, audit). Not being ported;
- *   `index.html` keeps them.
+ * "Default" plus every published theme from the backend, fetched when the sheet
+ * opens — a reader on the default never causes a request. Applying one goes
+ * through `lib/theme.ts`, which is also what re-wears it on the next load. The
+ * Theme Lab button beside it appears only for a session that could save
+ * (`canAuthorThemes`): dev, or a superuser with the audit token.
+ *
+ * ## What is deliberately not here
+ *
+ * The dev editors (labels, colours, zoom, audit). Not being ported;
+ * `index.html` keeps them.
  *
  * "Country info panel" has now arrived (`CountryInfo.tsx`), and its switch is
  * the one control here that drives no globe method: the panel is React, so
@@ -31,23 +35,64 @@
  */
 import { useEffect, useState } from 'react';
 import { SETTINGS_DEFAULTS } from '@terragotcha/storage';
+import { getApi, type RemoteTheme } from '../../lib/api';
+import { canAuthorThemes, hasAuditToken } from '../../lib/audit';
 import { useSettings } from '../../lib/settings';
-import { closeOverlay } from '../../lib/overlay';
+import { closeOverlay, setOverlay } from '../../lib/overlay';
+import {
+    DEFAULT_SELECTION, applyRemoteTheme, reconcileSelection, selectionFor,
+} from '../../lib/theme';
 import type { GlobeAppearance, Lighting } from '../../lib/globe-types';
 
 /**
- * True when a superuser arrived via `/audit/launch`.
+ * The remote-theme `<select>`.
  *
- * Lighting is optics rather than palette — a value here can make the globe
- * unreadable — so it stays behind the same gate the vanilla panel used.
+ * Three states while the list arrives: loading, a list, or unavailable — and
+ * the control stays usable throughout, because "Default" needs no server. Once
+ * the list is in, `reconcileSelection` refreshes (or retires) whatever the
+ * reader had chosen, so an admin's edit reaches them without a hard reload.
  */
-function hasAuditToken(): boolean {
-    try {
-        return !!sessionStorage.getItem('tg-audit-token');
-    } catch {
-        // Private mode, or storage blocked. Not a superuser, then.
-        return false;
-    }
+function ThemePicker({ selection }: { selection: string }) {
+    const [themes, setThemes] = useState<RemoteTheme[] | 'loading' | 'unavailable'>('loading');
+
+    useEffect(() => {
+        let live = true;
+        getApi()
+            .then((api) => api.listThemes())
+            .then((list) => {
+                if (!live) return;
+                setThemes(list);
+                reconcileSelection(list);
+            })
+            .catch(() => { if (live) setThemes('unavailable'); });
+        return () => { live = false; };
+    }, []);
+
+    const list = Array.isArray(themes) ? themes : [];
+    // A selection the list does not carry (still loading, or retired) reads as
+    // Default rather than as an empty select.
+    const value = list.some((t) => selectionFor(t) === selection) ? selection : DEFAULT_SELECTION;
+
+    return (
+        <label className="ctl-row ctl-select-row">
+            <span className="ctl-label">Theme</span>
+            <select
+                className="ctl-select"
+                value={value}
+                onChange={(e) => {
+                    const chosen = list.find((t) => selectionFor(t) === e.currentTarget.value);
+                    applyRemoteTheme(chosen ?? null);
+                }}
+            >
+                <option value={DEFAULT_SELECTION}>Default</option>
+                {list.map((t) => (
+                    <option key={t.id} value={selectionFor(t)}>{t.name}</option>
+                ))}
+                {themes === 'loading' && <option disabled>Loading…</option>}
+                {themes === 'unavailable' && <option disabled>Themes unavailable</option>}
+            </select>
+        </label>
+    );
 }
 
 function Toggle({
@@ -111,7 +156,10 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
     // Read once: the set a renderer offers cannot change during a session, and
     // calling it per render would rebuild the array every time.
     const [schemes] = useState(() => appearance.schemes());
+    // Lighting is optics rather than palette — a value here can make the globe
+    // unreadable — so it stays behind the same gate the vanilla panel used.
     const [showLighting] = useState(hasAuditToken);
+    const [showLab] = useState(canAuthorThemes);
 
     // Escape closes, as it does for every sheet.
     useEffect(() => {
@@ -158,6 +206,17 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
                 <h2 id="settings-heading" className="sheet-title">Settings</h2>
 
                 <p className="sheet-section-label">Appearance</p>
+
+                <ThemePicker selection={settings.theme ?? DEFAULT_SELECTION} />
+                {showLab && (
+                    <button
+                        type="button"
+                        className="ctl-button"
+                        onClick={() => setOverlay('theme-lab')}
+                    >
+                        Open the Theme Lab
+                    </button>
+                )}
 
                 <fieldset className="ctl-fieldset">
                     <legend className="ctl-label">Colour scheme</legend>

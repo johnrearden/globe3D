@@ -11,8 +11,10 @@
  * the server, so it returns null and Astro emits an empty island. The article a
  * crawler sees is untouched.
  */
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { quizStore } from '@terragotcha/quiz-core';
+import { getApi } from '../../lib/api';
+import { captureAuditToken } from '../../lib/audit';
 import { getGlobeHandle, onGlobeReady, type GlobeHandle } from '../../lib/globe';
 import {
     closeOverlay,
@@ -21,7 +23,8 @@ import {
     setOverlay,
     type OverlayName,
 } from '../../lib/overlay';
-import { useSettings } from '../../lib/settings';
+import { readSettings, useSettings } from '../../lib/settings';
+import { isRemoteSelection, reconcileSelection } from '../../lib/theme';
 import Icon from '../quiz/Icon';
 import CountryInfo from './CountryInfo';
 import SearchBox from './SearchBox';
@@ -29,12 +32,33 @@ import SettingsSheet from './SettingsSheet';
 import StatsSheet from './StatsSheet';
 import WeakSpots from './WeakSpots';
 
+/**
+ * Its own chunk, fetched the first time someone opens it — which only a session
+ * that can save a theme can do. A static import would put the knob table, the
+ * colour maths and the panel's stylesheet into every reader's shell bundle.
+ */
+const ThemeLab = lazy(() => import('../theme/ThemeLab'));
+
 export default function ShellControls() {
     const [handle, setHandle] = useState<GlobeHandle | null>(getGlobeHandle);
     const [overlay, setOpen] = useState<OverlayName | null>(getOverlay);
 
     useEffect(() => onGlobeReady(setHandle), []);
     useEffect(() => onOverlayChange(setOpen), []);
+
+    // `/audit/launch` lands here with `?audit=`. The layout's inline script has
+    // normally already kept it and scrubbed the URL — before `AppRouter` rewrote
+    // it — so this is the fallback for a document where that did not run.
+    useEffect(() => { captureAuditToken(); }, []);
+
+    // A reader wearing a remote theme is already wearing it — the layout's
+    // inline script re-applied the cache before paint. This checks the server
+    // still agrees (an admin may have edited or retired it) and is skipped
+    // entirely for the default, so most readers never load the API client.
+    useEffect(() => {
+        if (!isRemoteSelection(readSettings().theme)) return;
+        getApi().then((api) => api.listThemes()).then(reconcileSelection).catch(() => {});
+    }, []);
 
     // Nothing here can do anything useful without a globe to act on.
     if (!handle) return null;
@@ -123,6 +147,14 @@ function Controls({
 
             {overlay === 'settings' && <SettingsSheet appearance={handle.appearance} />}
             {overlay === 'stats' && <StatsSheet />}
+            {overlay === 'theme-lab' && (
+                <Suspense fallback={null}>
+                    <ThemeLab
+                        appearance={handle.appearance}
+                        onClose={() => setOverlay('settings')}
+                    />
+                </Suspense>
+            )}
 
             {/* A quiz starting takes the screen; an open sheet under it would be
                 unreachable and would still be there when the quiz ended. */}

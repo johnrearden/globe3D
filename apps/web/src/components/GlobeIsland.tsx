@@ -180,10 +180,9 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                 // palette used to show through and make the globe appear to
                 // change colour between the two apps.
                 //
-                // A theme-pinned scheme is still not honoured here:
-                // `resolveActiveScheme()` prefers one, but that needs
-                // theme-switcher and an API round trip these pages do not make.
-                // It arrives with B9.
+                // A remote theme that pins a scheme wrote it into `scheme`
+                // when it was applied (lib/theme.ts), so there is no second
+                // place to consult here — the store is the one answer.
                 appearance.applyAll(settingsStore.get());
 
                 // The globe's themed colours. `scene.js` and `globe.js` read

@@ -1,49 +1,66 @@
 /**
- * Theme Lab — the 13 knobs, live, in dev.
+ * Theme Lab — the 14 knobs, live, against the running app.
  *
- * `packages/design-tokens/src/tokens.js` fans 13 authorable values out to 47
+ * `packages/design-tokens/src/tokens.js` fans 14 authorable values out to 47
  * emitted properties through `derive()`, which makes the result of a knob change
- * genuinely hard to predict by reading. So: edit them against the running app,
- * and persist what you like.
+ * genuinely hard to predict by reading. So: edit them here, watch the app wear
+ * them, and persist what you like.
  *
- * ## Almost none of this is new machinery
+ * ## Two places a theme can go
  *
- * The package was built for a theme switcher that never got written.
- * `applyCssVariables` writes a resolved theme onto `<html>`; `KNOB_GROUPS`
- * carries the labels and widget types; `contrastRatio` and `pickKnobs` are
- * there. This component is the caller they were waiting for, which is why a
- * fourteenth knob needs no change here — it appears as a row on its own.
+ * - **`theme.json`** (dev only) — the committed override map the build reads.
+ *   This is how the *product's* look is authored: Save, then
+ *   `npm run build:tokens`. The dev server's `/__theme/*` endpoints do the file
+ *   I/O; they do not exist in production and the controls are not offered there.
+ * - **The backend** (audit token) — a named theme that test users can pick from
+ *   settings. `POST /api/admin/themes`, superuser-gated, the same token that
+ *   unlocks the lighting sliders. A stored theme is a COMPLETE knob map, for the
+ *   reason `lib/theme.ts` gives.
  *
- * ## Dev only
+ * Both are the same knobs, so a knob added to `tokens.js` appears here as a row
+ * with no change to this file: the rows are generated from `KNOB_GROUPS`.
  *
- * Mounted from `AppLayout.astro` behind `import.meta.env.DEV`, so it is absent
- * from a production build rather than hidden in one. That matters beyond bundle
- * size: `/app` and `/country/*` are held to a static-content baseline (words,
- * links, zero app chrome) that a stray panel would break.
+ * ## Not in the initial bundle, and not in the static HTML
+ *
+ * `ShellControls` reaches this component through `React.lazy`, so it is its own
+ * chunk, fetched only when the sheet is opened — and it can only be opened by a
+ * session that can save (`canAuthorThemes`). `/app` and `/country/*` are held to
+ * a static-content baseline (words, links, zero app chrome); nothing here can
+ * reach that document, because the shell island renders null at build time.
  *
  * ## Two things worth knowing
  *
  * The panel is styled in the very tokens it is editing — deliberately, since
  * that is the fastest way to see a palette fail. Escape resets, which is the way
- * back out of a combination that renders the panel unreadable.
+ * back out of a combination that renders the panel unreadable; closing it
+ * restores whatever theme the reader had.
  *
- * Saving writes `theme.json`, which the build reads. It does NOT change what a
- * hard reload shows until `npm run build:tokens` bakes it into the artefact, so
- * the panel says so rather than letting a reload look like data loss — and it
- * seeds itself from that file rather than from the artefact, so the gap between
- * the two cannot cost you a knob.
+ * In dev it seeds from `theme.json` rather than from the built artefact, because
+ * the two disagree for exactly as long as it takes to remember to rebuild, and a
+ * panel seeded from the artefact once deleted a knob that had been saved but not
+ * yet baked.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     KNOB_GROUPS, KNOB_NAMES, defaultTheme,
-    applyCssVariables, contrastRatio, parseColor, toHex,
+    contrastRatio, parseColor, toHex,
 } from '@terragotcha/design-tokens';
-import { cssToken, THEME_EVENT } from '../../../../../js/utils/theme.js';
-import { getGlobeHandle } from '../../lib/globe';
-import { readThemeColors } from '../../lib/theme-colors';
-import '../../styles/dev-theme.css';
+import { cssToken } from '../../../../../js/utils/theme.js';
+import { getApi, type RemoteTheme } from '../../lib/api';
+import { hasAuditToken } from '../../lib/audit';
+import { readSettings } from '../../lib/settings';
+import {
+    applyRemoteTheme, knobsFromApi, knobsToApi, previewKnobs, restoreAppliedTheme,
+    type Knobs,
+} from '../../lib/theme';
+import type { GlobeAppearance } from '../../lib/globe-types';
+// `?inline` on purpose: Astro hoists the CSS of every module a page can reach,
+// dynamic imports included, into that page's <style> — so a plain import put
+// this panel's rules into every crawler-facing document. As a string it is part
+// of this chunk and nothing else.
+import labCss from '../../styles/theme-lab.css?inline';
 
-type Knobs = Record<string, string>;
+const DEV = import.meta.env.DEV;
 
 /**
  * Contrast pairs worth warning about. `on-primary` is a knob rather than a
@@ -67,10 +84,9 @@ const PAIRS: Array<[string, string, string]> = [
 const AA = 4.5;
 
 /**
- * Seed from the live cascade — the starting point before `theme.json` arrives.
- *
- * Correct for a first paint (the artefact already has the last build layered
- * in) but NOT the source of truth: see `useStoredTheme` below.
+ * Seed from the live cascade: the built artefact plus whatever remote theme is
+ * applied inline. Correct for a first paint; in dev, `useStoredTheme` replaces
+ * it with `theme.json`.
  */
 function knobsFromCascade(): Knobs {
     const defaults = defaultTheme();
@@ -90,11 +106,12 @@ function knobsFromCascade(): Knobs {
  * which writes the diff against defaults. A save silently dropping a value the
  * reader had already saved is the worst failure this panel can have.
  *
- * Anything the file does not name falls back to the default rather than to the
- * cascade, so what is on screen is `theme.json` and nothing else.
+ * Dev only: the endpoint is the dev server's, and in production the cascade
+ * seed is already the truth.
  */
 function useStoredTheme(apply: (knobs: Knobs) => void) {
     useEffect(() => {
+        if (!DEV) return;
         let live = true;
         fetch('/__theme/current')
             .then((r) => (r.ok ? r.json() : null))
@@ -102,8 +119,6 @@ function useStoredTheme(apply: (knobs: Knobs) => void) {
                 if (!live || !stored) return;
                 apply({ ...defaultTheme(), ...stored });
             })
-            // No endpoint means no dev server writing files either, so there is
-            // nothing to be out of step with: the cascade seed stands.
             .catch(() => {});
         return () => { live = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount.
@@ -118,7 +133,7 @@ function asHex(value: string): string {
 
 /**
  * The generic families, as complete stacks. No specific family is named here —
- * a dev tool that hardcodes "Georgia" is asserting something about the reader's
+ * a tool that hardcodes "Georgia" is asserting something about the reader's
  * machine that it cannot know.
  */
 const SYSTEM_FONTS = [
@@ -162,8 +177,24 @@ function usable(type: string, value: string): boolean {
     return type === 'color' ? parseColor(value) !== null : true;
 }
 
-export default function ThemeLab() {
-    const [open, setOpen] = useState(false);
+/** What the server said, in a form the panel can show. */
+function describe(err: unknown): string {
+    const e = err as { status?: number; message?: string };
+    if (e?.status === 401 || e?.status === 403) {
+        return 'Not authorised — visit /audit/launch again; the token expires.';
+    }
+    return e?.message || 'Something went wrong.';
+}
+
+const NEW = 'new';
+
+export default function ThemeLab({
+    appearance,
+    onClose,
+}: {
+    appearance: GlobeAppearance;
+    onClose: () => void;
+}) {
     /** Always complete and always valid — this is what gets applied. */
     const [knobs, setKnobs] = useState<Knobs>(knobsFromCascade);
     /**
@@ -172,12 +203,36 @@ export default function ThemeLab() {
      * matches what was applied.
      */
     const [drafts, setDrafts] = useState<Knobs>({});
-    const [saved, setSaved] = useState<string | null>(null);
+    /** '' = inherit the reader's own scheme setting. */
+    const [scheme, setScheme] = useState('');
+    const [status, setStatus] = useState<string | null>(null);
     /** Families this document can actually render, for the font dropdowns. */
     const [families, setFamilies] = useState<string[]>(loadedFamilies);
+    const [schemes] = useState(() => appearance.schemes());
 
-    // theme.json wins over the artefact — see useStoredTheme.
+    // ---- publishing ----
+    const canPublish = hasAuditToken();
+    /** Every stored theme, drafts included; null until fetched. */
+    const [stored, setStored] = useState<RemoteTheme[] | null>(null);
+    /** Which one Save writes to: `NEW`, or an id. */
+    const [target, setTarget] = useState<string>(NEW);
+    const [name, setName] = useState('');
+    const [published, setPublished] = useState(true);
+    const [busy, setBusy] = useState(false);
+    /** The two-tap delete: first tap arms, second deletes. */
+    const [armed, setArmed] = useState(false);
+
     useStoredTheme(setKnobs);
+
+    useEffect(() => {
+        if (!canPublish) return;
+        let live = true;
+        getApi()
+            .then((api) => api.listAllThemes())
+            .then((list) => { if (live) setStored(list); })
+            .catch((err) => { if (live) setStatus(describe(err)); });
+        return () => { live = false; };
+    }, [canPublish]);
 
     // `document.fonts` is empty until the webfonts arrive, so the first read
     // would offer System and nothing else. Re-read once they have landed.
@@ -193,49 +248,48 @@ export default function ThemeLab() {
         [families],
     );
 
-    const edit = useCallback((name: string, type: string, value: string) => {
-        setDrafts((d) => ({ ...d, [name]: value }));
+    const edit = useCallback((knob: string, type: string, value: string) => {
+        setDrafts((d) => ({ ...d, [knob]: value }));
         if (usable(type, value)) {
-            setKnobs((k) => ({ ...k, [name]: value }));
-            setDrafts(({ [name]: _dropped, ...rest }) => rest);
+            setKnobs((k) => ({ ...k, [knob]: value }));
+            setDrafts(({ [knob]: _dropped, ...rest }) => rest);
         }
     }, []);
 
-    // Push the whole resolved theme at every edit. Three consumers, because a
-    // theme reaches the page by three different routes:
-    //   1. CSS custom properties — everything the DOM wears.
-    //   2. THEME_EVENT — canvas label textures, which cannot read a var().
-    //   3. GlobeAppearance — the backdrop, outline ink and water, each read
-    //      once at boot by the engine and otherwise frozen.
+    // Preview on every edit: CSS properties, the canvas label textures, and the
+    // three globe surfaces that read their token once at boot. One call.
+    useEffect(() => { previewKnobs(knobs); }, [knobs]);
+
+    // The scheme too — and back to the reader's own when previewing "inherit".
     useEffect(() => {
-        applyCssVariables(knobs);
-        document.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { preview: true } }));
-        // Read back out of the cascade rather than recomputing: the values just
-        // written are the authority, and one path serves boot and preview alike.
-        getGlobeHandle()?.appearance.setThemeColors(readThemeColors());
-    }, [knobs]);
+        appearance.setCountryScheme(scheme || readSettings().scheme || 'greys');
+    }, [appearance, scheme]);
+
+    // Leaving the Lab puts the page back into its persisted state. Without
+    // this a preview would outlive the panel and look like a saved theme.
+    useEffect(() => () => restoreAppliedTheme(), []);
 
     const reset = useCallback(() => {
         setKnobs(defaultTheme());
         setDrafts({});
-        setSaved(null);
+        setScheme('');
+        setStatus(null);
     }, []);
 
     // Escape resets rather than closing. The panel wears the theme it is
     // editing, so the failure worth designing for is a palette that has made
     // this panel unreadable — and a closed panel would not fix that.
     useEffect(() => {
-        if (!open) return;
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') reset(); };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [open, reset]);
+    }, [reset]);
 
     /** Only what differs from the defaults — theme.json is the deviation. */
     const overrides = useMemo(() => {
         const defaults = defaultTheme();
         return Object.fromEntries(
-            Object.entries(knobs).filter(([name, value]) => value !== defaults[name]),
+            Object.entries(knobs).filter(([k, value]) => value !== defaults[k]),
         );
     }, [knobs]);
 
@@ -246,7 +300,20 @@ export default function ThemeLab() {
         [knobs],
     );
 
-    const save = useCallback(async () => {
+    /** Load a stored theme into the panel, or start a new one. */
+    const pick = useCallback((value: string) => {
+        setTarget(value);
+        setArmed(false);
+        const theme = stored?.find((t) => String(t.id) === value);
+        if (!theme) { setName(''); setPublished(true); return; }
+        setKnobs({ ...defaultTheme(), ...knobsFromApi(theme.tokens) });
+        setDrafts({});
+        setScheme(theme.countryScheme || '');
+        setName(theme.name);
+        setPublished(theme.isPublished);
+    }, [stored]);
+
+    const saveFile = useCallback(async () => {
         try {
             const res = await fetch('/__theme/save', {
                 method: 'POST',
@@ -254,7 +321,7 @@ export default function ThemeLab() {
                 body: JSON.stringify(overrides),
             });
             const body = await res.json();
-            if (!body.ok) { setSaved(`Save failed: ${body.error}`); return; }
+            if (!body.ok) { setStatus(`Save failed: ${body.error}`); return; }
             // A dropped knob is the failure worth shouting about: the write
             // succeeded, so everything downstream reports success while the
             // value is simply gone. It happened for nine days because a
@@ -262,35 +329,68 @@ export default function ThemeLab() {
             const lost = body.dropped?.length
                 ? ` NOT saved: ${body.dropped.join(', ')} — restart the dev server.`
                 : '';
-            setSaved(
-                `Saved ${Object.keys(body.written).length} knob(s).`
+            setStatus(
+                `Saved ${Object.keys(body.written).length} knob(s) to theme.json.`
                 + ' Run npm run build:tokens to bake it in.' + lost);
         } catch (err) {
-            setSaved(`Save failed: ${(err as Error).message}`);
+            setStatus(`Save failed: ${(err as Error).message}`);
         }
     }, [overrides]);
 
-    if (!open) {
-        return (
-            <button
-                type="button"
-                className="tl-open"
-                onClick={() => setOpen(true)}
-                aria-label="Open the theme lab"
-                title="Theme Lab (dev only)"
-            >
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                    <path
-                        fill="currentColor"
-                        d="M12 3a9 9 0 0 0 0 18 2 2 0 0 0 2-2 2 2 0 0 0-.5-1.3 2 2 0 0 1 1.5-3.3H17a4 4 0 0 0 4-4c0-4-4-7.4-9-7.4Zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3.5 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"
-                    />
-                </svg>
-            </button>
-        );
-    }
+    const publish = useCallback(async () => {
+        if (!name.trim()) { setStatus('Give the theme a name.'); return; }
+        setBusy(true);
+        try {
+            const api = await getApi();
+            const input = {
+                name: name.trim(),
+                // The whole map, not the diff — see lib/theme.ts.
+                tokens: knobsToApi(knobs),
+                countryScheme: scheme,
+                isPublished: published,
+            };
+            const saved = target === NEW
+                ? await api.createTheme(input)
+                : await api.updateTheme(Number(target), input);
+            setStored((list) => {
+                const rest = (list ?? []).filter((t) => t.id !== saved.id);
+                return [...rest, saved].sort((a, b) => a.name.localeCompare(b.name));
+            });
+            setTarget(String(saved.id));
+            // Wear it: the picker's selection follows what was just saved, and
+            // the cache is refreshed for the next load.
+            applyRemoteTheme(saved);
+            setStatus(`Saved "${saved.name}"${saved.isPublished ? '' : ' as a draft'}.`);
+        } catch (err) {
+            setStatus(describe(err));
+        } finally {
+            setBusy(false);
+        }
+    }, [knobs, name, published, scheme, target]);
+
+    const remove = useCallback(async () => {
+        if (!armed) { setArmed(true); return; }
+        setBusy(true);
+        try {
+            const api = await getApi();
+            const id = Number(target);
+            await api.deleteTheme(id);
+            setStored((list) => (list ?? []).filter((t) => t.id !== id));
+            // If the reader was wearing it, they are not any more.
+            if (readSettings().theme === `remote:${id}`) applyRemoteTheme(null);
+            pick(NEW);
+            setStatus('Deleted.');
+        } catch (err) {
+            setStatus(describe(err));
+        } finally {
+            setBusy(false);
+            setArmed(false);
+        }
+    }, [armed, pick, target]);
 
     return (
         <aside className="tl-panel" aria-label="Theme Lab">
+            <style>{labCss}</style>
             <header className="tl-bar">
                 <p className="tl-title">Theme Lab</p>
                 <span className="tl-count">
@@ -301,7 +401,7 @@ export default function ThemeLab() {
                 <button
                     type="button"
                     className="tl-close"
-                    onClick={() => setOpen(false)}
+                    onClick={onClose}
                     aria-label="Close the theme lab"
                 >
                     ×
@@ -309,6 +409,54 @@ export default function ThemeLab() {
             </header>
 
             <div className="tl-scroll">
+                {canPublish && (
+                    <section className="tl-group">
+                        <p className="tl-group-title">Theme</p>
+                        <label className="tl-row">
+                            <span className="tl-label">Editing</span>
+                            <span className="tl-control">
+                                <select
+                                    className="tl-select"
+                                    value={target}
+                                    onChange={(e) => pick(e.target.value)}
+                                    aria-label="Theme to edit"
+                                >
+                                    <option value={NEW}>New theme…</option>
+                                    {(stored ?? []).map((t) => (
+                                        <option key={t.id} value={String(t.id)}>
+                                            {t.name}{t.isPublished ? '' : ' (draft)'}
+                                        </option>
+                                    ))}
+                                </select>
+                            </span>
+                        </label>
+                        <label className="tl-row">
+                            <span className="tl-label">Name</span>
+                            <span className="tl-control">
+                                <input
+                                    type="text"
+                                    className="tl-value"
+                                    value={name}
+                                    maxLength={80}
+                                    onChange={(e) => setName(e.target.value)}
+                                    aria-label="Theme name"
+                                />
+                            </span>
+                        </label>
+                        <label className="tl-row">
+                            <span className="tl-label">Published</span>
+                            <span className="tl-control">
+                                <input
+                                    type="checkbox"
+                                    checked={published}
+                                    onChange={(e) => setPublished(e.target.checked)}
+                                    aria-label="Visible in the settings picker"
+                                />
+                            </span>
+                        </label>
+                    </section>
+                )}
+
                 {KNOB_GROUPS.map((group) => (
                     <section className="tl-group" key={group.title}>
                         <p className="tl-group-title">{group.title}</p>
@@ -353,8 +501,8 @@ export default function ThemeLab() {
                                             aria-label={`${knob.label} family`}
                                         >
                                             {/* A stack the dropdown does not offer —
-                                                from theme.json, or a family that has
-                                                not loaded yet. Listed first so the
+                                                from a stored theme, or a family that
+                                                has not loaded yet. Listed first so the
                                                 select shows the truth rather than
                                                 silently reading as something else. */}
                                             {!fontValues.has(knobs[knob.name]) && (
@@ -403,6 +551,29 @@ export default function ThemeLab() {
                     </section>
                 ))}
 
+                {/* Not a token: the palette is pinned by scheme KEY, never by
+                    colours (COUNTRY_SCHEMES), so this is the one row that is
+                    not generated from KNOB_GROUPS. */}
+                <section className="tl-group">
+                    <p className="tl-group-title">Globe palette</p>
+                    <label className="tl-row">
+                        <span className="tl-label">Country scheme</span>
+                        <span className="tl-control">
+                            <select
+                                className="tl-select"
+                                value={scheme}
+                                onChange={(e) => setScheme(e.target.value)}
+                                aria-label="Country colour scheme"
+                            >
+                                <option value="">Reader's own setting</option>
+                                {schemes.map((s) => (
+                                    <option key={s.key} value={s.key}>{s.label}</option>
+                                ))}
+                            </select>
+                        </span>
+                    </label>
+                </section>
+
                 {warnings.length > 0 && (
                     <section className="tl-group">
                         <p className="tl-group-title">Contrast below AA</p>
@@ -435,12 +606,36 @@ export default function ThemeLab() {
                 >
                     Copy JSON
                 </button>
-                <button type="button" className="tl-btn tl-save" onClick={save}>
-                    Save to theme.json
-                </button>
+                {DEV && (
+                    <button type="button" className="tl-btn tl-save" onClick={saveFile}>
+                        Save to theme.json
+                    </button>
+                )}
+                {canPublish && (
+                    <>
+                        <button
+                            type="button"
+                            className="tl-btn tl-save"
+                            onClick={publish}
+                            disabled={busy}
+                        >
+                            {target === NEW ? 'Publish as new theme' : 'Save theme'}
+                        </button>
+                        {target !== NEW && (
+                            <button
+                                type="button"
+                                className={`tl-btn tl-danger${armed ? ' armed' : ''}`}
+                                onClick={remove}
+                                disabled={busy}
+                            >
+                                {armed ? 'Really delete?' : 'Delete'}
+                            </button>
+                        )}
+                    </>
+                )}
             </footer>
 
-            {saved && <p className="tl-saved">{saved}</p>}
+            {status && <p className="tl-saved">{status}</p>}
         </aside>
     );
 }

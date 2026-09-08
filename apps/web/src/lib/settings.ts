@@ -18,7 +18,11 @@ import type { GlobeSettings } from './globe-types';
 
 /** Everything `SETTINGS_DEFAULTS` defines. */
 export interface Settings extends GlobeSettings {
+    /** `'default'`, or `remote:<id>` — see `lib/theme.ts`. */
     theme?: string;
+    /** The applied remote theme, cached so the next load can wear it before paint. */
+    themeInline?: { tokens: Record<string, string>; css: Record<string, string> } | null;
+    themeScene?: { countryScheme: string } | null;
     showInfoPanel?: boolean;
 }
 
