@@ -261,6 +261,56 @@ body {
     visibility: hidden;
 }
 
+/* The WebGL failure card, in the globe's seat. Above the placeholder, below
+   the panel sheet, and it lets pointer events through everywhere but itself. */
+.globe-failed {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    padding: var(--space-4);
+    pointer-events: none;
+}
+
+.globe-failed-card {
+    width: min(22rem, 100%);
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    text-align: center;
+    background: var(--bg-panel);
+    color: var(--primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-high);
+    pointer-events: auto;
+}
+
+.globe-failed-card h2 {
+    margin: var(--space-2) 0 var(--space-2);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+}
+
+.globe-failed-card p {
+    margin: 0 0 var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.globe-failed-card button {
+    padding: var(--space-2) var(--space-5);
+    background: var(--primary);
+    color: var(--on-primary);
+    border: none;
+    border-radius: var(--radius-btn);
+    font: inherit;
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .globe-host,
     #globe-placeholder {

@@ -10,6 +10,15 @@
  * imports its own stylesheet. `ogType` is a prop because the apex is a website
  * and a country page is an article, and getting that wrong is the kind of thing
  * nobody notices until a share preview looks wrong.
+ *
+ * ## The production head
+ *
+ * The AdSense verification meta and loader, Consent Mode defaults, GA4 and
+ * Google's CMP are STATIC tags here, built from `js/data/site-config.js` by
+ * `lib/site-head.ts` — see that file for why they cannot be injected from JS
+ * (a non-executing crawler must find them in the raw HTML) and why they exist
+ * only in a production build. Order matters and is pinned by test: the consent
+ * defaults are the first script on the page, before any tag that could store.
  */
 interface Props {
     title: string;
@@ -20,11 +29,29 @@ interface Props {
      *  live page, for instance. Defaults to indexable, because every real page
      *  here exists to be found. */
     robots?: string;
+    /** Share image, site-relative. The site card unless a page has its own. */
+    ogImage?: string;
+    ogImageAlt?: string;
+    /** Structured data, emitted as JSON-LD when given. */
+    jsonLd?: Record<string, unknown>;
 }
 const {
     title, description, canonicalPath, ogType = 'article', robots = 'index, follow',
+    ogImage = '/og-image.png',
+    ogImageAlt = 'Terragotcha — interactive 3D world globe with geography quizzes',
+    jsonLd,
 } = Astro.props;
 const canonical = new URL(canonicalPath, Astro.site).href;
+const ogImageUrl = new URL(ogImage, Astro.site).href;
+
+import { productionHead } from '../lib/site-head';
+const head = productionHead(import.meta.env.PROD);
+
+// `theme-color` is the app background knob, resolved the same way the token
+// artefact is — theme.json included — rather than restated as a literal here.
+import { resolveTheme } from '@terragotcha/design-tokens';
+import { readTheme } from '@terragotcha/design-tokens/theme-file.js';
+const themeColor = resolveTheme(readTheme())['bg-app'];
 
 // The generated token artefact first, then the shell that consumes it. Both are
 // plain CSS imports, so Astro inlines/bundles them and the page needs no runtime
@@ -67,6 +94,19 @@ import DailyLayer from '../components/daily/DailyLayer';
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {head.adsenseAccount && <meta name="google-adsense-account" content={head.adsenseAccount} />}
+    {head.consent && <script is:inline set:html={head.consent} />}
+    {head.gaId && <script async src={`https://www.googletagmanager.com/gtag/js?id=${head.gaId}`} />}
+    {head.gaConfig && <script is:inline set:html={head.gaConfig} />}
+    {head.adsId && (
+        <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${head.adsId}`}
+            crossorigin="anonymous"
+        />
+    )}
+    {head.cmpId && <script async src={`https://fundingchoicesmessages.google.com/i/${head.cmpId}?ers=1`} />}
+    {head.fcPresent && <script is:inline set:html={head.fcPresent} />}
     <script is:inline>
         try {
             var s = JSON.parse(localStorage.getItem('globe3d-settings') || '{}');
@@ -91,12 +131,29 @@ import DailyLayer from '../components/daily/DailyLayer';
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <meta name="robots" content={robots} />
+    <meta name="theme-color" content={themeColor} />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
 
     <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="Terragotcha" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    {jsonLd && <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />}
 
     <!-- The two type knobs name these families, so the page has to supply them.
          Preconnect because they are render-blocking for the heading font. -->
@@ -106,6 +163,11 @@ import DailyLayer from '../components/daily/DailyLayer';
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&family=Archivo:wght@400;500;700&display=swap"
     />
+    <!-- Hoisted and bundled, so it runs before any island hydrates. Inert in dev. -->
+    <script>
+        import { initErrorReporter } from '../lib/error-reporter';
+        initErrorReporter();
+    </script>
 </head>
 <body>
     <slot />

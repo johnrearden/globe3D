@@ -44,6 +44,18 @@ const title = 'Terragotcha — learn world geography on an interactive 3D globe'
     description={landing.intro.paragraphs[0]}
     canonicalPath="/"
     ogType="website"
+    jsonLd={{
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name: 'Interactive 3D World Globe Map',
+        url: 'https://terragotcha.com/',
+        image: 'https://terragotcha.com/og-image.png',
+        description: landing.intro.paragraphs[0],
+        applicationCategory: 'EducationalApplication',
+        operatingSystem: 'Web Browser',
+        browserRequirements: 'Requires WebGL',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    }}
     robots="noindex, nofollow"
 >
     <div id="globe-placeholder" aria-hidden="true">

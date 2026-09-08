@@ -37,11 +37,15 @@ const ADS_ID = idOf('ADSENSE_CLIENT_ID');
 const ADS_SLOT = idOf('ADSENSE_LANDING_SLOT');
 const CMP_ID = idOf('CMP_PUBLISHER_ID');
 
-// EEA + UK + Switzerland — MUST stay in sync with EEA_UK_CH in
-// js/features/analytics.js and the CMP message's geo-targeting. Consent Mode
-// denies these regions by default (Google's CMP grants per user); the rest of
-// the world is granted so analytics flows without a banner.
-const EEA_UK_CH = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'GB', 'CH'];
+// EEA + UK + Switzerland, read from the ONE list in site-config.js
+// (CONSENT_REGIONS) — the same regex-out-of-source approach as the ids above.
+// Consent Mode denies these regions by default (Google's CMP grants per user);
+// the rest of the world is granted so analytics flows without a banner.
+const EEA_UK_CH = (() => {
+    const m = cfg.match(/export const CONSENT_REGIONS\s*=\s*\[([^\]]*)\]/);
+    if (!m) throw new Error('build-landing: CONSENT_REGIONS not found in site-config.js');
+    return m[1].match(/'([A-Z]{2})'/g).map((s) => s.slice(1, -1));
+})();
 
 // --- helpers ----------------------------------------------------------------
 const esc = (s) => String(s == null ? '' : s)

@@ -14,6 +14,7 @@
  * right when that happens mid-render.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { track } from '../analytics';
 import {
     QUESTIONS_PER_SESSION,
     createSession,
@@ -175,6 +176,7 @@ export function useQuizSession({
                 ? null
                 : (quizHistoryStore.record(toHistoryRecord(state, durationMs)) as BestSummary);
         setBest(summary);
+        track('quiz_complete', { mode: state.mode, answered: state.answered, duration_ms: durationMs });
         onComplete?.(state, durationMs, summary);
     }, [state, onComplete]);
 

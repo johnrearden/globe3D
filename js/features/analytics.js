@@ -19,22 +19,15 @@
  */
 
 import { quizStore } from '@terragotcha/quiz-core';
-import { GA_MEASUREMENT_ID, isProdHost } from '../data/site-config.js';
+import { CONSENT_REGIONS, GA_MEASUREMENT_ID, isProdHost } from '../data/site-config.js';
 import { afterIntro } from '../utils/after-intro.js';
 
 let started = false;
 let defaultsSet = false;
 
-// EU-27 + Iceland/Liechtenstein/Norway (EEA) + United Kingdom + Switzerland —
-// the regions where consent is required before storage. Consent Mode `region`
-// codes; KEEP IN SYNC with the GDPR message's geo-targeting in the AdSense
-// "Privacy & messaging" dashboard (a country denied here but shown no banner
-// would be stuck denied with no way to grant → silent analytics loss there).
-const EEA_UK_CH = [
-    'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
-    'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
-    'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'GB', 'CH',
-];
+// The region list lives in site-config.js (CONSENT_REGIONS) — one copy for
+// this module, the /borders/* generator and the Astro layout.
+const EEA_UK_CH = CONSENT_REGIONS;
 
 // gtag pushes its verbatim `arguments` onto dataLayer; defined up-front so
 // consent defaults and any early events survive until gtag.js finishes loading.

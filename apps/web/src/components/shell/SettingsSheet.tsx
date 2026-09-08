@@ -37,6 +37,7 @@ import { useEffect, useState } from 'react';
 import { SETTINGS_DEFAULTS } from '@terragotcha/storage';
 import { getApi, type RemoteTheme } from '../../lib/api';
 import { canAuthorThemes, hasAuditToken } from '../../lib/audit';
+import { consentConfigured, manageConsent } from '../../lib/consent';
 import { useSettings } from '../../lib/settings';
 import { closeOverlay, setOverlay } from '../../lib/overlay';
 import {
@@ -160,6 +161,7 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
     // unreadable — so it stays behind the same gate the vanilla panel used.
     const [showLighting] = useState(hasAuditToken);
     const [showLab] = useState(canAuthorThemes);
+    const [showConsent] = useState(consentConfigured);
 
     // Escape closes, as it does for every sheet.
     useEffect(() => {
@@ -357,6 +359,14 @@ export default function SettingsSheet({ appearance }: { appearance: GlobeAppeara
                     </>
                 )}
 
+                {/* GDPR needs a way back to the banner; Google's CMP shows it
+                    unprompted only once. Only where the CMP exists, i.e. a
+                    production build with a publisher id. */}
+                {showConsent && (
+                    <button type="button" className="ctl-button" onClick={manageConsent}>
+                        Manage consent choices
+                    </button>
+                )}
                 <button type="button" className="sheet-dismiss" onClick={closeOverlay}>
                     Done
                 </button>

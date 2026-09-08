@@ -47,6 +47,20 @@ export const ADSENSE_LANDING_SLOT = '';
 // (ADSENSE_CLIENT_ID is this value with the 'ca-' prefix) and must stay so.
 export const CMP_PUBLISHER_ID = 'pub-2820812359000429';
 
+// EU-27 + Iceland/Liechtenstein/Norway (EEA) + United Kingdom + Switzerland —
+// the regions where consent is required before storage. Consent Mode `region`
+// codes. THE one list: js/features/analytics.js, build-landing.mjs (the
+// /borders/* pages) and apps/web's layout all read it from here, and
+// tests/production-head.test.js checks the rendered pages agree with it. KEEP
+// IN SYNC with the GDPR message's geo-targeting in the AdSense "Privacy &
+// messaging" dashboard: a country denied here but shown no banner would be
+// stuck denied with no way to grant → silent analytics loss there.
+export const CONSENT_REGIONS = [
+    'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
+    'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+    'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'GB', 'CH',
+];
+
 /**
  * True only on a genuine deployed (production/preview) host — never on
  * localhost / LAN dev. Mirrors the API/asset prod gate (isLocalDevHost, and the

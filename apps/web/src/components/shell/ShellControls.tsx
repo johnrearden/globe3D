@@ -13,6 +13,7 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { quizStore } from '@terragotcha/quiz-core';
+import { installAutoEvents } from '../../lib/analytics';
 import { getApi } from '../../lib/api';
 import { captureAuditToken } from '../../lib/audit';
 import { getGlobeHandle, onGlobeReady, type GlobeHandle } from '../../lib/globe';
@@ -50,6 +51,9 @@ export default function ShellControls() {
     // normally already kept it and scrubbed the URL — before `AppRouter` rewrote
     // it — so this is the fallback for a document where that did not run.
     useEffect(() => { captureAuditToken(); }, []);
+
+    // quiz_start, off the store. A no-op outside a production build.
+    useEffect(() => { installAutoEvents(); }, []);
 
     // A reader wearing a remote theme is already wearing it — the layout's
     // inline script re-applied the cache before paint. This checks the server

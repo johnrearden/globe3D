@@ -18,6 +18,7 @@
  * without pretending there is a session to mirror.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { track } from '../analytics';
 import { FOREIGN_MODES, quizStore } from '@terragotcha/quiz-core';
 import { errorText, getApi } from './api';
 import { applyServerMap, isMapClick, releaseGlobe } from './server-map';
@@ -183,6 +184,7 @@ export function useDailyAttempt({
 
         setScore(res.runningScore);
         setPhase({ k: 'revealed', question: current, reveal: res.reveal, done: res.done });
+        if (res.done) track('daily_complete', { score: res.runningScore });
 
         // The globe's half of the reveal, for a question the grid cannot show.
         if (isMapClick(current) && res.reveal.correctOptions?.length) {

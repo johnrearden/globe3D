@@ -1293,7 +1293,21 @@ lines of head. The canonical at `:45` is already `/` — it was written for this
 That is a morning's work. **It is not the phase.** The phase is everything below, which has to
 land first or the flip ships a regression.
 
-### The blocker: `AppLayout.astro` has no production head
+### The blocker: `AppLayout.astro` has no production head — ✅ closed (step 1 done)
+
+**Landed.** `lib/site-head.ts` builds the head from `js/data/site-config.js` at build time; the
+layout emits it as static markup, consent first, production builds only. Favicons, manifest,
+`theme-color` (resolved from the `bg-app` knob, `theme.json` included), OG/Twitter images and JSON-LD
+(WebApplication on the apex, Article on a country) came with it. `CONSENT_REGIONS` moved into
+`site-config.js` and is the one copy — `analytics.js`, `build-landing.mjs` and the layout all read
+it, and the regenerated `/borders/*` pages were byte-identical. Runtime halves ported as
+`lib/analytics.ts`, `lib/error-reporter.ts` (hoisted layout script), `lib/consent.ts`; a WebGL
+failure now renders a card in the globe's seat from `GlobeIsland` instead of a blank seat.
+Verified on `build:pages:local` served statically, Google's domains blocked: `dataLayer[0]` is the
+region-scoped denied default on both pages, then granted, then `js`/`config`; the three loaders were
+requested; favicon and manifest resolve; with the asset requests aborted, the failure card rendered
+with the article intact and pointer events passing around it. 561 tests; 738 / 300 words unchanged.
+The table below records what was missing.
 
 `AppLayout.astro`'s `<head>` (`:55-77`) carries title, description, canonical, robots, Open
 Graph, Twitter and the fonts link. It carries **none** of what the vanilla apex carries, and a
@@ -1417,10 +1431,9 @@ encodes a rule that still holds somewhere:
 
 ### Order
 
-1. **The production head** — AdSense loader + verification meta, consent CMP, GA4, GlitchTip,
+1. ✅ **The production head** — AdSense loader + verification meta, consent CMP, GA4, GlitchTip,
    WebGL fallback, favicons/manifest/og:image into `AppLayout.astro`, read from
-   `site-config.js`. Lands on `/country/*` *before* the first deploy that includes those pages, so
-   it can be verified on a surface that is not also the apex.
+   `site-config.js`. Done; see above.
 2. **Move the four survivors** out of `js/features/`, on their own.
 3. **The flip** — three constants, plus the page move.
 4. **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;

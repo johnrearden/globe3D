@@ -333,11 +333,39 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
     }, [focus]);
 
     return (
-        <div
-            ref={hostRef}
-            className="globe-host"
-            aria-hidden="true"
-            data-failed={failed ? 'true' : 'false'}
-        />
+        <>
+            <div
+                ref={hostRef}
+                className="globe-host"
+                aria-hidden="true"
+                data-failed={failed ? 'true' : 'false'}
+            />
+            {/* The article is still on screen and still the point of the page,
+                so this is a card in the globe's seat rather than a modal over
+                everything — the vanilla fallback's message and its Reload,
+                without its takeover. Rendered by a client:only island, so it
+                can never be in the static document. */}
+            {failed && (
+                <div className="globe-failed">
+                    <div
+                        className="globe-failed-card"
+                        role="alertdialog"
+                        aria-labelledby="globe-failed-title"
+                        aria-describedby="globe-failed-body"
+                    >
+                        <svg viewBox="0 0 256 256" width="40" height="40" fill="currentColor" aria-hidden="true">
+                            <path d="M236.8,188.09,149.35,36.22a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z" />
+                        </svg>
+                        <h2 id="globe-failed-title">3D graphics couldn't start</h2>
+                        <p id="globe-failed-body">
+                            Your browser couldn't start the 3D globe. Try reloading — and if that
+                            doesn't help, check that hardware acceleration is on. The article
+                            below still works.
+                        </p>
+                        <button type="button" onClick={() => window.location.reload()}>Reload</button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

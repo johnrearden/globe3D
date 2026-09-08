@@ -42,6 +42,14 @@ const title = `${country.name} — geography, history and literature | Terragotc
     title={title}
     description={country.summary}
     canonicalPath={`/country/${country.slug}`}
+    jsonLd={{
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: title,
+        description: country.summary,
+        mainEntityOfPage: `https://terragotcha.com/country/${country.slug}`,
+        publisher: { '@type': 'Organization', name: 'Terragotcha', url: 'https://terragotcha.com/' },
+    }}
 >
     <div id="globe-placeholder" aria-hidden="true">
         <p>Loading globe…</p>
