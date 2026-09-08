@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
- * Generate the three artefacts from the token source of truth.
+ * Generate the artefacts from the token source of truth.
  *
  * They are committed rather than gitignored, so changing a knob shows up as a
  * reviewable diff in the same commit — the point of the system is that the
  * three platforms cannot drift, and a diff nobody sees is a drift nobody
  * catches. `--check` re-runs the generator and fails if the committed files are
  * stale, which is what the test suite calls.
+ *
+ * Three live in dist/. The fourth is the Django allow-list,
+ * backend/themes/tokens.py: the generated block is SPLICED between its markers
+ * rather than the file being overwritten, because the validation below the
+ * block is hand-written and security-relevant. Same staleness gate.
  *
  * Usage: node bin/build-tokens.mjs [--check]
  */
@@ -16,12 +21,13 @@ import { fileURLToPath } from 'node:url';
 
 import { toCss } from '../src/css.js';
 import { toNativeTheme } from '../src/native.js';
-import { toPythonAllowList } from '../src/python.js';
+import { toPythonAllowList, spliceGeneratedBlock } from '../src/python.js';
 import { readTheme } from '../src/theme-file.js';
 import { KNOBS } from '../src/tokens.js';
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(pkgRoot, 'dist');
+const backendAllowList = join(pkgRoot, '..', '..', 'backend', 'themes', 'tokens.py');
 
 const banner = kind => [
     `${kind === 'css' ? '/*' : '//'} GENERATED — do not edit.`,
@@ -54,23 +60,33 @@ export function artefacts(overrides = readTheme()) {
 const files = artefacts();
 const check = process.argv.includes('--check');
 
+/** The backend file with its generated block brought up to date. */
+function splicedBackend() {
+    return spliceGeneratedBlock(readFileSync(backendAllowList, 'utf8'));
+}
+
 if (check) {
     const stale = [];
     for (const [name, want] of Object.entries(files)) {
         const path = join(dist, name);
         if (!existsSync(path) || readFileSync(path, 'utf8') !== want) stale.push(name);
     }
+    if (readFileSync(backendAllowList, 'utf8') !== splicedBackend()) {
+        stale.push('backend/themes/tokens.py');
+    }
     if (stale.length) {
         console.error(`design-tokens: stale artefacts — ${stale.join(', ')}`);
         console.error('Run: npm run build:tokens');
         process.exit(1);
     }
-    console.log(`design-tokens — ${Object.keys(files).length} artefacts up to date (${KNOBS.length} knobs)`);
+    console.log(`design-tokens — ${Object.keys(files).length + 1} artefacts up to date (${KNOBS.length} knobs)`);
 } else {
     mkdirSync(dist, { recursive: true });
     for (const [name, contents] of Object.entries(files)) {
         writeFileSync(join(dist, name), contents);
         console.log(`  wrote dist/${name}`);
     }
-    console.log(`design-tokens — ${KNOBS.length} knobs → ${Object.keys(files).length} artefacts`);
+    writeFileSync(backendAllowList, splicedBackend());
+    console.log('  spliced backend/themes/tokens.py');
+    console.log(`design-tokens — ${KNOBS.length} knobs → ${Object.keys(files).length + 1} artefacts`);
 }

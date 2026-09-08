@@ -36,9 +36,8 @@ def admin_theme_list(request):
         return Response({'detail': 'A theme with that name already exists.'},
                         status=status.HTTP_400_BAD_REQUEST)
     theme = Theme.objects.create(
-        name=v['name'], base=v['base'], tokens=v['tokens'],
+        name=v['name'], tokens=v['tokens'],
         is_published=v['is_published'], created_by=request.audit_user.username,
-        scene_bg=v['scene_bg'], ocean_color=v['ocean_color'],
         country_scheme=v['country_scheme'],
     )
     return Response(ThemeSerializer(theme).data, status=status.HTTP_201_CREATED)
@@ -60,11 +59,8 @@ def admin_theme_detail(request, pk):
         return Response({'detail': 'A theme with that name already exists.'},
                         status=status.HTTP_400_BAD_REQUEST)
     theme.name = v['name']
-    theme.base = v['base']
     theme.tokens = v['tokens']
     theme.is_published = v['is_published']
-    theme.scene_bg = v['scene_bg']
-    theme.ocean_color = v['ocean_color']
     theme.country_scheme = v['country_scheme']
     theme.save()
     return Response(ThemeSerializer(theme).data)

@@ -1,64 +1,81 @@
 """Allow-list + validation for theme token maps.
 
-LEGACY ALLOW-LIST. The design system's source of truth is now
-packages/design-tokens/src/tokens.js (14 knobs), which generates this file's
-allow-list into packages/design-tokens/dist/tokens.py.
+The allow-list between the GENERATED markers is written by
+`npm run build:tokens` from packages/design-tokens/src/tokens.js — the design
+system's single source of truth — and `npm test` fails if it is stale. Do not
+edit it by hand; add a knob there and rebuild.
 
-The cutover is deliberately NOT done yet: this list is in step with the current
-styles.css and the current theme editor, and shrinking it to the new 14 knobs
-before the Phase B stylesheet exists would reject every theme the editor can
-currently produce. When that UI lands:
+A theme is a map of CSS custom-property overrides ({"--primary": "#3b82f6", ...})
+layered over the generated `:root` block in packages/design-tokens/dist/tokens.css.
+Only the 14 authorable knobs may be set: every other value in the system is
+either fixed (status colours, the type and spacing scales) or derived from a
+knob, so a stored theme is small and cannot break comprehension. The list also
+doubles as an injection guard — keys outside it are rejected, and values are
+constrained to a safe CSS charset, so no url()/selector break-out is possible.
 
-  1. Replace the token tuples below with the marked block from
-     packages/design-tokens/dist/tokens.py (spliceGeneratedBlock() does this).
-     The 13-knob editing UI already exists locally: apps/web's dev-only Theme
-     Lab writes packages/design-tokens/theme.json, which is the same shape a
-     stored Theme's `tokens` field will hold once this list is the new one.
-  2. Drop existing Theme rows in a data migration — they name tokens that no
-     longer exist. The feature is superuser-gated with test users only.
-  3. scene_bg / ocean_color become derived from the --bg-app / --ocean knobs
-     rather than separate model columns.
+The globe follows the same knobs: --bg-app drives the scene background (via the
+derived --globe-space) and --ocean the water, applied through
+GlobeAppearance.setThemeColors. The country colour SCHEME is the one thing a
+theme pins that is not a token — it is a palette key, never colours.
 
-The validation logic below the allow-list is hand-maintained and stays: the
-value charset and length cap are security-relevant and do not change when a knob
-is added.
-
-
-A theme is a map of CSS custom-property overrides ({"--accent": "#3b82f6", ...})
-layered on a built-in base preset. Only the curated ~24 "knob" tokens the built-in
-presets control may be set — this keeps stored themes to the intended surface and
-doubles as an injection guard (keys outside the list are rejected; values are
-constrained to a safe CSS charset, so no url()/selector break-out is possible).
-
-Mirrors the semantic tokens + scales in the styles.css :root block. If a token is
-added/removed there, update the corresponding list here.
+The validation below the allow-list is hand-maintained and stays: the value
+charset and length cap are security-relevant and do not change when a knob is
+added.
 """
 import re
-
-# Built-in presets a theme can layer on (js/features/theme-switcher.js THEMES).
-BASE_THEMES = ('default', 'soft', 'sharp', 'mono')
 
 # Country color schemes a theme can pin for the 3D globe. MUST mirror the SCHEMES
 # keys in js/features/color-schemes.js (both are the source of the picker options).
 COUNTRY_SCHEMES = ('vibrant', 'greens', 'browns', 'uniform', 'blues', 'purples', 'greys')
 
-FONT_TOKENS = ('--font-display', '--font-ui')
-WEIGHT_TOKENS = ('--weight-normal', '--weight-medium', '--weight-semibold', '--weight-bold')
-# Two editable roundness knobs. --radius-pill / --radius-circle are fixed shapes,
-# deliberately NOT editable (a theme can't change them).
-RADIUS_TOKENS = ('--radius-btn', '--radius-panel')
-COLOR_TOKENS = (
-    '--accent', '--on-accent',
-    '--bg-app', '--bg-panel', '--bg-elevated', '--scrim',
-    '--border-subtle', '--white', '--black',
-    '--text-heading', '--text-mid', '--text-low', '--text-soft', '--ok', '--bad',
-    # Secondary accent — the docked Daily Challenge pill (#dq-today) only. The
-    # pill's --violet-* fill/border/label/icon are color-mix()'d off this in
-    # styles.css, so this single swatch recolours the whole pill; the derived
-    # tokens are deliberately NOT editable.
-    '--accent-secondary',
+# --- BEGIN GENERATED: @terragotcha/design-tokens ---
+# Regenerate with: npm run build:tokens
+# Source of truth: packages/design-tokens/src/tokens.js
+#
+# 14 authorable knobs. Everything else in the design system is
+# either fixed (type/spacing scales, elevation, status colours, pill/circle
+# radii) or derived in JS from these — see that file for which and why.
+
+FONT_TOKENS = (
+    '--font-heading',
+    '--font-body',
 )
-EDITABLE_TOKENS = frozenset(FONT_TOKENS + WEIGHT_TOKENS + RADIUS_TOKENS + COLOR_TOKENS)
+
+RADIUS_TOKENS = (
+    '--radius-btn',
+    '--radius-panel',
+)
+
+COLOR_TOKENS = (
+    '--bg-app',
+    '--bg-panel',
+    '--surface-raised',
+    '--surface-inset',
+    '--primary',
+    '--on-primary',
+    '--text-primary',
+    '--text-secondary',
+    '--ocean',
+    '--globe-border',
+)
+
+EDITABLE_TOKENS = frozenset((
+    '--font-heading',
+    '--font-body',
+    '--bg-app',
+    '--bg-panel',
+    '--surface-raised',
+    '--surface-inset',
+    '--primary',
+    '--on-primary',
+    '--text-primary',
+    '--text-secondary',
+    '--ocean',
+    '--globe-border',
+    '--radius-btn',
+    '--radius-panel',
+))
+# --- END GENERATED ---
 
 MAX_VALUE_LEN = 64
 # Whitelist of characters real token values need: hex (#), rgb()/rgba() (digits,
@@ -71,32 +88,6 @@ _VALUE_RE = re.compile(r"""^[A-Za-z0-9#().,%'"\s-]+$""")
 class TokenValidationError(ValueError):
     """Raised when a token map has a disallowed key or unsafe value."""
 
-
-class ColorValidationError(ValueError):
-    """Raised when a scene color string (background/ocean) is malformed."""
-
-
-# A scene color: a hex (#rgb … #rrggbbaa) or an rgb()/rgba() string. Applied
-# imperatively to the Three.js scene (js/features/scene-appearance.js), so unlike
-# CSS tokens it never lands in a stylesheet — but we still constrain it to a safe,
-# parseable shape (and reuse the length cap) for hygiene.
-_COLOR_RE = re.compile(r"""^#[0-9A-Fa-f]{3,8}$|^rgba?\([\d.,%\s]+\)$""")
-
-
-def validate_color(value):
-    """Validate an optional scene color string; '' means 'inherit the app default'.
-
-    Returns the cleaned value or raises ColorValidationError."""
-    if value in (None, ''):
-        return ''
-    if not isinstance(value, str):
-        raise ColorValidationError('color must be a string.')
-    v = value.strip()
-    if not v:
-        return ''
-    if len(v) > MAX_VALUE_LEN or not _COLOR_RE.match(v):
-        raise ColorValidationError('color must be a hex or rgb()/rgba() value.')
-    return v
 
 
 def validate_tokens(tokens):

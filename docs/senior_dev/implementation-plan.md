@@ -920,12 +920,9 @@ the island boundary.
 
 **Deliberately not included, each for a reason:**
 
-- **UI theme / remote themes** — they need the 13-knob backend cutover (B9). A theme control
-  against the legacy 24-knob vocabulary would style nothing. (A *dev-only* 13-knob editor now
-  exists — see the Theme Lab section below — so B9 is the Django half alone: splice
-  `dist/tokens.py` into `backend/themes/tokens.py`, migrate away the legacy `Theme` rows, and
-  rebuild the audit-gated editor. `theme.json` is the local equivalent of a stored theme, and
-  `GlobeAppearance.setThemeColors` is the method a remote `sceneBg`/`oceanColor` will use.)
+- **UI theme / remote themes** — they need the backend cutover (B9, below). A theme control
+  against the legacy 24-knob vocabulary would style nothing. The backend half has since landed;
+  the picker is B9's remaining frontend half.
 - **"Country info panel"** — that panel is `flag-renderer.js`, still vanilla only (B10d). A
   switch for something the app cannot show is worse than no switch.
 - **The dev editors** — not being ported; `index.html` keeps them.
@@ -1206,6 +1203,39 @@ deferral comment, which is about *remote* themes and still accurate.
 
 ---
 
+## Phase B9 — the backend token cutover — 🔶 Backend half done
+
+The `themes` app validated against the 24 legacy names (`--accent`, `--text-mid`,
+`--bg-elevated`…), so a theme it stored could style nothing on the token-built app, and the
+Astro settings sheet deferred its picker on exactly that ground. `dist/tokens.py` had generated
+the replacement allow-list since the design-tokens package landed; nothing had spliced it in.
+
+**Done (backend):**
+
+- `backend/themes/tokens.py` now carries the generated block between `BEGIN/END GENERATED`
+  markers, and `build-tokens.mjs` splices it as a **fourth artefact** — `--check` fails when it is
+  stale, proven by tampering the tuple and watching the gate refuse. Spliced rather than
+  overwritten because the charset regex and length cap below the block are hand-written and are
+  the injection guard; those are untouched.
+- Migration `0003_cutover_to_design_tokens`: deletes every `Theme` row (no mapping from the old
+  names produces a theme anyone authored; superuser-gated, test users only), then removes three
+  columns. `scene_bg` / `ocean_color` derive from `--bg-app` / `--ocean` now. **`base` was a fifth
+  item the written steps missed**: it named a `:root[data-theme]` preset in `styles.css:203-243`,
+  and the Astro app has no presets — `tokens.css` is one block and a theme is purely the deviation
+  from it, the same shape as `theme.json`. `country_scheme` stays: a palette key, not a colour.
+- Serializer, views and admin follow. A stale client that still sends `base`/`sceneBg`/
+  `oceanColor` gets a theme with those ignored, not a 400; a client sending legacy *token names*
+  gets the 400. Backend tests 30 → 25, retargeted at the rules (the 14 knobs and only those; every
+  legacy group rejected; a fixed radius and a derived globe colour rejected) rather than the list.
+
+**Remaining (frontend):** the picker in `SettingsSheet` — `apiClient.listThemes()`, applied with
+`applyCssVariables` + `GlobeAppearance.setThemeColors` + `setCountryScheme`, the same calls the
+Theme Lab makes — and the authoring question: repoint the 495-line vanilla `theme-editor.js`, or
+promote the Theme Lab to a gated production editor that POSTs to `/api/admin/themes`. The
+vanilla editor now gets a 400 from the API and is a dev-page tool until B11 removes it.
+
+---
+
 ## Phase B11 — the flip: Astro takes the apex — ⏳ Planned
 
 The last phase of the rewrite, and the only one that changes what a stranger sees. Everything
@@ -1213,9 +1243,9 @@ before it added a surface beside the vanilla app; this one removes the vanilla a
 front door. Written out before it starts rather than recorded after, because it is the only
 slice whose failure mode is *invisible in dev* — every check below is about production.
 
-**Blocked on B9**, the backend token cutover: flipping the apex to a page with no theme picker
-is acceptable, but flipping it while `backend/themes/tokens.py` still names 24 tokens that no
-longer exist means the settings sheet cannot grow one afterwards without a second migration.
+**Blocked on B9's frontend half**: the backend now speaks the 14 knobs, so the apex can flip
+without a second migration later — but the settings sheet should carry its picker first, or the
+first deployed apex has a settings control fewer than the page it replaces.
 
 ### The flip itself is three constants
 

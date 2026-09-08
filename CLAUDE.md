@@ -195,11 +195,16 @@ and the graticule, colour only — line strength is a user setting), `--globe-la
 `cssToken()`. Every one falls back to the value it was previously hard-coded to, so the vanilla app —
 which does not load `tokens.css` — is byte-for-byte unchanged.
 
-**Not yet live for the DOM.** `styles.css`, `js/data/theme-tokens.js` (24 legacy knobs) and
-`backend/themes/tokens.py` still run the old system, because the legacy knob names are the ones the
-current stylesheet uses. Repointing the editor at the new knobs before the new stylesheet exists
-would give authors 13 controls that style nothing. The cutover happens with the Phase B UI; the steps
-are written at the top of `backend/themes/tokens.py`.
+**The backend speaks the new system (B9).** `backend/themes/tokens.py` carries the generated
+allow-list between `BEGIN/END GENERATED` markers — `npm run build:tokens` *splices* it in
+rather than overwriting the file, because the validation below the block is hand-written and
+security-relevant, and `--check` treats it as a fourth artefact. A stored `Theme` is `{name,
+tokens, countryScheme, isPublished}`: the same knob map as `theme.json`, plus the one thing a
+theme pins that is not a token (a palette key). `base` (a `styles.css` preset), `scene_bg` and
+`ocean_color` were dropped in migration `0003` along with every legacy row — the space and
+ocean colours derive from `--bg-app` and `--ocean`. **Still legacy:** `styles.css` and
+`js/data/theme-tokens.js`, which the vanilla theme editor uses; it now gets a 400 from the API
+and goes with `js/features/**` at B11.
 
 ## Deploy (`npm run build:pages`)
 
@@ -688,8 +693,8 @@ minimize what they add to `index.html`:**
   via `js/utils/theme.js` (`cssToken`/`canvasFont`) and re-bake on the `globe3d:theme-changed` event.
   Beyond the built-in presets, admins author **remote themes** (backend `themes` app; superuser-gated
   CRUD via the audit token) that test users pick from the settings selector; the ~24 editable "knob"
-  tokens are listed in `js/data/theme-tokens.js` (frontend mirror of `backend/themes/tokens.py` — keep
-  the two in sync; `tests/theme-tokens.test.js` asserts the count and shape). One of them is
+  tokens are listed in `js/data/theme-tokens.js` (a legacy list the backend **no longer accepts**
+  since B9 — the vanilla editor is a dev-page tool now, not a way to author themes). One of them is
   `--accent-secondary`, the violet used only by the docked Daily Challenge pill (`#dq-today`); the
   pill's `--violet-fill/-fill-hover/-border/-border-hover/-label/-icon` are **derived** from it via
   `color-mix()` (same idiom as `--accent-soft`) and are deliberately not knobs, so one swatch
