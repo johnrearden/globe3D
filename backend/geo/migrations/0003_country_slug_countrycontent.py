@@ -39,10 +39,18 @@ class Migration(migrations.Migration):
     operations = [
         # Three steps: add nullable-in-practice, fill, then constrain. Adding the
         # unique index up front would fail on the existing rows.
+        #
+        # db_index=False here is load-bearing on Postgres. SlugField indexes by
+        # default, and the schema editor DEFERS index creation to the end of the
+        # migration — so AddField queued `geo_country_slug_…_like` and the
+        # AlterField below queued a second one under the same name, and the
+        # migration failed with "relation already exists" on the first production
+        # run. SQLite has no `_like` indexes, which is why dev and CI never saw
+        # it. The unique constraint below creates the one index that is wanted.
         migrations.AddField(
             model_name='country',
             name='slug',
-            field=models.SlugField(blank=True, default='', max_length=140),
+            field=models.SlugField(blank=True, default='', max_length=140, db_index=False),
             preserve_default=False,
         ),
         migrations.RunPython(backfill_slugs, migrations.RunPython.noop),

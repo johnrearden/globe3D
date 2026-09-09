@@ -245,6 +245,22 @@ ocean colours derive from `--bg-app` and `--ocean`. **Still legacy:** `styles.cs
 which the `/borders/*` pages and the dev page link; it goes at B12. The vanilla theme editor and
 its 24-name list went with `js/features/**` at B11 step 4.
 
+## Backend migrations: try them on Postgres before a deploy
+
+Dev and CI run the backend on SQLite (`DATABASE_URL` unset); production is Postgres. The two
+differ in ways a migration can trip on — Postgres defers index creation to the end of a migration
+and has `varchar_pattern_ops` `_like` indexes, SQLite does neither and enforces no column lengths —
+and `geo.0003` failed its first production run on exactly that (`relation …_like already exists`)
+after passing every local test. A local Postgres is on the socket at `:5433`; before deploying
+anything with a migration:
+
+```bash
+cd backend
+export PGHOST=/var/run/postgresql PGPORT=5433 DATABASE_URL=postgres:///tg_probe
+createdb tg_probe && .venv/bin/python manage.py migrate && .venv/bin/python manage.py test
+dropdb tg_probe; unset DATABASE_URL PGHOST PGPORT
+```
+
 ## Deploy (`npm run build:pages`)
 
 One Cloudflare Pages project serves one origin: the Astro app at `/` and `/country/*` (since

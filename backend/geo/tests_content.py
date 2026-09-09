@@ -157,7 +157,9 @@ class ExportTests(TestCase):
         target = make_country('Alpha', 'A1', 'AL1', region='Europe')
         publish(target)
         for i in range(12):
-            other = make_country(f'Other{i}', f'X{i}', f'XX{i}', region='Europe')
+            # Two-letter codes: `X{i}` is three characters from i=10, which
+            # Postgres rejects for varchar(2) and SQLite silently accepts.
+            other = make_country(f'Other{i}', f'{chr(65 + i)}Z', f'{chr(65 + i)}ZZ', region='Europe')
             publish(other)
         entry = next(e for e in self.run_export()['countries'] if e['slug'] == 'alpha')
         self.assertEqual(len(entry['related']), 8)
