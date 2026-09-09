@@ -47,6 +47,15 @@ const ogImageUrl = new URL(ogImage, Astro.site).href;
 import { productionHead } from '../lib/site-head';
 const head = productionHead(import.meta.env.PROD);
 
+// The API base for deployed hosts, from the one config. Emitted into an inline
+// script (define:vars) so it is set before any island constructs the client;
+// the host test inside mirrors isLocalDevHost in @terragotcha/api-client, and
+// tests/production-head.test.js runs the shipped script against both kinds of
+// host to prove they agree. Local/LAN hosts keep the auto-detected Django dev
+// server (localhost:8000). The vanilla index.html carried this block by hand.
+import { PRODUCTION_API_BASE } from '../../../../js/data/site-config.js';
+const apiBase = PRODUCTION_API_BASE;
+
 // `theme-color` is the app background knob, resolved the same way the token
 // artefact is — theme.json included — rather than restated as a literal here.
 import { resolveTheme } from '@terragotcha/design-tokens';
@@ -107,6 +116,16 @@ import DailyLayer from '../components/daily/DailyLayer';
     )}
     {head.cmpId && <script async src={`https://fundingchoicesmessages.google.com/i/${head.cmpId}?ers=1`} />}
     {head.fcPresent && <script is:inline set:html={head.fcPresent} />}
+    <script is:inline define:vars={{ apiBase }}>
+        (function () {
+            var h = location.hostname;
+            var isLocalDev = h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0'
+                || h === '::1' || h.endsWith('.local')
+                || /^10\./.test(h) || /^192\.168\./.test(h)
+                || /^172\.(1[6-9]|2\d|3[01])\./.test(h);
+            if (!isLocalDev) window.GLOBE3D_API_BASE = apiBase;
+        })();
+    </script>
     <script is:inline>
         try {
             var s = JSON.parse(localStorage.getItem('globe3d-settings') || '{}');

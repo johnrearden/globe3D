@@ -19,8 +19,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-    ADSENSE_CLIENT_ID, CMP_PUBLISHER_ID, CONSENT_REGIONS, GA_MEASUREMENT_ID,
+    ADSENSE_CLIENT_ID, CMP_PUBLISHER_ID, CONSENT_REGIONS, GA_MEASUREMENT_ID, PRODUCTION_API_BASE,
 } from '../js/data/site-config.js';
+import { isLocalDevHost } from '../packages/api-client/src/host.js';
 import { productionHead } from '../apps/web/src/lib/site-head.ts';
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
@@ -87,6 +88,36 @@ describe('the layout head', () => {
     it('starts error reporting from a hoisted script, before any island', () => {
         expect(head).toMatch(/<script>\s*import \{ initErrorReporter \} from '\.\.\/lib\/error-reporter';\s*initErrorReporter\(\);\s*<\/script>/);
         expect(read('apps/web/src/lib/error-reporter.ts')).toMatch(/import\.meta\.env\.PROD/);
+    });
+});
+
+describe('the API base', () => {
+    // The vanilla head set window.GLOBE3D_API_BASE for deployed hosts; the Astro
+    // layout did not, so on terragotcha.com the client fell back to same-origin
+    // /api — Cloudflare Pages, where a POST is a 405. The Daily Challenge's
+    // first production failure.
+    const script = head.match(/<script is:inline define:vars=\{\{ apiBase \}\}>([\s\S]*?)<\/script>/)?.[1];
+
+    it('is emitted from site-config, before any island', () => {
+        expect(script, 'the define:vars script').toBeTruthy();
+        expect(layout).toMatch(/import \{ PRODUCTION_API_BASE \} from '[^']*js\/data\/site-config\.js'/);
+        expect(head).not.toContain('api.terragotcha.com');
+        expect(layout.indexOf('define:vars={{ apiBase }}')).toBeLessThan(layout.indexOf('</head>'));
+    });
+
+    it('agrees with isLocalDevHost about which hosts are local', () => {
+        // Run the shipped script against a fake window for each host.
+        const run = (hostname) => {
+            const win = {};
+            new Function('location', 'window', `const apiBase = ${JSON.stringify(PRODUCTION_API_BASE)};\n${script}`)({ hostname }, win);
+            return win.GLOBE3D_API_BASE;
+        };
+        for (const h of ['terragotcha.com', 'www.terragotcha.com', 'abc123.terragotcha.pages.dev',
+                         'localhost', '127.0.0.1', '0.0.0.0', '::1', 'john-pc.local',
+                         '10.0.0.5', '192.168.1.20', '172.16.0.9', '172.32.0.1', '11.0.0.1']) {
+            const local = isLocalDevHost(h);
+            expect(run(h), `${h} (${local ? 'local' : 'deployed'})`).toBe(local ? undefined : PRODUCTION_API_BASE);
+        }
     });
 });
 

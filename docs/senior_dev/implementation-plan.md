@@ -1308,7 +1308,11 @@ off `/js`, `/styles.css` and `/packages`. 567 tests.
 
 ### The blocker: `AppLayout.astro` has no production head — ✅ closed (step 1 done)
 
-**Landed.** `lib/site-head.ts` builds the head from `js/data/site-config.js` at build time; the
+**Landed** — with one omission found on the first deploy: the vanilla head also set
+`window.GLOBE3D_API_BASE` for deployed hosts, and without it the Astro client fell back to
+same-origin `/api` on Pages, a 405 for every POST (the Daily Challenge). Now `PRODUCTION_API_BASE`
+in `site-config.js`, emitted by a `define:vars` script; the test runs the shipped script against
+real hostnames and checks it agrees with `isLocalDevHost`. `lib/site-head.ts` builds the head from `js/data/site-config.js` at build time; the
 layout emits it as static markup, consent first, production builds only. Favicons, manifest,
 `theme-color` (resolved from the `bg-app` knob, `theme.json` included), OG/Twitter images and JSON-LD
 (WebApplication on the apex, Article on a country) came with it. `CONSENT_REGIONS` moved into

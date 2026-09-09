@@ -11,6 +11,14 @@
 
 import { isLocalDevHost } from './api-client.js';
 
+// Where a DEPLOYED page finds the API — the custom domain and *.pages.dev
+// previews alike. Read at build time by apps/web's layout, which sets
+// window.GLOBE3D_API_BASE on every non-local host (mirroring isLocalDevHost).
+// Without it the client falls back to same-origin /api, which on Cloudflare
+// Pages is a static 404 for GET and a 405 for POST — the Daily Challenge's
+// first production failure. The /api suffix matters: endpoints append to it.
+export const PRODUCTION_API_BASE = 'https://api.terragotcha.com/api';
+
 // GA4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Empty → analytics disabled.
 export const GA_MEASUREMENT_ID = 'G-1WMGGVNMC7';
 
