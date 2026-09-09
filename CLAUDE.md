@@ -4,6 +4,13 @@
 
 Globe3D is an interactive 3D web application that displays a rotating globe with all countries baked into a single textured sphere. The project features country selection, quizzes, and an advanced label editor for manually positioning country name labels.
 
+**Since B11 the product is the Astro app in `apps/web`** (served at `/` and `/country/*`), driving the
+shared engine in `js/core`. The vanilla `index.html` is a **dev-tool page** — the label, colour and
+focus-zoom editors, the superuser audit walkthrough and the three celebration animations — served
+locally at `/legacy` and not deployed. `js/features/` holds only what that page uses; everything the
+product ported was deleted at B11 step 4, and `tests/features-boundary.test.js` keeps the surviving
+trees from reaching back into it.
+
 ## Technology Stack
 
 - **Three.js** (r128, pinned in `package.json`) - 3D rendering library. Imported by bare specifier
@@ -232,8 +239,8 @@ tokens, countryScheme, isPublished}`: the same knob map as `theme.json`, plus th
 theme pins that is not a token (a palette key). `base` (a `styles.css` preset), `scene_bg` and
 `ocean_color` were dropped in migration `0003` along with every legacy row — the space and
 ocean colours derive from `--bg-app` and `--ocean`. **Still legacy:** `styles.css` and
-`js/data/theme-tokens.js`, which the vanilla theme editor uses; it now gets a 400 from the API
-and goes with `js/features/**` at B11.
+which the `/borders/*` pages and the dev page link; it goes at B12. The vanilla theme editor and
+its 24-name list went with `js/features/**` at B11 step 4.
 
 ## Deploy (`npm run build:pages`)
 
@@ -642,8 +649,8 @@ islands — separate React roots can only share a module-level store.
 
 ### Settings — `settingsStore` (`@terragotcha/storage`)
 
-`get()` returns a **live reference**, by design: `settings-panel.js` and `scene-appearance.js`
-both depend on it. That means its identity never changes, so React cannot use it as a
+`get()` returns a **live reference**, by design (the vanilla panels depended on it, and the
+identity rule stayed when they went). That means its identity never changes, so React cannot use it as a
 `useSyncExternalStore` snapshot — the store exposes `subscribe()` and `getVersion()` for that,
 and `apps/web/src/lib/settings.ts` reads the version and the values separately.
 
@@ -733,59 +740,32 @@ signal `BackButtonGuard` watches), i.e. presentation, not state.
 
 ## Code Organization (IMPORTANT for new work)
 
-`index.html` is gigantic and is slated for a refactor before final deployment. **New features must
-minimize what they add to `index.html`:**
+`index.html` is the dev-tool page (≈400 lines since B11 step 4; it was 1,240). Product features go in
+`apps/web`. **Anything added to `index.html` must still keep to these rules:**
 
 - **No new CSS in `index.html`** — put all new rules in the external `styles.css`.
-- **Use design tokens, not literals.** `styles.css` opens with a `:root` control panel of design
-  tokens (semantic: `--accent`, `--bg-app/-panel/-elevated` (+ `--scrim`), `--text-heading/-body/-muted`,
-  `--radius-btn/-panel/-pill`, `--weight-*`, `--font-display/-ui`, `--shadow-low/-mid/-high/-dock`,
-  `--glow-cta/-accent`; plus primitive family
-  ramps). New rules must reference `var(--…)` for colours, radii, weights, font-families, and
-  shadows/glows — never hardcode a hex/rgba/px-radius/weight/family/box-shadow — so the UI theme switcher
-  (`js/features/theme-switcher.js`, `<html data-theme>`) keeps working. Canvas surfaces read tokens
-  via `js/utils/theme.js` (`cssToken`/`canvasFont`) and re-bake on the `globe3d:theme-changed` event.
-  Beyond the built-in presets, admins author **remote themes** (backend `themes` app; superuser-gated
-  CRUD via the audit token) that test users pick from the settings selector; the ~24 editable "knob"
-  tokens are listed in `js/data/theme-tokens.js` (a legacy list the backend **no longer accepts**
-  since B9 — the vanilla editor is a dev-page tool now, not a way to author themes). One of them is
-  `--accent-secondary`, the violet used only by the docked Daily Challenge pill (`#dq-today`); the
-  pill's `--violet-fill/-fill-hover/-border/-border-hover/-label/-icon` are **derived** from it via
-  `color-mix()` (same idiom as `--accent-soft`) and are deliberately not knobs, so one swatch
-  recolours the whole pill. Prefer that pattern — derive from a knob rather than adding knobs — the
-  editor is already busy. The in-app live editor is `js/features/theme-editor.js`,
-  which renders rows straight from `TOKEN_GROUPS` — adding a knob needs no editor change. Roundness is two editable
-  knobs — `--radius-btn` (all buttons + controls) and `--radius-panel` (containers); `--radius-pill`
-  (999px) and `--radius-circle` (50%) are fixed shapes. A global `button { border-radius:
-  var(--radius-btn) !important }` rule unifies button roundness — round/pill `<button>`s (close/swatch
-  icons, the segmented control) re-assert their shape with a `!important` override.
-  Shadows/glows are likewise a **fixed** token set (like `--radius-pill/-circle`, *not* theme-editor
-  knobs): a `--shadow-low/-mid/-high` elevation scale (thumbnails / controls / modals+containers),
-  `--shadow-dock` for bottom-docked sheets (same weight, cast upward), `--glow-cta` for primary accent
-  CTA buttons, and `--glow-accent` for the pulsing radial halos. Each references a themed colour token,
-  so the whole shadow system adapts per theme with no per-theme redefinition — every `box-shadow` and
-  accent glow in the app must resolve to one of these (no ad-hoc offsets/blurs). **The two glow
-  tokens are currently disabled** (`--glow-cta: none`, `--glow-accent: transparent`) — the effect is
-  off app-wide but the tokens and all `var(--glow-*)` usage sites remain; restore the `was:` values in
-  the `:root` block to re-enable.
+- **`styles.css` is legacy.** It still styles the dev page and the 27 `/borders/*` pages, and it is
+  retired at B12 (the borders pages get their own token-built stylesheet). Its `:root` tokens
+  (`--accent`, `--bg-elevated`, `--text-heading`…) are the *old* vocabulary: the backend no longer
+  accepts them, nothing in `apps/web` may use them (`check-tokens.mjs`), and the theme switcher and
+  editor that read them were deleted at B11. Do not extend it; if the dev page needs a rule, a
+  minimal one there is the only place until B12.
 - **No new inline `<script>` logic** — all new JS goes in separate ES modules under `js/`
   (e.g. `js/features/<feature>.js`), imported from the main module block. The last inline
   library, the Perlin noise the flag wave uses, left in B10a and is now `js/utils/perlin.js`;
   it had to, because a `window` global only exists in the document that sets it and the flag
   quiz now also runs in the Astro app.
 - **Prefer self-contained feature modules** that create their own DOM and attach their own
-  listeners at runtime (as `js/features/flag-renderer.js` does with its canvas), rather than adding
+  listeners at runtime (as the editors and `js/features/search.js` do), rather than adding
   static markup to `index.html`. Pull third-party libs via ESM `import` from a CDN where practical
   instead of new `<script>`/`<link>` tags.
 - Net effect: a new feature should touch `index.html` by roughly an `import` + one instantiation
   call, and nothing more.
-- **`index.html` contains one generated region — do not hand-edit it.** Everything between
-  `<!-- BEGIN GENERATED: landing panel ... -->` and `<!-- END GENERATED: landing panel -->` is the
-  apex's static, crawlable content, written by `build-landing-facts.mjs` from
-  `landing/landing-facts.json` (editorial copy) + `assets/country-meta.json` (the figures). Edit the
-  JSON and run `npm run build:landing-facts`; `npm test` runs `--check` and fails if the block is
-  stale. Every superlative is verified against the baked country geometry, so the build refuses a
-  claim the data contradicts — that check is the point of the file, not a formality.
+- **The apex landing copy is `landing/landing-facts.json`, verified by `build-landing-facts.mjs`.**
+  The Astro apex renders it (`lib/landing.ts` → `LandingContent.tsx`); the generator no longer writes
+  into `index.html`, which carries no landing content since B11. Every superlative is verified
+  against the baked country geometry and the build refuses a claim the data contradicts — that check
+  is the point of the file, and `npm test` runs it.
 - **Icons: use inline SVG everywhere.** Do not add icon-font `<link>`s (e.g. Phosphor/Font
   Awesome webfonts) or `<i class="...">` glyphs. Define the needed SVG markup as constants in the
   feature's module and inject it at runtime. This keeps `index.html` free of new `<link>` tags and
@@ -808,7 +788,7 @@ update that document accordingly in the same change.
 
 ## Known Limitations
 
-- `index.html` is bootstrap + glue + (shrinking) inline UI logic; core systems live in modules under `js/` (scene, globe, labels, camera, quiz, flags, search, animations). See `docs/senior_dev/implementation-plan.md` for the modularization roadmap.
+- `index.html` is the dev-tool page's bootstrap; the engine lives in `js/core`, the product in `apps/web`. See `docs/senior_dev/implementation-plan.md`.
 - Country borders are a 1px line sharing the fill mesh's exact vertices (`world-border-lines.bin` = boundary-edge index pairs), co-radial with the fills (no radial lift → no parallax). Rendered with `depthTest` off + a shader horizon cull (discard back-facing vertices) so the line stays crisp all the way to the limb without being occluded by the fill's slope-scaled polygon offset; a small clip-space depth bias is kept as a nudge. Toggle/opacity/color via `globeManager.setBorder*` and the settings gear. WebGL caps line width at 1px, so thickness isn't adjustable without a fat-line implementation.
 - No search index (linear search through country names)
 - Country name labels are canvas-rendered white textures tinted at runtime via `material.color`; the font follows the `--font-base` token (re-baked on theme change), but per-label colour/font styling beyond the tint isn't exposed.

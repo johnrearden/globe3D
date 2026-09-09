@@ -74,8 +74,9 @@ describe('the js/features boundary', () => {
         const src = readFileSync(join(ROOT, 'js/core/pointer-controls.js'), 'utf8');
         expect(src).not.toMatch(/from ['"][^'"]*analytics/);
         expect(src).toMatch(/this\.onSelect\(pickedName\)/);
-        // Both hosts wire it.
-        expect(readFileSync(join(ROOT, 'index.html'), 'utf8')).toMatch(/onSelect: \(name\) => track\('country_select'/);
+        // The product wires it; the dev-tool page has no analytics and leaves
+        // it unset, which is the point of a hook with a no-op default.
         expect(readFileSync(join(ROOT, 'apps/web/src/components/GlobeIsland.tsx'), 'utf8')).toMatch(/onSelect: \(name: string\) => track\('country_select'/);
+        expect(readFileSync(join(ROOT, 'index.html'), 'utf8')).not.toMatch(/analytics/);
     });
 });

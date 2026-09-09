@@ -1,37 +1,27 @@
-#!/usr/bin/env node
 /**
- * build-landing-facts.mjs — render the apex landing panel into index.html.
+ * build-landing-facts.mjs — verify the apex landing content against the data.
  *
- * WHY THIS EXISTS: terragotcha.com/ shipped ~137 indexable words, 62 of them
- * inside a 1x1px-clipped .sr-only block, and zero links to the country pages.
- * The AdSense rejection was diagnosed as "the raw HTML is essentially an empty
- * shell" — a diagnosis about the apex, which every later stage left untouched.
- * This puts real, visible, crawlable content there.
+ * `landing/landing-facts.json` is the editorial copy for the apex: the notable
+ * countries and what is said about them. Every superlative in it is a CLAIM
+ * about the baked geometry ("largest country", "furthest north"), and this file
+ * checks each one against assets/country-meta.json and refuses if the data
+ * disagrees. That check is the point of the file, not a formality.
  *
- * WHY IT VERIFIES: the panel is a page of superlatives, and a superlative is a
- * falsifiable claim. "USA, highest GDP per capita" reads perfectly plausibly and
- * is wrong. So every entry's `metric` is checked against the SAME geometry the
- * globe renders (assets/country-meta.json) and the build fails on a mismatch;
- * the figure shown is derived from that data rather than authored, so the prose
- * and the number cannot drift apart. Claims we cannot check are not made.
- *
- * Blurbs are ordinary editorial prose and are not checked — see the note in
- * landing/landing-facts.json about keeping them descriptive rather than
- * comparative.
- *
- * The pure half (verify/render/splice) is exported so tests can exercise the
- * failure path without spawning a build.
+ * The renderer is the Astro apex: apps/web/src/lib/landing.ts calls
+ * landingModel() and throws on any failure, and LandingContent.tsx renders the
+ * result computing no figure of its own. Until B11 this file also spliced an
+ * HTML block into the vanilla index.html; that page is a dev tool now and
+ * carries no landing content, so the splice is gone and this is verification
+ * only — run by `npm test` and ahead of every `build:pages`.
  *
  * Usage:
- *   node build-landing-facts.mjs            # splice into index.html
- *   node build-landing-facts.mjs --check    # verify + fail if index.html is stale
+ *   node build-landing-facts.mjs            # verify, print the tally
+ *   node build-landing-facts.mjs --check    # the same; kept for the scripts that call it
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const BEGIN = '<!-- BEGIN GENERATED: landing panel (build-landing-facts.mjs) -->';
-export const END = '<!-- END GENERATED: landing panel -->';
 
 export const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -181,84 +171,6 @@ export function landingModel({ facts, meta, content }) {
     };
 }
 
-/**
- * @param {Object} args  same as landingModel
- * @returns {{block: string, failures: string[], links: number}}
- */
-export function renderPanel({ facts, meta, content }) {
-    const model = landingModel({ facts, meta, content });
-    const { failures, links } = model;
-
-    const countryTag = (name, href) => (href
-        ? `<a class="lf-name" href="${href}">${esc(name)}</a>`
-        : `<span class="lf-name">${esc(name)}</span>`);
-
-    const entries = model.notable.entries
-        .map((e) => `                <li class="lf-card">
-                    <p class="lf-eyebrow">${esc(e.eyebrow)}</p>
-                    <h3 class="lf-heading">${countryTag(e.name, e.href)}</h3>
-                    <p class="lf-stat">${esc(e.stat)}</p>
-                    <p class="lf-blurb">${esc(e.blurb)}</p>
-                </li>`)
-        .join('\n');
-
-    const guides = model.guides.entries.map((c) => `                <li class="lf-guide">
-                    <h3 class="lf-heading"><a class="lf-name" href="${c.href}">${esc(c.name)}</a></h3>
-                    <p class="lf-blurb">${esc(c.summary)}</p>
-                </li>`).join('\n');
-
-    const guidesSection = guides
-        ? `
-            <section class="lf-section" aria-labelledby="lf-guides-h">
-                <h2 id="lf-guides-h">${esc(facts.guides.heading)}</h2>
-                <p class="lf-lede">${esc(facts.guides.lede)}</p>
-                <ul class="lf-list lf-list-guides">
-${guides}
-                </ul>
-            </section>`
-        : '';
-
-    const block = `${BEGIN}
-    <!-- Generated from landing/landing-facts.json + assets/country-meta.json by
-         build-landing-facts.mjs. Do not edit by hand: npm run build:landing-facts
-         rewrites it, and npm test fails if this block is stale. -->
-    <main id="landing-panel" class="landing-panel">
-        <div class="lf-inner">
-            <header class="lf-intro">
-                <div class="lf-wordmark"><span class="tg-terra">Terra</span><span class="tg-gotcha">gotcha</span></div>
-                <h1>${esc(facts.intro.h1)}</h1>
-${facts.intro.paragraphs.map((p) => `                <p>${esc(p)}</p>`).join('\n')}
-            </header>
-
-            <section class="lf-section" aria-labelledby="lf-notable-h">
-                <h2 id="lf-notable-h">${esc(facts.notable.heading)}</h2>
-                <p class="lf-lede">${esc(facts.notable.lede)}</p>
-                <ul class="lf-list">
-${entries}
-                </ul>
-            </section>${guidesSection}
-        </div>
-    </main>
-    ${END}`;
-
-    return { block, failures, links };
-}
-
-/**
- * Replace whatever currently sits between the markers. Throws rather than
- * appending, because a second panel that silently shadows the first is a worse
- * failure than a loud one.
- */
-export function splice(existing, block) {
-    const start = existing.indexOf(BEGIN);
-    const end = existing.indexOf(END);
-    if (start === -1 || end === -1) {
-        throw new Error(`index.html is missing the landing-panel markers (${BEGIN} … ${END})`);
-    }
-    if (end < start) throw new Error('index.html landing-panel markers are out of order');
-    return existing.slice(0, start) + block + existing.slice(end + END.length);
-}
-
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
@@ -281,7 +193,7 @@ function main(argv) {
                      'the guides section will be empty and no entry will link out.');
     }
 
-    const { block, failures, links } = renderPanel({ facts, meta, content });
+    const { failures } = landingModel({ facts, meta, content });
 
     if (failures.length) {
         console.error('build-landing-facts — REFUSING TO BUILD: claim(s) contradict the data\n');
@@ -289,25 +201,8 @@ function main(argv) {
         console.error('\nFix landing/landing-facts.json (or the entry is simply no longer true).');
         return 1;
     }
-
-    const indexPath = join(ROOT, 'index.html');
-    const current = readFileSync(indexPath, 'utf8');
-    const next = splice(current, block);
-
-    if (check) {
-        if (next !== current) {
-            console.error('build-landing-facts --check — index.html landing panel is STALE.\n' +
-                          'Run: npm run build:landing-facts');
-            return 1;
-        }
-        console.log('build-landing-facts --check — up to date ' +
-                    `(${facts.notable.entries.length} verified claims, ${content.countries.length} guides).`);
-        return 0;
-    }
-
-    writeFileSync(indexPath, next);
-    console.log(`build-landing-facts — ${facts.notable.entries.length} claims verified against ` +
-                `country-meta.json; ${content.countries.length} guide(s); ${links} internal link(s).`);
+    console.log(`build-landing-facts${check ? ' --check' : ''} — ${facts.notable.entries.length} verified ` +
+                `claims, ${content.countries.length} guide(s).`);
     return 0;
 }
 

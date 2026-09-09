@@ -1425,6 +1425,22 @@ Note that `check-tokens.mjs` already counts down to this: its one remaining lega
 fallback is `js/utils/theme.js:36`, `cssToken('--font-ui')`, flagged on every run as "still to
 remove when styles.css goes".
 
+**Done (step 4).** `js/features/**` is 13 modules now, all used by the dev-tool page: the three
+editors, the three celebrations, `audit/audit-mode.js` with the two `daily-quiz/` modules it still
+needs (`question-renderer.js`, `panel-sheet.js`), and the page's own furniture — `search.js`,
+`loading.js`, `ui-sync.js`, `webgl-fallback.js`. Deleted: `quiz/*` (12), `ads/*`, the Daily Challenge
+player, flag renderer and wave, landing panel, main CTA, weak spots, back-button guard, settings
+panel, theme switcher and editor, scene appearance, analytics, consent CMP, error reporter — plus
+`js/data/theme-tokens.js`, `js/utils/after-intro.js` and `js/data/country-pages.js`, which only they
+imported. `index.html` went from 1,240 lines to ≈400: the head is a `noindex` title and the
+stylesheet, the markup is the editor buttons, zoom widget, search and the label modal, and the boot
+module wires the engine, the editors, search and audit mode. The generated landing block went with
+`landing-panel.js`; `build-landing-facts.mjs` is verification-only now (the Astro apex is the
+renderer) and no longer touches `index.html`. Verified in Chrome at `/legacy?audit=…`: the globe
+boots, the token is scrubbed, `audit-mode.js` is fetched, every editor button is present, E opens
+the label editor, search lists France, no page errors and no 404s. 550 tests, `check-syntax` down
+to the modules that exist.
+
 ### What else leaves with the flip
 
 - **The importmap** (`index.html:323-341`) leaves the deploy with `index.html`, but not the
@@ -1456,8 +1472,8 @@ encodes a rule that still holds somewhere:
    `site-config.js`. Done; see above.
 2. ✅ **Move the six survivors** out of `js/features/`, on their own. Done; see above.
 3. ✅ **The flip** — three constants, plus the page move. Done; see above.
-4. **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
-   `index.html` and `styles.css` out of `INCLUDE` but kept in the repo.
+4. ✅ **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
+   `index.html` and `styles.css` out of `INCLUDE` but kept in the repo. Done; see above.
 5. **B12** (separate) — a generated stylesheet for `/borders/*`, then `styles.css` deleted, then
    `--font-ui` removed from `js/utils/theme.js` and the legacy counter reaches zero.
 

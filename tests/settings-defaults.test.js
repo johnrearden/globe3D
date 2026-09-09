@@ -19,7 +19,6 @@ import { SETTINGS_DEFAULTS } from '../packages/storage/src/settings-store.js';
 const read = (rel) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
 
 const sheet = read('apps/web/src/components/shell/SettingsSheet.tsx');
-const vanillaPanel = read('js/features/settings-panel.js');
 
 /** `min={0.1} max={1}` in the React sheet. */
 function sheetSlider(label) {
@@ -35,16 +34,6 @@ describe('border strength', () => {
         const { min, max } = sheetSlider('Border strength');
         expect(SETTINGS_DEFAULTS.borderOpacity).toBeGreaterThanOrEqual(min);
         expect(SETTINGS_DEFAULTS.borderOpacity).toBeLessThanOrEqual(max);
-    });
-
-    it('offers the same range in both apps', () => {
-        // The vanilla panel and the React sheet edit ONE stored value; different
-        // bounds would mean a value one app can set and the other cannot.
-        const { min, max } = sheetSlider('Border strength');
-        const vanilla = vanillaPanel.match(
-            /'Border opacity',\s*\{\s*min:\s*([\d.]+),\s*max:\s*([\d.]+)/);
-        expect(Number(vanilla[1])).toBe(min);
-        expect(Number(vanilla[2])).toBe(max);
     });
 
     it('is read from the store, never restated in the sheet', () => {

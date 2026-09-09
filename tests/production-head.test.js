@@ -91,9 +91,7 @@ describe('the layout head', () => {
 });
 
 describe('one region list', () => {
-    it('is the only copy: analytics.js and build-landing.mjs read site-config', () => {
-        expect(read('js/features/analytics.js')).toMatch(/CONSENT_REGIONS/);
-        expect(read('js/features/analytics.js')).not.toMatch(/'AT', 'BE'/);
+    it('is the only copy: build-landing.mjs and the layout read site-config', () => {
         expect(read('build-landing.mjs')).toMatch(/CONSENT_REGIONS/);
         expect(read('build-landing.mjs')).not.toMatch(/\['AT', 'BE'/);
     });
