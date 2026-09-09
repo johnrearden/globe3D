@@ -1478,8 +1478,9 @@ encodes a rule that still holds somewhere:
 3. ✅ **The flip** — three constants, plus the page move. Done; see above.
 4. ✅ **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
    `index.html` and `styles.css` out of `INCLUDE` but kept in the repo. Done; see above.
-5. **B12** (separate) — a generated stylesheet for `/borders/*`, then `styles.css` deleted, then
-   `--font-ui` removed from `js/utils/theme.js` and the legacy counter reaches zero.
+5. **B12** (separate) — `styles.css` deleted, `--font-ui` removed from `js/utils/theme.js` and the
+   legacy counter reaches zero. Written out below; the "generated stylesheet" this line first
+   named became "the pages move into Astro" once the two routes were costed.
 
 ### Verification
 
@@ -1504,6 +1505,189 @@ Everything here is a production check; the dev server proves nothing about steps
 7. **`npm run build:pages` from clean** — the guard at `build-pages.mjs:91` inverts here, so
    prove the *new* failure mode: with `APEX_IS_ASTRO = true` and Astro emitting no `index.html`,
    the build must still fail loudly rather than deploy a site with no front page.
+
+## Phase B12 — the borders pages leave the legacy stylesheet — ⏳ Planned
+
+The last of the vanilla app still in the deploy is `styles.css` — 5,649 lines, shipped for one
+reason: all 27 `/borders/<slug>` pages link it. Those pages are also the last documents on the
+site that Astro did not build. They come from a hand template (`landing/border-page.template.html`)
+through their own generator (`build-landing.mjs`, 281 lines), carry a **second production head**
+(the generator regexes `site-config.js` on its own), load the fonts at different weights from the
+app (400/500/600 against 400/500/700), and are the only reason `js/` is still in `INCLUDE` —
+`js/landing/border-quiz.js` is served raw. Every other page on the site gets its head from
+`lib/site-head.ts`, its styles from the token build, and its stylesheet checked by
+`check-tokens.mjs`. B12 brings the borders pages onto that path, and deletes what the vanilla
+app was still holding open behind them.
+
+**AdSense has not approved the site, and will not for some time.** The B11 note that deferred this
+work — "an untested stylesheet under the only pages that carry ad units" — no longer describes
+anything: the ad section is gated on both `ADSENSE_CLIENT_ID` *and* `ADSENSE_LANDING_SLOT`, the
+slot is empty, and nothing renders. What the pages still have to keep, for the *next* review,
+is what the head carries (the verification meta and the loader, in raw HTML) and what a
+non-executing crawler reads (the H1, the hidden answer list, the JSON-LD `Quiz`). Those are
+the invariants below; the ad markup is not one until a slot id exists.
+
+### What the pages depend on today — measured, not assumed
+
+- **Classes.** 40 `.lp-*` names (`styles.css:4956–5500`, 545 lines), `.sr-only` (`:3358`) on the
+  crawler-facing answer, `.qz-svg`, and the quiz grid `options-grid.js` builds at runtime —
+  `.dq-grid`, `.dq-grid-wrap`, `.dq-cell-label`, `.quiz-option` with `selected` / `correct` /
+  `incorrect` / `missed` / `dimmed`, `.dq-actions`, `.dq-submit`, `.dq-feedback`, `.dq-wide`. The
+  grid's base rules sit in the *Daily Challenge* section (`:4455–4552`) and the borders page
+  overrides them with `!important` under `.lp-interact` (`:5191–5230`), because the two shared a
+  cascade they no longer need to. About 650 lines in all.
+- **Vocabulary.** In the `.lp-*` block: 45 references to the primitive ramps (`--steel-*`,
+  `--neutral-*`, `--green-*`, `--red-*`, `--glow-*`), 19 to `--accent`, and `--font-display`,
+  `--font-ui`, `--weight-semibold`, `--text-heading` / `-mid` / `-low`. **None is emitted by the
+  token build.** Zero colour literals — the Stage 7 sweep put everything on the old tokens, so
+  this is a name-mapping problem plus a spacing and type-scale one: 39 raw spacing values, 28
+  font-size literals, 3 media queries.
+- **`js/landing` is the borders pages' alone.** `apps/web` imports nothing from it — the Astro
+  quiz has its own `QuestionChrome.tsx` and its own `.quiz-option` rules in `styles/quiz.css`.
+  `options-grid.js` and `quiz-question-chrome.js` were moved out of `js/features` at B11 step 2
+  for `border-quiz.js`, not for the app.
+- **Dead weight the file also carries.** The UI-themes block, the settings panel, the ad rail and
+  the theme editor (`:3829–4162`, `:4904–4955`, `:5501–5649`) style things deleted at B11 step 4.
+  A selector inventory of `index.html` plus `js/features/**` reaches ~2,200 of the 5,553 rule
+  lines; the rest styles nothing that exists.
+
+### Decision: the pages move into Astro, not onto a generated stylesheet
+
+The B11 section said "a generated stylesheet for `/borders/*`". Written out, that route keeps
+everything that makes the pages a special case — the second head generator, the second static
+generator, a raw-served `js/landing`, a stylesheet built outside Astro's pipeline that has to be
+added to `SCOPE` by path and cache-ruled in `_headers` by hand — and adds a CSS build step to
+maintain. The CSS rewrite (the ~650 lines above) costs the same either way; it is the only real
+work in B12, and it is the same work under both routes. Moving the pages into Astro pays that
+cost once and *deletes* the template, the generator's page half and the `_headers` rules, and the
+pages get the shared head, the token artefact, `check-tokens` coverage and the per-page CSS
+bundling for free. Recorded as the alternative considered; not taken.
+
+Two things are deliberately **not** changed by the move: the URLs (`build.format: 'directory'`
+emits `/borders/<slug>/index.html`, exactly what the generator wrote, so `sitemap.xml` is
+byte-identical), and the routing — `routes.ts` keeps returning null for `/borders/*`, so a click
+from the app is a real navigation and the page needs no React.
+
+### The work
+
+1. **Extract the head.** `AppLayout.astro:103–190` becomes `components/SiteHead.astro`, taking
+   the props the layout takes today (`title`, `description`, `canonical`, `robots`, `ogImage`,
+   `ogImageAlt`, `jsonLd`). `AppLayout` renders it plus the islands; a new
+   `layouts/StaticLayout.astro` renders it plus a `<slot />` — **no globe, no islands, no
+   Three.js**, which is what the borders pages are. `tests/production-head.test.js` retargets its
+   order assertions at the component, and its "is what the generated /borders pages carry" case
+   at the Astro output. The template's hard-coded `theme-color` (`#0a1c30`) goes with it; the
+   head derives it from `bg-app` as it does for every other page.
+2. **One publish gate.** `landing/borders-pages.mjs` → `publishedBorderPages()`: reads
+   `borders-data.json` and drops any entry without `img/borders/<slug>.png`, warning as the
+   generator does now. The page's `getStaticPaths` and the sitemap script both call it, so a page
+   and its sitemap entry cannot exist independently — the rule the sitemap comment already
+   states for the country pages. Node-only, build-time only, the same shape as
+   `build-landing-facts.mjs`, which `lib/landing.ts` already imports.
+3. **The page.** `src/pages/borders/[slug].astro` — the template's markup, static, in
+   `StaticLayout`. The answer section stays `sr-only` in the HTML; the JSON-LD `Quiz` is
+   unchanged; the related-links section stays; the ad section stays gated on both ids and renders
+   nothing until a slot exists. The quiz data stays in
+   `<script type="application/json" id="border-data" is:inline>`, and `border-quiz.js` is
+   imported by a page `<script>` so Vite bundles it — after which nothing deployed reads
+   `/js/…` (verified: no root-absolute `/js/` reference anywhere in `apps/web/src`; the engine is
+   bundled into the globe chunk).
+4. **The stylesheet.** `src/styles/borders.css`, imported by the page — the ~650 lines rewritten
+   to the token system, in `check-tokens` scope from the first line because `apps/web/src` is.
+   The mapping is mechanical for most of it: `--accent` → `--primary`, `--on-accent` →
+   `--on-primary`, `--font-display` → `--font-heading`, `--font-ui` → `--font-body`,
+   `--text-heading` → `--text-primary`, `--text-mid` / `--text-low` → `--text-secondary`;
+   `--bg-app`, `--bg-panel`, `--radius-*` and `--shadow-high` keep their names. Two are not
+   mechanical, and are decisions: **`--weight-semibold` → `--weight-bold`** (the scale has 400 /
+   500 / 700 and the shared head loads 700, so headings get one step heavier — accepted, it is
+   the app's weight), and the **reveal colours** — the `--green-10…17` / `--red-11…14` ramps
+   become `--status-correct` / `--status-incorrect` exactly as `quiz.css:433–447` already does
+   for the same class names, with `.missed` (a neighbour the player did not pick — a state the
+   app's quiz does not have) as the correct colour at reduced emphasis. The primitive-ramp
+   surfaces (`--neutral-30`, `--steel-27`…) resolve to `--surface-raised` / `--surface-inset` /
+   `--border-subtle`; the amber glows to `--primary-soft`. Spacing goes on `--space-1…6`, type on
+   `--text-xs…xl`, and every `!important` disappears with the cascade that forced it.
+
+   **The `.quiz-option` base rules are split, not copied.** `quiz.css:398–447` (the button, its
+   hover / focus / disabled and the reveal states) moves to `styles/answers.css`, imported by
+   both `quiz.css` and `borders.css` — the "stylesheets split by scope" rule, and the only way the
+   two quizzes' answer buttons stay one design. The `.dq-*` grid rules have no app equivalent and
+   live in `borders.css` outright.
+5. **The sitemap.** `build-landing.mjs` loses its page half and becomes `build-sitemap.mjs`:
+   the sitemap and `country-pages.json` writers, reading the publish gate from step 2.
+   `build:pages` becomes `build-sitemap → build-landing-facts → build:web → build-pages`, and
+   `.gitignore` drops `/borders/`.
+6. **`INCLUDE` and `_headers`.** `styles.css`, `js` and `borders` leave `INCLUDE`; the
+   `/styles.css` and `/js/*` cache rules leave `_headers` (`:24`, `:26`). Astro's output already
+   lands at the root, so `/borders/*` needs no entry.
+7. **The dev server.** `ASTRO_PREFIXES` gains `/borders/` — with the trailing slash, for the
+   reason the `/country/` entry has one. `dev-server-routing.test.js` flips `/borders/france/`
+   and `/js/landing/border-quiz.js` from static to Astro.
+8. **The dev page keeps a stylesheet, and it is not this one.** `styles.css` is deleted.
+   `index.html` gets `legacy.css`: the ~2,200 rule lines the selector inventory reaches — the
+   old `:root` block, the editors, modals, search, zoom widget and celebrations, the Daily
+   Challenge panel audit mode reuses, the button normalisation — and nothing else. Pruned by the
+   inventory, then verified by eye at `/legacy`. Not in `INCLUDE`, not in `SCOPE`, never extended;
+   `check-tokens.test.js:100` asserts the new name. Rewriting 2,200 lines of a dev tool onto
+   tokens would be work with no user, so it is not done. **`index.html` also links
+   `/packages/design-tokens/dist/tokens.css`, ahead of `legacy.css`** (the dev server serves the
+   repo root, so it resolves): the names both files define, `legacy.css` wins by order and the
+   page looks unchanged; the names only the token build has — `--font-body`, `--globe-space`,
+   `--globe-border`, `--globe-label` — now resolve there, so the engine on the dev page reads the
+   same tokens the product does. For a page whose purpose is editing what the product shows,
+   that is a correction, not a side effect.
+9. **The counter reaches zero.** With `--font-body` resolving on the dev page, the
+   `cssToken('--font-ui')` fallback at `js/utils/theme.js:39` goes and `canvasFont` reads one
+   name. `check-tokens` reports `0 legacy-vocabulary fallback(s)` and the pragma machinery stays,
+   for the next migration.
+10. **Prose.** CLAUDE.md (a dozen `styles.css` mentions, the `INCLUDE` paragraph, the "Static
+    country pages" section, the Code Organization bullets), the `check-tokens.mjs` header,
+    `index.html`'s head comment, the two `js/landing` comments that point at `styles.css`, the
+    B11 "cannot be deleted at B11" note, and the Cross-cutting conventions bullet below.
+
+### Tests that change
+
+| test | today | after |
+|---|---|---|
+| `production-head.test.js:130` | reads `borders/france/index.html` from the generator | reads the Astro output; order assertions target `SiteHead.astro` |
+| `dev-server-routing.test.js:43` | `/borders/france/`, `/js/landing/…`, `/styles.css` are static | the first two are Astro paths; `/legacy.css` is static |
+| `check-tokens.test.js:100` | `SCOPE` excludes `styles.css` | excludes `legacy.css` |
+| `features-boundary.test.js` | prose names "the deployed `/borders/*` pages" | prose fix; the rule is unchanged |
+| `routes.test.js:29` | `/borders/poland` parses to null | unchanged — that is the point |
+| **new** `borders-page-static.test.js` | — | the page is `StaticLayout`, imports no island, keeps the `sr-only` answer, the `Quiz` JSON-LD and the gated ad section; `answers.css` is imported by both quizzes |
+
+### Verification
+
+1. **`npm test`** — 552 today across 45 files. `check-tokens` must report `borders.css` and
+   `answers.css` in its file count and **0** legacy fallbacks.
+2. **The built page** — grep `dist/borders/france/index.html` for the H1, the answer list, the
+   JSON-LD `Quiz`, `adsbygoogle.js`, `google-adsense-account` and the consent script; and for the
+   *absence* of the globe placeholder, any `client:` island and any Three.js chunk. Grep, not a
+   browser, for the same reason as B11: the crawler does not execute. Then `grep -r styles.css
+   dist/` must find nothing.
+3. **Pixels** — headless Chrome screenshots of `/borders/france/` before and after at 390 and
+   1280 px wide, through a full quiz (select, submit, the reveal, the CTA fade-in, retry). The
+   diff should be the type weight and nothing structural. Same session: `/legacy` still styled,
+   the editors open, and the canvas labels render in the token font rather than `system-ui`.
+4. **`sitemap.xml` byte-identical**, and `country-pages.json` too — the generator changed hands,
+   the output must not.
+5. **The AdSense baseline on the pages that have one** — 738 / 300 words, 4 links, no app chrome
+   — because the head extraction touches every page, not only the new one.
+6. **`npm run build:pages` from clean**, then confirm `dist/` contains no `js/` directory: that
+   is the proof `border-quiz.js` was bundled rather than referenced.
+
+### Order
+
+Three commits, the middle one the only one that changes what a visitor gets:
+
+1. The head extraction and `StaticLayout` — no visible change, tests retargeted.
+2. The borders pages into Astro: page, `borders.css`, the `answers.css` split, the publish gate,
+   the sitemap script, `INCLUDE`, `_headers`, the dev server. Verify against the built output
+   before it goes anywhere.
+3. `legacy.css`, the dev page's two links, the counter to zero, the prose.
+
+Deploying is frontend-only — no backend change, no migration — and, as always, a push is the
+user's.
 
 ---
 
