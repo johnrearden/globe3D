@@ -1269,7 +1269,7 @@ nothing validates against.
 
 ---
 
-## Phase B11 — the flip: Astro takes the apex — ⏳ Planned
+## Phase B11 — the flip: Astro takes the apex — ✅ Done
 
 The last phase of the rewrite, and the only one that changes what a stranger sees. Everything
 before it added a surface beside the vanilla app; this one removes the vanilla app from the
