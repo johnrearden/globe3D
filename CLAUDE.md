@@ -206,7 +206,7 @@ reset every knob it omitted to the *package* default rather than to the built ar
 `theme.json` in it. "Default" in the picker is the absence of a theme — the inline properties are
 removed and the cascade shows through — not `defaultTheme()`, which does not know about
 `theme.json`. `lib/theme.ts` owns all of this and caches the *resolved* property map in the settings
-store; the `is:inline` script in `AppLayout.astro`'s head copies that map onto `<html>` before first
+store; the `is:inline` script in `SiteHead.astro` copies that map onto `<html>` before first
 paint, so a reader wearing a theme never sees the default flash. It derives nothing, which is why
 it cannot drift. The same script keeps an arriving `?audit=` token, because `AppRouter` drops the
 whole query at boot and an island reading `location.search` runs after it.
@@ -367,8 +367,9 @@ page is worse than none. `PUBLIC_HOME_PATH` still overrides it for a staged buil
 `LandingContent.tsx` renders the result and computes no figure of its own.
 
 **Stylesheets are split by scope, not by page.** `styles/shell.css` is the furniture every route
-needs — page, globe seat, panel sheet and its breakpoints — imported by `AppLayout.astro` after the
-token artefact. `styles/country.css` and `styles/landing.css` hold only their own content and are
+needs — page, globe seat, panel sheet and its breakpoints — imported by `AppLayout.astro`. The
+token artefact itself is imported by `SiteHead`, so every document has it, furniture or not.
+`styles/country.css` and `styles/landing.css` hold only their own content and are
 imported by their page. Adding a route means adding a stylesheet, not extending someone else's.
 
 **Navigation (`CountryRouter.tsx`, `client:idle`).** After boot, clicks on internal
@@ -479,7 +480,9 @@ tools this app does not build.
 
 The import is dynamic so Three.js (~511 KB) is never in the page's initial bundle.
 
-**The production head is static, and built from one config.** `AppLayout.astro` carries the AdSense
+**The production head is static, and built from one config.** `components/SiteHead.astro` — rendered
+inside `<head>` by both layouts, `AppLayout` (the app routes) and `StaticLayout` (pages with no globe:
+the `/borders/*` quizzes from B12), so the site has one head and not one per page type — carries the AdSense
 verification meta and loader, Consent Mode v2 defaults, GA4, Google's CMP (Funding Choices),
 favicons, manifest, `theme-color`, Open Graph/Twitter images, JSON-LD — and **the API base**:
 `window.GLOBE3D_API_BASE = PRODUCTION_API_BASE` (from `site-config.js`) on every non-local host,

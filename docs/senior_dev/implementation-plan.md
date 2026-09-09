@@ -1570,7 +1570,7 @@ from the app is a real navigation and the page needs no React.
 
 ### The work
 
-1. **Extract the head.** `AppLayout.astro:103–190` becomes `components/SiteHead.astro`, taking
+1. ✅ **Extract the head.** `AppLayout.astro:103–190` becomes `components/SiteHead.astro`, taking
    the props the layout takes today (`title`, `description`, `canonical`, `robots`, `ogImage`,
    `ogImageAlt`, `jsonLd`). `AppLayout` renders it plus the islands; a new
    `layouts/StaticLayout.astro` renders it plus a `<slot />` — **no globe, no islands, no
@@ -1578,6 +1578,18 @@ from the app is a real navigation and the page needs no React.
    order assertions at the component, and its "is what the generated /borders pages carry" case
    at the Astro output. The template's hard-coded `theme-color` (`#0a1c30`) goes with it; the
    head derives it from `bg-app` as it does for every other page.
+
+   **Done (commit 1).** `SiteHead.astro` is the head verbatim, props and frontmatter included, and
+   also owns the `tokens.css` import — every document is styled in that vocabulary, so it is the
+   head's, not a layout's. `AppLayout` is 52 lines: the furniture stylesheets and the three
+   islands. `StaticLayout` is 25: the head and a `<slot />`. Proven by building before and after
+   and diffing every emitted page: the apex, `/country/*` and `landing.json` are byte-identical
+   ignoring indentation (the inline scripts sit four spaces further left), the CSS bundle has the
+   same hash, and the hoisted error-reporter script simply changed file name. The tests that read
+   the layout for the head (`production-head`, `theme-lab-gate`) read the component now, and a new
+   "one head, two layouts" group pins that both layouts render `<SiteHead {...Astro.props} />`
+   inside `<head>`, that neither carries a head tag of its own, and that `StaticLayout` has no
+   `client:` directive and no stylesheet import — the shape the borders pages need.
 2. **One publish gate.** `landing/borders-pages.mjs` → `publishedBorderPages()`: reads
    `borders-data.json` and drops any entry without `img/borders/<slug>.png`, warning as the
    generator does now. The page's `getStaticPaths` and the sitemap script both call it, so a page

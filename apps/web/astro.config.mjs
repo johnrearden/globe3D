@@ -49,7 +49,7 @@ function serveGlobeAssets() {
 /**
  * Reload when the generated token artefact changes.
  *
- * `AppLayout` imports `packages/design-tokens/dist/tokens.css`, which lives
+ * `SiteHead` imports `packages/design-tokens/dist/tokens.css`, which lives
  * OUTSIDE this Astro project — Vite's watcher is rooted at `apps/web`, so a
  * rebuild of that file produced no change event and the dev server went on
  * serving the transform it had cached. `npm run build:tokens` appeared to do

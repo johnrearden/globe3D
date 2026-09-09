@@ -1,7 +1,7 @@
 /**
  * Frontend error reporting → GlitchTip (Sentry-compatible).
  *
- * Runs from a hoisted `<script>` in `AppLayout.astro`, so it starts before any
+ * Runs from a hoisted `<script>` in `SiteHead.astro`, so it starts before any
  * island is hydrated and catches start-up errors, not just later ones. The SDK
  * is fetched from a CDN only when it will be used: production build, a
  * configured DSN, and not a local host — so it costs a reader nothing until

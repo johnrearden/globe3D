@@ -28,6 +28,8 @@ import { extractAuditToken, AUDIT_TOKEN_KEY as APP_AUDIT_KEY } from '../apps/web
 const read = (rel) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
 
 const layout = read('apps/web/src/layouts/AppLayout.astro');
+// The head — inline scripts, token artefact — is a component since B12 commit 1.
+const siteHead = read('apps/web/src/components/SiteHead.astro');
 const shell = read('apps/web/src/components/shell/ShellControls.tsx');
 const panel = read('apps/web/src/components/theme/ThemeLab.tsx');
 const themeLib = read('apps/web/src/lib/theme.ts');
@@ -35,8 +37,10 @@ const themeLib = read('apps/web/src/lib/theme.ts');
 describe('how the Lab is reached', () => {
     it('is not imported by the layout at all', () => {
         // A layout import is a build-time edge into every page's bundle and CSS.
-        expect(layout).not.toMatch(/components\/(theme|dev)\//);
-        expect(layout).not.toMatch(/ThemeLab|DevTools/);
+        for (const src of [layout, siteHead]) {
+            expect(src).not.toMatch(/components\/(theme|dev)\//);
+            expect(src).not.toMatch(/ThemeLab|DevTools/);
+        }
     });
 
     it('is a lazy import from the shell, so it is its own chunk', () => {
@@ -62,6 +66,7 @@ describe('its stylesheet', () => {
         expect(panel).toContain("from '../../styles/theme-lab.css?inline'");
         expect(panel).toMatch(/<style>\{labCss\}<\/style>/);
         expect(layout).not.toContain('theme-lab.css');
+        expect(siteHead).not.toContain('theme-lab.css');
     });
 
     it('is the only place .tl- rules live', () => {
@@ -123,12 +128,14 @@ describe('what a stored theme is', () => {
 });
 
 describe('wearing it again before first paint', () => {
-    const inline = layout.match(/<script is:inline>([\s\S]*?)<\/script>/)?.[1] ?? '';
+    const inline = siteHead.match(/<script is:inline>([\s\S]*?)<\/script>/)?.[1] ?? '';
 
     it('has an inline script in the head that reads the cached property map', () => {
         expect(inline).toContain('themeInline.css');
         expect(inline).toContain("indexOf('remote:') === 0");
-        expect(layout.indexOf('<script is:inline>')).toBeLessThan(layout.indexOf('</head>'));
+        // Before the title, i.e. before paint; the component itself is
+        // rendered inside <head> (production-head.test.js pins that).
+        expect(siteHead.indexOf('<script is:inline>')).toBeLessThan(siteHead.indexOf('<title>'));
     });
 
     it('reads the settings store under its real key', () => {
@@ -159,7 +166,7 @@ describe('the audit token', () => {
         // An island reading location.search runs after the router has
         // normalised it, and the token is gone. So the head script does it,
         // under the same key, and scrubs the address bar.
-        const inline = layout.match(/<script is:inline>([\s\S]*?)<\/script>/)?.[1] ?? '';
+        const inline = siteHead.match(/<script is:inline>([\s\S]*?)<\/script>/)?.[1] ?? '';
         expect(inline).toContain(`sessionStorage.setItem('${AUDIT_TOKEN_KEY}', audit)`);
         expect(inline).toMatch(/q\.delete\('audit'\)[\s\S]*history\.replaceState/);
         // The island keeps the fallback.
@@ -178,8 +185,8 @@ describe('the dev server sees a token rebuild', () => {
         expect(config).toContain('packages/design-tokens/dist/tokens.css');
     });
 
-    it('watches the same file the layout imports', () => {
-        const imported = layout.match(/import '([^']*dist\/tokens\.css)'/)[1];
+    it('watches the same file the head imports', () => {
+        const imported = siteHead.match(/import '([^']*dist\/tokens\.css)'/)[1];
         const watched = config.match(/join\(REPO_ROOT, '([^']*tokens\.css)'\)/)[1];
         expect(imported.endsWith(watched)).toBe(true);
     });

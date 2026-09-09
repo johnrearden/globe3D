@@ -21,7 +21,7 @@
  * load — exactly the flash the vanilla `initTheme()` existed to prevent. The
  * fix is the same: cache what was applied, and re-apply it before paint. Here
  * the cache holds the RESOLVED property map (`themeInline.css`), so the
- * `is:inline` script in `AppLayout.astro` that reads it does no derivation at
+ * `is:inline` script in `SiteHead.astro` that reads it does no derivation at
  * all — it sets properties from a map and could not drift from this file.
  *
  * ## Where the scheme goes

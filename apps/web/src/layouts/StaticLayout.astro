@@ -1,0 +1,25 @@
+---
+/**
+ * The document shell for pages with no globe — the `/borders/*` quizzes (B12).
+ *
+ * The same `SiteHead` as the app routes, so a static page carries the same
+ * production head, favicons, share cards, theme-color and token artefact as
+ * every other document on the site — and NOTHING else: no furniture
+ * stylesheets, no islands, no Three.js. A page using this layout imports its
+ * own stylesheet and owns its own script, and what a crawler reads is exactly
+ * what the page wrote. `tests/production-head.test.js` pins that this layout
+ * never grows a `client:` directive.
+ */
+import type { ComponentProps } from 'astro/types';
+import SiteHead from '../components/SiteHead.astro';
+type Props = ComponentProps<typeof SiteHead>;
+---
+<!doctype html>
+<html lang="en">
+<head>
+    <SiteHead {...Astro.props} />
+</head>
+<body>
+    <slot />
+</body>
+</html>

@@ -32,7 +32,7 @@ export function extractAuditToken(search: string): { token: string | null; rest:
  * Stash an arriving token for the session and strip it from the address bar
  * immediately, so it is never bookmarked, shared or left in history.
  *
- * The `is:inline` script in `AppLayout.astro` does this before paint, because
+ * The `is:inline` script in `SiteHead.astro` does this before paint, because
  * `AppRouter` normalises the URL at boot and an island runs after it. This is
  * the same logic as a function — the fallback when that script could not run,
  * and the thing the test exercises.

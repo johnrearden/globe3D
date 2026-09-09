@@ -1,71 +1,21 @@
 ---
 /**
- * The document shell for every route.
+ * The document shell for the app routes — `/` and `/country/*`.
  *
- * Everything here is emitted at build time. The head carries the canonical URL
- * and description that an app-owned pushState navigation rewrites by hand, so
- * the two must stay in step — see AppRouter.
- *
- * It imports the token artefact and the shell, and nothing page-specific: a page
- * imports its own stylesheet. `ogType` is a prop because the apex is a website
- * and a country page is an article, and getting that wrong is the kind of thing
- * nobody notices until a share preview looks wrong.
- *
- * ## The production head
- *
- * The AdSense verification meta and loader, Consent Mode defaults, GA4 and
- * Google's CMP are STATIC tags here, built from `js/data/site-config.js` by
- * `lib/site-head.ts` — see that file for why they cannot be injected from JS
- * (a non-executing crawler must find them in the raw HTML) and why they exist
- * only in a production build. Order matters and is pinned by test: the consent
- * defaults are the first script on the page, before any tag that could store.
+ * The head is `SiteHead`, shared with `StaticLayout` so the whole site has one
+ * production head (AdSense, consent, GA4, CMP, favicons, share cards, the API
+ * base — see that component). What this layout adds is the app: the furniture
+ * stylesheets every route needs, and the three islands that overlay whatever
+ * page is on screen. A page with no globe uses `StaticLayout` instead and gets
+ * none of this.
  */
-interface Props {
-    title: string;
-    description: string;
-    canonicalPath: string;
-    ogType?: 'website' | 'article';
-    /** Override for routes that must not be indexed — a staging duplicate of a
-     *  live page, for instance. Defaults to indexable, because every real page
-     *  here exists to be found. */
-    robots?: string;
-    /** Share image, site-relative. The site card unless a page has its own. */
-    ogImage?: string;
-    ogImageAlt?: string;
-    /** Structured data, emitted as JSON-LD when given. */
-    jsonLd?: Record<string, unknown>;
-}
-const {
-    title, description, canonicalPath, ogType = 'article', robots = 'index, follow',
-    ogImage = '/og-image.png',
-    ogImageAlt = 'Terragotcha — interactive 3D world globe with geography quizzes',
-    jsonLd,
-} = Astro.props;
-const canonical = new URL(canonicalPath, Astro.site).href;
-const ogImageUrl = new URL(ogImage, Astro.site).href;
+import type { ComponentProps } from 'astro/types';
+import SiteHead from '../components/SiteHead.astro';
+type Props = ComponentProps<typeof SiteHead>;
 
-import { productionHead } from '../lib/site-head';
-const head = productionHead(import.meta.env.PROD);
-
-// The API base for deployed hosts, from the one config. Emitted into an inline
-// script (define:vars) so it is set before any island constructs the client;
-// the host test inside mirrors isLocalDevHost in @terragotcha/api-client, and
-// tests/production-head.test.js runs the shipped script against both kinds of
-// host to prove they agree. Local/LAN hosts keep the auto-detected Django dev
-// server (localhost:8000). The vanilla index.html carried this block by hand.
-import { PRODUCTION_API_BASE } from '../../../../js/data/site-config.js';
-const apiBase = PRODUCTION_API_BASE;
-
-// `theme-color` is the app background knob, resolved the same way the token
-// artefact is — theme.json included — rather than restated as a literal here.
-import { resolveTheme } from '@terragotcha/design-tokens';
-import { readTheme } from '@terragotcha/design-tokens/theme-file.js';
-const themeColor = resolveTheme(readTheme())['bg-app'];
-
-// The generated token artefact first, then the shell that consumes it. Both are
-// plain CSS imports, so Astro inlines/bundles them and the page needs no runtime
-// style loading. Page-specific styling is imported by the page.
-import '../../../../packages/design-tokens/dist/tokens.css';
+// The shell that consumes the token artefact `SiteHead` imports. Plain CSS
+// imports, so Astro bundles them and the page needs no runtime style loading.
+// Page-specific styling is imported by the page.
 import '../styles/shell.css';
 import '../styles/sheet.css';
 import '../styles/quiz.css';
@@ -79,114 +29,11 @@ import '../styles/daily.css';
 import QuizLayer from '../components/quiz/QuizLayer';
 import ShellControls from '../components/shell/ShellControls';
 import DailyLayer from '../components/daily/DailyLayer';
-// The `is:inline` script in <head> does two things that cannot wait for an
-// island, and nothing else:
-//
-//  1. Re-wears a remote theme before first paint. `lib/theme.ts` caches the
-//     RESOLVED property map when it applies one, so the script does no
-//     derivation: it copies a map onto <html>, and can neither drift from that
-//     file nor throw on a bad value. It reads the settings store under its
-//     SETTINGS_KEY (pinned by test).
-//  2. Keeps an arriving `?audit=` token for the tab and scrubs it from the
-//     address bar. `AppRouter` normalises the URL at boot, so an island reading
-//     `location.search` after it has already lost the token; `index.html` did
-//     this inline for the same reason. The key is the api client's
-//     AUDIT_TOKEN_KEY, also pinned. `lib/audit.ts` holds the same logic as a
-//     pure function, which is what the test exercises.
-//
-// Nothing here can reach the document a crawler sees. A JS comment rather than
-// an HTML one beside the tag, because Astro ships HTML comments and the pages
-// are held to a word count.
 ---
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {head.adsenseAccount && <meta name="google-adsense-account" content={head.adsenseAccount} />}
-    {head.consent && <script is:inline set:html={head.consent} />}
-    {head.gaId && <script async src={`https://www.googletagmanager.com/gtag/js?id=${head.gaId}`} />}
-    {head.gaConfig && <script is:inline set:html={head.gaConfig} />}
-    {head.adsId && (
-        <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${head.adsId}`}
-            crossorigin="anonymous"
-        />
-    )}
-    {head.cmpId && <script async src={`https://fundingchoicesmessages.google.com/i/${head.cmpId}?ers=1`} />}
-    {head.fcPresent && <script is:inline set:html={head.fcPresent} />}
-    <script is:inline define:vars={{ apiBase }}>
-        (function () {
-            var h = location.hostname;
-            var isLocalDev = h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0'
-                || h === '::1' || h.endsWith('.local')
-                || /^10\./.test(h) || /^192\.168\./.test(h)
-                || /^172\.(1[6-9]|2\d|3[01])\./.test(h);
-            if (!isLocalDev) window.GLOBE3D_API_BASE = apiBase;
-        })();
-    </script>
-    <script is:inline>
-        try {
-            var s = JSON.parse(localStorage.getItem('globe3d-settings') || '{}');
-            var css = s.themeInline && s.themeInline.css;
-            if (css && String(s.theme).indexOf('remote:') === 0) {
-                for (var k in css) document.documentElement.style.setProperty(k, css[k]);
-            }
-        } catch (e) { /* private mode, or nothing stored */ }
-        try {
-            var q = new URLSearchParams(location.search);
-            var audit = q.get('audit');
-            if (audit) {
-                sessionStorage.setItem('tg-audit-token', audit);
-                q.delete('audit');
-                var rest = q.toString();
-                history.replaceState(history.state, '',
-                    location.pathname + (rest ? '?' + rest : '') + location.hash);
-            }
-        } catch (e) { /* private mode: the token is simply not kept */ }
-    </script>
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
-    <meta name="robots" content={robots} />
-    <meta name="theme-color" content={themeColor} />
-
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-
-    <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content="Terragotcha" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={ogImageUrl} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={ogImageAlt} />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImageUrl} />
-    {jsonLd && <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />}
-
-    <!-- The two type knobs name these families, so the page has to supply them.
-         Preconnect because they are render-blocking for the heading font. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&family=Archivo:wght@400;500;700&display=swap"
-    />
-    <!-- Hoisted and bundled, so it runs before any island hydrates. Inert in dev. -->
-    <script>
-        import { initErrorReporter } from '../lib/error-reporter';
-        initErrorReporter();
-    </script>
+    <SiteHead {...Astro.props} />
 </head>
 <body>
     <slot />

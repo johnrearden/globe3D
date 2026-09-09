@@ -149,7 +149,7 @@ const RADIUS_MAX = 32;
  * The families actually available to this document, read from `document.fonts`.
  *
  * Deliberately not a hand-written list of what the Google Fonts `<link>` in
- * `AppLayout.astro` requests: that would be a second place to update, and the
+ * `SiteHead.astro` requests: that would be a second place to update, and the
  * two would drift the first time a family was swapped. `FontFaceSet` holds one
  * entry per loaded weight, so families repeat and are deduped.
  */
@@ -592,7 +592,7 @@ export default function ThemeLab({
                 <p className="tl-note">
                     Font options are the families this page has loaded, plus the system stacks.
                     To offer another, add it to the Google Fonts <code>&lt;link&gt;</code> in{' '}
-                    <code>AppLayout.astro</code>.
+                    <code>SiteHead.astro</code>.
                 </p>
             </div>
 

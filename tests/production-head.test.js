@@ -14,6 +14,9 @@
  * The ids come from `js/data/site-config.js` by import, and the region list is
  * read from there by all three consumers, so this file also checks that nothing
  * restates them.
+ *
+ * Since B12 commit 1 the head is `components/SiteHead.astro`, rendered by both
+ * `AppLayout` and `StaticLayout`; the tests below read the component.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -25,8 +28,11 @@ import { isLocalDevHost } from '../packages/api-client/src/host.js';
 import { productionHead } from '../apps/web/src/lib/site-head.ts';
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
-const layout = read('apps/web/src/layouts/AppLayout.astro');
-const head = layout.slice(layout.indexOf('<head>'), layout.indexOf('</head>'));
+// B12 commit 1 moved the head out of AppLayout into a component both layouts
+// render inside <head>. Its markup is everything after the frontmatter.
+const siteHead = read('apps/web/src/components/SiteHead.astro');
+const head = siteHead.slice(siteHead.lastIndexOf('\n---\n'));
+const layouts = ['apps/web/src/layouts/AppLayout.astro', 'apps/web/src/layouts/StaticLayout.astro'];
 const at = (needle) => { const i = head.indexOf(needle); expect(i, `${needle} in <head>`).toBeGreaterThan(-1); return i; };
 
 describe('productionHead', () => {
@@ -43,7 +49,7 @@ describe('productionHead', () => {
         expect(prod.cmpId).toBe(CMP_PUBLISHER_ID);
         expect(prod.adsenseAccount).toBe(ADSENSE_CLIENT_ID);
         // No literal publisher / measurement id anywhere in the app source.
-        for (const f of ['apps/web/src/lib/site-head.ts', 'apps/web/src/layouts/AppLayout.astro']) {
+        for (const f of ['apps/web/src/lib/site-head.ts', 'apps/web/src/components/SiteHead.astro', ...layouts]) {
             expect(read(f), f).not.toMatch(/ca-pub-\d|pub-\d{6}|G-[A-Z0-9]{8}/);
         }
     });
@@ -55,7 +61,7 @@ describe('productionHead', () => {
     });
 });
 
-describe('the layout head', () => {
+describe('the site head', () => {
     it('puts the consent defaults before every tag that could store', () => {
         const consent = at('head.consent');
         for (const tag of ['googletagmanager.com/gtag/js', 'head.gaConfig', 'adsbygoogle.js', 'fundingchoicesmessages']) {
@@ -81,7 +87,7 @@ describe('the layout head', () => {
     });
 
     it('reads theme-color from the tokens rather than restating a colour', () => {
-        expect(layout).toMatch(/resolveTheme\(readTheme\(\)\)\['bg-app'\]/);
+        expect(siteHead).toMatch(/resolveTheme\(readTheme\(\)\)\['bg-app'\]/);
         expect(head).not.toMatch(/theme-color" content="#/);
     });
 
@@ -100,9 +106,9 @@ describe('the API base', () => {
 
     it('is emitted from site-config, before any island', () => {
         expect(script, 'the define:vars script').toBeTruthy();
-        expect(layout).toMatch(/import \{ PRODUCTION_API_BASE \} from '[^']*js\/data\/site-config\.js'/);
+        expect(siteHead).toMatch(/import \{ PRODUCTION_API_BASE \} from '[^']*js\/data\/site-config\.js'/);
         expect(head).not.toContain('api.terragotcha.com');
-        expect(layout.indexOf('define:vars={{ apiBase }}')).toBeLessThan(layout.indexOf('</head>'));
+        expect(head.indexOf('define:vars={{ apiBase }}')).toBeLessThan(head.indexOf('<title>'));
     });
 
     it('agrees with isLocalDevHost about which hosts are local', () => {
@@ -118,6 +124,45 @@ describe('the API base', () => {
             const local = isLocalDevHost(h);
             expect(run(h), `${h} (${local ? 'local' : 'deployed'})`).toBe(local ? undefined : PRODUCTION_API_BASE);
         }
+    });
+});
+
+describe('one head, two layouts', () => {
+    // B12 commit 1. The borders pages need the production head without the
+    // app's islands, so the head is a component and each layout renders it
+    // inside <head> — and carries none of it directly, so there is exactly one
+    // copy to keep right.
+    const inHead = (src) => src.slice(src.indexOf('<head>'), src.indexOf('</head>'));
+    // The layouts' docblocks describe what they do not carry; check the code.
+    const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+    it('is rendered by both layouts, inside <head>, with every prop passed through', () => {
+        for (const f of layouts) {
+            expect(inHead(read(f)), f).toMatch(/<SiteHead \{\.\.\.Astro\.props\} \/>/);
+        }
+    });
+
+    it('lives nowhere else', () => {
+        for (const f of layouts) {
+            const src = code(read(f));
+            for (const tag of ['google-adsense-account', 'adsbygoogle', 'define:vars', 'og:image',
+                               'theme-color', 'rel="manifest"', 'fonts.googleapis', 'initErrorReporter']) {
+                expect(src, `${tag} in ${f}`).not.toContain(tag);
+            }
+        }
+    });
+
+    it('gives a static page the head and nothing else — no islands, no furniture', () => {
+        const src = code(read('apps/web/src/layouts/StaticLayout.astro'));
+        expect(src).not.toMatch(/client:/);
+        expect(src).not.toMatch(/import .*\.css/);
+        expect(src.match(/^import /gm)).toHaveLength(2); // the type helper and SiteHead
+        expect(src).toMatch(/<body>\s*<slot \/>\s*<\/body>/);
+    });
+
+    it('imports the token artefact once, from the head', () => {
+        expect(siteHead).toMatch(/import '[^']*dist\/tokens\.css'/);
+        for (const f of layouts) expect(read(f), f).not.toContain('tokens.css');
     });
 });
 
@@ -144,7 +189,7 @@ describe('the pages', () => {
         const island = read('apps/web/src/components/GlobeIsland.tsx');
         expect(island).toMatch(/\{failed && \(/);
         expect(island).toMatch(/window\.location\.reload\(\)/);
-        for (const p of ['apps/web/src/pages/index.astro', 'apps/web/src/pages/country/[slug].astro', 'apps/web/src/layouts/AppLayout.astro']) {
+        for (const p of ['apps/web/src/pages/index.astro', 'apps/web/src/pages/country/[slug].astro', ...layouts]) {
             expect(read(p), p).not.toContain('globe-failed');
         }
     });
