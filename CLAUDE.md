@@ -25,6 +25,9 @@ trees from reaching back into it.
 ## Forbidden Actions
 
 - You are forbidden from running any ssh or scp commands, and from accessing remote servers in any way
+- **You are never allowed to `git push`.** A push to `main` is a production deploy (Cloudflare Pages
+  builds from it), and deploys are the user's to trigger, in the order they choose. Commit when asked;
+  pushing is theirs, always — even when they have just described a plan that involves one.
 
 ## Project Structure
 
