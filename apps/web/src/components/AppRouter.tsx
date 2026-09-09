@@ -105,9 +105,8 @@ export default function AppRouter({ initial, country }: Props) {
             currentRoute = route;
 
             if (article) {
-                // The canonical stays the country's own URL even though the apex
-                // is currently served from /app — it is the page a share or a
-                // reload must land on.
+                // The canonical is the country's own URL — the page a share or
+                // a reload must land on.
                 updateHead(countryTitle(article), article.summary, `/country/${article.slug}`);
                 render(<CountryArticle country={article} />);
             } else if (model) {

@@ -1,5 +1,5 @@
 /**
- * The production head on `/app` and `/country/*`.
+ * The production head on `/` and `/country/*`.
  *
  * B11 step 1. The Astro layout carried a title, description, canonical and Open
  * Graph — and none of what the vanilla apex carries to be a *site*: no AdSense
@@ -107,7 +107,7 @@ describe('one region list', () => {
 
 describe('the pages', () => {
     it('give the apex WebApplication data and a country an Article', () => {
-        expect(read('apps/web/src/pages/app/index.astro')).toMatch(/'@type': 'WebApplication'/);
+        expect(read('apps/web/src/pages/index.astro')).toMatch(/'@type': 'WebApplication'/);
         expect(read('apps/web/src/pages/country/[slug].astro')).toMatch(/'@type': 'Article'/);
     });
 
@@ -115,7 +115,7 @@ describe('the pages', () => {
         const island = read('apps/web/src/components/GlobeIsland.tsx');
         expect(island).toMatch(/\{failed && \(/);
         expect(island).toMatch(/window\.location\.reload\(\)/);
-        for (const p of ['apps/web/src/pages/app/index.astro', 'apps/web/src/pages/country/[slug].astro', 'apps/web/src/layouts/AppLayout.astro']) {
+        for (const p of ['apps/web/src/pages/index.astro', 'apps/web/src/pages/country/[slug].astro', 'apps/web/src/layouts/AppLayout.astro']) {
             expect(read(p), p).not.toContain('globe-failed');
         }
     });

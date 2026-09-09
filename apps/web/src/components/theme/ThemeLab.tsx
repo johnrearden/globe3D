@@ -24,7 +24,7 @@
  *
  * `ShellControls` reaches this component through `React.lazy`, so it is its own
  * chunk, fetched only when the sheet is opened — and it can only be opened by a
- * session that can save (`canAuthorThemes`). `/app` and `/country/*` are held to
+ * session that can save (`canAuthorThemes`). `/` and `/country/*` are held to
  * a static-content baseline (words, links, zero app chrome); nothing here can
  * reach that document, because the shell island renders null at build time.
  *

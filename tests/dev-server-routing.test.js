@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { isAstroPath, ASTRO_PREFIXES } from '../dev-server.mjs';
+import { isAstroPath, ASTRO_PREFIXES, LEGACY_PATH } from '../dev-server.mjs';
 
 const repoFile = rel => existsSync(fileURLToPath(new URL(rel, import.meta.url)));
 
@@ -30,11 +30,30 @@ describe('dev-server route split', () => {
         }
     });
 
-    it('serves the vanilla app locally', () => {
-        for (const p of ['/', '/index.html', '/styles.css', '/js/features/landing-panel.js',
-                         '/assets/world-mesh.bin', '/packages/quiz-core/src/index.js', '/sitemap.xml']) {
+    it('hands the apex to Astro, whole paths included', () => {
+        // Since B11. `/landing.json` is what the router fetches to go home
+        // without a document load; unproxied it would be a 404 from the repo
+        // root and every "Explore the globe" click would fall back to a reload.
+        for (const p of ['/', '/index.html', '/landing.json']) {
+            expect(isAstroPath(p), p).toBe(true);
+        }
+    });
+
+    it('still serves the shared static files and the borders pages locally', () => {
+        for (const p of ['/styles.css', '/js/landing/border-quiz.js', '/borders/france/',
+                         '/assets/world-mesh.bin', '/sitemap.xml', '/legacy']) {
             expect(isAstroPath(p), p).toBe(false);
         }
+    });
+
+    it('keeps the vanilla dev-tool page at /legacy, which is not a deployed path', () => {
+        expect(LEGACY_PATH).toBe('/legacy');
+        // build-pages must not stage index.html: it is a dev tool now.
+        const buildPages = readFileSync(fileURLToPath(new URL('../build-pages.mjs', import.meta.url)), 'utf8');
+        const include = buildPages.slice(buildPages.indexOf('const INCLUDE'), buildPages.indexOf('];'));
+        expect(include).not.toMatch(/^\s*'index\.html'/m);
+        expect(include).not.toMatch(/^\s*'packages'/m);
+        expect(buildPages).toMatch(/const APEX_IS_ASTRO = true/);
     });
 
     it('keeps every path prefix anchored, so no sibling name can be swallowed', () => {

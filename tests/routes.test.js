@@ -64,10 +64,12 @@ describe('sameRoute', () => {
     });
 });
 
-describe('the apex is still the vanilla app', () => {
-    it('serves the Astro apex off /, so the two cannot collide', () => {
-        // build-pages.mjs refuses an Astro index.html for the same reason. When
-        // the flip happens, both change together.
-        expect(HOME_PATH).toBe('/app');
+describe('the apex is the Astro app', () => {
+    it('serves it at /', () => {
+        // Flipped at B11 together with APEX_IS_ASTRO in build-pages.mjs, which
+        // now REQUIRES an Astro index.html rather than refusing one.
+        expect(HOME_PATH).toBe('/');
+        expect(parseRoute('/')).toEqual(HOME_ROUTE);
+        expect(pathForRoute(HOME_ROUTE)).toBe('/');
     });
 });

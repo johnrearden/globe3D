@@ -24,7 +24,7 @@ const stripComments = src => src
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/^\s*\/\/.*$/gm, ' ');
 
-const page = read('../apps/web/src/pages/app/index.astro');
+const page = read('../apps/web/src/pages/index.astro');
 const content = stripComments(read('../apps/web/src/components/LandingContent.tsx'));
 
 describe('apex page composition', () => {
@@ -79,15 +79,15 @@ describe('the content component stays static-safe', () => {
     });
 });
 
-describe('staging safety', () => {
-    it('is noindex while it duplicates the live apex', () => {
-        // build-pages.mjs stages everything Astro emits, so this page is live at
-        // /app. An indexable duplicate of the front page would be an own-goal on
-        // a site rejected for content quality.
-        expect(page).toMatch(/robots="noindex, nofollow"/);
+describe('the apex', () => {
+    it('is indexable — the staging noindex left with the flip', () => {
+        // While staged at /app it was noindex, because an indexable duplicate
+        // of the front page would be an own-goal on a site rejected for content
+        // quality. It IS the front page now; a leftover override would hide it.
+        expect(page).not.toMatch(/robots=/);
     });
 
-    it('declares the real apex as canonical', () => {
+    it('is canonical at /', () => {
         expect(page).toMatch(/canonicalPath="\/"/);
     });
 });

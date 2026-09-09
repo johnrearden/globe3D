@@ -101,8 +101,8 @@ export default function CountryArticle({ country }: { country: Country }) {
                 a genuinely different screen: the landing content and the whole
                 globe.
 
-                HOME_PATH rather than a literal, so the link follows the apex when
-                it moves from /app to /. Because the router owns that path,
+                HOME_PATH rather than a literal, so the link followed the apex when
+                it moved from /app to /. Because the router owns that path,
                 `parseRoute` claims the click and the navigation is client-side —
                 the globe is never rebuilt. The href stays real, so it still works
                 for a crawler and with JavaScript disabled. */}

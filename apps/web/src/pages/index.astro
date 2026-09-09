@@ -1,17 +1,12 @@
 ---
 /**
- * The apex, staged.
+ * The apex.
  *
- * Served at `/app` rather than `/` because the vanilla app still owns the front
- * page. Both sides of that are deliberate and paired: `HOME_PATH` in
- * `src/lib/routes.ts` names this path, and `build-pages.mjs` REFUSES an Astro
- * `index.html` outright — so the flip is a two-line edit, not something that can
- * happen as a side effect of adding a page.
- *
- * It is `noindex` while it is staged. build-pages.mjs stages everything Astro
- * emits, so this page IS live at /app — an indexable duplicate of the front page
- * would be an own-goal on a site that was rejected for content quality. The
- * canonical already points at `/`; the flip drops the robots override with it.
+ * Staged at `/app` through Phase B, while the vanilla app owned the front page;
+ * B11 moved it here. Two things flipped with it and are paired on purpose:
+ * `HOME_PATH` in `src/lib/routes.ts` names this path, and `build-pages.mjs` now
+ * REQUIRES an Astro `index.html` rather than refusing one — so a deploy without
+ * a front page fails loudly instead of shipping.
  *
  * The composition is the country page's, for the same reasons:
  *
@@ -21,21 +16,21 @@
  * Astro renders slotted content to HTML and hands it to the island untouched, so
  * every word ships as static markup with zero JavaScript. On this page that is
  * the entire point: the apex is what the AdSense rejection was actually about,
- * and it served 137 indexable words — 62 of them inside a 1×1px-clipped block —
- * with no links to any of the content.
+ * and the vanilla one served 137 indexable words — 62 of them inside a
+ * 1×1px-clipped block — with no links to any of the content.
  *
  * The globe placeholder is markup here rather than inside GlobeIsland because a
  * `client:only` island renders nothing at build time. Both it and the globe host
  * are `position: fixed`, so swapping one for the other cannot reflow the text.
  */
-import AppLayout from '../../layouts/AppLayout.astro';
-import LandingContent from '../../components/LandingContent';
-import PanelSheet from '../../components/PanelSheet';
-import GlobeIsland from '../../components/GlobeIsland';
-import AppRouter from '../../components/AppRouter';
-import { HOME_ROUTE } from '../../lib/routes';
-import { landing } from '../../lib/landing';
-import '../../styles/landing.css';
+import AppLayout from '../layouts/AppLayout.astro';
+import LandingContent from '../components/LandingContent';
+import PanelSheet from '../components/PanelSheet';
+import GlobeIsland from '../components/GlobeIsland';
+import AppRouter from '../components/AppRouter';
+import { HOME_ROUTE } from '../lib/routes';
+import { landing } from '../lib/landing';
+import '../styles/landing.css';
 
 const title = 'Terragotcha — learn world geography on an interactive 3D globe';
 ---
@@ -56,7 +51,6 @@ const title = 'Terragotcha — learn world geography on an interactive 3D globe'
         browserRequirements: 'Requires WebGL',
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     }}
-    robots="noindex, nofollow"
 >
     <div id="globe-placeholder" aria-hidden="true">
         <p>Loading globe…</p>

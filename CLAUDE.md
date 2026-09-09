@@ -23,7 +23,8 @@ Globe3D is an interactive 3D web application that displays a rotating globe with
 
 ```
 globe3d/
-├── index.html               # Main application (all-in-one file)
+├── index.html               # The VANILLA app — since B11 a dev-tool page (editors, audit
+│                            #   mode), served locally at /legacy and NOT deployed
 ├── build-textures.js        # Node.js script to bake GeoJSON → globe assets
 ├── assets/
 │   ├── world-mesh.bin       # Merged country mesh (vertices + per-vertex country ID + indices, ~3.9 MB)
@@ -236,15 +237,19 @@ and goes with `js/features/**` at B11.
 
 ## Deploy (`npm run build:pages`)
 
-One Cloudflare Pages project serves both apps: the vanilla globe at `/`, the Astro country
-pages at `/country/*`. `build:pages` runs `build-landing.mjs` → the Astro build →
-`build-pages.mjs`, and **that order is required** — `build-pages.mjs` opens by wiping `dist/`,
+One Cloudflare Pages project serves one origin: the Astro app at `/` and `/country/*` (since
+B11 — through Phase B the vanilla globe held `/` and the Astro apex was staged at `/app`), the
+generated `/borders/*` pages, `/privacy/`, and the static files they share. `build:pages` runs
+`build-landing.mjs` → the Astro build → `build-pages.mjs`, and **that order is required** — `build-pages.mjs` opens by wiping `dist/`,
 so anything staged before it is destroyed. Astro's output is merged in at the **root** (not as
 an `INCLUDE` entry, which would nest it) because its URLs are root-absolute.
 
-It aborts if the Astro output is missing: `sitemap.xml` already lists the `/country/` URLs, so
-deploying without the pages points crawlers at 404s — worse than a failed build and invisible
-for weeks. `npm run build:pages:local` produces the same output with globe assets served from
+It aborts if the Astro output is missing, and — `APEX_IS_ASTRO` — if it carries no
+`index.html`: `sitemap.xml` already lists `/` and the `/country/` URLs, so deploying without
+them points crawlers at 404s — worse than a failed build and invisible for weeks. `index.html`
+and `packages/` are deliberately **not** in `INCLUDE`: the vanilla page is a dev tool now and
+only its import map read the packages. `styles.css` stays until B12, because every
+`/borders/<slug>` page links it. `npm run build:pages:local` produces the same output with globe assets served from
 the repo instead of R2, for previewing locally.
 
 `.node-version` pins 22 for the Pages build image; Astro 7 needs ≥22.12 and `npm ci` installs
@@ -252,17 +257,21 @@ every workspace, so the floor applies to the whole deploy.
 
 ## Local development (`npm run dev`)
 
-Two apps, **one origin, one command** — the same shape Cloudflare Pages serves in production:
+**One origin, one command** — the same shape Cloudflare Pages serves in production:
 
 ```bash
 npm run dev            # http://localhost:8011 — starts Astro too
 npm run dev -- --solo  # just the proxy; bring your own `npm run dev:web`
 ```
 
-`dev-server.mjs` serves the repo root statically and proxies `/country/*` (plus Vite's
-`/@…`, `/_astro/`, `/src/`, `/node_modules/.vite/`, and the HMR websocket) to Astro. Before
-this, the vanilla app on one port and Astro on another meant every `/country/<slug>` link on
-the apex 404'd locally — the landing panel looked broken in exactly the way it is not.
+`dev-server.mjs` proxies what Astro owns — `/`, `/index.html`, `/landing.json`, `/country/*`,
+plus Vite's `/@…`, `/_astro/`, `/src/`, `/node_modules/.vite/` and the HMR websocket — and
+serves everything else statically from the repo root: the `/borders/*` pages, `styles.css`,
+`js/`, the assets. The vanilla `index.html` is served at **`/legacy`** — it is the dev-tool page
+(label, colour and zoom editors, audit mode) and has no deployed equivalent; its root-absolute
+`/js/…`, `/styles.css` and `/packages/` references resolve because the repo root is what this
+serves. Before any of this, two ports meant every cross-link 404'd locally and the site looked
+broken in exactly the way it is not.
 
 **`astro dev` is a managed daemon, not a foreground process.** It forks, prints a pid and
 outlives whatever started it; `npx astro dev status` / `npx astro dev stop` are the controls
@@ -272,7 +281,7 @@ answer before reporting ready, and leaves it running on exit. Stop it with
 `npx astro dev stop`. The `--port` flag is passed explicitly, so `ASTRO_PORT` governs both
 ends; without it Astro takes its own default and the proxy points at nothing.
 
-If Astro cannot start, the globe still works and `/country/*` returns a 502 saying what to do.
+If Astro cannot start, `/` and `/country/*` return a 502 saying what to do; `/legacy` still works.
 If port 8011 is taken — a leftover `python3 -m http.server` from the old two-server setup is
 the usual culprit — the server says so and suggests `PORT=8012`.
 
@@ -318,12 +327,12 @@ shapes (the generated landing panel writes `/country/france/`, `CountryArticle` 
 `/country/france`), so it parses either and emits exactly one; and it returns null for paths the
 app does not own (`/borders/*`, `/privacy/`), which must stay real navigations.
 
-`HOME_PATH` is **`/app`, not `/`** — the vanilla app still owns the front page, so the Astro apex
-(`src/pages/app/index.astro`) is staged beside it and carries `robots="noindex, nofollow"` with a
-canonical of `/`, because `build-pages.mjs` stages everything Astro emits and an indexable duplicate
-of the front page would be an own-goal. **`build-pages.mjs` refuses an Astro `index.html` outright**
-(`APEX_IS_ASTRO`): the merge copies entry-by-entry over `dist/`, so without that guard adding
-`src/pages/index.astro` would silently replace the live apex. The flip is those two constants.
+`HOME_PATH` is **`/`** since B11. Through Phase B it was `/app`: the Astro apex was staged beside the
+vanilla front page, `noindex` with a canonical of `/`, and `build-pages.mjs` *refused* an Astro
+`index.html` so the flip could only happen as a deliberate edit. The flip was those two constants
+plus the page moving to `src/pages/index.astro` — and the guard inverted: `APEX_IS_ASTRO = true`
+now makes an Astro build *without* an `index.html` a hard failure, because a deploy with no front
+page is worse than none. `PUBLIC_HOME_PATH` still overrides it for a staged build.
 
 **The apex content is the same verified model as the vanilla panel.** `landingModel()` in
 `build-landing-facts.mjs` is the single source: it checks every superlative against

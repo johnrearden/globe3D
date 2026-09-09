@@ -9,12 +9,12 @@
  *
  *   - it is never in the shell's initial chunk (React.lazy, so its own chunk,
  *     fetched when opened);
- *   - it can never reach the static document `/app` and `/country/*` are held
+ *   - it can never reach the static document `/` and `/country/*` are held
  *     to (the shell island renders null at build time; the Lab is a child of
  *     it);
  *   - its stylesheet travels with it.
  *
- * `/app` and `/country/*` are held to a static-content baseline — that is the
+ * `/` and `/country/*` are held to a static-content baseline — that is the
  * entire reason this app exists — so a panel leaking into it is not cosmetic.
  */
 import { describe, it, expect } from 'vitest';

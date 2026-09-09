@@ -19,19 +19,19 @@
  *
  * ## HOME_PATH
  *
- * The apex is still served by the vanilla app, so the Astro one lives at `/app`
- * until it reaches parity. That makes the flip a single constant here plus the
- * guard in `build-pages.mjs`, rather than a change scattered across every place
- * that links home.
+ * `/` since B11. Through Phase B the Astro apex was staged at `/app` while the
+ * vanilla app owned the front page, and every place that links home read this
+ * constant so the flip was one edit here plus the guard in `build-pages.mjs`.
+ * Still overridable through `PUBLIC_HOME_PATH` for a staged build.
  */
 
 export type Route =
     | { view: 'home'; slug: null }
     | { view: 'country'; slug: string };
 
-/** Where this build serves its apex. `/` once the flip has happened. */
+/** Where this build serves its apex. */
 export const HOME_PATH: string =
-    (import.meta as { env?: Record<string, string> }).env?.PUBLIC_HOME_PATH ?? '/app';
+    (import.meta as { env?: Record<string, string> }).env?.PUBLIC_HOME_PATH ?? '/';
 
 export const HOME_ROUTE: Route = { view: 'home', slug: null };
 

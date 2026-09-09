@@ -3,18 +3,23 @@
  * dev-server.mjs — one local origin for both apps, the way production serves them.
  *
  * THE PROBLEM IT SOLVES: in production a single Cloudflare Pages project serves
- * the vanilla globe at `/` and the Astro country pages at `/country/*`, so the
- * landing panel's `<a href="/country/france/">` links just work. Locally they
- * were two servers on two ports — the repo root on 8011 and `astro dev` on
- * 4321 — so every one of those links 404'd, and the apex looked broken in
- * exactly the way it is not.
+ * everything from one origin — the Astro app at `/` and `/country/*`, the
+ * generated `/borders/*` pages, `/privacy/`, and the static files they share.
+ * Locally that used to be two servers on two ports, so every cross-link 404'd
+ * and the site looked broken in exactly the way it is not.
  *
- * This serves the repo root statically and proxies the Astro routes to the dev
- * server, so `http://localhost:8011/` and `http://localhost:8011/country/france/`
- * both work from one origin. That also keeps local behaviour honest about
- * origin-sensitive things — relative asset paths, same-origin fetches, the
- * app-owned pushState navigation — which is the class of bug that produced the
- * R2 CORS surprise.
+ * Since B11 the Astro dev server owns `/` (and `/index.html`, `/landing.json`)
+ * as well as the prefixes below; everything else is served statically from the
+ * repo root — the borders pages, `styles.css`, `js/`, the assets. One thing has
+ * no production equivalent: the vanilla `index.html`, which is no longer
+ * deployed but survives in the repo as the dev-tool page (the label, colour and
+ * zoom editors, audit mode). It is served at **`/legacy`**, and its root-absolute
+ * references (`/js/…`, `/styles.css`, the `/packages/` import map) resolve
+ * because the repo root is what this serves.
+ *
+ * Keeping one origin also keeps local behaviour honest about origin-sensitive
+ * things — same-origin fetches, the app-owned pushState navigation — which is
+ * the class of bug that produced the R2 CORS surprise.
  *
  * Usage:
  *   npm run dev            # both servers, one terminal, http://localhost:8011
@@ -32,9 +37,9 @@
  * `--port` is passed explicitly so ASTRO_PORT actually governs both ends —
  * without it Astro takes its own default and the proxy points at nothing.
  *
- * The country pages stay optional: if Astro is not running and cannot be
- * started, the globe still works and `/country/*` returns a 502 that says what
- * to do, rather than a bare connection error.
+ * Astro is required for the site now — `/` is its — but a failure to start it
+ * is still reported as a 502 that says what to do, rather than a bare
+ * connection error, and `/legacy` keeps working without it.
  */
 import { createServer, request as httpRequest, get as httpGet } from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
@@ -55,6 +60,11 @@ const ASTRO = { host: '127.0.0.1', port: Number(process.env.ASTRO_PORT || 4321) 
 // repo-root files the globe fetches. Swallowing the first of those silently
 // disables every "Read more" article link in the app.
 export const ASTRO_PREFIXES = ['/country/', '/_astro/', '/@', '/src/', '/node_modules/.vite/'];
+// Whole paths Astro owns. `/` is the apex since B11; `/landing.json` is what the
+// router fetches to navigate home without a document load.
+export const ASTRO_EXACT = ['/', '/index.html', '/landing.json'];
+/** The vanilla dev-tool page. Not deployed; see the header. */
+export const LEGACY_PATH = '/legacy';
 
 const MIME = {
     '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -66,7 +76,8 @@ const MIME = {
     '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json',
 };
 
-export const isAstroPath = (p) => ASTRO_PREFIXES.some((pre) => p === pre || p.startsWith(pre));
+export const isAstroPath = (p) =>
+    ASTRO_EXACT.includes(p) || ASTRO_PREFIXES.some((pre) => p === pre || p.startsWith(pre));
 
 /** Resolve a URL path to a file on disk, or null. Directories map to index.html. */
 function resolveLocal(pathname) {
@@ -97,7 +108,7 @@ function proxy(req, res, pathname) {
 <p><code>${pathname}</code> is served by <code>apps/web</code>, and nothing is
 listening on port ${ASTRO.port}.</p>
 <pre>npm run dev:web</pre>
-<p>The globe at <a href="/">/</a> does not need it.</p>`);
+<p>The vanilla dev-tool page at <a href="/legacy">/legacy</a> does not need it.</p>`);
     });
     req.pipe(upstream);
 }
@@ -107,7 +118,8 @@ const server = createServer((req, res) => {
 
     if (isAstroPath(pathname)) return proxy(req, res, pathname);
 
-    const file = resolveLocal(pathname);
+    const isLegacy = pathname === LEGACY_PATH || pathname === `${LEGACY_PATH}/`;
+    const file = isLegacy ? join(ROOT, 'index.html') : resolveLocal(pathname);
     if (file) {
         res.writeHead(200, {
             'content-type': MIME[extname(file).toLowerCase()] || 'application/octet-stream',
@@ -189,7 +201,7 @@ async function main() {
             process.stdout.write(`dev-server — starting astro dev on :${ASTRO.port}… `);
             const ok = await startAstro();
             process.stdout.write(ok ? 'ready\n' : 'FAILED\n');
-            web = ok ? `started — stop it with: npx astro dev stop` : 'unavailable — /country/* will 502';
+            web = ok ? `started — stop it with: npx astro dev stop` : 'unavailable — / and /country/* will 502';
         }
     }
 
@@ -207,8 +219,9 @@ async function main() {
 
     server.listen(PORT, () => {
         console.log(`\ndev-server — http://localhost:${PORT}`);
-        console.log(`  /            → ${ROOT} (the vanilla globe)`);
-        console.log(`  /country/*   → astro dev on :${ASTRO.port}`);
+        console.log(`  /, /country/* → astro dev on :${ASTRO.port}`);
+        console.log(`  /legacy       → ${ROOT}/index.html (the vanilla dev-tool page)`);
+        console.log(`  everything else → ${ROOT}`);
         console.log(`  ${web}`);
     });
 }

@@ -21,10 +21,12 @@ const DIST = join(ROOT, 'dist');
 // Cloudflare Pages _headers file. Keep in sync if index.html gains a new
 // root-level dependency.
 const INCLUDE = [
-    'index.html',
-    'styles.css',
-    'js',
-    'packages',             // workspace packages, resolved via index.html's import map
+    // NOT index.html: the apex is Astro's since B11 (see APEX_IS_ASTRO below).
+    // The vanilla page stays in the repo as the dev-tool page — label, colour
+    // and zoom editors, audit mode — reachable locally at /legacy, and is not
+    // deployed. NOT packages either: only that page's import map read them.
+    'styles.css',           // still linked by every /borders/<slug> page (B12 retires it)
+    'js',                   // the borders quiz (js/landing) and the shared engine
     'borders',              // generated border-quiz landing pages (build-landing.mjs)
     'img',                  // small UI-shell images (e.g. the loading-splash globe)
     'label-config.json',
@@ -83,18 +85,25 @@ if (!existsSync(join(ASTRO_DIST, 'country'))) {
 // the day apps/web grows a src/pages/index.astro it would overwrite the vanilla
 // app's index.html — the live front page — with no warning and no diff to notice.
 //
-// The Phase B rewrite builds its apex at /app until it reaches parity; the flip
-// is then a deliberate edit HERE, not a side effect of adding a page. Until that
-// edit, refuse.
-const APEX_IS_ASTRO = false;
-for (const entry of readdirSync(ASTRO_DIST)) {
+// The apex is Astro's (B11). Through Phase B this was false and the loop below
+// REFUSED an Astro index.html, so the flip could only happen as a deliberate
+// edit here. Now it is true the guard inverts: a build whose Astro output has
+// no index.html would deploy a site with no front page, and sitemap.xml already
+// lists `/`, so that is a hard failure too — not a warning.
+const APEX_IS_ASTRO = true;
+const astroEntries = readdirSync(ASTRO_DIST);
+if (APEX_IS_ASTRO && !astroEntries.includes('index.html')) {
+    console.error(
+        'build:pages — apps/web emitted no index.html, so there is no front page.\n' +
+        '  The apex is src/pages/index.astro; check the Astro build output.');
+    process.exit(1);
+}
+for (const entry of astroEntries) {
     if (entry === 'index.html' && !APEX_IS_ASTRO) {
         console.error(
             'build:pages — apps/web emitted an index.html, which would replace the ' +
             'vanilla app at /.\n' +
-            '  If that is the intended flip, set APEX_IS_ASTRO = true in build-pages.mjs ' +
-            "and drop 'index.html' from INCLUDE.\n" +
-            '  If not, the new apex belongs at src/pages/app/index.astro.');
+            '  If that is the intended flip, set APEX_IS_ASTRO = true in build-pages.mjs.');
         process.exit(1);
     }
     cpSync(join(ASTRO_DIST, entry), join(DIST, entry), { recursive: true });

@@ -11,7 +11,11 @@
 /*.bin
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML is the entry point — always revalidate so deploys are picked up.
+# HTML is the entry point — always revalidate so deploys are picked up. Both
+# spellings: Pages serves index.html for `/`, and _headers matches the request
+# path, so `/index.html` alone never matched the apex.
+/
+  Cache-Control: public, max-age=0, must-revalidate
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 

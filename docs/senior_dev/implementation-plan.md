@@ -1279,7 +1279,7 @@ slice whose failure mode is *invisible in dev* — every check below is about pr
 **B9 is done**, so the settings sheet carries a theme picker and the backend speaks the 14 knobs;
 the apex can flip without a second migration and without losing a control the page it replaces has.
 
-### The flip itself is three constants
+### The flip itself is three constants — ✅ done (step 3)
 
 | where | today | after |
 |---|---|---|
@@ -1290,8 +1290,21 @@ the apex can flip without a second migration and without losing a control the pa
 `HOME_PATH` is already environment-driven, so the third row is a file move plus deleting two
 lines of head. The canonical at `:45` is already `/` — it was written for this day.
 
-That is a morning's work. **It is not the phase.** The phase is everything below, which has to
-land first or the flip ships a regression.
+**Done.** Plus two things the table did not list: the dev server, and the `_headers` rule. The
+plan below said `dev-server.mjs` would retire once Astro owned `/`; it does not, because the
+vanilla `index.html` survives as the dev-tool page and something has to serve it with its
+root-absolute `/js`, `/styles.css` and `/packages` references resolving. So the proxy flipped
+instead — `/`, `/index.html` and `/landing.json` go to Astro (the last is what the router fetches to
+navigate home without a document load; unproxied, every "Explore the globe" click would have
+fallen back to a reload), and the vanilla page is served at **`/legacy`**, which is not a deployed
+path. `_headers` gains a `/` rule: Pages matches the request path, so `/index.html` alone never
+matched the apex. `packages` left `INCLUDE` with `index.html` — only its import map read them.
+Verified: the production build's `index.html` is the Astro document, indexable, canonical `/`,
+738 / 300 words, 4 links; no `packages/` staged; `styles.css`, `/borders/*` and `/country/*`
+present; the inverted guard exits 1 when the Astro output has no `index.html`. In Chrome against
+the new dev routing: `/` boots the globe; "Explore the globe" from `/country/france` is a
+same-document navigation to `/` with the canonical rewritten; `/legacy` boots the vanilla page
+off `/js`, `/styles.css` and `/packages`. 567 tests.
 
 ### The blocker: `AppLayout.astro` has no production head — ✅ closed (step 1 done)
 
@@ -1419,10 +1432,8 @@ remove when styles.css goes".
   `INCLUDE` with it: after the flip nothing deployed reads `/packages/…`. Verified rather than
   assumed — `border-quiz.js`'s closure contains no bare specifier at all, and Astro bundles its
   own copies.
-- **The `/country/*` dev proxy** (`dev-server.mjs`, `ASTRO_PREFIXES`) — once Astro owns `/`,
-  `dev-server.mjs` has nothing left to serve statically and `npm run dev` becomes `astro dev`
-  plus the two dev middlewares already in `astro.config.mjs`. The trailing-slash rule that
-  `tests/dev-server-routing.test.js` pins retires with it.
+- ~~**The `/country/*` dev proxy** retires~~ — it does not; see the flip note above. It serves
+  the dev-tool page and the borders pages, which Astro's dev server does not.
 
 ### Tests that change
 
@@ -1444,7 +1455,7 @@ encodes a rule that still holds somewhere:
    WebGL fallback, favicons/manifest/og:image into `AppLayout.astro`, read from
    `site-config.js`. Done; see above.
 2. ✅ **Move the six survivors** out of `js/features/`, on their own. Done; see above.
-3. **The flip** — three constants, plus the page move.
+3. ✅ **The flip** — three constants, plus the page move. Done; see above.
 4. **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
    `index.html` and `styles.css` out of `INCLUDE` but kept in the repo.
 5. **B12** (separate) — a generated stylesheet for `/borders/*`, then `styles.css` deleted, then
