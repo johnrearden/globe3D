@@ -16,7 +16,7 @@ import {
     refreshRemoteThemes, applyTheme,
 } from './theme-switcher.js';
 import { parseColor, toHex, formatColor } from '@terragotcha/design-tokens';
-import { SCHEMES } from './color-schemes.js';
+import { SCHEMES } from '../data/color-schemes.js';
 import { applySceneAppearance } from './scene-appearance.js';
 
 // Font choices: the two bundled webfonts (index.html loads Fredoka + Archivo)

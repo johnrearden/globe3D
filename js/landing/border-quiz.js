@@ -11,8 +11,8 @@
  * are correct — no "of N" anywhere. The counter shows a bare count and the result
  * line never states the total, so the player can't back into the answer.
  */
-import { OptionsGrid } from '../features/daily-quiz/options-grid.js';
-import { svgIcon } from '../features/quiz/quiz-question-chrome.js';
+import { OptionsGrid } from './options-grid.js';
+import { svgIcon } from './quiz-question-chrome.js';
 
 function readData() {
     const el = document.getElementById('border-data');

@@ -59,6 +59,14 @@ same import statement works buildless today and under Vite/Metro later. **Adding
 adding an importmap entry**, or the browser gets a bare-specifier resolution error while `npm test`
 stays green.
 
+**Nothing that survives B11 imports from `js/features/`.** That tree is the vanilla app's and is
+deleted at the flip; `js/core`, `js/data`, `js/utils`, `js/landing`, `apps/web/src` and `packages`
+must not reach into it, and `tests/features-boundary.test.js` fails on a real `import` that does. If
+engine or shell code needs something that lives there, move it (as `pointer-controls.js`,
+`small-country-indicator.js`, `color-schemes.js`, `sheet-snap.js`, `options-grid.js` and
+`quiz-question-chrome.js` were) — and note that `js/core` is in `check-tokens` SCOPE, so a module
+moving there trades its colour literals for `cssToken()` reads with the old literals as fallbacks.
+
 Anything platform-specific stays in `js/`, reduced to a thin binding: `js/data/storage.js` picks
 localStorage/sessionStorage, `js/data/globe-bridge.js` wraps GlobeManager + CameraController, and
 `js/data/settings-store.js`, `js/data/quiz-history-store.js` and `js/data/api-client.js` are now

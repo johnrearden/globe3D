@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { decideSnap } from '../js/features/daily-quiz/panel-sheet.js';
+import { decideSnap } from '../js/utils/sheet-snap.js';
 
 const MAX = 300;
 

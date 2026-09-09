@@ -1370,11 +1370,20 @@ the quiz on 27 deployed pages, and it breaks at runtime in the browser, so nothi
 or the build would say a word.
 
 None of the six is really a vanilla *feature*; they are under `js/features/` by accident of when
-they were written. **Move them before the deletion**, not during it — `color-schemes.js` to
-`js/data/`, `pointer-controls.js` / `small-country-indicator.js` / `panel-sheet.js` to
-`js/core/`, and the two borders dependencies to `js/landing/`, which is where their only
-consumer already lives. A move done in the same commit as a 30-module delete is a move nobody
-can review.
+they were written. **Moved (step 2, done):** `color-schemes.js` → `js/data/`; `pointer-controls.js`
+and `small-country-indicator.js` → `js/core/`; the two borders dependencies → `js/landing/`, where
+their only consumer already lives. `panel-sheet.js` did **not** move whole: only `decideSnap` is
+shared, and the rest is a DOM class the vanilla app owns — so the pure function is now
+`js/utils/sheet-snap.js` and the class re-exports it. Two things the move forced, both
+improvements: `pointer-controls.js` imported `track` from `js/features/analytics.js`, which engine
+code cannot, so it takes an injected `onSelect` hook that each host wires to its own analytics (the
+Astro app gains the `country_select` event it never had); and `small-country-indicator.js` carried
+`0xffffff`/`0xffff00`, which `check-tokens` forbids in `js/core`, so its inks are `--globe-label` and
+`--primary` with those literals as fallbacks — the vanilla app, which loads no `tokens.css`, is
+unchanged. `tests/features-boundary.test.js` now makes the rule structural: no real `import` from
+`js/core`, `js/data`, `js/utils`, `js/landing`, `apps/web/src` or `packages` may name `/features/`.
+A move done in the same commit as a 30-module delete is a move nobody can review; this one was its
+own.
 
 **2. `index.html` is dropped from the deploy, not from the repo.** The two existing entries read
 as contradicting each other — `:865` says it "survives B11 as a dev-only tool page", `:1054`
@@ -1434,7 +1443,7 @@ encodes a rule that still holds somewhere:
 1. ✅ **The production head** — AdSense loader + verification meta, consent CMP, GA4, GlitchTip,
    WebGL fallback, favicons/manifest/og:image into `AppLayout.astro`, read from
    `site-config.js`. Done; see above.
-2. **Move the four survivors** out of `js/features/`, on their own.
+2. ✅ **Move the six survivors** out of `js/features/`, on their own. Done; see above.
 3. **The flip** — three constants, plus the page move.
 4. **The deletion** — `js/features/**` minus the editors, audit mode and the three celebrations;
    `index.html` and `styles.css` out of `INCLUDE` but kept in the repo.

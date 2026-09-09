@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Vector3 } from 'three';
-import { SmallCountryIndicator } from '../js/features/small-country-indicator.js';
+import { SmallCountryIndicator } from '../js/core/small-country-indicator.js';
 
 function makeGlobe() {
     const children = [];

@@ -1,12 +1,22 @@
 /**
- * Small-country indicator — a semi-opaque white disc plus a yellow pointer
- * arrow, placed at label height over tiny countries that are otherwise hard to
- * spot at a grazing angle. Owns the marker mesh and its lifecycle.
+ * Small-country indicator — a semi-opaque disc plus a pointer arrow, placed at
+ * label height over tiny countries that are otherwise hard to spot at a grazing
+ * angle. Owns the marker mesh and its lifecycle. The disc wears the label ink
+ * and the arrow the primary accent; in the vanilla app those resolve to the
+ * white and yellow they always were.
  */
 
 import * as THREE from 'three';
+import { cssToken } from '../utils/theme.js';
 
 const SMALL_INDICATOR_RADIUS = 1.0045;
+
+// The marker's two inks, read from the tokens when the marker is BUILT (not at
+// construction, so a theme applied later is honoured). The fallbacks are the
+// values these were hard-coded to, so the vanilla app — which does not load
+// tokens.css — is byte-for-byte unchanged.
+const discInk = () => new THREE.Color(cssToken('--globe-label', '#ffffff'));
+const arrowInk = () => new THREE.Color(cssToken('--primary', '#ffff00'));
 
 export class SmallCountryIndicator {
     constructor({ globeManager, smallCountries } = {}) {
@@ -36,7 +46,7 @@ export class SmallCountryIndicator {
         const disc = new THREE.Mesh(
             new THREE.CircleGeometry(discRadius, 48),
             new THREE.MeshBasicMaterial({
-                color: 0xffffff,
+                color: discInk(),
                 side: THREE.DoubleSide,
                 transparent: true,
                 opacity: 0.5,
@@ -79,7 +89,7 @@ export class SmallCountryIndicator {
     _buildPointerArrow(discRadius) {
         const arrow = new THREE.Group();
         const mat = new THREE.MeshBasicMaterial({
-            color: 0xffff00,
+            color: arrowInk(),
             side: THREE.DoubleSide,
             transparent: true,
             depthWrite: false

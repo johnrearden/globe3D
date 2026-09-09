@@ -17,7 +17,7 @@
 import { settingsStore } from '../data/settings-store.js';
 import { SETTINGS_DEFAULTS } from '@terragotcha/storage';
 import { onThemeChange } from '../utils/theme.js';
-import { applyScheme } from './color-schemes.js';
+import { applyScheme } from '../data/color-schemes.js';
 import { getActiveSceneAppearance } from './theme-switcher.js';
 
 let _sceneManager = null;

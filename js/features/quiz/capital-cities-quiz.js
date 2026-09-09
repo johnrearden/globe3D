@@ -8,7 +8,7 @@
  */
 
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
-import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
+import { QuizQuestionChrome, svgIcon } from '../../landing/quiz-question-chrome.js';
 import {
     createSession, generateCapital, quizStore, systemRng, toHistoryRecord
 } from '@terragotcha/quiz-core';

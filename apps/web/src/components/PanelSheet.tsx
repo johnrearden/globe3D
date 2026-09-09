@@ -20,7 +20,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 // eslint-disable-next-line import/no-relative-packages -- deliberate: see above.
-import { decideSnap } from '../../../../js/features/daily-quiz/panel-sheet.js';
+import { decideSnap } from '../../../../js/utils/sheet-snap.js';
 import { getPanelSnap, setPanelSnap, onPanelSnapChange, type Snap as SnapState } from '../lib/panel';
 
 export default function PanelSheet({

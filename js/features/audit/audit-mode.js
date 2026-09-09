@@ -19,7 +19,7 @@
 import { ApiError } from '../../data/api-client.js';
 import { QuestionPresenter } from '../daily-quiz/question-renderer.js';
 import { PanelSheet } from '../daily-quiz/panel-sheet.js';
-import { svgIcon } from '../quiz/quiz-question-chrome.js';
+import { svgIcon } from '../../landing/quiz-question-chrome.js';
 import { FOREIGN_MODES, gradeLocally, quizStore, revealOnly } from '@terragotcha/quiz-core';
 
 /** Local (not UTC) calendar date as YYYY-MM-DD, matching the date input. */

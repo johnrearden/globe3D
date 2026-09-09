@@ -13,7 +13,7 @@
  * shares their look; daily-specific rules live under `.dq-grid` in styles.css.
  */
 
-import { svgIcon } from '../quiz/quiz-question-chrome.js';
+import { svgIcon } from './quiz-question-chrome.js';
 
 export class OptionsGrid {
     constructor(host) {

@@ -25,7 +25,7 @@ added.
 import re
 
 # Country color schemes a theme can pin for the 3D globe. MUST mirror the SCHEMES
-# keys in js/features/color-schemes.js (both are the source of the picker options).
+# keys in js/data/color-schemes.js (both are the source of the picker options).
 COUNTRY_SCHEMES = ('vibrant', 'greens', 'browns', 'uniform', 'blues', 'purples', 'greys')
 
 # --- BEGIN GENERATED: @terragotcha/design-tokens ---

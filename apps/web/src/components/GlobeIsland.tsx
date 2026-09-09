@@ -22,6 +22,7 @@ import { framingFor } from '../lib/globe-framing';
 import { getPanelSnap, onPanelSnapChange } from '../lib/panel';
 import { setGlobeHandle } from '../lib/globe';
 import { readThemeColors } from '../lib/theme-colors';
+import { track } from '../lib/analytics';
 
 /**
  * Where the baked .bin assets load from.
@@ -79,8 +80,8 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     import('../../../../js/core/labels.js'),
                     import('../../../../js/core/focus-zoom.js'),
                     import('../../../../js/core/context-recovery.js'),
-                    import('../../../../js/features/small-country-indicator.js'),
-                    import('../../../../js/features/pointer-controls.js'),
+                    import('../../../../js/core/small-country-indicator.js'),
+                    import('../../../../js/core/pointer-controls.js'),
                     import('../../../../js/data/globe-bridge.js'),
                     import('../../../../js/data/globe-appearance.js'),
                     import('../../../../js/data/country-table.js'),
@@ -211,6 +212,7 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                     labelManager,
                     smallCountryIndicator,
                     deliverPick: (name: string) => globe.deliverPick(name),
+                    onSelect: (name: string) => track('country_select', { country: name, source: 'globe' }),
                     deliverDeselect: () => globe.deliverDeselect(),
                     rotateGlobeToCountry: (arg: unknown, quiz: boolean, aim: unknown) =>
                         cameraController.rotateToCountry(arg, quiz, aim),

@@ -16,7 +16,7 @@ import { QuestionPresenter } from './question-renderer.js';
 import { showOnboarding } from './onboarding.js';
 import { renderLeaderboard } from './leaderboard.js';
 import { PanelSheet } from './panel-sheet.js';
-import { svgIcon } from '../quiz/quiz-question-chrome.js';
+import { svgIcon } from '../../landing/quiz-question-chrome.js';
 import { track } from '../analytics.js';
 import { formatDuration } from '../quiz/quiz-timer.js';
 

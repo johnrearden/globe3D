@@ -9,7 +9,7 @@
  */
 
 import { settingsStore } from '../data/settings-store.js';
-import { SCHEMES, applyScheme } from './color-schemes.js';
+import { SCHEMES, applyScheme } from '../data/color-schemes.js';
 import { getAvailableThemes, getSelection, applyTheme, onThemesChanged } from './theme-switcher.js';
 import { resolveActiveScheme } from './scene-appearance.js';
 import { onThemeChange } from '../utils/theme.js';

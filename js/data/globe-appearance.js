@@ -12,7 +12,7 @@
  */
 
 import { LIGHTING_DEFAULTS } from '@terragotcha/globe-bridge';
-import { SCHEMES, applyScheme } from '../features/color-schemes.js';
+import { SCHEMES, applyScheme } from './color-schemes.js';
 
 /**
  * How long to wait before applying persisted lighting at boot.

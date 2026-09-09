@@ -8,7 +8,7 @@
  * image is shown instead.
  */
 
-import { OptionsGrid } from './options-grid.js';
+import { OptionsGrid } from '../../landing/options-grid.js';
 import { QUIZ_SUBJECT_SCREEN_FRACTION } from '../../core/focus-zoom.js';
 
 export class QuestionPresenter {

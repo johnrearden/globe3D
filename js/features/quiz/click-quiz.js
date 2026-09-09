@@ -14,7 +14,7 @@
  */
 
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
-import { QuizQuestionChrome } from './quiz-question-chrome.js';
+import { QuizQuestionChrome } from '../../landing/quiz-question-chrome.js';
 import {
     createSession, fromPlan, generateClickCountrySession, quizStore, systemRng, toHistoryRecord
 } from '@terragotcha/quiz-core';

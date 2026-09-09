@@ -13,24 +13,10 @@
  * scrolling the panel body instead.
  */
 
-// Collapse if the panel was dragged past this fraction of its travel.
-const SNAP_FRACTION = 0.33;
-// A release faster than this (px/ms) snaps in the fling direction regardless of position.
-const FLING_VELOCITY = 0.35;
-
-/**
- * Pure snap decision — exported for unit tests.
- * @param {number} translateY    current downward offset (px, 0 = fully expanded)
- * @param {number} maxTranslate  offset at the collapsed/peek position (px)
- * @param {number} velocityY     release velocity (px/ms; + = downward)
- * @returns {'expanded'|'collapsed'}
- */
-export function decideSnap(translateY, maxTranslate, velocityY) {
-    if (maxTranslate <= 0) return 'expanded';
-    if (velocityY > FLING_VELOCITY) return 'collapsed';
-    if (velocityY < -FLING_VELOCITY) return 'expanded';
-    return translateY > maxTranslate * SNAP_FRACTION ? 'collapsed' : 'expanded';
-}
+// The snap decision is pure and shared with the Astro app's PanelSheet, so it
+// lives in js/utils/sheet-snap.js; re-exported here for the existing importers.
+import { decideSnap } from '../../utils/sheet-snap.js';
+export { decideSnap };
 
 export class PanelSheet {
     /**

@@ -14,6 +14,9 @@ export const THEME_EVENT = 'globe3d:theme-changed';
  * @returns {string}
  */
 export function cssToken(name, fallback = '') {
+    // No document (a Node test constructing engine objects) reads as "the
+    // cascade does not say", which is what the fallback is for.
+    if (typeof document === 'undefined') return fallback;
     const v = getComputedStyle(document.documentElement).getPropertyValue(name);
     return (v && v.trim()) || fallback;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveShade, SCHEMES } from '../js/features/color-schemes.js';
+import { deriveShade, SCHEMES } from '../js/data/color-schemes.js';
 
 // A spread of original country colors (0–255) to derive from.
 const SAMPLES = [

@@ -4,7 +4,7 @@
  */
 
 import { quizHistoryStore } from '../../data/quiz-history-store.js';
-import { QuizQuestionChrome, svgIcon } from './quiz-question-chrome.js';
+import { QuizQuestionChrome, svgIcon } from '../../landing/quiz-question-chrome.js';
 import { createWebGLRenderer } from '../../utils/webgl-diagnostics.js';
 import {
     buildFlagDirectionSchedule, createSession, generateIdentifyFlag, quizStore, systemRng,

@@ -6,9 +6,10 @@
  * (LabelEditor), color/zoom edit-mode picks, click-quiz answers, and ordinary
  * country selection (highlight + focus + flag panel). All collaborators are
  * injected; nothing here is globe-specific beyond the injected managers.
+ *
+ * Engine code (js/core), shared by both apps: it must not import anything from
+ * js/features, which the vanilla app owns and B11 deletes.
  */
-
-import { track } from './analytics.js';
 
 import * as THREE from 'three';
 import { quizStore } from '@terragotcha/quiz-core';
@@ -36,6 +37,10 @@ export class PointerControls {
         this.labelManager = deps.labelManager;
         this.flagRenderer = deps.flagRenderer;
         this.smallCountryIndicator = deps.smallCountryIndicator;
+        // Called with the country name on an ordinary (non-quiz) selection —
+        // what each app sends to analytics. Injected, because this is engine
+        // code now and must not know which analytics module a host has.
+        this.onSelect = deps.onSelect || (() => {});
         this.labelEditor = deps.labelEditor || INACTIVE_EDITOR;
         this.colorEditor = deps.colorEditor || INACTIVE_EDITOR;
         this.zoomEditor = deps.zoomEditor || INACTIVE_EDITOR;
@@ -244,7 +249,7 @@ export class PointerControls {
 
             this.globeManager.clearSelection();
             this.globeManager.setSelectedCountry(pickedName);
-            track('country_select', { country: pickedName, source: 'globe' });
+            this.onSelect(pickedName);
             if (this.labelManager) this.labelManager.setHighlight(pickedName);
 
             this.rotateGlobeToCountry(pickedName, false, pickResult.point);
