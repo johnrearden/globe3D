@@ -137,9 +137,12 @@ describe('one head, two layouts', () => {
     const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
     it('is rendered by both layouts, inside <head>, with every prop passed through', () => {
-        for (const f of layouts) {
-            expect(inHead(read(f)), f).toMatch(/<SiteHead \{\.\.\.Astro\.props\} \/>/);
-        }
+        expect(inHead(read(layouts[0]))).toMatch(/<SiteHead \{\.\.\.Astro\.props\} \/>/);
+        // StaticLayout keeps one prop for itself — the body class a static page
+        // styles — and spreads the rest.
+        const stat = read(layouts[1]);
+        expect(stat).toMatch(/const \{ bodyClass, \.\.\.head \} = Astro\.props;/);
+        expect(inHead(stat)).toMatch(/<SiteHead \{\.\.\.head\} \/>/);
     });
 
     it('lives nowhere else', () => {
@@ -157,7 +160,7 @@ describe('one head, two layouts', () => {
         expect(src).not.toMatch(/client:/);
         expect(src).not.toMatch(/import .*\.css/);
         expect(src.match(/^import /gm)).toHaveLength(2); // the type helper and SiteHead
-        expect(src).toMatch(/<body>\s*<slot \/>\s*<\/body>/);
+        expect(src).toMatch(/<body class=\{bodyClass\}>\s*<slot \/>\s*<\/body>/);
     });
 
     it('imports the token artefact once, from the head', () => {
@@ -167,15 +170,18 @@ describe('one head, two layouts', () => {
 });
 
 describe('one region list', () => {
-    it('is the only copy: build-landing.mjs and the layout read site-config', () => {
-        expect(read('build-landing.mjs')).toMatch(/CONSENT_REGIONS/);
-        expect(read('build-landing.mjs')).not.toMatch(/\['AT', 'BE'/);
+    it('is the only copy: site-config.js, read by site-head.ts', () => {
+        // Until B12 build-landing.mjs regex-read a second copy for the borders
+        // pages; those are Astro pages on SiteHead now, so there is one reader.
+        expect(read('apps/web/src/lib/site-head.ts')).toMatch(/CONSENT_REGIONS/);
+        expect(read('apps/web/src/lib/site-head.ts')).not.toMatch(/\['AT', 'BE'/);
+        expect(read('build-sitemap.mjs')).not.toMatch(/CONSENT_REGIONS|'AT'/);
     });
 
-    it('is what the generated /borders pages actually carry', () => {
-        // The generator regex-reads it; a broken regex would silently emit an
-        // empty list and deny nobody. Check the artefact, not the code.
-        expect(read('borders/france/index.html')).toContain(`region:${JSON.stringify(CONSENT_REGIONS)}`);
+    it('reaches the borders pages through the same head', () => {
+        const page = read('apps/web/src/pages/borders/[slug].astro');
+        expect(page).toMatch(/import StaticLayout from '\.\.\/\.\.\/layouts\/StaticLayout\.astro'/);
+        expect(page).not.toMatch(/adsbygoogle\.js|gtag|fundingchoices|google-adsense-account/);
     });
 });
 

@@ -182,7 +182,7 @@ function main(argv) {
     const facts = JSON.parse(readFileSync(join(ROOT, 'landing/landing-facts.json'), 'utf8'));
     const meta = JSON.parse(readFileSync(join(ROOT, 'assets/country-meta.json'), 'utf8'));
 
-    // The guides section is driven by the same file build-landing.mjs reads for
+    // The guides section is driven by the same file build-sitemap.mjs reads for
     // the sitemap and country-pages.json. One reader, so a guide, its sitemap
     // entry and its link cannot exist independently of each other.
     let content = { countries: [] };

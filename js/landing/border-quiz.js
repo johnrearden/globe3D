@@ -5,7 +5,8 @@
  * only dependency is a pure SVG-icon helper) and computes the reveal itself, so
  * NONE of the heavy globe / Three.js / api-client code is pulled onto a landing
  * page. Question data is read from the inlined <script id="border-data"> the
- * static generator (build-landing.mjs) emits.
+ * Astro page (apps/web/src/pages/borders/[slug].astro) emits; since B12 this
+ * module is bundled by that page rather than served from /js.
  *
  * Critical rule (see the design handoff): the UI never reveals HOW MANY answers
  * are correct — no "of N" anywhere. The counter shows a bare count and the result

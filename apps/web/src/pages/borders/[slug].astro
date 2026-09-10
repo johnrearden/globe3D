@@ -1,0 +1,161 @@
+---
+/**
+ * One static "which countries border X?" quiz page per published entry.
+ *
+ * Until B12 these 27 pages came from a hand template through `build-landing.mjs`
+ * with a head of their own, a stylesheet of their own (the legacy `styles.css`)
+ * and `js/landing/border-quiz.js` served raw. They are Astro's now, in
+ * `StaticLayout`: the same `SiteHead` as every other document, a token-built
+ * stylesheet in `check-tokens` scope, and the quiz script bundled. What has NOT
+ * changed is what a crawler reads — the H1, the visually hidden answer block,
+ * the `Quiz` JSON-LD, the related links — and the URL shape: `build.format:
+ * 'directory'` emits `/borders/<slug>/index.html`, exactly what the generator
+ * wrote, so `sitemap.xml` is unchanged.
+ *
+ * No globe, no islands, no React: `routes.ts` returns null for `/borders/*`, so
+ * a click from the app is a real navigation and nothing here is re-rendered
+ * client-side. The page is markup; `border-quiz.js` builds the grid at runtime
+ * from the inline JSON, as it always did.
+ *
+ * The copy comes from `borderPageModel()` in `landing/borders-pages.mjs`, so
+ * this file does no string building and the handoff's rules (never state the
+ * neighbour count in visible copy; link only to published pages) are tested
+ * there, not hoped for here.
+ */
+import StaticLayout from '../../layouts/StaticLayout.astro';
+import { publishedBorderPages, borderPageModel, imageSlugs, inlineJson } from '../../../../../landing/borders-pages.mjs';
+import { productionHead } from '../../lib/site-head';
+import { ADSENSE_LANDING_SLOT } from '../../../../../js/data/site-config.js';
+import '../../styles/borders.css';
+
+export function getStaticPaths() {
+    // The publish gate: a page only for an entry with a hero image. The list of
+    // images comes from a glob rather than the filesystem, because this module
+    // runs inside Vite's server bundle, where paths relative to the source
+    // are not where they seem — see borders-pages.mjs.
+    const images = imageSlugs(Object.keys(import.meta.glob('../../../../../img/borders/*.png')));
+    const { published, skipped } = publishedBorderPages({ images });
+    if (skipped.length) console.warn(`borders: held back (no img/borders/<slug>.png): ${skipped.join(', ')}`);
+    const slugs = new Set(published.map((e) => e.slug));
+    return published.map((entry) => ({
+        params: { slug: entry.slug },
+        props: { page: borderPageModel(entry, slugs) },
+    }));
+}
+
+const { page } = Astro.props;
+
+// The in-content ad unit needs BOTH ids: a slot-less <ins> renders as a blank
+// box under an "Advertisement" label, which is itself an AdSense policy
+// problem. The head loader (SiteHead) is keyed on the client id alone, on
+// purpose — that is what review looks for, and it renders nothing. AdSense has
+// not approved the site, so the slot is empty and this section is absent.
+const adsId = productionHead(import.meta.env.PROD).adsId;
+const adSlot = adsId && ADSENSE_LANDING_SLOT ? ADSENSE_LANDING_SLOT : '';
+
+// Phosphor regular glyphs, inline per the project's icon rule.
+const GLOBE = 'M128,24A104,104,0,1,0,232,128,104.13,104.13,0,0,0,128,24ZM92,206.51a87.78,87.78,0,0,1-37.49-30.61l16.69-9.7a8,8,0,0,1,9.21.84l11.7,10.23a8,8,0,0,0,10.51,0l13.36-11.69a8,8,0,0,1,6.65-1.9l16.86,2.81a8,8,0,0,0,9-5.84l4.92-18.43a8,8,0,0,0-3.16-8.65l-17.78-12.46a8,8,0,0,1-2.91-9.65l3.81-9.13A8,8,0,0,1,144,98.36l13.13.94a8,8,0,0,0,8.5-6.69l1.66-10.07a8,8,0,0,1,4.07-5.69l13.62-7.48a88,88,0,0,1,8.5,99.06l-14.13-8.21a8,8,0,0,0-9.18.76l-13.36,11.69a8,8,0,0,1-6.65,1.9Z';
+const RULER = 'M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l24-24,18.34,18.35a8,8,0,0,0,11.32-11.32L67.31,136,88,115.31l18.34,18.35a8,8,0,0,0,11.32-11.32L99.31,104,120,83.31l18.34,18.35a8,8,0,0,0,11.32-11.32L131.31,72,152,51.31l18.34,18.35a8,8,0,0,0,11.32-11.32L163.31,40l16.69-16.68L232.68,76Z';
+const PIN = 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z';
+---
+<StaticLayout
+    title={page.title}
+    description={page.description}
+    canonicalPath={page.canonicalPath}
+    ogType="website"
+    ogImage={page.imagePath}
+    ogImageAlt={page.imageAlt}
+    jsonLd={page.jsonLd}
+    bodyClass="lp-body"
+>
+    <main class="lp-shell">
+        <div class="lp-topbar">
+            <a class="lp-brand" href="/"><span class="lp-brand-terra">Terra</span><span class="lp-brand-gotcha">gotcha</span></a>
+            <a class="lp-ghost-pill" href="/">
+                <svg class="lp-ico" viewBox="0 0 256 256" width="16" height="16" fill="currentColor" aria-hidden="true"><path d={GLOBE} /></svg>
+                Explore the 3D globe
+            </a>
+        </div>
+
+        <div class="lp-hero-grid">
+            <div class="lp-head">
+                <div class="lp-eyebrow">Border challenge</div>
+                <h1 class="lp-title">{page.h1}</h1>
+                <p class="lp-desc lp-desc-desk">Tap every country you think shares a land border with {page.name} &mdash; then check how sharp your mental map really is.</p>
+                <p class="lp-desc lp-desc-mob">Covering {page.areaLabel} in {page.region}. Can you name every country that borders {page.name}?</p>
+            </div>
+
+            <div class="lp-maphero">
+                <img class="lp-maphero-img" src={page.imagePath} alt={page.imageAlt} width="1200" height="630" />
+                <div class="lp-maphero-caption">
+                    <div class="lp-cap-eyebrow">{page.region}</div>
+                    <div class="lp-cap-name">{page.name}</div>
+                    <div class="lp-cap-stats">
+                        <span class="lp-cap-stat"><svg class="lp-ico" viewBox="0 0 256 256" width="16" height="16" fill="currentColor" aria-hidden="true"><path d={RULER} /></svg>{page.areaLabel}</span>
+                        <span class="lp-cap-stat"><svg class="lp-ico" viewBox="0 0 256 256" width="16" height="16" fill="currentColor" aria-hidden="true"><path d={PIN} /></svg>How many neighbours can you name?</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lp-interact">
+                <div class="lp-divider" aria-hidden="true"></div>
+                <div class="lp-instr">
+                    <div class="lp-instr-label">Select the neighbours</div>
+                    <div class="lp-counter" id="lp-counter">
+                        <span class="lp-counter-icon" id="lp-counter-icon"><svg class="qz-svg" viewBox="0 0 256 256" width="14" height="14" fill="currentColor" aria-hidden="true"><path d={PIN} /></svg></span>
+                        <span class="lp-counter-text" id="lp-counter-text">0 selected</span>
+                    </div>
+                </div>
+                <section class="lp-quiz" aria-label="Border quiz">
+                    <div id="border-quiz"></div>
+                </section>
+            </div>
+
+            <section class="lp-cta is-collapsed">
+                <div class="lp-cta-copy">
+                    <p class="lp-cta-lead">Reclaim your brain.</p>
+                    <p class="lp-cta-sub">Beat your phone at geography &mdash; learn the whole world on an interactive 3D globe.</p>
+                </div>
+                <a class="lp-cta-btn" href="https://terragotcha.com/">
+                    <svg class="lp-ico" viewBox="0 0 256 256" width="19" height="19" fill="currentColor" aria-hidden="true"><path d={GLOBE} /></svg>
+                    Visit Terragotcha.com
+                </a>
+            </section>
+        </div>
+
+        <section class="lp-answer sr-only">
+            <h2>Countries that border {page.name}</h2>
+            <p>{page.answerSentence}</p>
+            <ul class="lp-answer-list">
+                {page.neighbours.map((n) => <li>{n}</li>)}
+            </ul>
+        </section>
+        {adSlot && (
+            <section class="lp-ad">
+                <div class="lp-ad-label">Advertisement</div>
+                <ins class="adsbygoogle" style="display:block"
+                     data-ad-client={adsId} data-ad-slot={adSlot}
+                     data-ad-format="auto" data-full-width-responsive="true"></ins>
+                <script is:inline>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+            </section>
+        )}
+        {page.related.length > 0 && (
+            <nav class="lp-related is-collapsed" aria-label="Related quizzes">
+                <h2>More border quizzes</h2>
+                <ul>
+                    {page.related.map((r) => <li><a href={`/borders/${r.slug}`}>Countries bordering {r.name}</a></li>)}
+                </ul>
+            </nav>
+        )}
+        <footer class="lp-footer">
+            <a href="/privacy/">Privacy Policy</a>
+            <span aria-hidden="true">&middot;</span>
+            <span>&copy; 2026 Terragotcha</span>
+        </footer>
+    </main>
+
+    <script type="application/json" id="border-data" is:inline set:html={inlineJson(page.quiz)} />
+    <script>
+        import '../../../../../js/landing/border-quiz.js';
+    </script>
+</StaticLayout>

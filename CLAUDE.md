@@ -241,9 +241,10 @@ security-relevant, and `--check` treats it as a fourth artefact. A stored `Theme
 tokens, countryScheme, isPublished}`: the same knob map as `theme.json`, plus the one thing a
 theme pins that is not a token (a palette key). `base` (a `styles.css` preset), `scene_bg` and
 `ocean_color` were dropped in migration `0003` along with every legacy row — the space and
-ocean colours derive from `--bg-app` and `--ocean`. **Still legacy:** `styles.css` and
-which the `/borders/*` pages and the dev page link; it goes at B12. The vanilla theme editor and
-its 24-name list went with `js/features/**` at B11 step 4.
+ocean colours derive from `--bg-app` and `--ocean`. **Still legacy:** `styles.css`, which only
+the dev page links since B12 commit 2 (the `/borders/*` pages are Astro's, on `styles/borders.css`);
+it goes at B12 commit 3. The vanilla theme editor and its 24-name list went with `js/features/**`
+at B11 step 4.
 
 ## Backend migrations: try them on Postgres before a deploy
 
@@ -263,20 +264,25 @@ dropdb tg_probe; unset DATABASE_URL PGHOST PGPORT
 
 ## Deploy (`npm run build:pages`)
 
-One Cloudflare Pages project serves one origin: the Astro app at `/` and `/country/*` (since
-B11 — through Phase B the vanilla globe held `/` and the Astro apex was staged at `/app`), the
-generated `/borders/*` pages, `/privacy/`, and the static files they share. `build:pages` runs
-`build-landing.mjs` → the Astro build → `build-pages.mjs`, and **that order is required** — `build-pages.mjs` opens by wiping `dist/`,
-so anything staged before it is destroyed. Astro's output is merged in at the **root** (not as
-an `INCLUDE` entry, which would nest it) because its URLs are root-absolute.
+One Cloudflare Pages project serves one origin: the Astro app at `/`, `/country/*` and — since
+B12 — `/borders/*` (through Phase B the vanilla globe held `/` and the Astro apex was staged at
+`/app`; until B12 the borders pages came from a hand template through `build-landing.mjs`), plus
+`/privacy/` and the static files they share. `build:pages` runs `build-sitemap.mjs` →
+`build-landing-facts.mjs` → the Astro build → `build-pages.mjs`, and **that order is required** —
+`build-pages.mjs` opens by wiping `dist/`, so anything staged before it is destroyed. Astro's
+output is merged in at the **root** (not as an `INCLUDE` entry, which would nest it) because its
+URLs are root-absolute. The sitemap lists the borders pages from the same `publishedBorderPages()`
+gate (`landing/borders-pages.mjs`) the Astro page's `getStaticPaths` calls — an entry has a page
+only if `img/borders/<slug>.png` exists — so a page and its sitemap entry cannot disagree.
 
 It aborts if the Astro output is missing, and — `APEX_IS_ASTRO` — if it carries no
 `index.html`: `sitemap.xml` already lists `/` and the `/country/` URLs, so deploying without
 them points crawlers at 404s — worse than a failed build and invisible for weeks. `index.html`
 and `packages/` are deliberately **not** in `INCLUDE`: the vanilla page is a dev tool now and
-only its import map read the packages. `styles.css` stays until B12, because every
-`/borders/<slug>` page links it. `npm run build:pages:local` produces the same output with globe assets served from
-the repo instead of R2, for previewing locally.
+only its import map read the packages. Nor are `styles.css`, `js/` or `borders/`, since B12: the
+borders pages are Astro's, their quiz script is bundled, and nothing deployed references
+`/styles.css` or `/js/…`. `npm run build:pages:local` produces the same output with globe assets
+served from the repo instead of R2, for previewing locally.
 
 `.node-version` pins 22 for the Pages build image; Astro 7 needs ≥22.12 and `npm ci` installs
 every workspace, so the floor applies to the whole deploy.
@@ -291,9 +297,9 @@ npm run dev -- --solo  # just the proxy; bring your own `npm run dev:web`
 ```
 
 `dev-server.mjs` proxies what Astro owns — `/`, `/index.html`, `/landing.json`, `/country/*`,
-plus Vite's `/@…`, `/_astro/`, `/src/`, `/node_modules/.vite/` and the HMR websocket — and
-serves everything else statically from the repo root: the `/borders/*` pages, `styles.css`,
-`js/`, the assets. The vanilla `index.html` is served at **`/legacy`** — it is the dev-tool page
+`/borders/*`, plus Vite's `/@…`, `/_astro/`, `/src/`, `/node_modules/.vite/` and the HMR
+websocket — and serves everything else statically from the repo root: `/privacy/`, the images,
+the assets, the root JSON files. The vanilla `index.html` is served at **`/legacy`** — it is the dev-tool page
 (label, colour and zoom editors, audit mode) and has no deployed equivalent; its root-absolute
 `/js/…`, `/styles.css` and `/packages/` references resolve because the repo root is what this
 serves. Before any of this, two ports meant every cross-link 404'd locally and the site looked
@@ -488,13 +494,12 @@ favicons, manifest, `theme-color`, Open Graph/Twitter images, JSON-LD — and **
 `window.GLOBE3D_API_BASE = PRODUCTION_API_BASE` (from `site-config.js`) on every non-local host,
 via a `define:vars` inline script. Without it the client falls back to same-origin `/api`, which
 on Pages is a 405 for every POST — the Daily Challenge's first production failure. Generated by
-`lib/site-head.ts` from `js/data/site-config.js`, the same file `build-landing.mjs` reads for the
-`/borders/*` pages. Three rules: the tags are **raw HTML**, never injected from JS (a non-executing
+`lib/site-head.ts` from `js/data/site-config.js`. Three rules: the tags are **raw HTML**, never injected from JS (a non-executing
 crawler must find the loader — the class of failure the site was rejected for); the **consent
 defaults are the first script** on the page, before anything that could store; and they exist
 **only in a production build** (`import.meta.env.PROD`), so `astro dev` never sends a hit. The
-region list is `CONSENT_REGIONS` in `site-config.js` and nowhere else — `analytics.js`, the borders
-generator and the layout all read it. `tests/production-head.test.js` pins the order and the
+region list is `CONSENT_REGIONS` in `site-config.js` and nowhere else — `site-head.ts` is its one
+reader since B12 retired the borders generator. `tests/production-head.test.js` pins the order and the
 single source. Runtime halves: `lib/analytics.ts` (`track`, `quiz_start`/`quiz_complete`/
 `daily_complete`), `lib/error-reporter.ts` (hoisted `<script>` in the layout, inert off-prod),
 `lib/consent.ts` (the "Manage consent choices" button in settings). Ad *units* wait on a slot id,
@@ -769,8 +774,8 @@ signal `BackButtonGuard` watches), i.e. presentation, not state.
 `apps/web`. **Anything added to `index.html` must still keep to these rules:**
 
 - **No new CSS in `index.html`** — put all new rules in the external `styles.css`.
-- **`styles.css` is legacy.** It still styles the dev page and the 27 `/borders/*` pages, and it is
-  retired at B12 (the borders pages get their own token-built stylesheet). Its `:root` tokens
+- **`styles.css` is legacy.** It styles only the dev page now (the 27 `/borders/*` pages moved to
+  Astro and `styles/borders.css` at B12 commit 2), and it is retired at B12 commit 3. Its `:root` tokens
   (`--accent`, `--bg-elevated`, `--text-heading`…) are the *old* vocabulary: the backend no longer
   accepts them, nothing in `apps/web` may use them (`check-tokens.mjs`), and the theme switcher and
   editor that read them were deleted at B11. Do not extend it; if the dev page needs a rule, a

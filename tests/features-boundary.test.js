@@ -4,7 +4,8 @@
  * `js/features/**` is the vanilla app's, and B11 deletes it (bar the dev
  * editors and the three celebrations). Six modules used to live there by
  * accident of when they were written while being real dependencies of code
- * that stays — the engine, the Astro app, and the deployed /borders/* pages.
+ * that stays — the engine, the Astro app, and the /borders/* pages (Astro's
+ * own since B12, but still driven by js/landing).
  * Two of those would have broken the borders quiz at runtime, in the browser,
  * with the build and this suite both green.
  *

@@ -8,9 +8,9 @@
  * minmax(0,1fr) tracks so the grid always fits the panel width (never scrolls
  * horizontally). Self-contained: it builds its own DOM inside the host element.
  *
- * Cells are `.quiz-option` buttons + `.qz-mark` reveal icons — the same markup and
- * design tokens as the practice quizzes (js/features/quiz) — so the Daily Challenge
- * shares their look; daily-specific rules live under `.dq-grid` in styles.css.
+ * Cells are `.quiz-option` buttons + `.qz-mark` reveal icons — the same markup
+ * the Astro app's answer grid emits, styled by the shared `styles/answers.css`;
+ * the `.dq-grid` rules around them live in `styles/borders.css` (B12).
  */
 
 import { svgIcon } from './quiz-question-chrome.js';

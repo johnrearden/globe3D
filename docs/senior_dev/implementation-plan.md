@@ -1590,13 +1590,13 @@ from the app is a real navigation and the page needs no React.
    "one head, two layouts" group pins that both layouts render `<SiteHead {...Astro.props} />`
    inside `<head>`, that neither carries a head tag of its own, and that `StaticLayout` has no
    `client:` directive and no stylesheet import — the shape the borders pages need.
-2. **One publish gate.** `landing/borders-pages.mjs` → `publishedBorderPages()`: reads
+2. ✅ **One publish gate.** `landing/borders-pages.mjs` → `publishedBorderPages()`: reads
    `borders-data.json` and drops any entry without `img/borders/<slug>.png`, warning as the
    generator does now. The page's `getStaticPaths` and the sitemap script both call it, so a page
    and its sitemap entry cannot exist independently — the rule the sitemap comment already
    states for the country pages. Node-only, build-time only, the same shape as
    `build-landing-facts.mjs`, which `lib/landing.ts` already imports.
-3. **The page.** `src/pages/borders/[slug].astro` — the template's markup, static, in
+3. ✅ **The page.** `src/pages/borders/[slug].astro` — the template's markup, static, in
    `StaticLayout`. The answer section stays `sr-only` in the HTML; the JSON-LD `Quiz` is
    unchanged; the related-links section stays; the ad section stays gated on both ids and renders
    nothing until a slot exists. The quiz data stays in
@@ -1604,7 +1604,7 @@ from the app is a real navigation and the page needs no React.
    imported by a page `<script>` so Vite bundles it — after which nothing deployed reads
    `/js/…` (verified: no root-absolute `/js/` reference anywhere in `apps/web/src`; the engine is
    bundled into the globe chunk).
-4. **The stylesheet.** `src/styles/borders.css`, imported by the page — the ~650 lines rewritten
+4. ✅ **The stylesheet.** `src/styles/borders.css`, imported by the page — the ~650 lines rewritten
    to the token system, in `check-tokens` scope from the first line because `apps/web/src` is.
    The mapping is mechanical for most of it: `--accent` → `--primary`, `--on-accent` →
    `--on-primary`, `--font-display` → `--font-heading`, `--font-ui` → `--font-body`,
@@ -1625,16 +1625,45 @@ from the app is a real navigation and the page needs no React.
    both `quiz.css` and `borders.css` — the "stylesheets split by scope" rule, and the only way the
    two quizzes' answer buttons stay one design. The `.dq-*` grid rules have no app equivalent and
    live in `borders.css` outright.
-5. **The sitemap.** `build-landing.mjs` loses its page half and becomes `build-sitemap.mjs`:
+5. ✅ **The sitemap.** `build-landing.mjs` loses its page half and becomes `build-sitemap.mjs`:
    the sitemap and `country-pages.json` writers, reading the publish gate from step 2.
    `build:pages` becomes `build-sitemap → build-landing-facts → build:web → build-pages`, and
    `.gitignore` drops `/borders/`.
-6. **`INCLUDE` and `_headers`.** `styles.css`, `js` and `borders` leave `INCLUDE`; the
+6. ✅ **`INCLUDE` and `_headers`.** `styles.css`, `js` and `borders` leave `INCLUDE`; the
    `/styles.css` and `/js/*` cache rules leave `_headers` (`:24`, `:26`). Astro's output already
    lands at the root, so `/borders/*` needs no entry.
-7. **The dev server.** `ASTRO_PREFIXES` gains `/borders/` — with the trailing slash, for the
+7. ✅ **The dev server.** `ASTRO_PREFIXES` gains `/borders/` — with the trailing slash, for the
    reason the `/country/` entry has one. `dev-server-routing.test.js` flips `/borders/france/`
    and `/js/landing/border-quiz.js` from static to Astro.
+
+   **Done (commit 2), with four things the plan above did not know:**
+
+   - **`import.meta.url` lies inside Vite's server bundle.** The first cut of
+     `borders-pages.mjs` located `img/borders` from its own URL, as `build-landing-facts.mjs`
+     locates nothing (it takes its inputs as parameters). Under `astro build` the helper is
+     bundled into the server entry, the URL points into the build output, no images were found,
+     and the build emitted **no borders pages while reporting success** — the same shape as the
+     `APEX_IS_ASTRO` failure B11 guards against. So the gate takes the image set from its caller:
+     `import.meta.glob` in the page, `readdirSync` in the sitemap script, and a thrown error if
+     neither is passed. `tests/borders-page-static.test.js` pins the throw.
+   - **The token artefact is an inline `<style>` now, on every page.** Once two page groups shared
+     `tokens.css`, Astro split it into its own chunk and, being under the inline threshold, inlined
+     it. The app's CSS bundle shrank by the same 1.1 KB; the rule set is identical (verified by
+     sorting both bundles' rules and diffing). Better for first paint, and nothing to do about it.
+   - **The mobile answer cells are 48 px tall, not 36.** `answers.css` carries the app's
+     `min-height: 3rem` touch target; the old page's compact cells were under the 44 px
+     recommendation. Accepted as the app's rule rather than overridden.
+   - **The glow layer was already off.** `--glow-cta: none` and `--glow-accent: transparent` in the
+     legacy `:root`, so the "pulsing amber" element drew nothing; it is gone rather than ported.
+
+   Verified in headless Chrome against the pre-change page (built from a `git archive` of the
+   previous commit, served beside the new `dist/`): a full quiz at 1280 and 390 px — three picks,
+   check, the reveal, the 1.5 s CTA fade, the related links, retry — produces the same cell states,
+   counter and feedback text at every step, the hero image loads, the answer block is visually
+   hidden, no page overflows, no console error, no failed same-origin request. `sitemap.xml` and
+   `country-pages.json` are byte-identical under `build-sitemap.mjs`. The apex and country pages
+   are unchanged apart from the inlined token block. 575 tests across 46 files; `check-tokens`
+   covers 85 files including `borders.css` and `answers.css`.
 8. **The dev page keeps a stylesheet, and it is not this one.** `styles.css` is deleted.
    `index.html` gets `legacy.css`: the ~2,200 rule lines the selector inventory reaches — the
    old `:root` block, the editors, modals, search, zoom widget and celebrations, the Daily

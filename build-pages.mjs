@@ -25,10 +25,11 @@ const INCLUDE = [
     // The vanilla page stays in the repo as the dev-tool page — label, colour
     // and zoom editors, audit mode — reachable locally at /legacy, and is not
     // deployed. NOT packages either: only that page's import map read them.
-    'styles.css',           // still linked by every /borders/<slug> page (B12 retires it)
-    'js',                   // the borders quiz (js/landing) and the shared engine
-    'borders',              // generated border-quiz landing pages (build-landing.mjs)
-    'img',                  // small UI-shell images (e.g. the loading-splash globe)
+    // NOT styles.css, js or borders either, since B12: the /borders/* pages are
+    // Astro's now (src/pages/borders), with a token-built stylesheet and the
+    // quiz script bundled — nothing deployed references /styles.css or /js/…
+    // any more. The engine reaches the page inside Astro's chunks.
+    'img',                  // borders hero/share images, the loading-splash globe
     'label-config.json',
     'country-colors.json',
     'country-zoom.json',
@@ -72,7 +73,7 @@ for (const entry of INCLUDE) {
 const ASTRO_DIST = join(ROOT, 'apps', 'web', 'dist');
 if (!existsSync(join(ASTRO_DIST, 'country'))) {
     // Hard failure, not a warning. sitemap.xml already advertises /country/<slug>
-    // (build-landing.mjs writes them from content/countries.json), so deploying
+    // (build-sitemap.mjs writes them from content/countries.json), so deploying
     // without these pages points crawlers at 404s — worse than a failed build,
     // and invisible for weeks.
     console.error(

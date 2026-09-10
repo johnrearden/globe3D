@@ -3,14 +3,14 @@
  * dev-server.mjs — one local origin for both apps, the way production serves them.
  *
  * THE PROBLEM IT SOLVES: in production a single Cloudflare Pages project serves
- * everything from one origin — the Astro app at `/` and `/country/*`, the
- * generated `/borders/*` pages, `/privacy/`, and the static files they share.
+ * everything from one origin — the Astro app at `/`, `/country/*` and (since
+ * B12) `/borders/*`, plus `/privacy/` and the static files they share.
  * Locally that used to be two servers on two ports, so every cross-link 404'd
  * and the site looked broken in exactly the way it is not.
  *
  * Since B11 the Astro dev server owns `/` (and `/index.html`, `/landing.json`)
  * as well as the prefixes below; everything else is served statically from the
- * repo root — the borders pages, `styles.css`, `js/`, the assets. One thing has
+ * repo root — `/privacy/`, the images, the assets, the root JSON files. One thing has
  * no production equivalent: the vanilla `index.html`, which is no longer
  * deployed but survives in the repo as the dev-tool page (the label, colour and
  * zoom editors, audit mode). It is served at **`/legacy`**, and its root-absolute
@@ -59,7 +59,7 @@ const ASTRO = { host: '127.0.0.1', port: Number(process.env.ASTRO_PORT || 4321) 
 // `/country-pages.json`, `/country-colors.json` and `/country-zoom.json`, which are
 // repo-root files the globe fetches. Swallowing the first of those silently
 // disables every "Read more" article link in the app.
-export const ASTRO_PREFIXES = ['/country/', '/_astro/', '/@', '/src/', '/node_modules/.vite/'];
+export const ASTRO_PREFIXES = ['/country/', '/borders/', '/_astro/', '/@', '/src/', '/node_modules/.vite/'];
 // Whole paths Astro owns. `/` is the apex since B11; `/landing.json` is what the
 // router fetches to navigate home without a document load.
 export const ASTRO_EXACT = ['/', '/index.html', '/landing.json'];

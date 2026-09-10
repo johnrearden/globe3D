@@ -19,13 +19,6 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
-# Stylesheet + JS module tree change every deploy — revalidate (etag → 304 when
-# unchanged) so a stale cache never serves old CSS/JS against fresh index.html.
-/styles.css
-  Cache-Control: public, max-age=0, must-revalidate
-/js/*
-  Cache-Control: public, max-age=0, must-revalidate
-
 # Astro's bundles are content-hashed, so a change is a new URL — safe to cache
 # forever. Without this rule they fall through to /* and get no Cache-Control at
 # all, i.e. re-fetched every visit.
@@ -35,4 +28,7 @@
 # Country pages are the opposite: stable URLs whose content gets edited, so they
 # must revalidate like index.html. Covers the .json siblings the router fetches.
 /country/*
+  Cache-Control: public, max-age=0, must-revalidate
+# Same for the borders quizzes, which are Astro pages since B12.
+/borders/*
   Cache-Control: public, max-age=0, must-revalidate

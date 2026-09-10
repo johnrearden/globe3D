@@ -1,11 +1,11 @@
 /**
  * The third-party head, built at build time from `js/data/site-config.js`.
  *
- * The vanilla apex carried these tags by hand in `index.html`, and
- * `build-landing.mjs` generates them into every `/borders/<slug>` page from the
- * same config. This is the third consumer of that config and deliberately not a
- * third copy of the ids: `site-config.js` is imported, so an id changed there
- * changes here.
+ * The vanilla apex carried these tags by hand in `index.html`, and until B12
+ * `build-landing.mjs` generated them into every `/borders/<slug>` page from the
+ * same config. Both are gone; this is the one consumer, and deliberately not a
+ * copy of the ids: `site-config.js` is imported, so an id changed there changes
+ * here — on every page, since `SiteHead` renders this for all of them.
  *
  * ## What has to be in the raw HTML, and why
  *

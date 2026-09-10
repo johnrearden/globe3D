@@ -211,7 +211,7 @@ After approval:
 
 1. ~~In **`js/data/site-config.js`**, set `ADSENSE_CLIENT_ID` to your `ca-pub-…` id.~~ Done. Note it
    is duplicated in the static loader `<script>` in `index.html`'s `<head>` — **keep the two in
-   sync**. The `/borders/<slug>` pages need no edit: `build-landing.mjs` reads `site-config.js`.
+   sync**. The `/borders/<slug>` pages need no edit: they carry `SiteHead`, which reads `site-config.js`.
 2. In the AdSense dashboard, create the display ad units, then set `ADSENSE_RAIL_SLOT` (desktop side
    rail) and `ADSENSE_LANDING_SLOT` (the in-content unit on the `/borders/<slug>` landing pages) in
    the same file. **Until these are set, no ad unit is mounted at all** — that is deliberate: a
@@ -219,8 +219,8 @@ After approval:
 3. ~~In **`ads.txt`**, replace `pub-XXXXXXXXXXXXXXXX` with your publisher id.~~ Done.
 
 **Where the loader lives.** `adsbygoogle.js` is a **static `<script async src>` in `index.html`'s
-`<head>`**, immediately after the `google-adsense-account` meta (and emitted into every
-`/borders/<slug>` page by `build-landing.mjs`). It has to be in the raw HTML: injecting it from
+`<head>`**, immediately after the `google-adsense-account` meta (and, since B12, into every
+`/borders/<slug>` page by the shared `SiteHead` component). It has to be in the raw HTML: injecting it from
 `js/features/ads/adsense.js` put it behind `init()`'s WebGL `try/catch` and a 6s `afterIntro`
 deferral, so a WebGL-less or non-executing crawler saw **no ad code**, and AdSense review stalled at
 "Getting ready". This is a documented exception to the "no new `<script>` in `index.html`" rule in
@@ -234,8 +234,8 @@ This is a WebGL SPA, so ads sit in the page chrome, never over the canvas:
 - **Desktop side rail** — `js/features/ads/ad-rail.js` mounts a responsive unit in the left margin.
 - **Mobile bottom anchor** — served by **Auto Ads set to Anchor-only** (AdSense dashboard →
   Auto ads). Keep all other Auto-Ads formats **off** so nothing overlays the globe.
-- **Landing pages** — `build-landing.mjs` injects an in-content unit into each `/borders/<slug>`
-  page at build time, gated on the config IDs.
+- **Landing pages** — the Astro page (`apps/web/src/pages/borders/[slug].astro`) renders an
+  in-content unit into each `/borders/<slug>` page at build time, gated on BOTH config IDs.
 
 Do not follow the old "Auto Ads / manual banner" snippets — the app's own canvas is not a valid ad
 surface, and Auto Ads left fully on would overlay it (a policy risk).
@@ -254,7 +254,7 @@ surface, and Auto Ads left fully on would overlay it (a policy risk).
 > little or no EEA fill. Not an approval blocker (a US reviewer is unaffected, and Consent Mode
 > grants everything outside EEA/UK/CH). Fix after approval by hoisting `initConsentCmp()` to the
 > top-level module block beside `initConsentDefaults()`, and/or emitting the Funding Choices tag
-> statically above the AdSense tag exactly as `build-landing.mjs` already does.
+> statically above the AdSense tag exactly as `SiteHead.astro` already does.
 
 ### Step 6: Verify what a crawler sees
 Use `curl`, not the browser — `curl` shows the raw HTML, which is what AdSense's reviewer and ad
@@ -928,8 +928,8 @@ domains** → add `terragotcha.com` + `www.terragotcha.com`.
 > vanilla app, which would otherwise still be deployable on an older Node. If Pages ever
 > ignores `.node-version`, set `NODE_VERSION=22` as a build environment variable.
 
-> **`npm run build:pages` spans both apps.** It runs `build-landing.mjs` (border pages +
-> `sitemap.xml` + `country-pages.json`), then the Astro build (`apps/web` → country pages),
+> **`npm run build:pages` spans both apps.** It runs `build-sitemap.mjs` (`sitemap.xml` +
+> `country-pages.json`), then the Astro build (`apps/web` → the apex, country and borders pages),
 > then `build-pages.mjs`, which stages the allow-list and merges Astro's output in at the
 > root. That order is required: `build-pages.mjs` opens by wiping `dist/`, so anything written
 > there earlier is destroyed. It aborts if the Astro output is missing, because `sitemap.xml`

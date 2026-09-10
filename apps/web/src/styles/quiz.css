@@ -14,6 +14,9 @@
  * outlines are the only bare pixel values.
  */
 
+/* The answer button and its reveal states: shared with the borders pages. */
+@import './answers.css';
+
 /* ── The launcher ─────────────────────────────────────────────────────────── */
 /* Bottom-left on desktop, hugging the bottom-right thumb zone on mobile. It sits
    above the globe and below every quiz surface. */
@@ -393,62 +396,6 @@
     margin: 0;
     padding: 0;
     list-style: none;
-}
-
-.quiz-option {
-    display: flex;
-    gap: var(--space-2);
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 3rem;      /* touch target, not decoration */
-    padding: var(--space-2) var(--space-3);
-    background: var(--surface-raised);
-    color: var(--text-primary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-btn);
-    cursor: pointer;
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    text-align: center;
-}
-
-.quiz-option:hover:not(:disabled) {
-    border-color: var(--primary);
-}
-
-.quiz-option:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
-.quiz-option:disabled {
-    cursor: default;
-}
-
-/* The reveal. `--status-correct` / `--status-incorrect` are fixed rather than
-   authorable on purpose: red/green is the most common colour-vision deficiency
-   and a theme must not be able to break comprehension. The icon badge carries
-   the same information without relying on hue. */
-.quiz-option.correct {
-    border-color: var(--status-correct);
-    color: var(--status-correct);
-}
-
-.quiz-option.incorrect {
-    border-color: var(--status-incorrect);
-    color: var(--status-incorrect);
-}
-
-.quiz-option.dimmed {
-    color: var(--text-disabled);
-    background: var(--surface-disabled);
-}
-
-.qz-mark {
-    display: grid;
-    place-items: center;
-    flex: none;
 }
 
 .qz-answers-flag .quiz-option {

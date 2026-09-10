@@ -1,0 +1,67 @@
+/**
+ * The answer button — shared by the app's quiz (`quiz.css`) and the borders
+ * pages (`borders.css`), both of which `@import` this file. Split out at B12 so
+ * the two quizzes' buttons stay one design: `options-grid.js` on a borders page
+ * and `OptionGrid.tsx` in the app emit the same `.quiz-option` / `.qz-mark`
+ * markup and the same reveal classes, and a second copy of these rules would
+ * have drifted the first time one was tuned.
+ *
+ * Only the button and its states live here. Where the buttons sit — the app's
+ * `.qz-answers` grid, the borders page's `.dq-grid` — is the importer's.
+ */
+
+.quiz-option {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 3rem;      /* touch target, not decoration */
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-btn);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    text-align: center;
+}
+
+.quiz-option:hover:not(:disabled) {
+    border-color: var(--primary);
+}
+
+.quiz-option:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.quiz-option:disabled {
+    cursor: default;
+}
+
+/* The reveal. `--status-correct` / `--status-incorrect` are fixed rather than
+   authorable on purpose: red/green is the most common colour-vision deficiency
+   and a theme must not be able to break comprehension. The icon badge carries
+   the same information without relying on hue. */
+.quiz-option.correct {
+    border-color: var(--status-correct);
+    color: var(--status-correct);
+}
+
+.quiz-option.incorrect {
+    border-color: var(--status-incorrect);
+    color: var(--status-incorrect);
+}
+
+.quiz-option.dimmed {
+    color: var(--text-disabled);
+    background: var(--surface-disabled);
+}
+
+.qz-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+}

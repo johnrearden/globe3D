@@ -33,7 +33,7 @@ export const GLITCHTIP_DSN = 'https://f811995f24554362b951806c94e6df4e@glitchtip
 // NOTE: this value is duplicated in the static loader <script> in index.html's
 // <head> (the loader must sit in the raw HTML so AdSense's reviewer/crawler sees
 // it without executing the app) — keep the two in sync. The /borders/<slug>
-// landing pages stay in sync automatically: build-landing.mjs reads this file.
+// landing pages stay in sync automatically: they read this file through SiteHead.
 export const ADSENSE_CLIENT_ID = 'ca-pub-2820812359000429';
 
 // Ad-unit slot id (data-ad-slot) for the desktop side rail. Create a display
@@ -42,7 +42,7 @@ export const ADSENSE_CLIENT_ID = 'ca-pub-2820812359000429';
 export const ADSENSE_RAIL_SLOT = '';
 
 // Ad-unit slot id for the in-content unit on the /borders/<slug> landing pages
-// (read at build time by build-landing.mjs). Empty → no ad unit is emitted
+// (read at build time by the borders page). Empty → no ad unit is emitted
 // (the pages still get the loader, which is what AdSense review looks for).
 export const ADSENSE_LANDING_SLOT = '';
 
@@ -57,9 +57,9 @@ export const CMP_PUBLISHER_ID = 'pub-2820812359000429';
 
 // EU-27 + Iceland/Liechtenstein/Norway (EEA) + United Kingdom + Switzerland —
 // the regions where consent is required before storage. Consent Mode `region`
-// codes. THE one list: js/features/analytics.js, build-landing.mjs (the
-// /borders/* pages) and apps/web's layout all read it from here, and
-// tests/production-head.test.js checks the rendered pages agree with it. KEEP
+// codes. THE one list: apps/web's lib/site-head.ts reads it from here into the
+// head every page carries (`/`, `/country/*`, `/borders/*` alike), and
+// tests/production-head.test.js checks the layouts restate none of it. KEEP
 // IN SYNC with the GDPR message's geo-targeting in the AdSense "Privacy &
 // messaging" dashboard: a country denied here but shown no banner would be
 // stuck denied with no way to grant → silent analytics loss there.

@@ -38,7 +38,8 @@ export class QuizQuestionChrome {
      * @param {'fullscreen'|'floating'} [opts.variant] - 'fullscreen' (flag quiz,
      *   takes over the screen) or 'floating' (Name-the-Country quiz, a panel that
      *   floats over the live globe). Only adds a marker class; the container
-     *   geometry lives in styles.css under the owning body class.
+     *   geometry lived in the legacy styles.css under the owning body class.
+     *   Only `svgIcon` is used since B11 (border-quiz.js, audit-mode.js).
      * @param {number} [opts.total] - number of questions (denominator in "Q n/N"
      *   and the progress-bar scale). Defaults to 10; the Find-the-country quiz
      *   passes fewer when a small region can't supply 10 large countries.

@@ -12,14 +12,18 @@
  */
 import type { ComponentProps } from 'astro/types';
 import SiteHead from '../components/SiteHead.astro';
-type Props = ComponentProps<typeof SiteHead>;
+/** The head's props, plus the one thing a static page styles that is outside
+ *  its slot: the body. A class rather than a stylesheet, because the page's
+ *  own CSS (imported by the page) is where the rules live. */
+type Props = ComponentProps<typeof SiteHead> & { bodyClass?: string };
+const { bodyClass, ...head } = Astro.props;
 ---
 <!doctype html>
 <html lang="en">
 <head>
-    <SiteHead {...Astro.props} />
+    <SiteHead {...head} />
 </head>
-<body>
+<body class={bodyClass}>
     <slot />
 </body>
 </html>

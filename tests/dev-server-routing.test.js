@@ -39,9 +39,17 @@ describe('dev-server route split', () => {
         }
     });
 
-    it('still serves the shared static files and the borders pages locally', () => {
-        for (const p of ['/styles.css', '/js/landing/border-quiz.js', '/borders/france/',
-                         '/assets/world-mesh.bin', '/sitemap.xml', '/legacy']) {
+    it('hands the borders pages to Astro too, since B12', () => {
+        for (const p of ['/borders/france/', '/borders/france']) {
+            expect(isAstroPath(p), p).toBe(true);
+        }
+    });
+
+    it('still serves the shared static files locally', () => {
+        // styles.css and js/ are the dev-tool page's now; the images, assets
+        // and root JSON are what production serves beside the Astro output.
+        for (const p of ['/styles.css', '/js/core/globe.js', '/img/borders/france.png',
+                         '/assets/world-mesh.bin', '/sitemap.xml', '/privacy/', '/legacy']) {
             expect(isAstroPath(p), p).toBe(false);
         }
     });
