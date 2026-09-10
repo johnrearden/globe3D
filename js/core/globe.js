@@ -13,6 +13,7 @@ import { latLngToXYZ } from '../utils/coordinates.js';
 import { COUNTRY_REGIONS } from '../data/country-regions.js';
 import { MarkerLayer } from './markers.js';
 import { cssToken } from '../utils/theme.js';
+import { lookupCountryId } from './country-names.js';
 
 import * as THREE from 'three';
 
@@ -887,16 +888,13 @@ export class GlobeManager {
         this.paletteTexture.needsUpdate = true;
     }
 
+    /**
+     * Name → palette id, forgiving of case, spacing and diacritics but never
+     * of ambiguity — see `country-names.js` for the rules and for why the
+     * substring match this replaced could recolour the wrong country.
+     */
     _lookupIdLoose(name) {
-        if (this.nameToId[name] !== undefined) return this.nameToId[name];
-        const target = name.toLowerCase().replace(/\s+/g, '');
-        for (const canonical in this.nameToId) {
-            const c = canonical.toLowerCase().replace(/\s+/g, '');
-            if (c === target || c.includes(target) || target.includes(c)) {
-                return this.nameToId[canonical];
-            }
-        }
-        return undefined;
+        return lookupCountryId(this.nameToId, name);
     }
 
     /**
@@ -1048,11 +1046,6 @@ export class GlobeManager {
             };
         }
         return out;
-    }
-
-    /** Deprecated — countries are no longer separate meshes. */
-    getCountries() {
-        return [];
     }
 
     getGlobe() {

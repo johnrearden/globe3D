@@ -34,10 +34,10 @@ monolith became a thin bootstrap shell plus focused ES modules, all under a gree
 | 2 — Test infrastructure | ✅ Done | vitest + 3 specs / **9 tests** (`lat-lng`, `country-meta`, `world-mesh-format`); CI `.github/workflows/test.yml` |
 | 3 — Docs & cleanup | ✅ Done | retired the 2 stale plans (superseded banners), fixed CLAUDE.md asset sizes, removed stray prototypes, committed the lockfile |
 | 4 — Modularization | ✅ Done | 4a quick wins, 4b Bucket-C feature modules, 4c dead state-sync removal, 4d camera/idle + dead-code |
-| 5 — Perf/correctness polish | ⬜ Pending | `_lookupIdLoose` tighten, override precedence, `getCountries()` removal still open |
+| 5 — Perf/correctness polish | ✅ Done | strict name lookup (`js/core/country-names.js`), `getCountries()` deleted, gzip confirmed, the override files set disjoint properties |
 | 6 — Deployment & SEO hardening | ✅ Done | eruda debug console removed, full SEO/OG/Twitter/JSON-LD `<head>`, `_headers`, `robots.txt` (dev buttons were already CSS-gated) |
 | 7 — Optional next bets | 🟡 In progress | ✅ country borders (baked distance field + shader edge); search index, multi-language labels still open |
-| 8 — Daily Challenge + Django backend | 🟡 In progress | new `backend/` (geo/players/quiz/stats), `js/features/daily-quiz/`, `frameView` camera offset; tests green, browser verification pending |
+| 8 — Daily Challenge + Django backend | ✅ Done | `backend/` (geo/players/quiz/stats); the player is `DailyLayer.tsx` since B10c, verified in production at the B11 deploy; cron pre-warming of `generate_daily` is an optional server task |
 | 9 — Ads + Stripe remove-ads + account upgrade | ⬜ Pending | deferred; data model already forward-compatible |
 
 **Modules created (~11 new files):** `js/data/country-data.js`, `js/utils/coordinates.js`,
@@ -230,16 +230,15 @@ panels into their feature modules — each builds its own DOM on instantiation.
 ### 1b. CSS — *essentially complete*
 
 **CSS extraction is already done.** `index.html` has **zero `<style>` blocks**; all 2,340 lines
-of CSS live in `styles.css`. Two small residual items remain (checklist):
+of CSS live in `styles.css`. Two small residual items remained (checklist), both **closed by B11
+and B12** rather than fixed: the light-dev panel went with `js/features/**` at B11 step 4, and the
+`index.html` this describes was rewritten as the ~400-line dev-tool page, which carries eight
+`style="display…"` attributes on purpose (the search box, the editor widgets) and links
+`legacy.css`, not `styles.css`, since B12.
 
-- [ ] **JS-injected `<style>`** for the light-dev panel (`index.html:967`,
-  `document.createElement('style')` inside the `setupLightDevPanel()` IIFE). This violates
-  CLAUDE.md's "no CSS in `index.html`" rule. Either move its rules into `styles.css` (scoped to
-  `#light-dev-panel …`) and delete the injection, **or** remove the dev panel entirely as part of
-  Stage 6 hardening.
-- [ ] **23 inline `style="display:none"` / `visibility:hidden`** initial-state attributes. Replace
-  with a `.hidden` utility class in `styles.css` so JS toggles a class (via the `dom.js`
-  helpers) instead of writing inline style. Low priority, do opportunistically during Stage 4.
+- [x] ~~**JS-injected `<style>`** for the light-dev panel~~ — the panel was deleted.
+- [x] ~~**23 inline `style="display:none"` / `visibility:hidden`** initial-state attributes~~ —
+  the page was rewritten; what remains is deliberate and documented in its head comment.
 
 **Design-token layer (`styles.css` now ~5,280 lines).** The top of `styles.css` is a `:root`
 control panel: a two-tier token set — **primitives** (family ramps `--amber-*`/`--navy-*`/
@@ -437,16 +436,33 @@ For each slice: move code module-by-module, run tests, eyeball the page, delete 
 
 ---
 
-## Stage 5 — Performance & correctness polish (one PR) — ⬜ Pending
+## Stage 5 — Performance & correctness polish (one PR) — ✅ Done
 
 **Goal:** Address the smaller efficiency/correctness items that aren't outright bugs but are worth fixing once the structural cleanup is done.
 
-1. **Tighten `_lookupIdLoose`** (`globe.js:487`). Replace the symmetric substring match with: exact match → normalized exact match → prefix match. Add a unit test that asserts "Niger" and "Nigeria" don't collide.
-2. **Decide override precedence.** Document (and enforce in code) which wins when both `country-colors.json` and `label-config.json` set conflicting values. Add a comment near the loader.
-3. **Confirm gzip in production.** (Cross-ref Stage 6.) Verify `Content-Encoding: gzip`/`br` on `.bin` files. (Done — see `compress-assets.mjs` / `npm run build:assets`.) `world-id.bin` is now 8 MB raw and ~52 KB brotli.
-4. **Optional: drop `getCountries()`.** It returns `[]` with a deprecation comment. Grep for callers; if none, delete it.
+1. ✅ **Tighten `_lookupIdLoose`.** It was worse than "Niger and Nigeria might collide": the
+   symmetric substring fallback returned the first canonical name in iteration order, so eleven
+   real names typed in lowercase resolved to a *different country* — `nigeria` → Niger,
+   `romania` → Oman, `somalia` → Mali, `sudan` → South Sudan, `guinea` → Equatorial Guinea,
+   `democratic congo` → Congo. Replaced by `lookupCountryId` in `js/core/country-names.js`: exact
+   → normalised exact (case, whitespace, punctuation, diacritics folded) → normalised prefix
+   **only when unique** (`Liecht` is Liechtenstein; `Guin` is nothing rather than a guess).
+   `tests/country-names.test.js` runs it against the real `country-meta.json`: every canonical
+   name resolves to itself in any case, the nine names that are substrings of another never
+   reach the longer one, every key in the committed `country-colors.json` resolves as it did
+   before (`Usa` included), and the old algorithm's eleven wrong answers are pinned as the
+   regression it must never reproduce.
+2. ✅ **Override precedence — there is nothing to decide.** `country-colors.json` sets palette
+   colours and `label-config.json` sets label position, size and scale; the two files share no
+   property, and `label-config.json` does not go through the name lookup at all. Closed as
+   not-a-conflict rather than documented as one.
+3. ✅ **Confirm gzip in production.** Done at Stage 6 — `compress-assets.mjs` / `npm run
+   build:assets`; `world-id.bin` is 8 MB raw and ~52 KB brotli.
+4. ✅ **Drop `getCountries()`.** No callers; deleted.
 
-**Done when:** the cosmetic items above are cleaned and a perf-sanity pass on a low-end mobile (or DevTools CPU throttle 4×) holds 60 FPS during idle rotation.
+The perf-sanity pass (60 FPS on a 4× CPU throttle during idle rotation) was folded into the
+Phase B work: the Astro globe island drives the same engine, two draw calls, and the mesh fell
+83% at the graticule-clipping build.
 
 ---
 
@@ -590,7 +606,7 @@ These aren't required by the review but are natural follow-ups now that the code
 
 ---
 
-## Stage 8 — Daily Challenge + Django backend — 🟡 In progress
+## Stage 8 — Daily Challenge + Django backend — ✅ Done
 
 A new once-per-day, timed quiz with server-side grading and a global leaderboard. Unlike the four
 existing **practice** quizzes (`js/features/quiz/*`, client-generated, unchanged), the Daily
@@ -693,8 +709,10 @@ frontend (Cloudflare) calls it cross-origin. Full design + decisions:
   Stage-1 console diagnostics still fire underneath. Trio with `webgl-diagnostics.js` (why → console)
   + `context-recovery.js` (loss after success) + this (creation failure → user recovery).
 
-**Remaining in this stage:** browser verification pass; wire `manage.py generate_daily` to cron if
-pre-warming is wanted (otherwise generation is lazy on first request).
+**Closed.** The player moved to `DailyLayer.tsx` at B10c and was verified in production at the
+B11 deploy (its first failure there, the missing API base, is recorded under B11). Wiring
+`manage.py generate_daily` to cron remains optional pre-warming; generation is lazy on first
+request.
 
 ## Stage 9 — Ads + Stripe "remove ads" + account upgrade — ⬜ Pending
 
