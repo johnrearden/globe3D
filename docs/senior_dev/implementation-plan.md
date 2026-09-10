@@ -1762,6 +1762,40 @@ Three commits, the middle one the only one that changes what a visitor gets:
 Deploying is frontend-only — no backend change, no migration — and, as always, a push is the
 user's.
 
+
+## After the flip — production findings
+
+Things the first deploy showed that no local check had. Each is fixed in the commit named;
+they are listed here so the next deploy's checklist grows from them.
+
+1. **The API base (fixed `2ba7c33`).** Recorded under B11: the Astro head never set
+   `window.GLOBE3D_API_BASE`, so every Daily Challenge POST went to same-origin `/api` on
+   Pages and got a 405.
+2. **The apex on a phone: the globe was a clipped sliver.** The panel sheet mounted expanded and
+   the mobile stylesheet let it grow to 88vh, so on a 844px screen the strip above it was ~100px.
+   `framingFor` did the right thing with the strip — asked for a globe 62% of it, ~63px — but
+   that needs a camera distance of ~18 and the camera clamps at 10, where the globe is ~110px
+   across: its top above the screen edge and under the search box, its bottom behind the sheet.
+   The vanilla apex had split the phone at 42vh, globe above, so its strip was never that short;
+   the Astro sheet was written for the country pages and the apex inherited its height.
+
+   Fixed in two parts. `PanelSheet` takes `view="home"|"country"` from the page (emitted as
+   `data-view`, so it is in the first paint, and followed from the route store after a pushState
+   navigation) and `shell.css` caps the apex sheet at **58vh** on phones, leaving a 354px strip
+   that the globe fills at a distance inside the camera's range. And `framingFor` treats a strip
+   under **21% of the viewport height** as no free region — the derivation is in the file:
+   0.13·vh minimum globe over 0.62 fill — and centres the globe behind the sheet rather than
+   clipping it, which is what the country pages now do. The prop is deliberately not re-read
+   from the route store on mount: `AppRouter` seeds that store from its own island, and on a
+   country page the sheet can hydrate first, in which case reading it would report the apex,
+   shrink the sheet and grow it back a beat later.
+
+   Verified in headless Chrome at 390×844 with the globe loaded (`build:pages:local`): the apex
+   sheet tops out at 354px with the whole globe centred in the strip above; the country sheet
+   stays at 88vh with a clean strip. `tests/globe-framing.test.js` pins the threshold and both
+   shapes; `tests/landing-page-static.test.js` pins the prop, the two heights and the
+   route-following.
+
 ---
 
 ## Cross-cutting conventions

@@ -22,14 +22,34 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 // eslint-disable-next-line import/no-relative-packages -- deliberate: see above.
 import { decideSnap } from '../../../../js/utils/sheet-snap.js';
 import { getPanelSnap, setPanelSnap, onPanelSnapChange, type Snap as SnapState } from '../lib/panel';
+import { onScreenChange } from '../lib/route';
+import type { Route } from '../lib/routes';
 
 export default function PanelSheet({
     children,
     initial = 'expanded',
+    view,
 }: {
     children?: ReactNode;
     initial?: SnapState;
+    /**
+     * What the sheet holds on first paint — the page says, because the route
+     * store is seeded by an island that may hydrate later. On a phone the two
+     * views want different heights: an article is the reason the reader came
+     * and gets most of the screen; the apex is a globe with a reading panel
+     * under it, and the globe needs a strip the camera can actually frame into
+     * (see `globe-framing.ts`). `shell.css` reads this as `data-view`. After
+     * hydration it follows the route, so a pushState navigation resizes it.
+     */
+    view: Route['view'];
 }) {
+    // The prop is authoritative for first paint and is NOT re-read from the
+    // route store on mount: AppRouter seeds that store from its own island, and
+    // on a country page this one can hydrate first — reading the store then
+    // would report the apex, shrink the sheet, and grow it back a beat later.
+    // Only later navigations are followed.
+    const [currentView, setCurrentView] = useState<Route['view']>(view);
+    useEffect(() => onScreenChange((screen) => setCurrentView(screen.route.view)), []);
     // Mirrored from the module store rather than owned here: the router asks for
     // a collapse when the reader follows "Explore … on the globe", and the globe
     // re-frames itself off the same signal.
@@ -78,6 +98,7 @@ export default function PanelSheet({
             ref={ref}
             className="panel-sheet"
             data-snap={snap}
+            data-view={currentView}
             data-interactive={interactive ? 'true' : 'false'}
         >
             <button

@@ -39,6 +39,36 @@ describe('stacked (mobile bottom sheet)', () => {
     });
 });
 
+describe('a strip the camera cannot frame into', () => {
+    const phone = { width: 390, height: 844 };
+
+    it('is treated as no free region: the globe centres behind the sheet', () => {
+        // An 88vh sheet on a phone leaves ~100px. At the camera's farthest zoom
+        // the globe is ~0.13·vh across (75° FOV, distance 10), so framing it
+        // into 62% of 100px is impossible and the engine clamps it larger than
+        // the strip — clipped above by the screen edge and below by the sheet.
+        const tall = { left: 0, top: 101, width: 390, height: 743 };
+        const f = framingFor(tall, phone);
+        expect(f.focalAnchor).toEqual({ x: 0.5, y: 0.5 });
+        expect(f.visibleFraction).toBe(1);
+    });
+
+    it('but a strip the apex now leaves is framed into as before', () => {
+        // 58vh sheet → 354px free: the globe (0.62 · 354 ≈ 220px) fits at a
+        // distance well inside the camera's range.
+        const apex = { left: 0, top: 354, width: 390, height: 490 };
+        const f = framingFor(apex, phone);
+        expect(f.focalAnchor.y).toBeCloseTo(354 / 2 / 844, 6);
+        expect(f.visibleFraction).toBeCloseTo(354 / 390, 6);
+    });
+
+    it('draws the line at 21% of the viewport height', () => {
+        const just = (top) => framingFor({ left: 0, top, width: 390, height: 844 - top }, phone).visibleFraction;
+        expect(just(Math.ceil(0.21 * 844) + 1)).toBeLessThan(1);
+        expect(just(Math.floor(0.21 * 844) - 1)).toBe(1);
+    });
+});
+
 describe('degenerate inputs never produce a broken camera', () => {
     it('centres when nothing covers the globe', () => {
         expect(framingFor(null, vp).focalAnchor).toEqual({ x: 0.5, y: 0.5 });

@@ -337,7 +337,16 @@ PanelSheet     client:idle   — hydrates, so the sheet can be dragged
   CountryArticle             — NO client: directive, passed as a SLOT
 ```
 
-The same composition serves the apex (`LandingContent` in place of `CountryArticle`).
+The same composition serves the apex (`LandingContent` in place of `CountryArticle`), with one
+difference the page declares: `PanelSheet` takes `view="home"` or `view="country"`, emitted as
+`data-view` so it is in the first paint. On a phone an article sheet may take 88vh — the reader
+came for the text — but the apex sheet stops at 58vh (the vanilla split), because the strip above
+it is what the globe is framed into, and the camera cannot shrink the globe below ~13% of the
+viewport height (75° FOV, farthest zoom 10). Framed into a 100px strip it came out clipped under
+the search box, which is how the first phone screenshot of production looked. `globe-framing.ts`
+now treats a strip under 21% of the viewport as no free region at all and centres the globe
+behind the sheet instead — the country pages get that — and the sheet follows the route after a
+pushState navigation, so the two views keep their heights.
 
 `CountryArticle` is **React with no `client:` directive**, so Astro renders it to HTML at
 build time and ships zero JavaScript for it. Passing it to `PanelSheet` as a *slot* (not a

@@ -58,7 +58,7 @@ const title = `${country.name} — geography, history and literature | Terragotc
     <AppRouter client:idle initial={{ view: 'country', slug: country.slug }} country={country} />
 
     <main>
-        <PanelSheet client:idle initial="expanded">
+        <PanelSheet client:idle initial="expanded" view="country">
             <CountryArticle country={country} />
         </PanelSheet>
     </main>

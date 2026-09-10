@@ -59,7 +59,7 @@ const title = 'Terragotcha — learn world geography on an interactive 3D globe'
     <AppRouter client:idle initial={HOME_ROUTE} />
 
     <main>
-        <PanelSheet client:idle initial="expanded">
+        <PanelSheet client:idle initial="expanded" view="home">
             <LandingContent model={landing} />
         </PanelSheet>
     </main>

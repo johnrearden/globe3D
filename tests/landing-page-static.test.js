@@ -51,6 +51,22 @@ describe('apex page composition', () => {
         expect(hydrated).toEqual(['AppRouter:idle', 'GlobeIsland:only', 'PanelSheet:idle']);
     });
 
+    it('tells the sheet it holds the apex, so a phone gives the globe its strip', () => {
+        // The sheet's mobile height follows data-view (shell.css): an article
+        // takes 88vh, the apex stops at 58vh so the globe is framed into a
+        // strip the camera can fill rather than a clipped sliver.
+        expect(page).toMatch(/<PanelSheet[^>]*\sview="home"/);
+        expect(read('../apps/web/src/pages/country/[slug].astro')).toMatch(/<PanelSheet[^>]*\sview="country"/);
+        const css = read('../apps/web/src/styles/shell.css');
+        const mobile = css.slice(css.indexOf('@media (max-width: 899px)'), css.indexOf('@media (min-width: 900px)'));
+        const vh = (sel) => Number(mobile.match(new RegExp(`${sel}[^}]*max-height:\\s*(\\d+)vh`))?.[1]);
+        expect(vh('\\.panel-sheet \\{')).toBe(88);
+        expect(vh("\\.panel-sheet\\[data-view='home'\\]")).toBe(58);
+        const sheet = read('../apps/web/src/components/PanelSheet.tsx');
+        expect(sheet).toMatch(/data-view=\{currentView\}/);
+        expect(sheet).toMatch(/onScreenChange\(/);
+    });
+
     it('keeps the globe placeholder in the page, not inside the island', () => {
         // client:only contributes no build-time HTML, so a placeholder inside it
         // would leave the first paint empty behind the panel.

@@ -30,6 +30,22 @@ export interface Framing {
  *  limb never touches the panel edge. */
 const FILL = 0.62;
 
+/**
+ * The smallest free strip worth framing into, as a fraction of viewport height.
+ *
+ * The engine cannot draw the globe arbitrarily small: the camera's farthest
+ * zoom is a distance of 10 (`camera-controls.js`), and with the 75° vertical
+ * FOV the globe at that distance is vh / (10 · tan 37.5°) ≈ 0.13 · vh across,
+ * whatever the width. Framing asks for FILL of the strip, so a strip shorter
+ * than 0.13 / 0.62 ≈ 0.21 · vh gets a globe the camera clamps LARGER than the
+ * strip — clipped by the screen edge above and the sheet below, a sliver under
+ * the search box. That is what the apex looked like on a phone with the sheet
+ * at 88vh (a 100px strip on an 844px screen). Below this, the honest answer is
+ * that nothing is free: centre the globe behind the sheet, as a collapsed
+ * sheet or a drag will reveal it whole.
+ */
+const MIN_FREE_FRACTION = 0.21;
+
 /** Nothing is covering the globe: centre it, full size. */
 const FULL = (vw: number, vh: number): Framing => ({
     focalAnchor: { x: 0.5, y: 0.5 },
@@ -57,8 +73,10 @@ export function framingFor(panel: Rect | null, viewport: { width: number; height
     const freeH = horizontal ? vh : panel.top;
 
     // A collapsed sheet can leave no free region at all; centre rather than
-    // divide by zero.
+    // divide by zero. A strip the camera cannot shrink the globe into counts
+    // as no free region too — see MIN_FREE_FRACTION.
     if (freeW <= 0 || freeH <= 0) return FULL(vw, vh);
+    if (Math.min(freeW, freeH) < MIN_FREE_FRACTION * vh) return FULL(vw, vh);
 
     const focalAnchor = horizontal
         ? { x: (freeW * 0.5) / vw, y: 0.5 }
