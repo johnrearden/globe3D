@@ -789,8 +789,9 @@ Implement additional schema types:
 
 ## 6. Frontend Hosting: Cloudflare Pages + R2 + Access
 
-The current production frontend split. **Pages** serves the app shell (`index.html`, `js/`,
-`styles.css`, the small root JSON); **R2** serves the baked binary/geo assets at
+The current production frontend split. **Pages** serves the Astro output (the apex, `/country/*`,
+`/borders/*`, their hashed `_astro/` bundles) plus `/privacy/`, the images and the small root
+JSON; **R2** serves the baked binary/geo assets at
 `assets.terragotcha.com` (because `planet-z9.pmtiles` ~1.5 GB and `world-mesh.bin` ~31 MB
 exceed Pages' **25 MiB/file** limit); **Cloudflare Access** gates the site during development;
 the **API** stays at `api.terragotcha.com` on the VPS. The frontend points at R2 and the API

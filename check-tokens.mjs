@@ -5,13 +5,13 @@
  * WHY: the whole point of @terragotcha/design-tokens is that the finished app
  * can be restyled from packages/design-tokens/src/tokens.js. That only holds if
  * EVERY UI surface resolves to a token, and a rule written in prose does not
- * survive thousands of lines of new UI. The old styles.css is the evidence: it
+ * survive thousands of lines of new UI. The old styles.css was the evidence: it
  * reached 5,649 lines largely because spacing was never tokenised.
  *
  * SCOPE IS THE MIGRATION'S PROGRESS BAR. This checks an explicit list, not the
  * whole repo. It starts at the files that already comply and a file joins when
  * it is rewritten against the token system — so new code is compliant by
- * construction. The legacy styles.css and js/features/** never join: they are
+ * construction. The dev page's legacy.css and js/features/** never join: they are
  * deleted at the end of the Phase B rewrite. Switching a linter on against a
  * mountain of violations only ever ends with the linter switched off.
  *
@@ -290,7 +290,7 @@ export function run({ verbose = false } = {}) {
         + `against ${tokens.size} tokens (${SCOPE.join(', ')}).`);
     if (legacyFallbacks.length) {
         console.log(`  ${legacyFallbacks.length} legacy-vocabulary fallback(s) still to remove `
-            + 'when styles.css goes:');
+            + 'when the legacy stylesheet goes:');
         for (const f of legacyFallbacks) console.log(`    ${f}`);
     }
     return 0;

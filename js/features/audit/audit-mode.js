@@ -339,7 +339,7 @@ export class AuditMode {
         const style = document.createElement('style');
         style.id = 'audit-styles';
         // Panel shell mirrors #dq-panel (which is id-scoped); question internals
-        // (.dq-prompt/.dq-grid-host/.quiz-option/…) come from styles.css untouched.
+        // (.dq-prompt/.dq-grid-host/.quiz-option/…) come from legacy.css untouched.
         style.textContent = `
 #audit-panel {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;

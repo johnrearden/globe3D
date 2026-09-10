@@ -1506,7 +1506,7 @@ Everything here is a production check; the dev server proves nothing about steps
    prove the *new* failure mode: with `APEX_IS_ASTRO = true` and Astro emitting no `index.html`,
    the build must still fail loudly rather than deploy a site with no front page.
 
-## Phase B12 — the borders pages leave the legacy stylesheet — ⏳ Planned
+## Phase B12 — the borders pages leave the legacy stylesheet — ✅ Done
 
 The last of the vanilla app still in the deploy is `styles.css` — 5,649 lines, shipped for one
 reason: all 27 `/borders/<slug>` pages link it. Those pages are also the last documents on the
@@ -1664,7 +1664,7 @@ from the app is a real navigation and the page needs no React.
    `country-pages.json` are byte-identical under `build-sitemap.mjs`. The apex and country pages
    are unchanged apart from the inlined token block. 575 tests across 46 files; `check-tokens`
    covers 85 files including `borders.css` and `answers.css`.
-8. **The dev page keeps a stylesheet, and it is not this one.** `styles.css` is deleted.
+8. ✅ **The dev page keeps a stylesheet, and it is not this one.** `styles.css` is deleted.
    `index.html` gets `legacy.css`: the ~2,200 rule lines the selector inventory reaches — the
    old `:root` block, the editors, modals, search, zoom widget and celebrations, the Daily
    Challenge panel audit mode reuses, the button normalisation — and nothing else. Pruned by the
@@ -1677,14 +1677,28 @@ from the app is a real navigation and the page needs no React.
    `--globe-border`, `--globe-label` — now resolve there, so the engine on the dev page reads the
    same tokens the product does. For a page whose purpose is editing what the product shows,
    that is a correction, not a side effect.
-9. **The counter reaches zero.** With `--font-body` resolving on the dev page, the
+9. ✅ **The counter reaches zero.** With `--font-body` resolving on the dev page, the
    `cssToken('--font-ui')` fallback at `js/utils/theme.js:39` goes and `canvasFont` reads one
    name. `check-tokens` reports `0 legacy-vocabulary fallback(s)` and the pragma machinery stays,
    for the next migration.
-10. **Prose.** CLAUDE.md (a dozen `styles.css` mentions, the `INCLUDE` paragraph, the "Static
+10. ✅ **Prose.** CLAUDE.md (a dozen `styles.css` mentions, the `INCLUDE` paragraph, the "Static
     country pages" section, the Code Organization bullets), the `check-tokens.mjs` header,
     `index.html`'s head comment, the two `js/landing` comments that point at `styles.css`, the
     B11 "cannot be deleted at B11" note, and the Cross-cutting conventions bullet below.
+
+    **Done (commit 3).** `legacy.css` is 3,114 lines against `styles.css`'s 5,649: 349 rules kept,
+    434 dropped, 16 keyframes kept. The pruner (a scratchpad script, not committed) parsed the
+    file into rules and `@media` blocks and kept a rule if any selector in it named a class or id
+    that appears anywhere in `index.html` or `js/**` — over-inclusive by design — plus element and
+    `:root` rules, dropping the `[data-theme]` blocks outright. The proof is not the pruner but the
+    diff: headless Chrome loaded the dev page (WebGL through SwiftShader) with the label editor
+    open and a search typed, and the computed style of **every element, over 50 properties plus
+    `::before`/`::after`**, was byte-identical before and after — 82 elements, 0 differences. On
+    the same run `--font-body` and `--globe-space` resolve on the dev page, which they did not
+    before, so the `--font-ui` fallback in `canvasFont` went and `check-tokens` reports no
+    legacy-vocabulary fallback; the pragma machinery stays for the next migration. `styles.css`
+    is deleted; nothing in `tests/`, `js/`, `apps/web` or the build scripts names it except as
+    history. 575 tests, 46 files.
 
 ### Tests that change
 
@@ -1737,5 +1751,5 @@ user's.
 - **One stage = one PR** (or one slice = one PR within Stage 4), with a body that links back to this doc and notes which numbered items were completed.
 - **No mixing.** Don't slip a Stage-4 module move into a Stage-1 bug-fix PR; reviewer cognitive load is the whole reason for the staging.
 - **Tests stay green at every stage.** Stage 2 onward, no PR merges without `npm test` passing.
-- **New code respects CLAUDE.md's `index.html` budget:** no new CSS in `index.html` (use `styles.css`), no new inline `<script>` logic (use `js/` modules), prefer self-contained feature modules that build their own DOM.
+- **New code respects CLAUDE.md's `index.html` budget:** no new CSS in `index.html` (a minimal rule in the dev page's `legacy.css` is the only place), no new inline `<script>` logic (use `js/` modules), prefer self-contained feature modules that build their own DOM.
 - **Update this doc.** When a stage lands, edit this file to check it off and link the merged PR. The plan is a living artifact, not a historical one.

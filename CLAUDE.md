@@ -219,7 +219,8 @@ A legacy name does not error, it resolves to nothing, so it fails silently.
 
 **Its scope is an explicit list, and that list is the migration's progress bar** (`SCOPE` in
 `check-tokens.mjs`): `apps/web/src`, `js/core`, `js/utils/theme.js` today. A file joins when it has
-been migrated. `styles.css` and `js/features/**` never join — they are deleted, not migrated.
+been migrated. The dev page's `legacy.css` and `js/features/**` never join — the product's copy
+of that CSS was deleted, not migrated.
 Switching a checker on against a mountain of violations only ends with the checker switched off.
 
 Two exceptions are deliberate and named at their sites: light colours/intensities in `scene.js` are
@@ -241,10 +242,11 @@ security-relevant, and `--check` treats it as a fourth artefact. A stored `Theme
 tokens, countryScheme, isPublished}`: the same knob map as `theme.json`, plus the one thing a
 theme pins that is not a token (a palette key). `base` (a `styles.css` preset), `scene_bg` and
 `ocean_color` were dropped in migration `0003` along with every legacy row — the space and
-ocean colours derive from `--bg-app` and `--ocean`. **Still legacy:** `styles.css`, which only
-the dev page links since B12 commit 2 (the `/borders/*` pages are Astro's, on `styles/borders.css`);
-it goes at B12 commit 3. The vanilla theme editor and its 24-name list went with `js/features/**`
-at B11 step 4.
+ocean colours derive from `--bg-app` and `--ocean`. **Nothing deployed is legacy any more:**
+`styles.css` went at B12 commit 3 (the `/borders/*` pages moved to Astro and `styles/borders.css`
+at commit 2), and `check-tokens` counts zero legacy-vocabulary fallbacks. What remains of it is
+`legacy.css`, the dev page's stylesheet — not deployed, not in scope. The vanilla theme editor and
+its 24-name list went with `js/features/**` at B11 step 4.
 
 ## Backend migrations: try them on Postgres before a deploy
 
@@ -301,7 +303,7 @@ npm run dev -- --solo  # just the proxy; bring your own `npm run dev:web`
 websocket — and serves everything else statically from the repo root: `/privacy/`, the images,
 the assets, the root JSON files. The vanilla `index.html` is served at **`/legacy`** — it is the dev-tool page
 (label, colour and zoom editors, audit mode) and has no deployed equivalent; its root-absolute
-`/js/…`, `/styles.css` and `/packages/` references resolve because the repo root is what this
+`/js/…`, `/legacy.css` and `/packages/` references resolve because the repo root is what this
 serves. Before any of this, two ports meant every cross-link 404'd locally and the site looked
 broken in exactly the way it is not.
 
@@ -531,8 +533,8 @@ cd apps/web && npx astro dev stop && rm -rf node_modules/.vite && npx astro dev
 **Styling rule (`apps/web/src/styles/`).** Every colour, radius, weight, font-family and
 shadow must resolve to a `var(--…)` token from `@terragotcha/design-tokens` — never a
 literal. Spacing comes from the six-step scale (`--space-1`…`--space-6`); its absence is the
-single biggest reason the old `styles.css` sprawled to 5,481 lines. The generated
-`packages/design-tokens/dist/tokens.css` is imported by `CountryLayout.astro` ahead of the
+single biggest reason the old `styles.css` sprawled to 5,649 lines. The generated
+`packages/design-tokens/dist/tokens.css` is imported by `SiteHead.astro` ahead of the
 page styles, so the whole cascade is token-driven.
 
 Layout constants that are *not* theme knobs (an author cannot set them) live as local custom
@@ -540,8 +542,8 @@ properties, e.g. `--panel-grip`. Where JS needs the same number it reads the pro
 `getComputedStyle` rather than restating it — `PanelSheet` does this for the collapse maths,
 because two declarations of one value drift silently.
 
-`styles.css` at the repo root belongs to the **vanilla app** and is not used here; it is
-replaced, not migrated.
+`legacy.css` at the repo root belongs to the **dev-tool page** and is not used here; the vanilla
+app's `styles.css` was replaced, not migrated, and deleted at B12.
 
 ## Key Features
 
@@ -773,13 +775,16 @@ signal `BackButtonGuard` watches), i.e. presentation, not state.
 `index.html` is the dev-tool page (≈400 lines since B11 step 4; it was 1,240). Product features go in
 `apps/web`. **Anything added to `index.html` must still keep to these rules:**
 
-- **No new CSS in `index.html`** — put all new rules in the external `styles.css`.
-- **`styles.css` is legacy.** It styles only the dev page now (the 27 `/borders/*` pages moved to
-  Astro and `styles/borders.css` at B12 commit 2), and it is retired at B12 commit 3. Its `:root` tokens
-  (`--accent`, `--bg-elevated`, `--text-heading`…) are the *old* vocabulary: the backend no longer
-  accepts them, nothing in `apps/web` may use them (`check-tokens.mjs`), and the theme switcher and
-  editor that read them were deleted at B11. Do not extend it; if the dev page needs a rule, a
-  minimal one there is the only place until B12.
+- **No new CSS in `index.html`** — a minimal rule in the external `legacy.css` is the only place.
+- **`legacy.css` is the dev page's, and legacy.** It is what survived of `styles.css` at B12
+  commit 3: the rules `index.html` and `js/**` can reach, pruned by selector inventory and verified
+  by diffing every element's computed style before and after. Not deployed, not in
+  `check-tokens` scope, never extended. Its `:root` tokens (`--accent`, `--bg-elevated`,
+  `--text-heading`…) are the *old* vocabulary: the backend does not accept them and nothing in
+  `apps/web` may use them. The page links the token artefact ahead of it, so the names both
+  define resolve from `legacy.css` (the page looks as it did) and the names only the token build
+  has — `--font-body`, `--globe-*` — resolve from the artefact, so the engine on the dev page
+  reads the same tokens the product does.
 - **No new inline `<script>` logic** — all new JS goes in separate ES modules under `js/`
   (e.g. `js/features/<feature>.js`), imported from the main module block. The last inline
   library, the Perlin noise the flag wave uses, left in B10a and is now `js/utils/perlin.js`;

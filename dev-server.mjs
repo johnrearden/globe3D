@@ -14,7 +14,7 @@
  * no production equivalent: the vanilla `index.html`, which is no longer
  * deployed but survives in the repo as the dev-tool page (the label, colour and
  * zoom editors, audit mode). It is served at **`/legacy`**, and its root-absolute
- * references (`/js/…`, `/styles.css`, the `/packages/` import map) resolve
+ * references (`/js/…`, `/legacy.css`, the `/packages/` import map) resolve
  * because the repo root is what this serves.
  *
  * Keeping one origin also keeps local behaviour honest about origin-sensitive

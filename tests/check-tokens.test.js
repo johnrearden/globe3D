@@ -97,6 +97,7 @@ describe('scope', () => {
     });
 
     it('excludes the legacy app, which is deleted rather than migrated', () => {
+        expect(SCOPE).not.toContain('legacy.css');
         expect(SCOPE).not.toContain('styles.css');
         expect(SCOPE.some(s => s.startsWith('js/features'))).toBe(false);
     });

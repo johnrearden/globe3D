@@ -20,15 +20,24 @@
       PointerControls, so what an editor saves is what the product shows.
 
       Rules that still hold here: no new inline logic (js/ modules only), no new
-      CSS (styles.css until B12), inline SVG for icons, and every root-absolute
-      reference (/js, /styles.css, /packages, /assets) resolves because the dev
-      server serves the repo root.
+      CSS (a minimal rule in legacy.css is the only place), inline SVG for icons,
+      and every root-absolute reference (/js, /legacy.css, /packages, /assets)
+      resolves because the dev server serves the repo root.
+
+      Two stylesheets, in this order: the token artefact, then legacy.css — the
+      pruned remainder of the old styles.css (B12 commit 3). Names both define
+      resolve from legacy.css, so the page looks as it did; names only the token
+      build has (--font-body, --globe-space, --globe-border, --globe-label)
+      resolve from the artefact, so the engine on this page reads the same
+      tokens the product does — the point of an editor is that what it shows is
+      what the product shows.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/packages/design-tokens/dist/tokens.css">
+    <link rel="stylesheet" href="legacy.css">
 </head>
 <body>
     <div id="container">
@@ -57,7 +66,7 @@
         </div>
 
         <!-- Search: the quickest way to put a country under an editor. Shown
-             directly: styles.css hides it until the (deleted) settings panel
+             directly: legacy.css hides it until the (deleted) settings panel
              reparented it, and here it is the standalone overlay it was first. -->
         <div id="search-container" style="display: block;">
             <div id="search-box">

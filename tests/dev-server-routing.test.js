@@ -46,9 +46,9 @@ describe('dev-server route split', () => {
     });
 
     it('still serves the shared static files locally', () => {
-        // styles.css and js/ are the dev-tool page's now; the images, assets
+        // legacy.css and js/ are the dev-tool page's now; the images, assets
         // and root JSON are what production serves beside the Astro output.
-        for (const p of ['/styles.css', '/js/core/globe.js', '/img/borders/france.png',
+        for (const p of ['/legacy.css', '/js/core/globe.js', '/img/borders/france.png',
                          '/assets/world-mesh.bin', '/sitemap.xml', '/privacy/', '/legacy']) {
             expect(isAstroPath(p), p).toBe(false);
         }

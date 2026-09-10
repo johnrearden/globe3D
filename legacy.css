@@ -1,0 +1,3114 @@
+/* legacy.css — the vanilla DEV-TOOL PAGE's stylesheet (index.html, served at
+   /legacy). Not deployed, not in check-tokens SCOPE, never extended.
+
+   This is what survived of styles.css at B12 commit 3: the rules index.html and
+   js/** can reach, pruned by selector inventory and verified by diffing the
+   computed style of every element on the dev page before and after. Its :root
+   is the OLD 24-knob vocabulary (--accent, --text-heading…); the page links the
+   token artefact ahead of it, so the names both define resolve here (the dev
+   page looks as it did) and the names only the token build has (--font-body,
+   --globe-*) resolve there, which is how the engine on this page reads the same
+   tokens the product does. If the dev page needs a rule, a minimal one here is
+   the only place. */
+
+:root {
+  /* Typography — families (2 editable knobs: display + UI/body) */
+  --font-display: 'Fredoka', system-ui, sans-serif;
+  --font-ui: 'Archivo', system-ui, sans-serif;
+
+  /* Typography — weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Radii — two editable knobs (button + panel) and two fixed shapes.
+     Pills always have fully-rounded ends; circles are pure curvature. */
+  --radius-btn: 10px;      /* buttons + all controls */
+  --radius-panel: 14px;    /* panels, cards, sheets, modals */
+  --radius-pill: 999px;    /* fixed: fully-rounded ends (bars, segmented, badges) */
+  --radius-circle: 50%;    /* fixed: circles (dots, close buttons, swatches) */
+
+  /* Semantic colours — the primary theme knobs */
+  --accent: #f59e4b;                      /* the one accent — every orange derives from this */
+  --on-accent: #321a06;                   /* dark text/icon on accent fills */
+  --bg-app: #0a1c30;                      /* base backdrop + recessed inputs */
+  --bg-panel: rgba(14, 23, 38, 0.95);     /* floating panels / sheets / cards */
+  --bg-elevated: rgba(22, 42, 66, 0.97);  /* raised / prominent surfaces (modals, results) */
+  --white: #fff;
+  --black: #000;
+  --text-heading: #eef2f6;
+  --text-mid: #7e93a8;
+  --text-low: #5c708a;
+  --text-soft: #9fb2c6;
+  --ok: #4CAF50;
+  --bad: #f44336;
+
+  /* Semantic aliases — convenience knobs referenced by JS-driven surfaces
+     (search, audit panel, canvas globe labels) and available to theme authors. */
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);  /* derived selection / hover tint */
+  --scrim: rgba(0, 0, 0, 0.7);            /* modal dim behind overlays */
+  --border-subtle: #25324a;               /* hairline border on panels */
+  --text-body: var(--text-mid);
+  --text-muted: var(--text-low);
+  --success: var(--ok);
+  --danger: var(--bad);
+
+
+
+  /* blue */
+  --blue-1: #2196F3;
+  --blue-2: #1976D2;
+
+  /* steel */
+  --steel-1: rgba(55, 90, 128, 0.15);
+  --steel-2: rgba(55, 90, 128, 0.5);
+  --steel-3: #cdd9e6;
+  --steel-4: #f4f7fa;
+  --steel-5: #a9bccf;
+  --steel-6: #cdd8e3;
+  --steel-7: #6f86a0;
+  --steel-8: #90a4b8;
+  --steel-9: #8ca0b4;
+  --steel-10: #dbe5ee;
+  --steel-11: #dbe4ee;
+  --steel-12: rgba(120, 150, 190, 0.35);
+  --steel-13: #dfe6f0;
+  --steel-14: #9fb6d4;
+  --steel-15: rgba(120, 150, 190, 0.2);
+  --steel-16: #c3cfe0;
+  --steel-17: #8a98ac;
+  --steel-18: rgba(120, 150, 190, 0.3);
+  --steel-19: #e6edf6;
+  --steel-20: #3a4a66;
+  --steel-21: #9fb0c8;
+  --steel-22: #56657f;
+  --steel-23: #e6edf5;
+  --steel-24: #f6faff;
+  --steel-25: #9db2c6;
+  --steel-26: #cfe0f0;
+  --steel-27: #dfe7ef;
+
+  /* teal */
+  --teal-1: #00838F;
+  --teal-2: #00BCD4;
+  --teal-3: #0097A7;
+  --teal-4: #009688;
+
+  /* green */
+  --green-1: rgba(0, 255, 0, 0.3);
+  --green-2: #00ff00;
+  --green-3: rgba(64,196,128,0.9);
+  --green-4: #2ea067;
+  --green-5: rgba(0, 255, 0, 0.2);
+  --green-6: #45a049;
+  --green-7: #388E3C;
+  --green-8: rgba(76, 175, 80, 0.85);
+  --green-9: rgba(76, 175, 80, 0.35);
+  --green-10: rgba(46, 160, 103, 0.16);
+  --green-11: rgba(64, 196, 128, 0.62);
+  --green-12: #bff0d2;
+  --green-13: rgba(46, 160, 103, 0.06);
+  --green-14: rgba(64, 196, 128, 0.32);
+  --green-15: #7fb79a;
+  --green-16: #6fe3a0;
+  --green-17: #5fae86;
+
+  /* red */
+  --red-1: rgba(255, 0, 0, 0.3);
+  --red-2: #ff0000;
+  --red-3: rgba(228,90,90,0.9);
+  --red-4: #c43c3c;
+  --red-5: rgba(204, 0, 0, 0.9);
+  --red-6: rgba(255, 0, 0, 0.2);
+  --red-7: #d32f2f;
+  --red-8: #FF5722;
+  --red-9: #D84315;
+  --red-10: #ff8a8a;
+  --red-11: rgba(196, 60, 60, 0.16);
+  --red-12: rgba(228, 90, 90, 0.6);
+  --red-13: #f3c4c4;
+  --red-14: #f08a8a;
+
+  /* pink */
+  --pink-1: #E91E63;
+
+  /* violet */
+  --violet-1: #9C27B0;
+  --violet-2: #7B1FA2;
+
+  /* neutral */
+  --neutral-1: rgba(0,0,0,0.7);
+  --neutral-2: rgba(50, 50, 50, 0.95);
+  --neutral-3: rgba(0, 0, 0, 0.35);
+  --neutral-4: rgba(0, 0, 0, 0.6);
+  --neutral-5: #e0e0e0;
+  --neutral-6: rgba(255, 255, 255, 0.16);
+  --neutral-7: rgba(0, 0, 0, 0.55);
+  --neutral-8: rgba(255, 255, 255, 0.3);
+  --neutral-9: rgba(0, 0, 0, 0.3);
+  --neutral-10: rgba(255, 255, 255, 0.5);
+  --neutral-11: rgba(0, 0, 0, 0.2);
+  --neutral-12: rgba(0, 0, 0, 0.85);
+  --neutral-13: rgba(0, 0, 0, 0.5);
+  --neutral-14: #888;
+  --neutral-15: rgba(255, 255, 255, 0.1);
+  --neutral-16: rgba(255, 255, 255, 0.9);
+  --neutral-17: rgba(255, 255, 255, 0.08);
+  --neutral-18: rgba(255, 255, 255, 0.22);
+  --neutral-19: rgba(255, 255, 255, 0.05);
+  --neutral-20: rgba(255, 255, 255, 0.12);
+  --neutral-21: rgba(102, 102, 102, 0.8);
+  --neutral-22: rgba(255, 255, 255, .14);
+  --neutral-23: rgba(255, 255, 255, .04);
+  --neutral-24: rgba(0, 0, 0, 0.8);
+  --neutral-25: #cccccc;
+  --neutral-26: rgba(255, 255, 255, 0.2);
+  --neutral-27: rgba(255, 255, 255, 0.09);
+  --neutral-28: rgba(0, 0, 0, 0.46);
+  --neutral-29: rgba(255, 255, 255, 0.07);
+  --neutral-30: rgba(255, 255, 255, 0.03);
+  --neutral-31: rgba(255, 255, 255, 0.06);
+  --neutral-32: rgba(255, 255, 255, 0.18);
+  --neutral-33: rgba(255, 255, 255, 0.025);
+  --neutral-34: rgba(255, 255, 255, 0.02);
+  --neutral-35: rgba(20, 20, 20, 0.95);
+  --neutral-36: #444;
+  --neutral-37: rgba(0, 0, 0, 0.4);
+  --neutral-38: rgba(255, 255, 255, 0.25);
+  --neutral-39: rgba(255, 255, 255, 0.4);
+  --neutral-40: rgba(255, 255, 255, 0.28);
+  --neutral-41: rgba(0, 0, 0, 0.42);
+  --neutral-42: rgba(0, 0, 0, 0.28);
+  --neutral-43: rgba(0, 0, 0, 0.45);
+  --neutral-44: rgba(255, 255, 255, 0.24);
+  --neutral-45: rgba(255, 255, 255, 0.45);
+  --neutral-46: rgba(255, 255, 255, 0.8);
+  --neutral-47: rgba(255, 255, 255, 0.26);
+  --neutral-48: rgba(255, 255, 255, 0.55);
+  --neutral-49: rgba(255, 255, 255, 0.85);
+
+  /* Elevation & glow — fixed structural recipes (NOT theme-editor knobs).
+     Each references a themed colour token, so the whole shadow/glow system
+     adapts per theme automatically with no per-theme redefinition. Every
+     box-shadow / accent-glow in the app resolves to one of these. */
+  --shadow-low: 0 1px 4px var(--neutral-13);      /* small thumbnails / hairline lift */
+  --shadow-mid: 0 4px 12px var(--neutral-13);     /* buttons, controls, small floating panels */
+  --shadow-high: 0 12px 40px var(--neutral-13);   /* modals, sheets, containers, cards, toasts */
+  --shadow-dock: 0 -12px 40px var(--neutral-13);  /* bottom-docked sheets (same weight, cast upward) */
+  /* GLOW DISABLED (per request) — the accent CTA ring and the pulsing radial halos are turned off
+     at the token source; every `var(--glow-*)` usage site is left in place. To re-enable, restore
+     the two original values shown in the trailing `was:` comments below. */
+  --glow-cta: none;            /* primary accent CTAs — was: 0 8px 22px color-mix(in srgb, var(--accent) 34%, transparent), inset 0 2px 0 var(--neutral-8); */
+  --glow-accent: transparent;  /* inner colour of pulsing radial halos — was: color-mix(in srgb, var(--accent) 28%, transparent); */
+
+}
+
+/* Mono — monospace display + neutral system UI font, desaturated greyscale
+   palette, steel accent. A restrained, technical alternative. */
+
+body {
+            margin: 0;
+            padding: 0;
+            background: var(--black);
+            font-family: var(--font-ui);
+            overflow: hidden;
+        }
+
+#container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+#info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: var(--neutral-1);
+            padding: 10px;
+            border-radius: var(--radius-btn);
+            z-index: 100;
+            max-width: 300px;
+        }
+
+label {
+            display: inline-block;
+            width: 120px;
+        }
+
+input[type="range"] {
+            width: 100px;
+        }
+
+#loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 200;
+        }
+
+/* Hide the overlay during quizzes (mirrors the flag/search overlays). */
+
+#search-container {
+            /* The country search lives inside the settings gear (#settings-panel).
+               It starts as markup in #container and is reparented into the panel
+               once the globe loads; hidden until then so it doesn't flash in the
+               corner during load. The #settings-panel rules below reveal + reframe
+               it for the panel flow. */
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 150;
+            background-color: transparent;
+            border-radius: var(--radius-panel);
+            padding: 20px;
+            border: 1px solid var(--steel-1);
+            box-shadow: var(--shadow-high);
+            min-width: 300px;
+        }
+
+#search-box {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+#search-icon {
+            color: var(--accent);
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+#country-search {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--neutral-8);
+            border-radius: var(--radius-btn);
+            background-color: var(--neutral-9);
+            color: var(--white);
+            font-size: 16px;
+            outline: none;
+        }
+
+#country-search::placeholder {
+            color: var(--neutral-10);
+        }
+
+#country-search:focus {
+            border-color: var(--accent);
+        }
+
+#search-results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+.search-result-item {
+            padding: 8px 12px;
+            color: var(--neutral-5);
+            cursor: pointer;
+            border-radius: var(--radius-btn);
+            margin: 4px 0;
+            transition: background-color 0.2s;
+        }
+
+.search-result-item:hover {
+            background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+
+#search-results::-webkit-scrollbar {
+            width: 8px;
+        }
+
+#search-results::-webkit-scrollbar-track {
+            background: var(--neutral-11);
+            border-radius: var(--radius-btn);
+        }
+
+#search-results::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--accent) 50%, transparent);
+            border-radius: var(--radius-btn);
+        }
+
+#search-results::-webkit-scrollbar-thumb:hover {
+            background: color-mix(in srgb, var(--accent) 70%, transparent);
+        }
+
+/* Quiz UI styles */
+
+#quiz-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 150;
+            background-color: var(--neutral-12);
+            border-radius: var(--radius-panel);
+            padding: 20px 20px 0 20px;
+            border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+            box-shadow: var(--shadow-high);
+            min-width: 300px;
+            max-width: 350px;
+            /* Hidden when idle — the persistent "Geography Quiz" launcher panel was
+               replaced by the Take Quiz button + the quiz-reminder invite. It is the
+               gameplay container, so it reappears during an active quiz (below). */
+            display: none;
+        }
+
+/* Shown only during an active quiz. Every mode that renders into the
+           container sets body.quiz-active (find-country uses its own container).
+           The flag-quiz-active rule below comes later, so it still wins for the
+           fullscreen flag quiz. */
+
+body.quiz-active #quiz-container {
+            display: block;
+        }
+
+/* Flag Quiz Fullscreen Mode */
+
+body.flag-quiz-active #quiz-container {
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background: linear-gradient(135deg, var(--bg-panel), var(--bg-app));
+            padding: 20px 20px 80px 20px;
+            overflow-y: auto;
+            /* Without border-box, width:100% + 40px padding overflows the viewport
+               by 40px, pushing the absolutely-positioned cancel × (right:10px) off
+               the right edge. The mobile rule already sets this. */
+            box-sizing: border-box;
+        }
+
+/* Hide the globe UI during the fullscreen flag quiz (desktop) — the mobile
+           layout already does this. Without it, #zoom-out-btn (top:20/right:20) and
+           the other controls sit over the quiz, covering the cancel × at top-right. */
+
+body.flag-quiz-active #search-container,
+        body.flag-quiz-active #zoom-widget,
+        body.flag-quiz-active #zoom-out-btn,
+        body.flag-quiz-active #take-quiz-btn {
+            display: none !important;
+        }
+
+body.flag-quiz-active #quiz-score {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+#quiz-score {
+            color: var(--neutral-5);
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+/* Subtle count-up timer, injected as a child of #quiz-score so it follows
+           the score's show/hide and positioning in every quiz layout. */
+
+#quiz-timer {
+            display: block;
+            margin-top: 4px;
+            font-size: 14px;
+            color: var(--neutral-14);
+            font-variant-numeric: tabular-nums;
+        }
+
+.quiz-option {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background-color: var(--neutral-15);
+            border: 2px solid var(--neutral-8);
+            border-radius: var(--radius-btn);
+            color: var(--white);
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+.quiz-option .correct-label {
+            font-size: 11px;
+            font-variant: small-caps;
+            color: var(--neutral-16);
+            margin-left: 10px;
+        }
+
+.quiz-option:hover {
+            background-color: color-mix(in srgb, var(--accent) 30%, transparent);
+            border-color: var(--accent);
+            transform: translateX(5px);
+        }
+
+.quiz-option.correct {
+            background-color: var(--green-1);
+            border-color: var(--green-2);
+        }
+
+.quiz-option.incorrect {
+            background-color: var(--red-1);
+            border-color: var(--red-2);
+        }
+
+.quiz-option:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+/* The flag tile is an invisible click target at rest — the waving flag
+           (on the canvas behind) is the only visual. On answer it shows the
+           design's green/red ring + corner badge (.qz-mark). */
+
+body.flag-quiz-active .quiz-option.flag-cell {
+            position: relative;
+            margin: 0;
+            padding: 0;
+            z-index: 1;
+            border: none;
+            /* Square so the feedback ring (box-shadow follows border-radius) hugs
+               the flag's square corners. !important to beat the global
+               `button { border-radius: 999px !important }` normalization. */
+            border-radius: var(--radius-btn) !important;
+            background: transparent;
+            transition: box-shadow .18s cubic-bezier(0.4,0,0.2,1), opacity .18s cubic-bezier(0.4,0,0.2,1);
+        }
+
+body.flag-quiz-active .quiz-option.flag-cell:hover {
+            transform: none;
+            background: transparent;
+        }
+
+body.flag-quiz-active .quiz-option.flag-cell.correct {
+            background: transparent;
+            box-shadow: 0 0 0 3px var(--green-3);
+        }
+
+body.flag-quiz-active .quiz-option.flag-cell.incorrect {
+            background: transparent;
+            box-shadow: 0 0 0 3px var(--red-3);
+        }
+
+body.flag-quiz-active .quiz-option.flag-cell.dimmed {
+            opacity: 0.42;
+        }
+
+/* Brand navy gradient + remove the old bluish fill. */
+
+body.flag-quiz-active #quiz-container {
+            background: radial-gradient(120% 80% at 50% 8%, var(--bg-app) 0%, var(--bg-app) 42%, var(--bg-app) 100%);
+        }
+
+/* Legacy chrome is replaced by #qz-chrome. Descendant selector (0,2,2)
+           + !important beats the mobile body.quiz-active #quiz-header/#quiz-score
+           inline-block !important rule. */
+
+body.flag-quiz-active #quiz-container #quiz-header,
+        body.flag-quiz-active #quiz-container #quiz-score,
+        body.flag-quiz-active #quiz-container #quiz-question,
+        body.flag-quiz-active #quiz-container #quiz-result,
+        body.flag-quiz-active #quiz-container #quiz-cancel-btn {
+            display: none !important;
+        }
+
+#qz-chrome {
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto;
+        }
+
+.qz-svg { display: block; }
+
+/* Top bar */
+
+.qz-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 6px;
+            animation: qq-fade .5s 0s both;
+        }
+
+.qz-progress-label {
+            font-family: var(--font-ui);
+            font-weight: var(--weight-semibold);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-mid);
+        }
+
+.qz-close {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-circle);
+            background: var(--bg-panel);
+            border: 1px solid var(--neutral-15);
+            color: var(--steel-5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+.qz-close:hover {
+            background: var(--bg-panel);
+            color: var(--text-heading);
+        }
+
+/* Stat chips (score + time) */
+
+.qz-chips {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            animation: qq-fade .5s .04s both;
+        }
+
+.qz-chip {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 14px;
+            border-radius: var(--radius-pill);
+            background: var(--bg-panel);
+            border: 1px solid var(--neutral-17);
+        }
+
+.qz-chip-icon {
+            color: color-mix(in srgb, var(--accent), white 14%);
+            display: flex;
+        }
+
+.qz-chip-label {
+            font-family: var(--font-ui);
+            font-weight: var(--weight-semibold);
+            font-size: 9.5px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-low);
+        }
+
+.qz-chip-val {
+            margin-left: auto;
+            font-family: var(--font-display);
+            font-weight: var(--weight-semibold);
+            font-size: 16px;
+            color: var(--text-heading);
+        }
+
+/* #quiz-timer lives inside the time chip; neutralise its legacy block style. */
+
+.qz-chip .qz-chip-val,
+        .qz-chip #quiz-timer {
+            display: inline;
+            margin: 0;
+            font-size: 16px;
+            color: var(--text-heading);
+            font-variant-numeric: tabular-nums;
+        }
+
+.qz-chip-sub {
+            font-size: 12px;
+            color: var(--text-mid);
+        }
+
+/* Progress bar */
+
+.qz-progress {
+            margin-top: 12px;
+            height: 5px;
+            border-radius: var(--radius-pill);
+            background: var(--neutral-17);
+            overflow: hidden;
+            animation: qq-fade .5s .08s both;
+        }
+
+.qz-progress-fill {
+            height: 100%;
+            width: 10%;
+            border-radius: var(--radius-pill);
+            background: linear-gradient(90deg, color-mix(in srgb, var(--accent), white 35%), var(--accent));
+            transition: width .3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+/* Question prompt */
+
+.qz-prompt {
+            text-align: center;
+            margin-top: 22px;
+            animation: qq-fade .5s .12s both;
+        }
+
+.qz-eyebrow {
+            font-family: var(--font-ui);
+            font-weight: var(--weight-semibold);
+            font-size: 10.5px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-low);
+            margin-bottom: 6px;
+        }
+
+.qz-main {
+            font-family: var(--font-display);
+            font-weight: var(--weight-semibold);
+            font-size: 21px;
+            color: var(--text-heading);
+            letter-spacing: -0.01em;
+        }
+
+.qz-main.qz-main-lg {
+            font-size: 26px;
+        }
+
+.qz-q {
+            color: color-mix(in srgb, var(--accent), white 14%);
+        }
+
+/* Forward prompt: "Which country" is the large bold display line, and
+           "does this flag belong to?" sits below it in small-caps. */
+
+.qz-prompt-forward .qz-eyebrow {
+            font-family: var(--font-display);
+            font-weight: var(--weight-semibold);
+            font-size: 26px;
+            letter-spacing: -0.01em;
+            text-transform: none;
+            color: var(--text-heading);
+            margin-bottom: 4px;
+        }
+
+.qz-prompt-forward .qz-main {
+            font-family: var(--font-ui);
+            font-weight: var(--weight-semibold);
+            font-size: 13px;
+            font-variant: small-caps;
+            letter-spacing: 0.08em;
+            color: var(--text-mid);
+        }
+
+/* ============================================================
+           Shared answer grid (.qz-answers) — name-pick options used by
+           BOTH the flag quiz (forward) and the Name-the-Country quiz.
+           Unscoped so any quiz opts in by adding .qz-answers to
+           #quiz-options. Default 2 columns; per-quiz responsive column
+           counts live under the relevant body class. Semantic feedback
+           colours are tokens (--qz-correct-… and --qz-wrong-…) shared with
+           the flag-overlay tiles. */
+
+:root {
+            --qz-opt-bg: rgba(255, 255, 255, 0.025);
+            --qz-opt-border: rgba(255, 255, 255, 0.10);
+            --qz-opt-text: #dfe7ef;
+            --qz-correct-bg: rgba(46, 160, 103, 0.16);
+            --qz-correct-border: rgba(64, 196, 128, 0.6);
+            --qz-correct-text: #bff0d2;
+            --qz-correct-icon: #6fe3a0;
+            --qz-wrong-bg: rgba(196, 60, 60, 0.16);
+            --qz-wrong-border: rgba(228, 90, 90, 0.6);
+            --qz-wrong-text: #f3c4c4;
+            --qz-wrong-icon: #f08a8a;
+            --qz-dimmed-text: #6f8298;
+        }
+
+#quiz-options.qz-answers .quiz-option {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 16px;
+            /* !important to beat the global `button { border-radius: 999px !important }`. */
+            border-radius: var(--radius-btn) !important;
+            background: var(--qz-opt-bg);
+            border: 1px solid var(--qz-opt-border);
+            color: var(--qz-opt-text);
+            font-family: var(--font-ui);
+            font-weight: var(--weight-semibold);
+            font-size: 14px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+#quiz-options.qz-answers .quiz-option > span:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+#quiz-options.qz-answers .quiz-option:hover {
+            transform: none;
+            border-color: var(--neutral-18);
+            background: var(--neutral-19);
+        }
+
+#quiz-options.qz-answers .quiz-option.correct {
+            background: var(--qz-correct-bg);
+            border-color: var(--qz-correct-border);
+            color: var(--qz-correct-text);
+        }
+
+#quiz-options.qz-answers .quiz-option.incorrect {
+            background: var(--qz-wrong-bg);
+            border-color: var(--qz-wrong-border);
+            color: var(--qz-wrong-text);
+        }
+
+#quiz-options.qz-answers .quiz-option.dimmed {
+            color: var(--qz-dimmed-text);
+        }
+
+/* Answer marks (.qz-mark) — trailing icon on name buttons, corner badge on tiles. */
+
+.qz-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+#quiz-options.qz-answers .qz-mark {
+            margin-left: auto;
+        }
+
+body.flag-quiz-active .flag-cell .qz-mark {
+            position: absolute;
+            top: -9px;
+            right: -9px;
+            width: 26px;
+            height: 26px;
+            border-radius: var(--radius-circle);
+            color: var(--white);
+            box-shadow: 0 0 0 2px var(--bg-app);
+        }
+
+/* ============================================================
+           Name-the-Country question screen (design/name_country_quiz)
+           A floating panel over the LIVE globe — the same shared qz-*
+           chrome (chips / progress / prompt / .qz-answers) as the flag
+           quiz, but the container is a card that lets the globe show
+           through instead of a fullscreen takeover. Desktop = card in
+           the bottom-right quadrant; mobile (in the media query below)
+           = bottom sheet capped at 33vh.
+           ============================================================ */
+
+body.globe-quiz-active #quiz-container {
+            display: block;
+            top: auto;
+            left: auto;
+            right: 30px;
+            bottom: 30px;
+            width: 430px;
+            min-width: 0;
+            max-width: calc(100vw - 60px);
+            /* border-box so width + padding doesn't overflow (the right edge,
+               incl. the close button, was running off-screen without it). */
+            box-sizing: border-box;
+            padding: 22px 22px 20px;
+            border-radius: var(--radius-panel);
+            border: 1px solid var(--neutral-20);
+            background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel));
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-high);
+            overflow: visible;
+        }
+
+/* Legacy chrome is replaced by #qz-chrome (as in the flag quiz). The
+           Next button is kept — it sits at the bottom of the panel. */
+
+body.globe-quiz-active #quiz-container #quiz-header,
+        body.globe-quiz-active #quiz-container #quiz-score,
+        body.globe-quiz-active #quiz-container #quiz-question,
+        body.globe-quiz-active #quiz-container #quiz-result,
+        body.globe-quiz-active #quiz-container #quiz-cancel-btn {
+            display: none !important;
+        }
+
+/* Chrome fills the card rather than centering at its own max-width. */
+
+body.globe-quiz-active #qz-chrome { max-width: none; }
+
+/* Floating-variant compact header — counter · score · time · close on a
+           single row (no chip boxes), so the panel stays short and never scrolls. */
+
+.qz-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: qq-fade .5s 0s both;
+        }
+
+.qz-bar .qz-progress-label {
+            font-family: var(--font-ui);
+            font-weight: var(--weight-semibold);
+            font-size: 10px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-mid);
+        }
+
+.qz-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--font-display);
+            font-weight: var(--weight-semibold);
+            font-size: 13px;
+            color: var(--text-heading);
+        }
+
+.qz-stat-icon { color: color-mix(in srgb, var(--accent), white 14%); display: flex; }
+
+.qz-stat-sub { color: var(--text-mid); }
+
+/* Override the legacy block #quiz-timer styling for the inline stat. */
+
+.qz-stat #quiz-timer {
+            display: inline;
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-heading);
+            font-variant-numeric: tabular-nums;
+        }
+
+.qz-bar .qz-close {
+            margin-left: auto;
+            width: 28px;
+            height: 28px;
+        }
+
+/* Entrance + glow motion (gentle, never bouncy). */
+
+@keyframes qq-fade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+
+#quiz-result.correct {
+            background-color: var(--green-5);
+            border: 1px solid var(--green-2);
+        }
+
+#quiz-result.incorrect {
+            background-color: var(--red-6);
+            border: 1px solid var(--red-2);
+        }
+
+/* Label Editor Modal Styles */
+
+#label-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+
+#label-editor-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--scrim);
+        }
+
+#label-editor-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--neutral-35);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius-panel);
+            padding: 25px;
+            min-width: 350px;
+            max-width: 90%;
+            box-shadow: var(--shadow-high);
+        }
+
+#label-editor-title {
+            color: var(--accent);
+            font-size: 22px;
+            font-weight: var(--weight-bold);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+.label-editor-section {
+            margin-bottom: 20px;
+        }
+
+.label-editor-section label {
+            display: block;
+            color: var(--neutral-5);
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: var(--weight-bold);
+        }
+
+.label-editor-section input[type="range"] {
+            width: 70%;
+            vertical-align: middle;
+        }
+
+.label-editor-section span {
+            display: inline-block;
+            width: 60px;
+            color: var(--accent);
+            font-weight: var(--weight-bold);
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+.label-editor-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+.label-editor-buttons button {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: var(--weight-bold);
+            border: none;
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+#label-reset-btn {
+            background-color: var(--bad);
+            color: white;
+        }
+
+#label-reset-btn:hover {
+            background-color: var(--red-7);
+            transform: scale(1.05);
+        }
+
+#label-editor-close-btn {
+            background-color: var(--ok);
+            color: white;
+        }
+
+#label-editor-close-btn:hover {
+            background-color: var(--green-6);
+            transform: scale(1.05);
+        }
+
+/* Zoom Out button - top right */
+
+#zoom-out-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 150;
+            background-color: var(--blue-1);
+            border: none;
+            border-radius: var(--radius-btn);
+            color: var(--white);
+            font-size: 14px;
+            font-weight: var(--weight-bold);
+            padding: 10px 15px;
+            cursor: pointer;
+            box-shadow: var(--shadow-mid);
+            transition: all 0.3s;
+        }
+
+#zoom-out-btn:hover {
+            background-color: var(--blue-2);
+            transform: scale(1.05);
+        }
+
+/* Edit mode buttons - save button hidden by default */
+
+#edit-mode-btn {
+            display: none;
+        }
+
+#save-config-btn {
+            display: none;
+        }
+
+#fine-tune-btn {
+            display: none;
+        }
+
+#edit-colors-btn {
+            display: none;
+        }
+
+#save-colors-btn {
+            display: none;
+        }
+
+#edit-zoom-btn {
+            display: none;
+        }
+
+#save-zoom-btn {
+            display: none;
+        }
+
+/* Level panel: shared rules (positioning lives in media queries below) */
+
+#level-panel {
+            grid-template-columns: repeat(2, 72px);
+            gap: 4px;
+            background-color: var(--neutral-1);
+            border-radius: var(--radius-panel);
+            padding: 8px;
+            box-shadow: var(--shadow-mid);
+            z-index: 150;
+        }
+
+.level-btn {
+            height: 28px;
+            border: 2px solid transparent;
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: var(--neutral-36);
+            color: var(--white);
+            font-size: 12px;
+            font-weight: var(--weight-bold);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+.level-btn:hover {
+            transform: scale(1.08);
+        }
+
+.level-btn.active {
+            border-color: var(--white);
+            background-color: var(--teal-1);
+            box-shadow: 0 0 6px var(--neutral-16);
+        }
+
+/* Swatch panel: shared rules (positioning lives in media queries below) */
+
+#swatch-panel {
+            grid-template-columns: repeat(4, 28px);
+            gap: 4px;
+            background-color: var(--neutral-1);
+            border-radius: var(--radius-panel);
+            padding: 8px;
+            box-shadow: var(--shadow-mid);
+            z-index: 150;
+        }
+
+.swatch {
+            width: 28px;
+            height: 28px;
+            border: 2px solid transparent;
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            padding: 0;
+            box-sizing: border-box;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+.swatch:hover {
+            transform: scale(1.1);
+        }
+
+.swatch.active {
+            border-color: var(--white);
+            box-shadow: 0 0 6px var(--neutral-16);
+        }
+
+/* Zoom Widget Styles */
+
+#zoom-widget {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 150;
+            background-color: var(--neutral-1);
+            border: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+            border-radius: var(--radius-panel);
+            padding: 15px 10px;
+            text-align: center;
+            box-shadow: var(--shadow-mid);
+        }
+
+#zoom-label-top {
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: var(--weight-bold);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+#zoom-bar-container {
+            width: 30px;
+            height: 150px;
+            background-color: var(--neutral-13);
+            border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+            border-radius: var(--radius-btn);
+            margin: 0 auto 8px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+#zoom-bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, var(--accent), var(--accent));
+            border-radius: var(--radius-pill);
+            transition: height 0.2s ease;
+        }
+
+#zoom-value {
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: var(--weight-bold);
+            font-family: monospace;
+        }
+
+/* Desktop styles for edit buttons */
+
+@media (min-width: 769px) {
+    #edit-mode-btn {
+                    display: block;
+                    position: fixed;
+                    top: 120px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--ok);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #edit-mode-btn.active {
+                    background-color: var(--accent);
+                }
+
+    #edit-mode-btn:hover {
+                    transform: scale(1.05);
+                }
+
+    #save-config-btn {
+                    position: fixed;
+                    top: 170px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--blue-1);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #save-config-btn:hover {
+                    background-color: var(--blue-2);
+                    transform: scale(1.05);
+                }
+
+    #fine-tune-btn {
+                    position: fixed;
+                    top: 220px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--violet-1);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #fine-tune-btn:hover {
+                    background-color: var(--violet-2);
+                    transform: scale(1.05);
+                }
+
+    #edit-colors-btn {
+                    display: block;
+                    position: fixed;
+                    top: 270px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--pink-1);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #edit-colors-btn.active {
+                    background-color: var(--accent);
+                }
+
+    #edit-colors-btn:hover {
+                    transform: scale(1.05);
+                }
+
+    #save-colors-btn {
+                    position: fixed;
+                    top: 320px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--teal-2);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #save-colors-btn:hover {
+                    background-color: var(--teal-3);
+                    transform: scale(1.05);
+                }
+
+    #swatch-panel {
+                    position: fixed;
+                    top: 370px;
+                    left: 20px;
+                }
+
+    #edit-zoom-btn {
+                    display: block;
+                    position: fixed;
+                    top: 420px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--teal-4);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #edit-zoom-btn.active {
+                    background-color: var(--accent);
+                }
+
+    #edit-zoom-btn:hover {
+                    transform: scale(1.05);
+                }
+
+    #save-zoom-btn {
+                    position: fixed;
+                    top: 470px;
+                    left: 20px;
+                    z-index: 150;
+                    background-color: var(--teal-2);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #save-zoom-btn:hover {
+                    background-color: var(--teal-3);
+                    transform: scale(1.05);
+                }
+
+    #level-panel {
+                    position: fixed;
+                    top: 520px;
+                    left: 20px;
+                }
+}
+
+/* Mobile styles */
+
+@media (max-width: 768px) {
+    /* Edit mode buttons on mobile */
+
+    #edit-mode-btn {
+                    display: block;
+                    position: fixed;
+                    top: 155px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--ok);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #edit-mode-btn.active {
+                    background-color: var(--accent);
+                }
+
+    #edit-mode-btn:hover {
+                    transform: scale(1.05);
+                }
+
+    #save-config-btn {
+                    position: fixed;
+                    top: 200px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--blue-1);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #save-config-btn:hover {
+                    background-color: var(--blue-2);
+                    transform: scale(1.05);
+                }
+
+    #fine-tune-btn {
+                    position: fixed;
+                    top: 245px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--violet-1);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #fine-tune-btn:hover {
+                    background-color: var(--violet-2);
+                    transform: scale(1.05);
+                }
+
+    #edit-colors-btn {
+                    display: block;
+                    position: fixed;
+                    top: 290px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--pink-1);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #edit-colors-btn.active {
+                    background-color: var(--accent);
+                }
+
+    #edit-colors-btn:hover {
+                    transform: scale(1.05);
+                }
+
+    #save-colors-btn {
+                    position: fixed;
+                    top: 335px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--teal-2);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #save-colors-btn:hover {
+                    background-color: var(--teal-3);
+                    transform: scale(1.05);
+                }
+
+    #swatch-panel {
+                    position: fixed;
+                    top: 385px;
+                    left: 10px;
+                }
+
+    #edit-zoom-btn {
+                    display: block;
+                    position: fixed;
+                    top: 435px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--teal-4);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #edit-zoom-btn.active {
+                    background-color: var(--accent);
+                }
+
+    #edit-zoom-btn:hover {
+                    transform: scale(1.05);
+                }
+
+    #save-zoom-btn {
+                    position: fixed;
+                    top: 480px;
+                    left: 10px;
+                    z-index: 150;
+                    background-color: var(--teal-2);
+                    border: none;
+                    border-radius: var(--radius-btn);
+                    color: var(--white);
+                    font-size: 14px;
+                    font-weight: var(--weight-bold);
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    box-shadow: var(--shadow-mid);
+                    transition: all 0.3s;
+                }
+
+    #save-zoom-btn:hover {
+                    background-color: var(--teal-3);
+                    transform: scale(1.05);
+                }
+
+    #level-panel {
+                    position: fixed;
+                    top: 525px;
+                    left: 10px;
+                }
+
+    /* Hide edit buttons during quiz */
+
+    body.quiz-active #edit-mode-btn,
+            body.quiz-active #save-config-btn,
+            body.quiz-active #fine-tune-btn,
+            body.quiz-active #edit-colors-btn,
+            body.quiz-active #save-colors-btn,
+            body.quiz-active #swatch-panel,
+            body.quiz-active #edit-zoom-btn,
+            body.quiz-active #save-zoom-btn,
+            body.quiz-active #level-panel {
+                    display: none !important;
+                }
+
+    /* Zoom widget on mobile - position on right side */
+
+    #zoom-widget {
+                    right: 10px;
+                    padding: 10px 8px;
+                }
+
+    #zoom-bar-container {
+                    height: 120px;
+                    width: 25px;
+                }
+
+    #zoom-label-top {
+                    font-size: 11px;
+                }
+
+    #zoom-value {
+                    font-size: 13px;
+                }
+
+    /* Hide quiz container when not active on mobile */
+
+    #quiz-container {
+                    display: none;
+                }
+
+    /* Show quiz container when active */
+
+    body.quiz-active #quiz-container {
+                    display: block;
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    max-width: none;
+                    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+                    max-height: 50vh;
+                    overflow-y: auto;
+                    padding: 15px 15px 0 15px;
+                }
+
+    body.quiz-active #quiz-score {
+                    font-size: 12px;
+                    margin-bottom: 8px;
+                }
+
+    body.quiz-active .quiz-option {
+                    padding: 10px;
+                    margin: 6px 0;
+                    font-size: 14px;
+                }
+
+    /* Name the Country quiz (mobile): hide the zoom controls so they don't compete
+                   with the quiz panel for screen space. */
+
+    body.quiz-active #zoom-out-btn,
+            body.quiz-active #zoom-widget {
+                    display: none !important;
+                }
+
+    /* Header + score on one row. The cancel "X" is already absolute top:8/right:8,
+                   so dropping these two onto a single inline-block row puts all three visually
+                   on the same row. !important beats the inline display:block set by the quiz JS. */
+
+    body.quiz-active #quiz-header,
+            body.quiz-active #quiz-score {
+                    display: inline-block !important;
+                    vertical-align: middle;
+                    margin-right: 12px;
+                    margin-bottom: 8px;
+                }
+
+    /* 2x2 grid of answer options (4 choices per question). */
+
+    body.quiz-active .quiz-option {
+                    margin: 0;
+                }
+
+    /* Name-the-Country (mobile): the panel hugs the bottom edge over the
+                   globe. It must NEVER scroll and take as little vertical space as
+                   possible, so height is content-driven (no max-height cap), overflow
+                   is clipped, and every row is tightened: compact one-line header,
+                   thin progress, two-line prompt, 3×2 answer grid with the result
+                   mark as a corner badge. Placed after the body.quiz-active block so
+                   it wins at equal specificity. */
+
+    body.globe-quiz-active #quiz-container {
+                    top: auto;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    width: 100%;
+                    max-width: none;
+                    max-height: none;
+                    /* border-box so width:100% + horizontal padding stays on-screen
+                       (without it the panel's right edge ran off the viewport). */
+                    box-sizing: border-box;
+                    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+                    border: none;
+                    border-top: 1px solid var(--neutral-15);
+                    padding: 10px 14px 12px;
+                    background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel));
+                    box-shadow: var(--shadow-dock);
+                    overflow: hidden;
+                }
+
+    body.globe-quiz-active .qz-bar { gap: 10px; }
+
+    body.globe-quiz-active .qz-progress { margin-top: 8px; }
+
+    body.globe-quiz-active .qz-prompt { margin-top: 8px; }
+
+    body.globe-quiz-active .qz-prompt-forward .qz-eyebrow {
+                    font-size: 17px;
+                    margin-bottom: 1px;
+                }
+
+    body.globe-quiz-active .qz-prompt-forward .qz-main { font-size: 11px; }
+
+    body.globe-quiz-active #quiz-options.qz-answers .quiz-option {
+                    position: relative;
+                    justify-content: center;
+                    text-align: center;
+                    padding: 9px 6px;
+                    font-size: 12px;
+                    border-radius: var(--radius-btn) !important;
+                }
+
+    /* Result mark becomes a small absolute corner badge on the narrow cells. */
+
+    body.globe-quiz-active #quiz-options.qz-answers .qz-mark {
+                    position: absolute;
+                    top: 3px;
+                    right: 4px;
+                    margin-left: 0;
+                }
+
+    body.globe-quiz-active #quiz-options.qz-answers .qz-mark .qz-svg {
+                    width: 13px;
+                    height: 13px;
+                }
+
+    /* Flag Quiz Fullscreen on Mobile */
+
+    body.flag-quiz-active #quiz-container {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    max-width: none;
+                    max-height: none;
+                    border-radius: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-start;
+                    background: radial-gradient(120% 80% at 50% 8%, var(--bg-app) 0%, var(--bg-app) 42%, var(--bg-app) 100%);
+                    padding: 15px 12px 100px 12px;
+                    overflow-y: auto;
+                    box-sizing: border-box;
+                }
+
+    /* Hide other elements during flag quiz on mobile */
+
+    body.flag-quiz-active #search-container,
+            body.flag-quiz-active #zoom-widget,
+            body.flag-quiz-active #zoom-out-btn,
+            body.flag-quiz-active #take-quiz-btn {
+                    display: none !important;
+                }
+
+    body.flag-quiz-active #quiz-score {
+                    font-size: 14px;
+                    margin-bottom: 10px;
+                }
+
+    body.flag-quiz-active .quiz-option {
+                    padding: 12px;
+                    margin: 8px 0;
+                    font-size: 14px;
+                }
+
+    /* Globe canvas centered on mobile */
+
+    #globe-canvas {
+                    transform: translateY(0);
+                }
+
+    /* Place search container at top on mobile */
+
+    #search-container {
+                    top: 10px;
+                    bottom: auto;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    padding: 15px;
+                    min-width: calc(100% - 20px);
+                    max-width: calc(100% - 20px);
+                }
+
+    /* Hide search container during quiz */
+
+    body.quiz-active #search-container {
+                    display: none;
+                }
+}
+
+/* ============================================================
+           Apex landing panel (#landing-panel)
+
+           The static, crawlable content for terragotcha.com/. Markup is
+           generated into index.html by build-landing-facts.mjs; behaviour
+           lives in js/features/landing-panel.js.
+
+           Two states, both driven by classes on <body>:
+             .landing-active  — reading view. Panel occupies ~2/3 of the
+                                viewport; the globe is pushed into the free
+                                third by a camera view offset (NOT by resizing
+                                the canvas, which would break picking).
+             .globe-focus     — the panel fades out and the globe takes the
+                                whole screen. Reversible via .lf-restore.
+
+           The canvas stays full-viewport in both states.
+           ============================================================ */
+
+.landing-panel {
+            position: fixed;
+            z-index: 500;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            background: var(--bg-panel);
+            border-radius: var(--radius-panel);
+            box-shadow: var(--shadow-high);
+            color: var(--text-soft);
+            font-family: var(--font-ui);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+/* Desktop: a right-hand column, globe in the free left third. */
+
+@media (min-width: 769px) {
+    .landing-panel {
+                    top: 16px;
+                    right: 16px;
+                    bottom: 16px;
+                    /* ~2/3 of the viewport: this is a reading view with the globe
+                       beside it, not a globe with a sidebar. Capped so the card grid
+                       does not sprawl on an ultrawide display. */
+                    width: clamp(360px, 62vw, 1040px);
+                }
+}
+
+/* Mobile: a vertical split — globe above, content below. The panel is
+           the taller half because it is the thing being read. */
+
+@media (max-width: 768px) {
+    .landing-panel {
+                    left: 8px;
+                    right: 8px;
+                    bottom: 8px;
+                    top: 42vh;
+                    border-radius: var(--radius-panel);
+                }
+}
+
+/* --- intro ------------------------------------------------- */
+
+.landing-panel h1 {
+            font-family: var(--font-display);
+            font-weight: var(--weight-semibold);
+            font-size: clamp(22px, 2.6vw, 30px);
+            line-height: 1.22;
+            color: var(--text-heading);
+            margin: 0 0 14px;
+        }
+
+/* --- sections ---------------------------------------------- */
+
+.landing-panel h2 {
+            font-family: var(--font-display);
+            font-weight: var(--weight-semibold);
+            font-size: 20px;
+            color: var(--text-heading);
+            margin: 0 0 8px;
+        }
+
+/* The landing view has no splash, so the canvas must not show a black or
+           half-rendered globe while assets load. It is held off-screen from the
+           first frame (.landing-boot, set synchronously by LandingPanel.init)
+           and slides in on globe3d:intro-dismissed, after the lighting fade-in.
+           Scoped to .landing-boot so a page without the panel is never left with
+           an invisible globe. */
+
+body.landing-boot #globe-canvas {
+            opacity: 0;
+            transform: translateX(-6vw);
+            transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+@media (max-width: 768px) {
+    body.landing-boot #globe-canvas {
+                    transform: translateY(-6vh);
+                }
+}
+
+body.landing-boot.globe-ready #globe-canvas {
+            opacity: 1;
+            transform: none;
+        }
+
+@media (prefers-reduced-motion: reduce) {
+    body.landing-boot #globe-canvas {
+                    transform: none;
+                    transition: opacity 0.3s ease-out;
+                }
+}
+
+/* Globe takes over: the panel leaves, but stays in the DOM (and in the
+           document a crawler sees — this is presentation only). */
+
+body.globe-focus .landing-panel {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(12px);
+        }
+
+/* …except while a quiz is running. The quiz owns the screen, and the
+           control sits exactly where the quiz chrome does. Covers every mode:
+           quiz-active (the three globe quizzes), dq-active (Daily Challenge)
+           and audit-active. */
+
+body.quiz-active .lf-restore,
+        body.dq-active .lf-restore,
+        body.audit-active .lf-restore {
+            display: none !important;
+        }
+
+/* Bottom-docked chrome would land under the panel, where it is half
+           covered and unclickable. Hidden while reading; both return with the
+           globe, which is also the moment they are actually useful. */
+
+body.landing-active #quiz-invite,
+        body.landing-active #dq-invite,
+        body.landing-active #dq-today {
+            display: none !important;
+        }
+
+/* Reduced motion: state changes still happen, just not as a slide. */
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-panel {
+                    transition: opacity 0.2s ease;
+                }
+
+    body.globe-focus .landing-panel {
+                    transform: none;
+                }
+}
+
+/* ============================================================
+           Layout overrides — applied last so they win on cascade order.
+
+           - Hide Zoom Out + Zoom Widget always (kept in DOM in place).
+           - Show Take Quiz on desktop too, top-left under search.
+           - The edit/animation dev buttons are relocated into the settings
+             gear (#settings-panel) at runtime; their layout is normalized
+             there. Save/fine-tune siblings keep their internal show/hide.
+           ============================================================ */
+
+#zoom-out-btn,
+        #zoom-widget {
+            display: none !important;
+        }
+
+/* The edit / animation dev buttons live behind the settings gear. They
+           start life as direct children of #container (so their IDs/listeners
+           are wired up front) and are reparented into #settings-panel once the
+           globe finishes loading. Hide them until then so they don't flash in
+           the corners during load — the more-specific `#settings-panel #…`
+           rules below (display: block !important) reveal them inside the panel. */
+
+#edit-mode-btn,
+        #edit-colors-btn,
+        #edit-zoom-btn,
+        #bounce-btn,
+        #shatter-btn,
+        #pinball-btn {
+            display: none !important;
+        }
+
+/* The edit / animation dev buttons are relocated into the settings panel
+           (#settings-panel) at runtime. Normalize their layout there: drop the
+           fixed left-column / top-right positioning the per-breakpoint rules give
+           them so they stack neatly inside the panel. */
+
+#settings-panel #edit-mode-btn,
+        #settings-panel #save-config-btn,
+        #settings-panel #fine-tune-btn,
+        #settings-panel #edit-colors-btn,
+        #settings-panel #save-colors-btn,
+        #settings-panel #edit-zoom-btn,
+        #settings-panel #save-zoom-btn,
+        #settings-panel #bounce-btn,
+        #settings-panel #shatter-btn,
+        #settings-panel #pinball-btn {
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            margin: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+/* Mode-toggle + animation buttons are always visible in the panel; their
+           save/fine-tune siblings keep their own module-driven inline show/hide. */
+
+#settings-panel #edit-mode-btn,
+        #settings-panel #edit-colors-btn,
+        #settings-panel #edit-zoom-btn,
+        #settings-panel #bounce-btn,
+        #settings-panel #shatter-btn,
+        #settings-panel #pinball-btn {
+            display: block !important;
+        }
+
+/* Hide all UI chrome (buttons, widgets, search, flag panel, dev tools)
+           while the Quiz Complete celebration is showing, so only the globe,
+           any active animation, and the celebration card remain visible. */
+
+body.celebration-active #zoom-out-btn,
+        body.celebration-active #take-quiz-btn,
+        body.celebration-active #bounce-btn,
+        body.celebration-active #shatter-btn,
+        body.celebration-active #pinball-btn,
+        body.celebration-active #settings-toggle,
+        body.celebration-active #settings-panel,
+        body.celebration-active #edit-mode-btn,
+        body.celebration-active #save-config-btn,
+        body.celebration-active #fine-tune-btn,
+        body.celebration-active #edit-colors-btn,
+        body.celebration-active #save-colors-btn,
+        body.celebration-active #swatch-panel,
+        body.celebration-active #edit-zoom-btn,
+        body.celebration-active #save-zoom-btn,
+        body.celebration-active #level-panel,
+        body.celebration-active #zoom-widget,
+        body.celebration-active #flag-container,
+        body.celebration-active #search-container,
+        body.celebration-active .landing-panel,
+        body.celebration-active #info-area {
+            display: none !important;
+        }
+
+/* Bounce + Shatter + Pinball — experimental animation triggers. These
+           base rules are the fallback; once relocated into the settings panel
+           their layout is normalized by the #settings-panel rules above. */
+
+#bounce-btn,
+        #shatter-btn,
+        #pinball-btn {
+            position: fixed;
+            right: 20px;
+            z-index: 150;
+            border: none;
+            border-radius: var(--radius-btn);
+            color: var(--white);
+            font-size: 14px;
+            font-weight: var(--weight-bold);
+            padding: 10px 15px;
+            cursor: pointer;
+            box-shadow: var(--shadow-mid);
+            transition: all 0.3s;
+        }
+
+#bounce-btn { top: 66px;  background-color: var(--violet-1); }
+
+#shatter-btn { top: 111px; background-color: var(--red-8); }
+
+#pinball-btn { top: 156px; background-color: var(--ok); }
+
+#bounce-btn:hover { background-color: var(--violet-2); transform: scale(1.05); }
+
+#shatter-btn:hover { background-color: var(--red-9); transform: scale(1.05); }
+
+#pinball-btn:hover { background-color: var(--green-7); transform: scale(1.05); }
+
+body.quiz-active #bounce-btn,
+        body.quiz-active #shatter-btn,
+        body.quiz-active #pinball-btn,
+        body.celebration-active #bounce-btn,
+        body.celebration-active #shatter-btn,
+        body.celebration-active #pinball-btn {
+            display: none !important;
+        }
+
+@media (max-width: 768px) {
+    /* Mobile fallbacks (overridden when stacked inside the settings panel). */
+
+    #bounce-btn { top: 48px;  right: 10px; }
+
+    #shatter-btn { top: 90px;  right: 10px; }
+
+    #pinball-btn { top: 132px; right: 10px; }
+}
+
+/* ===========================================================================
+   Settings panel — the ⚙ gear (top-right) and its slide-in panel. Built at
+   runtime by js/features/settings-panel.js. Hosts the color-scheme picker,
+   border toggle, lighting, auto-rotate, and the relocated developer/editing
+   buttons. Replaces the old ✎ dev-edit toggle + light panel.
+   =========================================================================== */
+
+#settings-toggle.active { background-color: var(--green-8); border-color: var(--ok); }
+
+#settings-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+    z-index: 349;
+    box-sizing: border-box;
+    padding: 14px 16px 18px;
+    background: var(--bg-panel);
+    border: 1px solid var(--steel-12);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-high);
+    color: var(--steel-13);
+    font-family: var(--font-ui);
+    font-size: 13px;
+}
+
+#settings-panel.hidden { display: none; }
+
+.settings-seg-btn.active { background: var(--green-9); border-color: var(--ok); color: var(--white); }
+
+/* Country search, relocated to the top of the panel (under the header). Strip
+   the standalone fixed-overlay framing so it sits in the panel flow. */
+
+#settings-panel #search-container {
+    display: block;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: auto;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    margin: 0 0 4px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+#settings-panel #search-box { margin-bottom: 8px; }
+
+#settings-panel #country-search { font-size: 14px; }
+
+#settings-panel #search-results { max-height: 240px; }
+
+/* Keep the gear + panel clear of the (sometimes fullscreen) quiz UI. */
+
+body.quiz-active #settings-toggle,
+body.quiz-active #settings-panel,
+body.flag-quiz-active #settings-toggle,
+body.flag-quiz-active #settings-panel {
+    display: none !important;
+}
+
+/* ============================================================
+   Main CTA cluster — the primary "Quizzes" button (amber)
+   per design/main_buttons. The secondary Daily Challenge pill
+   (#dq-today, violet) lands in the same cluster slot but is owned
+   by the Daily Challenge section below. Desktop: top-left. Mobile:
+   bottom-right. Built by js/features/main-cta.js, which wraps the
+   pre-existing #take-quiz-btn (so its click wiring stays put) and
+   adds the glow + two-line label. These rules override the legacy
+   orange #take-quiz-btn styles via higher (#id #id) specificity.
+   ============================================================ */
+
+:root {
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    /* Secondary accent — see the design/main_buttons handoff. The app is a
+       single-accent system otherwise; this differentiates the daily action.
+       --accent-secondary is the ONE editable knob (js/data/theme-tokens.js
+       Colors group + backend/themes/tokens.py), so a theme recolours the Daily
+       pill with a single swatch. The six --violet-* below are DERIVED, not
+       knobs: same color-mix idiom as --accent-soft, so they track the knob.
+       (The handoff's original ramp used three neighbouring hues — #7c6ce8 fill,
+       #8c7cf0 border, #a090f8 border-hover. Collapsing to one knob snaps them
+       all to the middle hue: the fill reads a touch lighter and the hover
+       border no longer lightens as well as thickening. Deliberate trade —
+       one swatch beats six in an already-busy editor.)
+       Note the label/icon mixes assume a dark surface; on a light theme a
+       theme author will want a darker --accent-secondary to keep contrast. */
+    --accent-secondary: #8c7cf0;
+    --violet-fill: color-mix(in srgb, var(--accent-secondary) 16%, transparent);
+    --violet-fill-hover: color-mix(in srgb, var(--accent-secondary) 26%, transparent);
+    --violet-border: color-mix(in srgb, var(--accent-secondary) 42%, transparent);
+    --violet-border-hover: color-mix(in srgb, var(--accent-secondary) 60%, transparent);
+    --violet-icon: color-mix(in srgb, var(--accent-secondary) 66%, var(--white));
+    --violet-label: color-mix(in srgb, var(--accent-secondary) 34%, var(--white));
+}
+
+#main-cta-cluster {
+    position: fixed;
+    top: 32px;
+    left: 34px;
+    z-index: 150;
+    animation: qb-fade 0.6s var(--ease-soft) both;
+}
+
+/* The amber pill. Keep the button `position: static` (NOT relative/fixed): the legacy
+   `#take-quiz-btn { top/left: …!important }` rules would otherwise shift a positioned
+   button ~20px inside the cluster (!important beats specificity). Static makes those
+   inert. The glow sits behind via its own `z-index:-1` (no positioned button needed). */
+
+#main-cta-cluster #take-quiz-btn {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 28px 15px 22px;
+    border: none;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 16%), var(--accent));
+    box-shadow: var(--glow-cta);
+    color: var(--on-accent);
+    cursor: pointer;
+    transition: transform 0.18s var(--ease-soft), box-shadow 0.18s var(--ease-soft);
+}
+
+#main-cta-cluster #take-quiz-btn:hover {
+    transform: translateY(-2px);
+    /* re-declare the gradient to cancel the legacy orange :hover background-color */
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 16%), var(--accent));
+    box-shadow: var(--glow-cta);
+}
+
+#main-cta-cluster #take-quiz-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--glow-cta);
+}
+
+/* Pulsing amber glow behind the pill (translate keeps it centred during the pulse). */
+
+@keyframes qb-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Hidden whenever a quiz / daily view takes over the screen. */
+
+body.quiz-active #main-cta-cluster,
+body.flag-quiz-active #main-cta-cluster,
+body.celebration-active #main-cta-cluster,
+body.dq-active #main-cta-cluster {
+    display: none !important;
+}
+
+/* Mobile: cluster bottom-right, compact single-line pill. */
+
+@media (max-width: 768px) {
+    #main-cta-cluster {
+            top: auto;
+            left: auto;
+            right: 18px;
+            bottom: 18px;
+        }
+
+    #main-cta-cluster #take-quiz-btn {
+            gap: 8px;
+            padding: 11px 18px;
+            box-shadow: var(--glow-cta);
+        }
+
+    /* Keep the Quiz pill clear of the bottom-docked invite / reminder sheets: hide
+           it while either is open (it returns once they dock/dismiss). The daily invite
+           keeps .dq-invite-show after docking, so :not(.dq-docked) re-shows the pill. */
+
+    body:has(#dq-invite.dq-invite-show:not(.dq-docked)) #main-cta-cluster,
+    body:has(#quiz-invite.qz-invite-show) #main-cta-cluster {
+            display: none !important;
+        }
+
+    /* The country detail panel docks at the bottom on mobile — hide the Quiz cluster,
+           the docked Daily pill, and the settings gear while it's up so they don't overlap. */
+
+    body.flag-info-active #main-cta-cluster,
+    body.flag-info-active #dq-invite,
+    body.flag-info-active #settings-toggle {
+            display: none !important;
+        }
+}
+
+/* Invite: a navy glass bottom-sheet (Terragotcha design system) shown under the
+   globe after the intro overlay fades (.dq-invite-show — an opacity fade-in). On
+   "Maybe later" it collapses (FLIP morph, see daily-quiz.js _dock) into the
+   #dq-today icon button docked top-left under the Take Quiz button.
+   transform-origin keeps the morph anchored to that corner. */
+
+#dq-invite,
+#quiz-invite {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: 18px;
+    z-index: 160;
+    box-sizing: border-box;
+    padding: 18px 22px 15px;
+    border-radius: var(--radius-panel);
+    background: var(--bg-panel);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--neutral-27);
+    box-shadow: var(--shadow-high);
+    transform-origin: top left;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+
+/* Desktop: cap the width and centre it (margin-centring, NOT transform — the FLIP
+   morph needs `transform` free). */
+
+@media (min-width: 769px) {
+    #dq-invite,
+    #quiz-invite {
+            left: 50%;
+            right: auto;
+            margin-left: -210px;
+            width: 420px;
+        }
+}
+
+#dq-invite.dq-invite-show,
+#quiz-invite.qz-invite-show { opacity: 1; }
+
+#dq-invite.dq-invite-show .dq-sheet-content,
+#quiz-invite.qz-invite-show .qz-sheet-content { pointer-events: auto; }
+
+/* Docked: the morph target — shrink to the "Daily Challenge" pill, pinned
+   top-left directly under the Take Quiz button (top:20px desktop / top:110px
+   mobile). The container shrink-wraps the in-flow #dq-today button. Keep the
+   glass card here so it stays visible while shrinking; the amber pill fades in
+   over it at the end. border-radius matches the pill so corners line up. */
+
+#dq-invite.dq-docked {
+    /* Lands in the main CTA cluster slot, a 15px gap below the Quiz pill, left edges
+       aligned to the same edge (left 34). The pill height is measured live into
+       --cta-quiz-h (main-cta.js) so the gap holds regardless of font/badge height. */
+    top: calc(32px + var(--cta-quiz-h, 74px) + 15px);
+    left: 34px;
+    right: auto;
+    bottom: auto;
+    width: auto;
+    height: auto;
+    margin-left: 0;
+    padding: 0;
+    border-radius: var(--radius-pill);
+    pointer-events: auto;
+}
+
+#dq-invite.dq-docked .dq-sheet-content {
+    opacity: 0;
+    pointer-events: none;
+    /* collapse out of flow so the container measures as just the pill */
+    position: absolute;
+    visibility: hidden;
+}
+
+#dq-invite.dq-docked #dq-today {
+    display: flex;
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    /* Mobile cluster sits bottom-right: dock the daily pill a 12px gap ABOVE the
+           Quiz pill (measured height), right edges aligned to the same edge (right 18). */
+
+    #dq-invite.dq-docked {
+            top: auto;
+            left: auto;
+            right: 18px;
+            bottom: calc(18px + var(--cta-quiz-h, 50px) + 12px);
+        }
+}
+
+body.dq-active #dq-invite { display: none; }
+
+/* The quiz reminder steps aside whenever a quiz / daily view is busy. */
+
+body.quiz-active #quiz-invite,
+body.flag-quiz-active #quiz-invite,
+body.dq-active #quiz-invite { display: none; }
+
+/* Subtle jiggle of the top-left Take Quiz button when the quiz reminder is
+   dismissed — associates the dismissed panel with its persistent entry point. */
+
+#dq-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 300;
+    background: var(--bg-panel);
+    color: var(--steel-19);
+    border-top: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+    box-shadow: var(--shadow-dock);
+    padding: 10px 14px 18px;
+    /* No internal scroll: a scrollable body would be a second drag target,
+       competing with the slide-to-peek gesture. The panel sizes to its content
+       instead, and the user slides it down when it covers too much. */
+    overflow: hidden;
+    font-family: system-ui, sans-serif;
+    /* Draggable "peek" sheet: the controller sets transform: translateY() to
+       slide it down to its top bar. The transition animates the snap; it's
+       dropped (via .dq-dragging) while the finger is down so it tracks 1:1. */
+    transition: transform 0.25s ease;
+    will-change: transform;
+}
+
+#dq-panel.dq-dragging { transition: none; }
+
+/* Grab tab at the top of the panel — the drag/pull surface, and the only part
+   left showing when the panel is slid down to the bottom of the screen. Tall
+   enough to be a comfortable touch target; the visible pill is the ::before. */
+
+.dq-grab {
+    height: 22px;
+    margin: 0 auto 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;          /* a touch-drag moves the sheet, not the body scroll */
+    flex: 0 0 auto;
+}
+
+.dq-grab::before {
+    content: "";
+    width: 40px;
+    height: 5px;
+    border-radius: var(--radius-pill);
+    background: var(--steel-20);
+}
+
+.dq-grab:active { cursor: grabbing; }
+
+/* The header bar reuses the practice quizzes' .qz-bar chrome (progress label ·
+   score chip · timer chip · close); it doubles as a drag handle, so it needs
+   touch-action: none like the old top bar did. Score/timer/close styling comes
+   from the shared .qz-bar / .qz-stat / .qz-close rules. */
+
+.dq-bar { touch-action: none; }
+
+.dq-flag {
+    display: block;
+    margin: 0 auto 10px;
+    max-width: 180px;
+    width: 50%;
+    border-radius: var(--radius-btn);
+    box-shadow: var(--shadow-low);
+}
+
+/* Prompt mirrors the practice quizzes' .qz-main (Fredoka display line); daily
+   prompts are full sentences, so a single centred line (no eyebrow/main split). */
+
+.dq-prompt {
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    color: var(--text-heading);
+    text-align: center;
+    margin: 18px 0 4px;
+    line-height: 1.25;
+}
+
+/* Sub-caption under the prompt on "Click X." (map-click) questions: tells the
+   player the globe can be rotated to line their answer up before tapping. */
+
+.dq-map-hint {
+    font-family: var(--font-ui);
+    font-weight: var(--weight-medium);
+    font-size: 12.5px;
+    letter-spacing: 0.01em;
+    color: var(--steel-21);
+    text-align: center;
+    margin: 2px 0 0;
+}
+
+/* Answer cells reuse the practice quizzes' .quiz-option markup + --qz-* tokens
+   (defined in the shared answer-grid block). Scoped to .dq-grid so the practice
+   #quiz-options rules are untouched; daily keeps variable columns (set inline) and
+   a distinct gold "missed" cue the single-select practice quizzes don't need. */
+
+.dq-grid-wrap { display: flex; flex-direction: column; gap: 10px; }
+
+.dq-grid { display: grid; gap: 10px; width: 100%; margin-top: 14px; }
+
+.dq-grid .quiz-option {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;            /* let the minmax(0,1fr) track shrink to fit the panel */
+    padding: 12px 14px;
+    border-radius: var(--radius-btn) !important;   /* beat the global button{border-radius:999px} */
+    background: var(--qz-opt-bg);
+    border: 1px solid var(--qz-opt-border);
+    color: var(--qz-opt-text);
+    font-family: var(--font-ui);
+    font-weight: var(--weight-semibold);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dq-grid .quiz-option:hover {
+    transform: none;
+    border-color: var(--neutral-18);
+    background: var(--neutral-19);
+}
+
+.dq-grid .quiz-option.selected {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    color: color-mix(in srgb, var(--accent), white 35%);
+}
+
+.dq-grid .quiz-option.correct {
+    background: var(--qz-correct-bg);
+    border-color: var(--qz-correct-border);
+    color: var(--qz-correct-text);
+}
+
+.dq-grid .quiz-option.incorrect {
+    background: var(--qz-wrong-bg);
+    border-color: var(--qz-wrong-border);
+    color: var(--qz-wrong-text);
+}
+
+.dq-grid .quiz-option.missed {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    color: color-mix(in srgb, var(--accent), white 40%);
+}
+
+.dq-grid .quiz-option.dimmed { color: var(--qz-dimmed-text); }
+
+/* Wrap long names (incl. unbreakable long words) rather than overflowing the cell. */
+
+.dq-cell-label { min-width: 0; overflow-wrap: anywhere; }
+
+/* Trailing reveal mark, matching the practice quizzes (.qz-mark). */
+
+.dq-grid .qz-mark { margin-left: auto; }
+
+.dq-grid .qz-mark-correct { color: var(--qz-correct-icon); }
+
+.dq-grid .qz-mark-wrong { color: var(--qz-wrong-icon); }
+
+.dq-grid .qz-mark-missed { color: var(--accent); }
+
+/* Action row: Submit (multi-select only) + Next share one row that is ALWAYS
+   present and reserves its height, so answering never resizes the panel. The
+   row may differ between questions (that's fine) — just not mid-question. */
+
+.dq-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: 8px;
+}
+
+/* Amber action pills, matching the practice quizzes' Next button and #dq-launch. */
+
+.dq-submit, .dq-next {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 8%), var(--accent));
+    color: var(--on-accent);
+    border: none;
+    font-size: 15px;
+    font-weight: var(--weight-bold);
+    padding: 10px 24px;
+    cursor: pointer;
+    box-shadow: var(--glow-cta);
+}
+
+/* Faded/inert until usable: Next before the answer is in, Submit with nothing picked. */
+
+.dq-submit:disabled, .dq-next:disabled { opacity: 0.25; cursor: default; box-shadow: none; }
+
+.dq-next:hover:not(:disabled), .dq-submit:hover:not(:disabled) { filter: brightness(1.04); }
+
+/* Feedback message sits below the action row and reserves ~2 lines so revealing
+   the correct/wrong readout doesn't shift the row above it. */
+
+.dq-feedback {
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.35;
+    min-height: 2.4em;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dq-feedback.correct { color: var(--qz-correct-text); }
+
+.dq-feedback.wrong { color: var(--qz-wrong-text); }
+
+/* Desktop: float the panel as a right-hand card rather than a full bottom sheet. */
+
+@media (min-width: 760px) {
+    #dq-panel {
+            left: auto;
+            right: 16px;
+            bottom: 16px;
+            width: 380px;
+            border-radius: var(--radius-panel);
+            border: 1px solid var(--border-subtle);
+        }
+}
+
+/* Mobile: copy the normal Name-the-Country quiz's compact vertical spacing exactly
+   (a bottom sheet sized to its content). Applies to every daily question type. The
+   panel hugs the Next button — overlapping the settings gear below is acceptable. */
+
+@media (max-width: 759px) {
+    #dq-panel { padding: 10px 14px 12px; }
+
+    .dq-bar { gap: 10px; }
+
+    #dq-panel .qz-progress { margin-top: 8px; }
+
+    .dq-prompt { margin: 8px 0 0; font-size: 17px; }
+
+    .dq-flag { margin-bottom: 8px; }
+
+    .dq-grid { gap: 6px; margin-top: 8px; }
+
+    .dq-grid .quiz-option {
+            position: relative;
+            justify-content: center;
+            text-align: center;
+            padding: 9px 6px;
+            font-size: 12px;
+            border-radius: var(--radius-btn) !important;
+        }
+
+    /* Reveal mark → small corner badge on the narrow cells (as in the normal quiz). */
+
+    .dq-grid .qz-mark { position: absolute; top: 3px; right: 4px; margin-left: 0; }
+
+    .dq-grid .qz-mark .qz-svg { width: 13px; height: 13px; }
+
+    /* Tighten the action row + trailing areas so no dead space stacks under Next. */
+
+    .dq-actions { min-height: 0; margin-top: 10px; }
+
+    .dq-submit, .dq-next { padding: 9px 20px; font-size: 13px; }
+
+    .dq-feedback { min-height: 1.4em; margin-top: 4px; font-size: 13px; }
+}
+
+/* Hide the launch button while any legacy quiz is fullscreen. */
+
+body.flag-quiz-active #dq-invite,
+body.quiz-active #dq-invite { display: none; }
+
+/* ============================================================
+   Button normalization — every button matches the Daily Challenge action:
+   a pill (border-radius: 999px) in Archivo 600. Each button keeps its own
+   colour, size, padding and positioning; only shape + font are unified.
+
+   This lives last and uses !important because the project's buttons predate
+   this design system: dozens of id-specific rules (e.g. #take-quiz-btn) set
+   their own border-radius/font-weight and would otherwise win on specificity.
+   Every button in the app is a real <button>, so this one selector covers them
+   all (incl. runtime-created quiz options, swatches, and panel buttons).
+   ============================================================ */
+
+button {
+    font-family: var(--font-ui) !important;
+    font-weight: var(--weight-semibold) !important;
+    border-radius: var(--radius-btn) !important;
+}
+
+/* Shapes that must survive the uniform button-radius rule above (they're <button>s
+   it would otherwise square off): round icon/close/swatch buttons stay circles,
+   and the segmented control stays a pill. */
+
+.flag-close, .qz-close, .qsv-close, .settings-swatch {
+    border-radius: var(--radius-circle) !important;
+}
+
+/* Transient status pill shown while recovering from a lost WebGL context
+   (see js/core/context-recovery.js). Sits above all UI; non-interactive. */
+
+.context-recovery-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px);
+    padding: 10px 18px;
+    background: var(--neutral-24);
+    color: var(--white);
+    font-size: 14px;
+    font-weight: var(--weight-medium);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-high);
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.context-recovery-toast.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Fatal fallback shown when the browser refuses to create a WebGL context and the
+   globe can't start at all (see js/features/webgl-fallback.js). Full-viewport, opaque,
+   above every other layer (app max is .qr at 10000). */
+
+.webgl-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: var(--bg-app);
+    color: var(--text-heading);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.webgl-fallback.is-visible {
+    opacity: 1;
+}
+
+.webgl-fallback-card {
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    padding: 28px 26px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg-elevated), var(--bg-panel));
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-high);
+}
+
+.webgl-fallback-icon {
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.webgl-fallback-title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: 20px;
+    color: var(--text-heading);
+}
+
+.webgl-fallback-body {
+    margin: 0 0 22px;
+    font-family: var(--font-ui);
+    font-weight: var(--weight-normal);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-body);
+}
+
+.webgl-fallback-reload {
+    padding: 10px 24px;
+    font-size: 15px;
+    color: var(--on-accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 8%), var(--accent));
+    border: none;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Ad side rail (Google AdSense) — js/features/ads/ad-rail.js
+   A single responsive display unit in the empty LEFT margin (the zoom widget
+   owns the right edge), vertically centred over the dark backdrop. Hidden below
+   1200px so it never collides with the globe, CTA cluster, search, or widgets;
+   the rail slot reserves its height so mounting an ad causes no layout shift.
+   z-index sits above the canvas (0–1) but below every UI overlay/modal (1000+).
+   ========================================================================== */
+
+#ad-rail { display: none; }
+
+@media (min-width: 1200px) {
+    #ad-rail {
+            display: block;
+            position: fixed;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 160px;
+            z-index: 90;
+            pointer-events: auto;
+        }
+
+    #ad-rail .ad-rail-label {
+            font: 500 10px/1.4 'Archivo', system-ui, sans-serif;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--neutral-45);
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+    #ad-rail .ad-rail-slot {
+            width: 160px;
+            min-height: 600px; /* reserve space → no layout shift (CLS) */
+        }
+}
+
+/* Settings drawer footer — privacy-policy link (js/features/settings-panel.js). */
+
+#settings-panel .settings-footer {
+    margin-top: 18px;
+    padding: 14px 0 4px;
+    border-top: 1px solid var(--neutral-17);
+    text-align: center;
+}
+
+#settings-panel .settings-footer a {
+    color: var(--neutral-10);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+#settings-panel .settings-footer a:hover {
+    color: var(--neutral-46);
+    text-decoration: underline;
+}
+
+/* --- Hero: two-column grid (map spans both rows on the left) -------------- */
+
+.lp-hero-grid {
+    display: grid;
+    /* The map is the dominant hero but the width is a RATIO, not a hard 960px
+       (per the handoff) — a fixed 960 would starve the answer column below
+       ~1600px and wrap country names mid-word. ~1.2:1 keeps the design's feel
+       while leaving the answer grid room to breathe. */
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    column-gap: 64px;
+    align-items: stretch;
+}
+
+/* --- Interaction column: divider, instruction + counter, quiz ------------- */
+
+.lp-counter-icon { display: inline-flex; color: color-mix(in srgb, var(--accent), white 14%); }
+
+.lp-counter-text {
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    font-size: 0.85rem;
+    color: var(--text-heading);
+}
+
+/* Landing-scoped quiz restyle (kept under .lp-interact so the shared daily-quiz
+   .dq-* palette is untouched). 3 columns on desktop; handoff reveal colours. */
+
+.lp-interact .dq-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 11px;
+    margin-top: 6px;
+}
+
+.lp-interact .quiz-option {
+    padding: 12px 14px;
+    border-radius: var(--radius-btn) !important;
+    background: var(--neutral-30);
+    border-color: var(--neutral-15);
+    color: var(--steel-27);
+    font-size: 0.82rem;
+}
+
+/* !important on the reveal colours: the same layered .dq-grid / .quiz-option
+   cascade that forces the border-radius override above also out-orders these
+   equal-specificity state colours, so pin them. Scoped to .lp-interact, so the
+   shared daily-quiz palette is unaffected. */
+
+.lp-interact .quiz-option.selected {
+    background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent) 62%, transparent) !important;
+    color: color-mix(in srgb, var(--accent), white 45%) !important;
+}
+
+.lp-interact .quiz-option.correct {
+    background: var(--green-10) !important;
+    border-color: var(--green-11) !important;
+    color: var(--green-12) !important;
+}
+
+.lp-interact .quiz-option.missed {
+    background: var(--green-13) !important;
+    border-color: var(--green-14) !important;
+    color: var(--green-15) !important;
+}
+
+.lp-interact .quiz-option.incorrect {
+    background: var(--red-11) !important;
+    border-color: var(--red-12) !important;
+    color: var(--red-13) !important;
+}
+
+.lp-interact .quiz-option.dimmed {
+    background: var(--neutral-34) !important;
+    border-color: var(--neutral-31) !important;
+    color: var(--text-low) !important;
+}
+
+/* Actions row: Check answer / Try again + the result line, left-aligned. */
+
+.lp-interact .dq-actions {
+    justify-content: flex-start;
+    gap: 14px;
+    margin-top: 22px;
+    min-height: 0;
+}
+
+.lp-interact .dq-submit {
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    font-size: 15px;
+    padding: 14px 30px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 16%), var(--accent));
+    color: var(--on-accent);
+    box-shadow: var(--glow-cta);
+}
+
+.lp-interact .dq-submit:disabled {
+    background: var(--neutral-23);
+    border-color: var(--neutral-17);
+    color: var(--text-low);
+    box-shadow: none;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.lp-interact .dq-submit.is-retry {
+    background: var(--neutral-31);
+    border-color: var(--neutral-22);
+    color: var(--steel-27);
+    box-shadow: none;
+}
+
+.lp-interact .dq-feedback {
+    text-align: left;
+    justify-content: flex-start;
+    min-height: 0;
+    margin-top: 0;
+    font-size: 14px;
+    font-weight: var(--weight-semibold);
+}
+
+.lp-interact .dq-feedback.correct { color: var(--green-16); }
+
+.lp-interact .dq-feedback.nearly { color: color-mix(in srgb, var(--accent), white 14%); }
+
+.lp-interact .dq-feedback.wrong { color: var(--red-14); }
+
+/* Hidden until the quiz is answered (border-quiz.js removes the class). Kept in
+   the DOM so the internal links stay crawlable for SEO even while collapsed. */
+
+.lp-related { margin: 28px 0 0; }
+
+.lp-related.is-collapsed { display: none; }
+
+.lp-related h2 {
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    font-size: 1.05rem;
+    margin: 0 0 10px;
+    color: var(--steel-24);
+}
+
+.lp-related ul { list-style: none; padding: 0; margin: 0; }
+
+.lp-related li { margin: 0 0 8px; }
+
+.lp-related a { color: var(--accent); text-decoration: none; }
+
+.lp-related a:hover { text-decoration: underline; }
+
+/* --- CTA: hidden until the answer is revealed, then (after a 1.5s beat set by
+   border-quiz.js) fades in. Desktop = a centred card sharing the map's grid cell
+   (col 1 / rows 1-2), so it sits over the country render while the answers in
+   column 2 stay visible. Mobile falls back to an in-flow band (see below). ---- */
+
+.lp-cta.is-collapsed { display: none; }
+
+.lp-cta {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    justify-self: center;
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    max-width: 78%;
+    padding: 28px 32px;
+    border-radius: var(--radius-panel);
+    background: var(--bg-panel);
+    border: 1px solid var(--neutral-15);
+    box-shadow: var(--shadow-high);
+    animation: lp-cta-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* --- Motion -------------------------------------------------------------- */
+
+@keyframes lp-cta-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-topbar, .lp-head, .lp-maphero, .lp-interact, .lp-cta { animation: none; }
+}
+
+/* --- Mobile: collapse the two-column hero into a single stacked card ------ */
+
+@media (max-width: 900px) {
+    /* the wordmark carries the brand here */
+
+    .lp-hero-grid { display: flex; flex-direction: column; }
+
+    /* Three across on mobile so the card fits the viewport; long names span two
+           cells (tagged .dq-wide by border-quiz.js) to stay on one line, and dense
+           flow backfills the gaps a span would otherwise leave. */
+
+    .lp-interact .quiz-option {
+            padding: 9px 8px;
+            font-size: 0.76rem;
+            border-radius: var(--radius-btn) !important;
+            text-align: center;
+            justify-content: center;
+        }
+
+    .lp-interact .dq-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            grid-auto-flow: dense;
+            gap: 7px;
+            margin-top: 4px;
+        }
+
+    .lp-interact .quiz-option.dq-wide { grid-column: span 2; }
+
+    /* Reveal mark shouldn't shove a centred label off-centre in a tight cell. */
+
+    .lp-interact .dq-grid .qz-mark { margin-left: 6px; }
+
+    .lp-interact .dq-actions { flex-wrap: wrap; margin-top: 14px; }
+
+    /* Mobile: the map is only a strip, so instead of overlaying it the revealed
+           CTA takes the map's PLACE — the map is hidden (border-quiz.js adds
+           .cta-open once the CTA fades in) and the CTA drops into the map's slot
+           (order 2: right below the question, above the quiz), sized like the map so
+           the swap doesn't jump. Still gated by .is-collapsed until revealed. */
+
+    .lp-hero-grid.cta-open .lp-maphero { display: none; }
+
+    .lp-cta {
+            grid-column: auto;
+            grid-row: auto;
+            align-self: auto;
+            justify-self: auto;
+            order: 2;
+            z-index: auto;
+            max-width: none;
+            min-height: 190px;
+            margin-top: 14px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 14px;
+            padding: 22px 18px;
+            border-radius: var(--radius-panel);
+            background: var(--bg-panel);
+            border: 1px solid var(--neutral-27);
+            box-shadow: none;
+        }
+}
+
+@media (max-width: 480px) {
+    /* Tighter still on the smallest phones: compact three-across buttons. */
+
+    .lp-interact .quiz-option { padding: 8px 6px; font-size: 0.72rem; }
+
+    .lp-interact .dq-grid { gap: 6px; }
+
+    .lp-interact .dq-submit { padding: 12px 26px; font-size: 14px; }
+
+    .lp-interact .dq-actions { margin-top: 12px; }
+
+    /* Match the smaller 480px map height so the swap stays in place. */
+
+    .lp-cta { min-height: 150px; margin-top: 12px; padding: 18px 16px; }
+}
+
+/* ===========================================================================
+   Live theme editor (admin) — js/features/theme-editor.js. A right-anchored
+   sheet (no scrim) so the real app stays visible and re-themes as you edit.
+   All styling reads design tokens so the editor itself follows the active theme.
+   =========================================================================== */
+
+.theme-editor.hidden { display: none; }
