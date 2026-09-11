@@ -107,6 +107,13 @@ function DailyChallenge({ handle }: { handle: GlobeHandle }) {
         return () => window.clearTimeout(t);
     }, [showing]);
 
+    // A tap on a country is an answer too: the reader has chosen the globe over
+    // the offer, so the offer steps aside as "Later" would — at every width.
+    useEffect(() => {
+        if (!showing) return;
+        return globe.onPick(() => setDismissed(true));
+    }, [showing, globe]);
+
     const onNeedsName = useCallback(async () => {
         const api = await getApi();
         setRegistered(api.isRegistered);

@@ -430,7 +430,10 @@ round buttons after the gear and the search toggle (`.shell-btn`; seated by `she
 owns that row). The quiz launcher joins the same row at the right on a phone, as "Quiz me" at
 the buttons' height, since the bottom of a phone is the sheet's. `lib/compact.ts` is the one
 place a component asks whether this is the phone layout — the shell's 899px breakpoint as a
-hook, so no component reads `innerWidth` against a number the stylesheet does not use. Its own island because it is the only
+hook, so no component reads `innerWidth` against a number the stylesheet does not use. **A tap on
+a country** dismisses the invite at every width; on a phone it also collapses the sheet
+(`ShellControls`), and the collapse is what centres the globe — `GlobeIsland` re-frames on the
+snap without clearing the selection, since a re-frame is not a navigation. Its own island because it is the only
 thing in the app that talks to a server: `lib/daily/api.ts` imports the API client **lazily**, so
 it lands in its own chunk and never constructs during SSR. The flow is a state machine
 (`lib/daily/useDailyAttempt.ts`) and deliberately **not** a quiz-core session —

@@ -32,6 +32,8 @@ import SearchBox from './SearchBox';
 import SettingsSheet from './SettingsSheet';
 import StatsSheet from './StatsSheet';
 import WeakSpots from './WeakSpots';
+import { setPanelSnap } from '../../lib/panel';
+import { useCompact } from '../../lib/compact';
 
 /**
  * Its own chunk, fetched the first time someone opens it — which only a session
@@ -100,14 +102,23 @@ function Controls({
     // Taps on the globe, and taps that hit nothing. Both are the bridge's to
     // report — this component never sees an engine object. A quiz owns the
     // globe while it runs, so its picks are answers and are not ours to read.
+    //
+    // On a phone a tap also collapses the sheet: the reader has turned from
+    // the text to the globe, and the globe has half the screen. The collapse
+    // is what re-frames it to the centre (GlobeIsland follows the snap and
+    // keeps the tapped country highlighted). Beside a desktop column the two
+    // coexist, so the sheet stays.
+    const compact = useCompact();
     useEffect(() => {
         if (!infoEnabled) { setSelected(null); return; }
         const offPick = handle.globe.onPick((name: string) => {
-            if (!quizStore.isActive()) setSelected(name);
+            if (quizStore.isActive()) return;
+            setSelected(name);
+            if (compact) setPanelSnap('collapsed');
         });
         const offDeselect = handle.globe.onDeselect(() => setSelected(null));
         return () => { offPick(); offDeselect(); };
-    }, [handle.globe, infoEnabled]);
+    }, [handle.globe, infoEnabled, compact]);
 
     const row = selected ? handle.countries.byName(selected) : undefined;
 

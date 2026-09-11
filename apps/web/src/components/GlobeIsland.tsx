@@ -260,7 +260,15 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                  * highlighted and flown to; the apex gets the whole world, since
                  * there is nothing in particular to look at.
                  */
-                const show = (screen: Screen) => {
+                /**
+                 * `clear` says whether this is a NAVIGATION (arriving somewhere:
+                 * whatever was highlighted belongs to the last page) or a
+                 * RE-FRAME (the sheet snapped, the window resized: the reader
+                 * is where they were, and a country they tapped stays picked).
+                 * The two used to be one call, and a tap that collapsed the
+                 * sheet on a phone then wiped its own selection on the re-frame.
+                 */
+                const show = (screen: Screen, { clear }: { clear: boolean }) => {
                     // Declare the covered region BEFORE framing anything, so a
                     // country focus lands beside the panel rather than behind it
                     // — focusCountry has no framing options of its own.
@@ -285,29 +293,29 @@ export default function GlobeIsland({ focus }: { focus?: string }) {
                         // it keeps the current heading — the engine guards that
                         // case, because aiming at an undefined point yields a NaN
                         // camera and a canvas that renders nothing at all.
-                        globe.clearSelection();
+                        if (clear) globe.clearSelection();
                         globe.frameGlobe(f);
                     }
                 };
+                const reframe = () => show(getScreen(), { clear: false });
 
                 // Whatever is on screen now — the store may already have moved
                 // on if the mesh took a while and the reader navigated.
-                show(getScreen());
+                show(getScreen(), { clear: true });
 
                 // Re-frame on every pushState navigation. This subscription is
                 // the whole reason the globe survives a link click: the router
                 // publishes, the globe moves, and nothing is torn down.
-                unsubscribe = onScreenChange(show);
+                unsubscribe = onScreenChange((screen) => show(screen, { clear: true }));
 
                 // setViewOffset bakes in the viewport it was given, so a resize
-                // needs the framing recomputed or the projection skews.
-                onResize = () => {
-                    // setViewOffset bakes in the viewport it was given, so both
-                    // halves of the region have to be recomputed, on every route.
-                    show(getScreen());
-                };
+                // needs both halves of the region recomputed, on every route,
+                // or the projection skews.
+                onResize = reframe;
                 window.addEventListener('resize', onResize);
-                unsubscribePanel = onPanelSnapChange(() => show(getScreen()));
+                // A snap moves the free region; the globe follows it. On a phone
+                // a collapse leaves the whole screen, so the globe centres.
+                unsubscribePanel = onPanelSnapChange(reframe);
 
                 // Hand the page over: the placeholder fades out, the globe in.
                 document.documentElement.dataset.globe = 'ready';

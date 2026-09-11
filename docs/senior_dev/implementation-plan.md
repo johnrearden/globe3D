@@ -1819,6 +1819,11 @@ they are listed here so the next deploy's checklist grows from them.
    right on a phone as "Quiz me" at the buttons' height, because the bottom of a phone is the
    sheet's and the pill was covering the reading. `lib/compact.ts` is the shell breakpoint as a
    hook, used by both islands. Desktop keeps the card and the bottom-left launcher.
+   And **a tap on a country**: the invite steps aside at every width (the reader chose the globe
+   over the offer); on a phone the sheet also collapses, which is what centres the globe —
+   `GlobeIsland`'s snap handler re-frames without clearing the selection now, since a re-frame is
+   not a navigation, and the first cut wiped the tapped country on its own collapse. Desktop and
+   tablet keep the sheet where it is.
 
 ---
 
