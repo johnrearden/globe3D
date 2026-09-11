@@ -198,7 +198,7 @@ body {
     }
 
     /* The apex is the globe with a reading panel under it, so the sheet stops
-       at half the screen and the globe fills 90% of the half it leaves (see
+       at half the screen and the globe fills 80% of the half it leaves (see
        globe-framing.ts). At 88vh the strip was ~100px on a phone, shorter than
        the globe at the camera's farthest zoom, and the globe came out clipped
        under the search box. */

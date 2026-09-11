@@ -32,10 +32,10 @@ export interface Framing {
 const FILL = 0.62;
 
 /** The same, in the strip above a phone's bottom sheet. The globe is the
- *  application, and on a phone the strip is half the screen: it fills nearly
- *  all of it. 0.9 of the width leaves the round corner buttons clear of the
- *  limb, which sits well below them at that size. */
-const FILL_STACKED = 0.9;
+ *  application, and on a phone the strip is half the screen: it fills most of
+ *  it. 0.9 read as too close on a real phone; 0.8 keeps the limb clear of the
+ *  round corner buttons with a margin of sky around it. */
+const FILL_STACKED = 0.8;
 
 /**
  * The smallest free strip worth framing into, as a fraction of viewport height.
@@ -44,14 +44,14 @@ const FILL_STACKED = 0.9;
  * zoom is a distance of 10 (`camera-controls.js`), and with the 75° vertical
  * FOV the globe at that distance is vh / (10 · tan 37.5°) ≈ 0.13 · vh across,
  * whatever the width. Framing asks for FILL_STACKED of the strip, so a strip
- * shorter than 0.13 / 0.9 ≈ 0.15 · vh gets a globe the camera clamps LARGER
+ * shorter than 0.13 / 0.8 ≈ 0.17 · vh gets a globe the camera clamps LARGER
  * than the strip — clipped by the screen edge above and the sheet below, a
  * sliver under the search box. That is what the apex looked like on a phone
  * with the sheet at 88vh (a 100px strip on an 844px screen). Below this, the
  * honest answer is that nothing is free: centre the globe behind the sheet, as
  * a collapsed sheet or a drag will reveal it whole.
  */
-const MIN_FREE_FRACTION = 0.15;
+const MIN_FREE_FRACTION = 0.17;
 
 /** Nothing is covering the globe: centre it, full size. */
 const FULL = (vw: number, vh: number): Framing => ({

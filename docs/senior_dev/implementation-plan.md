@@ -1781,11 +1781,12 @@ they are listed here so the next deploy's checklist grows from them.
 
    Fixed in two parts. `PanelSheet` takes `view="home"|"country"` from the page (emitted as
    `data-view`, so it is in the first paint, and followed from the route store after a pushState
-   navigation) and `shell.css` caps the apex sheet at **50vh** on phones; the globe fills **90%**
-   of the strip above it (`FILL_STACKED`; the desktop column keeps 62%) — it is the application,
-   and the round corner buttons sit clear of the limb at that size. And `framingFor` treats a
-   strip under **15% of the viewport height** as no free region — the derivation is in the file:
-   0.13·vh minimum globe over the 0.9 fill — and centres the globe behind the sheet rather than
+   navigation) and `shell.css` caps the apex sheet at **50vh** on phones; the globe fills **80%**
+   of the strip above it (`FILL_STACKED`; the desktop column keeps 62%) — it is the application;
+   90% read as too close on a real phone — and the round corner buttons sit clear of the limb.
+   And `framingFor` treats a strip under **17% of the viewport height** as no free region — the
+   derivation is in the file: 0.13·vh minimum globe over the 0.8 fill — and centres the globe
+   behind the sheet rather than
    clipping it, which is what the country pages now do. The prop is deliberately not re-read
    from the route store on mount: `AppRouter` seeds that store from its own island, and on a
    country page the sheet can hydrate first, in which case reading it would report the apex,
