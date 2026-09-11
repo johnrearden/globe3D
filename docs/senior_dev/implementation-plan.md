@@ -1810,8 +1810,15 @@ they are listed here so the next deploy's checklist grows from them.
    globe is ready** (`INVITE_DELAY_MS`; the layer mounts on `onGlobeReady`, so the delay counts
    from the load) and sitting **just above the sheet's top edge**, measured from the live rect so
    it follows 50vh on the apex, 88vh on an article and the grip when collapsed. The H1 drops to
-   body size below the shell breakpoint; it is still the page's one `<h1>`, since the size is
-   presentation and the element is the claim. The desktop card and heading are unchanged.
+   body size below the shell breakpoint and loses its leading "Terragotcha — " (the wordmark
+   above it already says so; `landing-facts.json`, still 11 verified claims); it is still the
+   page's one `<h1>`, since the size is presentation and the element is the claim. Then the
+   third pass: the invite **fades in** and **steps aside after a minute** with no answer, as
+   "Later" does, becoming the calendar mark third in the top row of round buttons (gear, search,
+   daily — seated by `shell.css`, which owns the row); the quiz launcher joins that row at the
+   right on a phone as "10 Q quiz" at the buttons' height, because the bottom of a phone is the
+   sheet's and the pill was covering the reading. `lib/compact.ts` is the shell breakpoint as a
+   hook, used by both islands. Desktop keeps the card and the bottom-left launcher.
 
 ---
 

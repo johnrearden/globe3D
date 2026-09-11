@@ -44,7 +44,20 @@ describe('the invite on a phone', () => {
     it('waits five seconds after the globe is ready, on the shell breakpoint', () => {
         expect(src).toMatch(/export const INVITE_DELAY_MS = 5000;/);
         expect(src).toMatch(/if \(compact\) \{\s*if \(!waited\) return null;/);
-        expect(src).toMatch(/const COMPACT_QUERY = '\(max-width: 899px\)';/);
+        expect(src).toMatch(/import \{ useCompact \} from '\.\.\/\.\.\/lib\/compact'/);
+        const compact = readFileSync(fileURLToPath(new URL('../apps/web/src/lib/compact.ts', import.meta.url)), 'utf8');
+        expect(compact).toMatch(/export const COMPACT_QUERY = '\(max-width: 899px\)';/);
+    });
+
+    it('fades in, and steps aside after a minute as "Later" does', () => {
+        expect(src).toMatch(/export const INVITE_TIMEOUT_MS = 60_000;/);
+        expect(src).toMatch(/window\.setTimeout\(\(\) => setDismissed\(true\), INVITE_TIMEOUT_MS\)/);
+        expect(css).toMatch(/\.dq-invite \{[^}]*animation: dq-fade-in/);
+        // Dismissed, it is the third round button in the top row, seated by shell.css.
+        expect(src).toMatch(/className="shell-btn dq-pill"/);
+        const shell = readFileSync(fileURLToPath(new URL('../apps/web/src/styles/shell.css', import.meta.url)), 'utf8');
+        expect(shell).toMatch(/\.dq-pill \{[^}]*left: calc\(var\(--space-4\) \+ \(var\(--shell-btn\) \+ var\(--space-2\)\) \* 2\)/);
+        expect(css).not.toMatch(/\.dq-pill \{[^}]*(position|left|width)/);
     });
 
     it('sits just above the panel sheet, measured from the live rect', () => {

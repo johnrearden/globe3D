@@ -136,6 +136,24 @@ describe('formatDuration', () => {
     });
 });
 
+describe('the launcher on a phone', () => {
+    const layer = read('../apps/web/src/components/quiz/QuizLayer.tsx');
+    const shell = read('../apps/web/src/styles/shell.css');
+    const quiz = read('../apps/web/src/styles/quiz.css');
+
+    it('is one short label at the round buttons\' height, top-right', () => {
+        expect(layer).toMatch(/import \{ useCompact \} from '\.\.\/\.\.\/lib\/compact'/);
+        expect(layer).toMatch(/<span className="qz-launch-title">10 Q quiz<\/span>/);
+        const mobile = shell.slice(shell.indexOf('/* ── The quiz launcher'));
+        expect(mobile).toMatch(/@media \(max-width: 899px\) \{\s*\.qz-launch \{[^}]*top: var\(--space-4\);[^}]*right: var\(--space-4\);[^}]*height: var\(--shell-btn\)/);
+    });
+
+    it('is seated by shell.css and styled by quiz.css, not both', () => {
+        expect(shell).toMatch(/^\.qz-launch \{\s*position: fixed;/m);
+        expect(quiz).not.toMatch(/\.qz-launch \{[^}]*(position|bottom|left|top|right):/);
+    });
+});
+
 describe('the quiz must not reach the static document', () => {
     const layout = read('../apps/web/src/layouts/AppLayout.astro');
     const layer = read('../apps/web/src/components/quiz/QuizLayer.tsx');

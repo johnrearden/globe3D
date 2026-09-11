@@ -18,13 +18,10 @@
 @import './answers.css';
 
 /* ── The launcher ─────────────────────────────────────────────────────────── */
-/* Bottom-left on desktop, hugging the bottom-right thumb zone on mobile. It sits
-   above the globe and below every quiz surface. */
+/* Where it sits — bottom-left beside a desktop column, top-right in a phone's
+   button row — is shell.css's; this is what it looks like. On a phone it is
+   one short label ("10 Q quiz") at the round buttons' height. */
 .qz-launch {
-    position: fixed;
-    z-index: 40;
-    bottom: var(--space-4);
-    left: var(--space-4);
     display: flex;
     gap: var(--space-3);
     align-items: center;

@@ -422,9 +422,15 @@ object. `BackButtonGuard` is replaced rather than ported — the component that 
 pushes the history guard entry itself.
 
 **The Daily Challenge (`DailyLayer.tsx`, `client:idle`).** On a phone its invite is one line —
-"Ready for today's 10 questions?", Go, Later — that appears five seconds after the globe is ready
+"Ready for today's 10 questions?", Go, Later — that fades in five seconds after the globe is ready
 and sits just above the panel sheet's top edge, measured from the live rect, in the sky under the
-globe rather than on it; the desktop card is unchanged. Its own island because it is the only
+globe rather than on it; the desktop card keeps its shape. Either invite steps aside after a
+minute with no answer, as "Later" does: it becomes the calendar mark, third in the top row of
+round buttons after the gear and the search toggle (`.shell-btn`; seated by `shell.css`, which
+owns that row). The quiz launcher joins the same row at the right on a phone, as "10 Q quiz" at
+the buttons' height, since the bottom of a phone is the sheet's. `lib/compact.ts` is the one
+place a component asks whether this is the phone layout — the shell's 899px breakpoint as a
+hook, so no component reads `innerWidth` against a number the stylesheet does not use. Its own island because it is the only
 thing in the app that talks to a server: `lib/daily/api.ts` imports the API client **lazily**, so
 it lands in its own chunk and never constructs during SSR. The flow is a state machine
 (`lib/daily/useDailyAttempt.ts`) and deliberately **not** a quiz-core session —

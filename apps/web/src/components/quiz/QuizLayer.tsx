@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getGlobeHandle, onGlobeReady, type GlobeHandle } from '../../lib/globe';
 import { getPanelSnap, setPanelSnap, type Snap } from '../../lib/panel';
+import { useCompact } from '../../lib/compact';
 import { QUIZ_MODES, type ModeId, type Scope } from '../../lib/quiz/modes';
 import type { BestSummary, SessionState } from '../../lib/quiz/useQuizSession';
 import Icon from './Icon';
@@ -34,6 +35,8 @@ type Finished = {
 export default function QuizLayer() {
     const [globe, setGlobe] = useState<GlobeHandle | null>(getGlobeHandle);
     const [picking, setPicking] = useState(false);
+    // Hooks before any early return: the launcher's phone label reads this.
+    const compact = useCompact();
     const [choice, setChoice] = useState<Choice | null>(null);
     const [finished, setFinished] = useState<Finished | null>(null);
 
@@ -125,10 +128,15 @@ export default function QuizLayer() {
     return (
         <button type="button" className="qz-launch" onClick={() => setPicking(true)}>
             <Icon name="globe" size={22} />
-            <span className="qz-launch-text">
-                <span className="qz-launch-title">Quiz me</span>
-                <span className="qz-launch-sub">10 questions</span>
-            </span>
+            {compact ? (
+                // One short label in the phone's top row (shell.css seats it).
+                <span className="qz-launch-title">10 Q quiz</span>
+            ) : (
+                <span className="qz-launch-text">
+                    <span className="qz-launch-title">Quiz me</span>
+                    <span className="qz-launch-sub">10 questions</span>
+                </span>
+            )}
         </button>
     );
 }

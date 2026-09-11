@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getGlobeHandle, onGlobeReady, type GlobeHandle } from '../../lib/globe';
 import { getPanelSnap, setPanelSnap, onPanelSnapChange, type Snap } from '../../lib/panel';
 import { getApi } from '../../lib/daily/api';
+import { useCompact } from '../../lib/compact';
 import { useDailyAttempt } from '../../lib/daily/useDailyAttempt';
 import Icon from '../quiz/Icon';
 import DailyQuestion from './DailyQuestion';
@@ -38,26 +39,15 @@ type NameResolver = (() => void) | null;
  * completing), and sits just above the panel's top edge — measured from the
  * live rect, so it follows the sheet at 50vh on the apex, 88vh on an article
  * and the grip when collapsed — in the sky under the globe rather than on it.
- * The desktop card is unchanged: there it sits in a free corner.
+ * The desktop card is unchanged in shape: there it sits in a free corner.
  *
- * The breakpoint is the shell's (`shell.css`, 899px); a reading here that
- * disagreed with the stylesheet would put the pill in a layout it was not
- * designed for.
+ * Either invite fades in, and either one steps aside after INVITE_TIMEOUT_MS
+ * with no answer, exactly as "Later" does: it becomes the calendar mark in the
+ * top row beside the gear and the search toggle, still one tap away. An offer
+ * that stays put for the whole visit is a banner.
  */
-const COMPACT_QUERY = '(max-width: 899px)';
 export const INVITE_DELAY_MS = 5000;
-
-function useCompact(): boolean {
-    const [compact, setCompact] = useState(() =>
-        typeof window !== 'undefined' && window.matchMedia(COMPACT_QUERY).matches);
-    useEffect(() => {
-        const mq = window.matchMedia(COMPACT_QUERY);
-        const onChange = () => setCompact(mq.matches);
-        mq.addEventListener('change', onChange);
-        return () => mq.removeEventListener('change', onChange);
-    }, []);
-    return compact;
-}
+export const INVITE_TIMEOUT_MS = 60_000;
 
 /** True once INVITE_DELAY_MS has passed since mount, i.e. since the globe was ready. */
 function useWaited(): boolean {
@@ -106,6 +96,16 @@ function DailyChallenge({ handle }: { handle: GlobeHandle }) {
     const compact = useCompact();
     const waited = useWaited();
     const clearance = useSheetClearance();
+
+    // The invite is on screen from `showing`; a minute later with no answer it
+    // dismisses itself. The timer restarts if the invite is withdrawn and
+    // shown again (a quiz opened and closed), and never fires once dismissed.
+    const showing = !dismissed && playedToday !== null && (!compact || waited);
+    useEffect(() => {
+        if (!showing) return;
+        const t = window.setTimeout(() => setDismissed(true), INVITE_TIMEOUT_MS);
+        return () => window.clearTimeout(t);
+    }, [showing]);
 
     const onNeedsName = useCallback(async () => {
         const api = await getApi();
@@ -190,7 +190,7 @@ function DailyChallenge({ handle }: { handle: GlobeHandle }) {
             return (
                 <button
                     type="button"
-                    className="dq-pill"
+                    className="shell-btn dq-pill"
                     onClick={start}
                     aria-label="Daily Challenge"
                 >

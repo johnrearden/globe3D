@@ -183,6 +183,38 @@ body {
     width: min(20rem, calc(100vw - var(--space-4) - var(--shell-btn) - var(--space-2) - var(--space-4)));
 }
 
+/* The dismissed Daily invite: third in the row. Its look is daily.css's. */
+.dq-pill {
+    position: fixed;
+    z-index: 40;
+    top: var(--space-4);
+    left: calc(var(--space-4) + (var(--shell-btn) + var(--space-2)) * 2);
+}
+
+/* ── The quiz launcher's seat ────────────────────────────────────────────────
+   Bottom-left on desktop, in the free column under the globe. On a phone it
+   joins the top row at the right — the same height as the round buttons, so
+   the row reads as one line — because the bottom is the sheet's, and a pill
+   over the sheet's content was covering the reading. What it looks like is
+   quiz.css's business. */
+.qz-launch {
+    position: fixed;
+    z-index: 40;
+    bottom: var(--space-4);
+    left: var(--space-4);
+}
+
+@media (max-width: 899px) {
+    .qz-launch {
+        top: var(--space-4);
+        right: var(--space-4);
+        bottom: auto;
+        left: auto;
+        height: var(--shell-btn);
+        padding: 0 var(--space-4);
+    }
+}
+
 @media (max-width: 899px) {
     .panel-sheet {
         left: 0;

@@ -13,9 +13,25 @@
 /* ── The invite ───────────────────────────────────────────────────────────── */
 /* Bottom-centre, above the launcher's corner: it is an offer, not a control,
    and it should read before the reader goes looking for one. */
+/* Both invites fade in; the pill they collapse to fades in where it lands. */
+@keyframes dq-fade-in {
+    from { opacity: 0; transform: translate(-50%, var(--space-2)); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes dq-pill-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dq-invite, .dq-pill { animation: none; }
+}
+
 .dq-invite {
     position: fixed;
     z-index: 45;
+    animation: dq-fade-in 400ms ease both;
     bottom: var(--space-4);
     left: 50%;
     transform: translateX(-50%);
@@ -127,22 +143,14 @@
     padding: var(--space-2) var(--space-2);
 }
 
-/* Dismissed: the offer shrinks to a mark beside the gear, still reachable. */
+/* Dismissed — by "Later" or by a minute's silence — the offer becomes a mark
+   in the top row, third after the gear and the search toggle, still one tap
+   away. Its seat is shell.css's (the top row is shell furniture); its look is
+   `.shell-btn`, plus the primary colour that says it is an offer, not a
+   setting. */
 .dq-pill {
-    position: fixed;
-    z-index: 40;
-    top: var(--space-4);
-    left: calc(var(--space-4) + 3.25rem);
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    background: var(--bg-panel);
     color: var(--primary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-circle);
-    box-shadow: var(--shadow-low);
-    cursor: pointer;
+    animation: dq-pill-in 300ms ease both;
 }
 
 .dq-pill:hover {
