@@ -20,7 +20,7 @@
 /* ── The launcher ─────────────────────────────────────────────────────────── */
 /* Where it sits — bottom-left beside a desktop column, top-right in a phone's
    button row — is shell.css's; this is what it looks like. On a phone it is
-   one short label ("10 Q quiz") at the round buttons' height. */
+   one short label ("Quiz me") at the round buttons' height. */
 .qz-launch {
     display: flex;
     gap: var(--space-3);

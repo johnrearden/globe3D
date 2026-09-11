@@ -1816,7 +1816,7 @@ they are listed here so the next deploy's checklist grows from them.
    third pass: the invite **fades in** and **steps aside after a minute** with no answer, as
    "Later" does, becoming the calendar mark third in the top row of round buttons (gear, search,
    daily — seated by `shell.css`, which owns the row); the quiz launcher joins that row at the
-   right on a phone as "10 Q quiz" at the buttons' height, because the bottom of a phone is the
+   right on a phone as "Quiz me" at the buttons' height, because the bottom of a phone is the
    sheet's and the pill was covering the reading. `lib/compact.ts` is the shell breakpoint as a
    hook, used by both islands. Desktop keeps the card and the bottom-left launcher.
 

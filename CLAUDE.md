@@ -427,7 +427,7 @@ and sits just above the panel sheet's top edge, measured from the live rect, in 
 globe rather than on it; the desktop card keeps its shape. Either invite steps aside after a
 minute with no answer, as "Later" does: it becomes the calendar mark, third in the top row of
 round buttons after the gear and the search toggle (`.shell-btn`; seated by `shell.css`, which
-owns that row). The quiz launcher joins the same row at the right on a phone, as "10 Q quiz" at
+owns that row). The quiz launcher joins the same row at the right on a phone, as "Quiz me" at
 the buttons' height, since the bottom of a phone is the sheet's. `lib/compact.ts` is the one
 place a component asks whether this is the phone layout — the shell's 899px breakpoint as a
 hook, so no component reads `innerWidth` against a number the stylesheet does not use. Its own island because it is the only

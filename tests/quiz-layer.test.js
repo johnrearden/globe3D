@@ -143,7 +143,7 @@ describe('the launcher on a phone', () => {
 
     it('is one short label at the round buttons\' height, top-right', () => {
         expect(layer).toMatch(/import \{ useCompact \} from '\.\.\/\.\.\/lib\/compact'/);
-        expect(layer).toMatch(/<span className="qz-launch-title">10 Q quiz<\/span>/);
+        expect(layer).toMatch(/<span className="qz-launch-title">Quiz me<\/span>/);
         const mobile = shell.slice(shell.indexOf('/* ── The quiz launcher'));
         expect(mobile).toMatch(/@media \(max-width: 899px\) \{\s*\.qz-launch \{[^}]*top: var\(--space-4\);[^}]*right: var\(--space-4\);[^}]*height: var\(--shell-btn\)/);
     });

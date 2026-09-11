@@ -130,7 +130,7 @@ export default function QuizLayer() {
             <Icon name="globe" size={22} />
             {compact ? (
                 // One short label in the phone's top row (shell.css seats it).
-                <span className="qz-launch-title">10 Q quiz</span>
+                <span className="qz-launch-title">Quiz me</span>
             ) : (
                 <span className="qz-launch-text">
                     <span className="qz-launch-title">Quiz me</span>
