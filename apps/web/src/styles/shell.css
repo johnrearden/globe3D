@@ -23,6 +23,42 @@
        its own copy: the drag maths needs the same number, and two declarations of
        it would drift silently into a sheet that snaps to the wrong place. */
     --panel-grip: 44px;
+    /* The round shell buttons — the gear, the search toggle — share one size so
+       they read as a set; WeakSpots clears it (`--weakspots-top`). */
+    --shell-btn: 2.75rem;
+}
+
+/* ── The shell buttons ───────────────────────────────────────────────────────
+   One look for the gear (settings) and the search toggle: a round, panel-
+   coloured button that sits over the globe. Each owner places its own — the
+   gear in controls.css, search below — this is only what they look like. */
+.shell-btn {
+    display: grid;
+    place-items: center;
+    width: var(--shell-btn);
+    height: var(--shell-btn);
+    padding: 0;
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-circle);
+    box-shadow: var(--shadow-low);
+    cursor: pointer;
+}
+
+.shell-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+
+.shell-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.shell-btn[aria-expanded='true'] {
+    color: var(--primary);
+    border-color: var(--primary);
 }
 
 *,
@@ -130,16 +166,21 @@ body {
 /* ── Mobile: a bottom sheet over the globe ────────────────────────────────── */
 /* ── Search's seat ─────────────────────────────────────────────────────────
    Placed here rather than in discover.css because where it sits is a fact about
-   the shell furniture around it — the gear owns the top-left corner, the quiz
-   card the bottom — and on a wide screen about the article panel's width. What
-   it LOOKS like is discover.css's business. */
+   the shell furniture around it: it is the gear's neighbour, one step to its
+   right, so the two round buttons read as a pair in the corner the panel never
+   covers. Collapsed it is just the button; open, the field grows to the right
+   of it, as far as the viewport allows or 20rem. What it LOOKS like is
+   discover.css's business. */
 .cs-box {
     position: fixed;
     z-index: 45;
     top: var(--space-4);
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(20rem, calc(100vw - 8rem));
+    left: calc(var(--space-4) + var(--shell-btn) + var(--space-2));
+    width: var(--shell-btn);
+}
+
+.cs-box[data-open='true'] {
+    width: min(20rem, calc(100vw - var(--space-4) - var(--shell-btn) - var(--space-2) - var(--space-4)));
 }
 
 @media (max-width: 899px) {
@@ -157,12 +198,12 @@ body {
     }
 
     /* The apex is the globe with a reading panel under it, so the sheet stops
-       at the vanilla split (its panel began at 42vh). The strip this leaves is
-       what the globe is framed into; at 88vh the strip was ~100px on a phone,
-       shorter than the globe at the camera's farthest zoom, and the globe came
-       out clipped under the search box. */
+       at half the screen and the globe fills 90% of the half it leaves (see
+       globe-framing.ts). At 88vh the strip was ~100px on a phone, shorter than
+       the globe at the camera's farthest zoom, and the globe came out clipped
+       under the search box. */
     .panel-sheet[data-view='home'] {
-        max-height: 58vh;
+        max-height: 50vh;
     }
 
     .panel-sheet[data-snap='collapsed'] {
@@ -177,17 +218,8 @@ body {
 /* ── Desktop: a column beside the globe ───────────────────────────────────── */
 @media (min-width: 900px) {
     :root {
-        /* The panel's width, named because search has to avoid it. */
+        /* The panel's width, named so the sheet rules below share one value. */
         --panel-w: min(46rem, 46vw);
-    }
-
-    /* Centre search on what the panel LEAVES, not on the viewport — otherwise
-       it sits half underneath the article. This lives here rather than in
-       discover.css because it is derived from the panel's width: restating that
-       width in another file is the drift `--panel-grip` exists to avoid, and
-       discover.css is imported later, so a `left` there would win anyway. */
-    .cs-box {
-        left: calc((100vw - var(--panel-w)) / 2);
     }
 
     .panel-sheet {

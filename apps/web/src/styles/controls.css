@@ -7,32 +7,14 @@
  */
 
 /* ── The gear ─────────────────────────────────────────────────────────────── */
-/* Top-left, opposite the panel, so it never sits under the sheet on mobile. */
+/* Top-left, opposite the panel, so it never sits under the sheet on mobile.
+   Its look is `.shell-btn` (shell.css), shared with the search toggle beside
+   it; this is only its seat. */
 .shell-gear {
     position: fixed;
     z-index: 40;
     top: var(--space-4);
     left: var(--space-4);
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    background: var(--bg-panel);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-circle);
-    box-shadow: var(--shadow-low);
-    cursor: pointer;
-}
-
-.shell-gear:hover {
-    color: var(--text-primary);
-    border-color: var(--border-strong);
-}
-
-.shell-gear:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
 }
 
 /* ── Form rows ────────────────────────────────────────────────────────────── */

@@ -21,6 +21,13 @@
  * **Matching moved out.** Diacritic folding and prefix-first ranking — the two
  * things the old implementation got wrong — are in `lib/search.ts`, pure and
  * tested. This file is the input, the listbox and the three bridge calls.
+ *
+ * **It starts as a button.** The globe is the application; a text field across
+ * the top of it on a phone was chrome over the subject. So search is a round
+ * toggle beside the gear, the same size and look, and the field appears only
+ * when it is pressed — focused at once, so one tap starts typing. It closes on
+ * a choice, on Escape with nothing typed, on the toggle, or when focus leaves it
+ * with nothing typed; a typed query survives a stray tap elsewhere.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildIndex, rank, resolveEnter } from '../../lib/search';
@@ -40,7 +47,14 @@ export default function SearchBox({
 }) {
     const [term, setTerm] = useState('');
     const [cursor, setCursor] = useState(-1);
+    const [open, setOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Focus the field the moment it appears: the toggle press is the user
+    // gesture, so the mobile keyboard is allowed to come up on it.
+    useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
+
+    const close = useCallback(() => { setTerm(''); setOpen(false); }, []);
 
     const entries = useMemo(
         () => buildIndex(countries.all.map((c) => c.name)),
@@ -61,16 +75,17 @@ export default function SearchBox({
         globe.clearSelection();
         globe.highlight(name);
         globe.focusCountry(name);
-        setTerm('');
+        close();
         onSelect?.(name);
         inputRef.current?.blur();
-    }, [globe, onSelect]);
+    }, [globe, onSelect, close]);
 
     const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Escape') {
-            // Clear if there is something to clear, otherwise let the press
-            // reach whatever else is listening.
-            if (term) { e.preventDefault(); setTerm(''); }
+            // Clear if there is something to clear, otherwise close the field
+            // and let the press reach whatever else is listening.
+            e.preventDefault();
+            if (term) setTerm(''); else close();
             return;
         }
         if (!results.length) return;
@@ -87,12 +102,32 @@ export default function SearchBox({
         }
     };
 
-    const open = results.length > 0;
+    const listOpen = results.length > 0;
 
     return (
-        <div className="cs-box">
-            <div className="cs-field">
-                <Icon name="search" size={16} className="cs-icon" />
+        <div
+            className="cs-box"
+            data-open={open ? 'true' : 'false'}
+            // Focus leaving the whole box with nothing typed puts the button
+            // back; a query in progress is kept, since a stray tap on the globe
+            // should not cost the reader what they typed.
+            onBlur={(e) => {
+                if (!term && !e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+            }}
+        >
+            <div className="cs-row">
+                <button
+                    type="button"
+                    className="shell-btn cs-toggle"
+                    onClick={() => (open ? close() : setOpen(true))}
+                    aria-label={open ? 'Close search' : 'Search countries'}
+                    aria-expanded={open}
+                    aria-controls="cs-field"
+                >
+                    <Icon name="search" size={20} />
+                </button>
+                {open && (
+                <div className="cs-field" id="cs-field">
                 <input
                     ref={inputRef}
                     type="text"
@@ -105,7 +140,7 @@ export default function SearchBox({
                     autoComplete="off"
                     spellCheck={false}
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={listOpen}
                     aria-controls="cs-results"
                     aria-autocomplete="list"
                     aria-activedescendant={
@@ -121,9 +156,11 @@ export default function SearchBox({
                         <Icon name="x" size={14} />
                     </button>
                 )}
+                </div>
+                )}
             </div>
 
-            {term.trim() && (
+            {open && term.trim() && (
                 <ul className="cs-results" id="cs-results" role="listbox" aria-label="Countries">
                     {results.map((name, i) => (
                         <li key={name} id={`cs-option-${i}`} role="option" aria-selected={i === cursor}>

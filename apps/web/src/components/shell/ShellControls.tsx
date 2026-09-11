@@ -115,7 +115,7 @@ function Controls({
         <>
             <button
                 type="button"
-                className="shell-gear"
+                className="shell-btn shell-gear"
                 onClick={() => setOverlay(overlay === 'settings' ? null : 'settings')}
                 aria-label="Settings"
                 aria-expanded={overlay === 'settings'}

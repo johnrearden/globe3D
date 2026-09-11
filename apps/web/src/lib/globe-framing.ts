@@ -26,9 +26,16 @@ export interface Framing {
     visibleFraction: number;
 }
 
-/** How much of the free region's short side the globe spans. Below 1 so the
- *  limb never touches the panel edge. */
+/** How much of the free region's short side the globe spans beside a desktop
+ *  column, and when nothing covers it. Below 1 so the limb never touches the
+ *  panel edge. */
 const FILL = 0.62;
+
+/** The same, in the strip above a phone's bottom sheet. The globe is the
+ *  application, and on a phone the strip is half the screen: it fills nearly
+ *  all of it. 0.9 of the width leaves the round corner buttons clear of the
+ *  limb, which sits well below them at that size. */
+const FILL_STACKED = 0.9;
 
 /**
  * The smallest free strip worth framing into, as a fraction of viewport height.
@@ -36,15 +43,15 @@ const FILL = 0.62;
  * The engine cannot draw the globe arbitrarily small: the camera's farthest
  * zoom is a distance of 10 (`camera-controls.js`), and with the 75° vertical
  * FOV the globe at that distance is vh / (10 · tan 37.5°) ≈ 0.13 · vh across,
- * whatever the width. Framing asks for FILL of the strip, so a strip shorter
- * than 0.13 / 0.62 ≈ 0.21 · vh gets a globe the camera clamps LARGER than the
- * strip — clipped by the screen edge above and the sheet below, a sliver under
- * the search box. That is what the apex looked like on a phone with the sheet
- * at 88vh (a 100px strip on an 844px screen). Below this, the honest answer is
- * that nothing is free: centre the globe behind the sheet, as a collapsed
- * sheet or a drag will reveal it whole.
+ * whatever the width. Framing asks for FILL_STACKED of the strip, so a strip
+ * shorter than 0.13 / 0.9 ≈ 0.15 · vh gets a globe the camera clamps LARGER
+ * than the strip — clipped by the screen edge above and the sheet below, a
+ * sliver under the search box. That is what the apex looked like on a phone
+ * with the sheet at 88vh (a 100px strip on an 844px screen). Below this, the
+ * honest answer is that nothing is free: centre the globe behind the sheet, as
+ * a collapsed sheet or a drag will reveal it whole.
  */
-const MIN_FREE_FRACTION = 0.21;
+const MIN_FREE_FRACTION = 0.15;
 
 /** Nothing is covering the globe: centre it, full size. */
 const FULL = (vw: number, vh: number): Framing => ({
@@ -82,7 +89,7 @@ export function framingFor(panel: Rect | null, viewport: { width: number; height
         ? { x: (freeW * 0.5) / vw, y: 0.5 }
         : { x: 0.5, y: (freeH * 0.5) / vh };
 
-    const diameter = FILL * Math.min(freeW, freeH);
+    const diameter = (horizontal ? FILL : FILL_STACKED) * Math.min(freeW, freeH);
     return {
         focalAnchor,
         widthFraction: diameter / vw,

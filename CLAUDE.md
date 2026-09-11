@@ -340,11 +340,12 @@ PanelSheet     client:idle   — hydrates, so the sheet can be dragged
 The same composition serves the apex (`LandingContent` in place of `CountryArticle`), with one
 difference the page declares: `PanelSheet` takes `view="home"` or `view="country"`, emitted as
 `data-view` so it is in the first paint. On a phone an article sheet may take 88vh — the reader
-came for the text — but the apex sheet stops at 58vh (the vanilla split), because the strip above
-it is what the globe is framed into, and the camera cannot shrink the globe below ~13% of the
-viewport height (75° FOV, farthest zoom 10). Framed into a 100px strip it came out clipped under
+came for the text — but the apex sheet stops at 50vh, and the globe fills 90% of the strip above
+it (`FILL_STACKED` in `globe-framing.ts`; 62% beside a desktop column): the globe is the
+application. The camera cannot shrink the globe below ~13% of the viewport height (75° FOV,
+farthest zoom 10), so framed into the ~100px strip an 88vh sheet left it came out clipped under
 the search box, which is how the first phone screenshot of production looked. `globe-framing.ts`
-now treats a strip under 21% of the viewport as no free region at all and centres the globe
+now treats a strip under 15% of the viewport as no free region at all and centres the globe
 behind the sheet instead — the country pages get that — and the sheet follows the route after a
 pushState navigation, so the two views keep their heights.
 
@@ -432,7 +433,11 @@ a camera (`lib/daily/server-map.ts`). One rule there is load-bearing: **a map-cl
 never rotation-locked**, whatever the server sends, or the player cannot reach the country they
 mean and the question is unanswerable.
 
-**Search and the country info panel (`SearchBox.tsx`, `CountryInfo.tsx`).** Both live in
+**Search and the country info panel (`SearchBox.tsx`, `CountryInfo.tsx`).** Search is a round
+toggle beside the gear — both wear `.shell-btn` (shell.css), one look, one size — and the field
+appears only when it is pressed, focused at once; it closes on a choice, on Escape with nothing
+typed, or when focus leaves it empty. A text field across the top of the globe on a phone was
+chrome over the subject. Both live in
 `ShellControls`, not in islands of their own: they need the same globe handle and the same
 "stand down while a quiz runs" rule. Matching is `lib/search.ts` — pure, and separate
 because both its rules were bugs in the vanilla version: **diacritics fold** (the four

@@ -17,8 +17,23 @@
 
 /* ── Search ───────────────────────────────────────────────────────────────── */
 /* `.cs-box` — where it sits — is in shell.css. Everything from here down is
-   what it looks like. */
+   what it looks like: a round toggle (the gear's twin, `.shell-btn`) and, once
+   pressed, the field beside it. The field is the only thing that appears and
+   disappears; the toggle is always there, so the corner never changes shape. */
+.cs-row {
+    display: flex;
+    gap: var(--space-2);
+    /* Stretch, so the field takes the toggle's height without restating it. */
+    align-items: stretch;
+}
+
+.cs-toggle {
+    flex: none;
+}
+
 .cs-field {
+    flex: 1;
+    min-width: 0;
     display: flex;
     gap: var(--space-2);
     align-items: center;
@@ -31,11 +46,6 @@
 
 .cs-field:focus-within {
     border-color: var(--primary);
-}
-
-.cs-icon {
-    flex: none;
-    color: var(--text-secondary);
 }
 
 .cs-input {
@@ -112,7 +122,8 @@
     font-size: var(--text-sm);
 }
 
-.cs-input:focus-visible,
+/* Not .cs-input: the field opens focused, and the pill already lights up as one
+   through .cs-field:focus-within — a second ring inside it is noise. */
 .cs-clear:focus-visible,
 .cs-result:focus-visible,
 .ci-close:focus-visible,

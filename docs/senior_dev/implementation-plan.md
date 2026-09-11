@@ -1781,20 +1781,27 @@ they are listed here so the next deploy's checklist grows from them.
 
    Fixed in two parts. `PanelSheet` takes `view="home"|"country"` from the page (emitted as
    `data-view`, so it is in the first paint, and followed from the route store after a pushState
-   navigation) and `shell.css` caps the apex sheet at **58vh** on phones, leaving a 354px strip
-   that the globe fills at a distance inside the camera's range. And `framingFor` treats a strip
-   under **21% of the viewport height** as no free region — the derivation is in the file:
-   0.13·vh minimum globe over 0.62 fill — and centres the globe behind the sheet rather than
+   navigation) and `shell.css` caps the apex sheet at **50vh** on phones; the globe fills **90%**
+   of the strip above it (`FILL_STACKED`; the desktop column keeps 62%) — it is the application,
+   and the round corner buttons sit clear of the limb at that size. And `framingFor` treats a
+   strip under **15% of the viewport height** as no free region — the derivation is in the file:
+   0.13·vh minimum globe over the 0.9 fill — and centres the globe behind the sheet rather than
    clipping it, which is what the country pages now do. The prop is deliberately not re-read
    from the route store on mount: `AppRouter` seeds that store from its own island, and on a
    country page the sheet can hydrate first, in which case reading it would report the apex,
    shrink the sheet and grow it back a beat later.
 
-   Verified in headless Chrome at 390×844 with the globe loaded (`build:pages:local`): the apex
-   sheet tops out at 354px with the whole globe centred in the strip above; the country sheet
-   stays at 88vh with a clean strip. `tests/globe-framing.test.js` pins the threshold and both
-   shapes; `tests/landing-page-static.test.js` pins the prop, the two heights and the
-   route-following.
+   With it, **search became a button**: a round toggle beside the gear (both `.shell-btn`, one
+   look, one size) with the field appearing only when pressed, focused at once, closing on a
+   choice, on Escape with nothing typed, or when focus leaves it empty. A text field across the
+   top of the globe on a phone was chrome over the subject.
+
+   Verified in headless Chrome at 390×844 and 1280×900 with the globe loaded
+   (`build:pages:local`): the apex sheet tops out at 422px with the globe filling the strip
+   above; the country sheet stays at 88vh with a clean strip; search opens beside the gear, lists
+   matches, and collapses to the button on Escape. `tests/globe-framing.test.js` pins the
+   threshold and both fills; `tests/landing-page-static.test.js` the prop and the two heights;
+   `tests/shell-search-toggle.test.js` the toggle's states and the shared button.
 
 ---
 

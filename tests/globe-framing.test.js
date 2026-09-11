@@ -53,19 +53,26 @@ describe('a strip the camera cannot frame into', () => {
         expect(f.visibleFraction).toBe(1);
     });
 
-    it('but a strip the apex now leaves is framed into as before', () => {
-        // 58vh sheet → 354px free: the globe (0.62 · 354 ≈ 220px) fits at a
+    it('but the half-screen strip the apex leaves gets a globe 90% of it', () => {
+        // 50vh sheet → 422px free above it; the globe is the application, so
+        // it fills 0.9 of the strip's short side (the width, on a phone) at a
         // distance well inside the camera's range.
-        const apex = { left: 0, top: 354, width: 390, height: 490 };
+        const apex = { left: 0, top: 422, width: 390, height: 422 };
         const f = framingFor(apex, phone);
-        expect(f.focalAnchor.y).toBeCloseTo(354 / 2 / 844, 6);
-        expect(f.visibleFraction).toBeCloseTo(354 / 390, 6);
+        expect(f.focalAnchor.y).toBeCloseTo(422 / 2 / 844, 6);
+        expect(f.widthFraction * 390).toBeCloseTo(0.9 * 390, 6);
+        expect(f.visibleFraction).toBeCloseTo(1, 6);
     });
 
-    it('draws the line at 21% of the viewport height', () => {
+    it('keeps the desktop column at 62%, where the panel is beside the globe', () => {
+        const f = framingFor({ left: 800, top: 0, width: 640, height: 900 }, { width: 1440, height: 900 });
+        expect(f.widthFraction * 1440).toBeCloseTo(0.62 * 800, 6);
+    });
+
+    it('draws the line at 15% of the viewport height', () => {
         const just = (top) => framingFor({ left: 0, top, width: 390, height: 844 - top }, phone).visibleFraction;
-        expect(just(Math.ceil(0.21 * 844) + 1)).toBeLessThan(1);
-        expect(just(Math.floor(0.21 * 844) - 1)).toBe(1);
+        expect(just(Math.ceil(0.15 * 844) + 1)).toBeLessThan(1);
+        expect(just(Math.floor(0.15 * 844) - 1)).toBe(1);
     });
 });
 
