@@ -421,7 +421,10 @@ Answers to "find the country" arrive through `globeBridge.onPick`, never from an
 object. `BackButtonGuard` is replaced rather than ported — the component that starts the quiz
 pushes the history guard entry itself.
 
-**The Daily Challenge (`DailyLayer.tsx`, `client:idle`).** Its own island because it is the only
+**The Daily Challenge (`DailyLayer.tsx`, `client:idle`).** On a phone its invite is one line —
+"Ready for today's 10 questions?", Go, Later — that appears five seconds after the globe is ready
+and sits just above the panel sheet's top edge, measured from the live rect, in the sky under the
+globe rather than on it; the desktop card is unchanged. Its own island because it is the only
 thing in the app that talks to a server: `lib/daily/api.ts` imports the API client **lazily**, so
 it lands in its own chunk and never constructs during SSR. The flow is a state machine
 (`lib/daily/useDailyAttempt.ts`) and deliberately **not** a quiz-core session —

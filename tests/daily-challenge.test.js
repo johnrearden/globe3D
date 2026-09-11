@@ -8,6 +8,8 @@
  * legitimately produce.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createFakeGlobeBridge, callNames } from '../packages/globe-bridge/src/index.js';
 import { applyServerMap, isMapClick } from '../apps/web/src/lib/daily/server-map.ts';
 import { formatQuizDate, formatTime } from '../apps/web/src/lib/daily/format.ts';
@@ -26,6 +28,30 @@ const mapClickQuestion = (map) => ({
     prompt: 'Click Zambia.',
     answer: { method: 'map-click-single' },
     map,
+});
+
+describe('the invite on a phone', () => {
+    // Source-level: the compact variant, its delay, and where it sits.
+    const src = readFileSync(fileURLToPath(new URL('../apps/web/src/components/daily/DailyLayer.tsx', import.meta.url)), 'utf8');
+    const css = readFileSync(fileURLToPath(new URL('../apps/web/src/styles/daily.css', import.meta.url)), 'utf8');
+
+    it('is one question and two words', () => {
+        expect(src).toContain("'Ready for today’s 10 questions?'");
+        expect(src).toMatch(/className="dq-invite-go" onClick=\{start\}>Go</);
+        expect(src).toMatch(/className="dq-invite-later" onClick=\{\(\) => setDismissed\(true\)\}>\s*Later\s*</);
+    });
+
+    it('waits five seconds after the globe is ready, on the shell breakpoint', () => {
+        expect(src).toMatch(/export const INVITE_DELAY_MS = 5000;/);
+        expect(src).toMatch(/if \(compact\) \{\s*if \(!waited\) return null;/);
+        expect(src).toMatch(/const COMPACT_QUERY = '\(max-width: 899px\)';/);
+    });
+
+    it('sits just above the panel sheet, measured from the live rect', () => {
+        expect(src).toMatch(/window\.innerHeight - sheet\.getBoundingClientRect\(\)\.top/);
+        expect(src).toMatch(/style=\{\{ '--dq-invite-bottom': `\$\{clearance\}px` \}/);
+        expect(css).toMatch(/\.dq-invite--compact \{[^}]*bottom: calc\(var\(--dq-invite-bottom\) \+ var\(--space-2\)\)/);
+    });
 });
 
 describe('isMapClick', () => {

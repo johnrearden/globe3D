@@ -81,6 +81,52 @@
     outline-offset: 2px;
 }
 
+/* On a phone: one line, hugging the top edge of the panel sheet from above.
+   `--dq-invite-bottom` is the sheet's clearance, measured by DailyLayer from
+   the live rect (50vh on the apex, 88vh on an article, the grip when
+   collapsed); the default only matters before the first measurement. It sits
+   in the sky under the globe, never on it. */
+.dq-invite--compact {
+    --dq-invite-bottom: 50vh;
+    bottom: calc(var(--dq-invite-bottom) + var(--space-2));
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    /* Shrink-wrap to one line; the cap only bites on the narrowest phones. */
+    width: max-content;
+    max-width: calc(100vw - var(--space-4) * 2);
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+    border-radius: var(--radius-pill);
+    text-align: left;
+}
+
+.dq-invite--compact .dq-invite-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    /* Body font, not the heading face: a monospace heading does not fit a
+       phone's width beside two buttons, and clipped copy is no invite. Wraps
+       on the narrowest screens rather than overflowing. */
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+
+.dq-invite--compact .dq-invite-go {
+    flex: none;
+    width: auto;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+}
+
+.dq-invite--compact .dq-invite-later {
+    flex: none;
+    width: auto;
+    margin: 0;
+    padding: var(--space-2) var(--space-2);
+}
+
 /* Dismissed: the offer shrinks to a mark beside the gear, still reachable. */
 .dq-pill {
     position: fixed;

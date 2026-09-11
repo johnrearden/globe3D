@@ -38,6 +38,19 @@
     margin: 0 0 var(--space-3);
 }
 
+/* On a phone the sheet is half the screen and the wordmark above already
+   carries the brand, so the H1 — still the page's one <h1> for a crawler —
+   reads at body size rather than taking three lines of it. */
+@media (max-width: 899px) {
+    .landing h1 {
+        max-width: none;
+        margin: 0 0 var(--space-2);
+        font-size: var(--text-md);
+        font-weight: var(--weight-medium);
+        color: var(--text-secondary);
+    }
+}
+
 /* ── Sections ─────────────────────────────────────────────────────────────── */
 .landing-section {
     margin-top: var(--space-6);

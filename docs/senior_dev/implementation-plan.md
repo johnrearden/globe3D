@@ -1803,6 +1803,15 @@ they are listed here so the next deploy's checklist grows from them.
    matches, and collapses to the button on Escape. `tests/globe-framing.test.js` pins the
    threshold and both fills; `tests/landing-page-static.test.js` the prop and the two heights;
    `tests/shell-search-toggle.test.js` the toggle's states and the shared button.
+3. **The apex on a phone, second pass.** With the globe given half the screen, two things still
+   crowded it: the Daily Challenge card, which landed over the globe the moment the mesh did,
+   and the H1, three lines of heading in a half-height sheet. The invite is now one line on a
+   phone — "Ready for today's 10 questions?", Go, Later — appearing **five seconds after the
+   globe is ready** (`INVITE_DELAY_MS`; the layer mounts on `onGlobeReady`, so the delay counts
+   from the load) and sitting **just above the sheet's top edge**, measured from the live rect so
+   it follows 50vh on the apex, 88vh on an article and the grip when collapsed. The H1 drops to
+   body size below the shell breakpoint; it is still the page's one `<h1>`, since the size is
+   presentation and the element is the claim. The desktop card and heading are unchanged.
 
 ---
 

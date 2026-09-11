@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getGlobeHandle, onGlobeReady, type GlobeHandle } from '../../lib/globe';
-import { getPanelSnap, setPanelSnap, type Snap } from '../../lib/panel';
+import { getPanelSnap, setPanelSnap, onPanelSnapChange, type Snap } from '../../lib/panel';
 import { getApi } from '../../lib/daily/api';
 import { useDailyAttempt } from '../../lib/daily/useDailyAttempt';
 import Icon from '../quiz/Icon';
@@ -27,6 +27,65 @@ import Onboarding from './Onboarding';
 
 /** Resolves the pending `onNeedsName` promise once the player is done with it. */
 type NameResolver = (() => void) | null;
+
+/**
+ * On a phone the invite is one line — a question and two words — and it waits.
+ *
+ * The globe is the application, and on a phone it has half the screen; a card
+ * over it the moment the mesh lands is an interruption, not an offer. So the
+ * compact invite appears INVITE_DELAY_MS after the globe is ready (this
+ * component mounts on `onGlobeReady`, so the delay counts from the load
+ * completing), and sits just above the panel's top edge — measured from the
+ * live rect, so it follows the sheet at 50vh on the apex, 88vh on an article
+ * and the grip when collapsed — in the sky under the globe rather than on it.
+ * The desktop card is unchanged: there it sits in a free corner.
+ *
+ * The breakpoint is the shell's (`shell.css`, 899px); a reading here that
+ * disagreed with the stylesheet would put the pill in a layout it was not
+ * designed for.
+ */
+const COMPACT_QUERY = '(max-width: 899px)';
+export const INVITE_DELAY_MS = 5000;
+
+function useCompact(): boolean {
+    const [compact, setCompact] = useState(() =>
+        typeof window !== 'undefined' && window.matchMedia(COMPACT_QUERY).matches);
+    useEffect(() => {
+        const mq = window.matchMedia(COMPACT_QUERY);
+        const onChange = () => setCompact(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+    return compact;
+}
+
+/** True once INVITE_DELAY_MS has passed since mount, i.e. since the globe was ready. */
+function useWaited(): boolean {
+    const [waited, setWaited] = useState(false);
+    useEffect(() => {
+        const t = window.setTimeout(() => setWaited(true), INVITE_DELAY_MS);
+        return () => window.clearTimeout(t);
+    }, []);
+    return waited;
+}
+
+/** Pixels from the viewport bottom to the panel sheet's top edge, kept current. */
+function useSheetClearance(): number {
+    const measure = () => {
+        const sheet = document.querySelector('.panel-sheet');
+        return sheet ? Math.max(0, window.innerHeight - sheet.getBoundingClientRect().top) : 0;
+    };
+    const [clearance, setClearance] = useState(0);
+    useEffect(() => {
+        const update = () => setClearance(measure());
+        update();
+        // The sheet animates for 260ms after a snap; measure once it has landed.
+        const offSnap = onPanelSnapChange(() => { window.setTimeout(update, 300); });
+        window.addEventListener('resize', update);
+        return () => { offSnap(); window.removeEventListener('resize', update); };
+    }, []);
+    return clearance;
+}
 
 export default function DailyLayer() {
     const [handle, setHandle] = useState<GlobeHandle | null>(getGlobeHandle);
@@ -44,6 +103,9 @@ function DailyChallenge({ handle }: { handle: GlobeHandle }) {
     const [dismissed, setDismissed] = useState(false);
     const [playedToday, setPlayedToday] = useState<boolean | null>(null);
     const priorSnap = useRef<Snap>('expanded');
+    const compact = useCompact();
+    const waited = useWaited();
+    const clearance = useSheetClearance();
 
     const onNeedsName = useCallback(async () => {
         const api = await getApi();
@@ -134,6 +196,23 @@ function DailyChallenge({ handle }: { handle: GlobeHandle }) {
                 >
                     <Icon name="calendar" size={18} />
                 </button>
+            );
+        }
+        if (compact) {
+            if (!waited) return null;
+            return (
+                <aside
+                    className="dq-invite dq-invite--compact"
+                    style={{ '--dq-invite-bottom': `${clearance}px` } as React.CSSProperties}
+                >
+                    <p className="dq-invite-title">
+                        {playedToday ? 'Add your name to today’s board?' : 'Ready for today’s 10 questions?'}
+                    </p>
+                    <button type="button" className="dq-invite-go" onClick={start}>Go</button>
+                    <button type="button" className="dq-invite-later" onClick={() => setDismissed(true)}>
+                        Later
+                    </button>
+                </aside>
             );
         }
         return (

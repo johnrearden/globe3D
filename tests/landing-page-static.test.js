@@ -67,6 +67,14 @@ describe('apex page composition', () => {
         expect(sheet).toMatch(/onScreenChange\(/);
     });
 
+    it('drops the H1 to body size on a phone, where the sheet is half the screen', () => {
+        const css = read('../apps/web/src/styles/landing.css');
+        const mobile = css.slice(css.indexOf('@media (max-width: 899px)'));
+        expect(mobile).toMatch(/\.landing h1 \{[^}]*font-size: var\(--text-md\)/);
+        // Still the page's one <h1>: the size is presentation, the element is the claim.
+        expect(read('../apps/web/src/components/LandingContent.tsx')).toMatch(/<h1>\{model\.intro\.h1\}<\/h1>/);
+    });
+
     it('keeps the globe placeholder in the page, not inside the island', () => {
         // client:only contributes no build-time HTML, so a placeholder inside it
         // would leave the first paint empty behind the panel.
